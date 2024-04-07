@@ -4,7 +4,12 @@
   "description": "My Twitch Overlay and Bot",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:dev": "npm run build:backend:dev && npm run build:frontend:dev",
+    "build:backend": "esbuild backend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=backend/dist/index.js",
+    "build:frontend": "esbuild frontend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=frontend/dist/index.js",
+    "build:backend:dev": "esbuild backend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=backend/dist/index.js",
+    "build:frontend:dev": "esbuild frontend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=frontend/dist/index.js"
   },
   "repository": {
     "type": "git",
