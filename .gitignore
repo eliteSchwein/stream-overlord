@@ -1,4 +1,4 @@
 node_modules
 .idea
-.env.conf
+./.env.conf
 twitchTokens.json
