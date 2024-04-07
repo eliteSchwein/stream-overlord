@@ -8,10 +8,10 @@
     "start:backend:dev": "node backend/dist/index.js --max-old-space-size=64 --expose-gc --trace_gc --trace-deprecation --trace-warnings --trace-uncaught --track-heap-objects --inspect=0.0.0.0:3000",
     "build": "npm run build:backend && npm run build:frontend",
     "build:dev": "npm run build:backend:dev && npm run build:frontend:dev",
-    "build:backend": "esbuild backend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend": "esbuild frontend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=frontend/dist/index.js",
-    "build:backend:dev": "esbuild backend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend:dev": "esbuild frontend/src/app.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=frontend/dist/index.js"
+    "build:backend": "esbuild backend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=backend/dist/index.js",
+    "build:frontend": "esbuild frontend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=frontend/dist/index.js",
+    "build:backend:dev": "esbuild backend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=backend/dist/index.js",
+    "build:frontend:dev": "esbuild frontend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=frontend/dist/index.js"
   },
   "repository": {
     "type": "git",
