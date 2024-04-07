@@ -44,10 +44,15 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "websocket-ts": "^1.1.1",
+    "@hotwired/stimulus": "^3.2.2",
+    "@twurple/api": "^7.1.0",
+    "@twurple/auth": "^7.1.0",
+    "@twurple/chat": "^7.1.0",
+    "@twurple/eventsub-ws": "^7.1.0",
+    "@twurple/pubsub": "^7.1.0",
     "ws": "^8.13.0"
   },
   "dependencies": {
-    "@hotwired/stimulus": "^3.2.2",
     "sharp": "^0.33.2"
   }
 }
