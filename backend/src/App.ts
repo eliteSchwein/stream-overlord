@@ -16,4 +16,5 @@ async function init() {
     logRegular('connect twitch')
     twitchClient = new TwitchClient()
     await twitchClient.connect()
+    await twitchClient.registerEvents()
 }
