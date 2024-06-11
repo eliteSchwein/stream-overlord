@@ -9,6 +9,8 @@ export default class BaseCommand {
     requiresVip = false
     requiresMod = false
     requiresBroadcaster = false
+    globalCooldown = 5
+    userCooldown = 10
 
     private bot: Bot
 
@@ -37,7 +39,7 @@ export default class BaseCommand {
 
         commands.push(createBotCommand(this.command, (param, context) => {
             void this.handleCommand(param, context)
-        }, {aliases: this.aliases}))
+        }, {aliases: this.aliases, userCooldown: this.userCooldown, globalCooldown: this.globalCooldown}))
 
         return commands
     }

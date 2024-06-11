@@ -39,14 +39,14 @@ function buildConfigCommands(commands: any[]) {
 
         logRegular(`register command: ${command}`)
 
-        commands.push(buildConfigCommand(command, commandContent.message, commandContent.alias))
+        commands.push(buildConfigCommand(command, commandContent))
     }
 
     return commands
 }
 
-function buildConfigCommand(command: string, message: string, aliases: []) {
+function buildConfigCommand(command: string, option: any) {
     return createBotCommand(command, (params, { reply }) => {
-        void reply(message);
-    }, {aliases: aliases})
+        void reply(option.message);
+    }, {aliases: option.alias, userCooldown: option.userCooldown, globalCooldown: option.globalCooldown})
 }
