@@ -1,9 +1,15 @@
 import {getConfig} from "../helper/ConfigHelper";
 import {createBotCommand} from "@twurple/easy-bot";
+import InfoCommand from "./twitch/InfoCommand";
+import {logRegular} from "../helper/LogHelper";
 
 export default function buildCommands() {
     let commands = []
 
+    // coded commands
+    commands = commands.concat(new InfoCommand().register())
+
+    // configured commands
     commands = buildConfigCommands(commands)
 
     commands.push(buildOverviewCommand(commands))
@@ -31,9 +37,12 @@ function buildConfigCommands(commands: any[]) {
     for (const command in config) {
         const commandContent = config[command]
 
+        logRegular(`register command: ${command}`)
+
         commands.push(buildConfigCommand(command, commandContent.message))
 
         for (const alias of commandContent.alias) {
+            logRegular(`register alias ${alias} for command: ${command}`)
             commands.push(buildConfigCommand(alias, commandContent.message))
         }
     }
