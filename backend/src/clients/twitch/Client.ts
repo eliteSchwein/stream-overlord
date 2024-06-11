@@ -1,8 +1,8 @@
 import TwitchAuth from "./Auth";
 import {getConfig} from "../../helper/ConfigHelper";
 import {Bot} from "@twurple/easy-bot";
-import registerCommands from "../../commands/TwitchCommands";
-import buildCommands from "../../commands/TwitchCommands";
+import buildCommands from "./TwitchCommands";
+import registerEventCooldown from "./helper/CooldownHelper";
 
 export default class TwitchClient {
     protected auth: TwitchAuth

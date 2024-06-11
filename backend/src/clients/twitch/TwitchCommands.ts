@@ -1,7 +1,7 @@
-import {getConfig} from "../helper/ConfigHelper";
+import {getConfig} from "../../helper/ConfigHelper";
 import {Bot, createBotCommand} from "@twurple/easy-bot";
-import InfoCommand from "./twitch/InfoCommand";
-import {logRegular} from "../helper/LogHelper";
+import InfoCommand from "./commands/InfoCommand";
+import {logRegular} from "../../helper/LogHelper";
 
 export default function buildCommands(bot: Bot) {
     let commands = []

@@ -1,9 +1,9 @@
 import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
-import {logError, logRegular, logWarn} from "../../helper/LogHelper";
-import {hasModerator, hasVip} from "../../clients/helper/PermissionHelper";
+import {logError, logRegular, logWarn} from "../../../helper/LogHelper";
+import {hasModerator, hasVip} from "../helper/PermissionHelper";
 
 export default class BaseCommand {
-    command = ''
+    command: string
     aliases = []
     params = []
     requiresVip = false

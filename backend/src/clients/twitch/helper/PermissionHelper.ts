@@ -1,6 +1,6 @@
 import {Bot} from "@twurple/easy-bot";
-import {getConfig} from "../../helper/ConfigHelper";
-import {logRegular} from "../../helper/LogHelper";
+import {getConfig} from "../../../helper/ConfigHelper";
+import {logRegular} from "../../../helper/LogHelper";
 
 const moderators = {}
 const vips = {}
@@ -9,7 +9,7 @@ export default async function registerPermissions(bot: Bot) {
     const channels = getConfig(/twitch/g)[0]['channels']
 
     for(const channel of channels) {
-        logRegular(`register permissions: ${channel}`);
+        logRegular(`update permissions: ${channel}`);
 
         moderators[channel] = []
         vips[channel] = []
@@ -25,6 +25,12 @@ export default async function registerPermissions(bot: Bot) {
             vips[channel].push(channelVip.id)
         }
     }
+}
+
+export function registerPermissionInterval(bot: Bot) {
+    setInterval(() => {
+        void registerPermissions(bot)
+    }, 60 * 1000)
 }
 
 export function hasVip(channel: string, userId: string) {
