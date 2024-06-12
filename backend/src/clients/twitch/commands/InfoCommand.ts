@@ -5,6 +5,6 @@ export default class InfoCommand extends BaseCommand{
     command = 'info'
 
     async handle(params: any, context: BotCommandContext) {
-        await context.reply("Moin, ich bin botschw31n. eliteSCHW31N's Bot. mein Code findest du hier: https://github.com/eliteSchwein/dynamic-scene/")
+        await context.reply("Ich nutze ein selbst geschriebenen Bot welcher open soruce ist: https://github.com/eliteSchwein/dynamic-scene/")
     }
 }

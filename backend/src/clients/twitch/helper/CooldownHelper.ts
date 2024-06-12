@@ -22,7 +22,16 @@ export function addEventToCooldown(randomHash: string, name: string, channel: st
     activeEvents[name][channel].push(randomHash)
 }
 
-// todo: remove method here
+export function removeEventFromCooldown(randomHash: string, name: string, channel: string) {
+    const array = activeEvents[name][channel]
+
+    const index = array.indexOf(randomHash)
+    if (index > -1) {
+        array.splice(index, 1)
+    }
+
+    activeEvents[name][channel] = array
+}
 
 export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));

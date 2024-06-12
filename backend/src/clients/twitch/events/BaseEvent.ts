@@ -1,6 +1,12 @@
 import {Bot} from "@twurple/easy-bot";
-import registerEventCooldown, {isEventFull, sleep} from "../helper/CooldownHelper";
+import registerEventCooldown, {
+    addEventToCooldown,
+    isEventFull,
+    removeEventFromCooldown,
+    sleep
+} from "../helper/CooldownHelper";
 import {logRegular} from "../../../helper/LogHelper";
+import {v4 as uuidv4} from 'uuid';
 
 export default class BaseEvent {
     bot: Bot
@@ -8,7 +14,7 @@ export default class BaseEvent {
     name: string
     eventTypes: string[]
     eventLimit = 25
-    eventCooldown = 60
+    eventCooldown = 5
 
     public constructor(bot: Bot) {
         this.bot = bot;
@@ -27,9 +33,15 @@ export default class BaseEvent {
     private async handleEvent(event: any) {
         if(isEventFull(this.name, event.broadcasterName, this.eventLimit)) return
 
+        const eventUuid = uuidv4()
+
+        addEventToCooldown(eventUuid, this.name, event.broadcasterName)
+
         await this.handle(event)
 
         await sleep(this.eventCooldown * 1000)
+
+        removeEventFromCooldown(eventUuid, this.name, event.broadcasterName)
     }
 
     async handle(event: any) {}
