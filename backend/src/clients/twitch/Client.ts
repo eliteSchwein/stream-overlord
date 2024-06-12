@@ -3,6 +3,7 @@ import {getConfig} from "../../helper/ConfigHelper";
 import {Bot} from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
 import registerEventCooldown from "./helper/CooldownHelper";
+import ChannelPointsEvent from "./events/ChannelPointsEvent";
 
 export default class TwitchClient {
     protected auth: TwitchAuth
@@ -26,7 +27,7 @@ export default class TwitchClient {
     }
 
     public async registerEvents() {
-
+        await new ChannelPointsEvent(this.bot).register()
     }
 
     public getBot() {

@@ -1,8 +1,9 @@
 import {Bot} from "@twurple/easy-bot";
 import registerEventCooldown, {isEventFull, sleep} from "../helper/CooldownHelper";
+import {logRegular} from "../../../helper/LogHelper";
 
 export default class BaseEvent {
-    private bot: Bot
+    bot: Bot
 
     name: string
     eventTypes: string[]
@@ -13,8 +14,10 @@ export default class BaseEvent {
         this.bot = bot;
     }
 
-    public register() {
+    register() {
         registerEventCooldown(this.name)
+
+        logRegular(`register event ${this.name}`)
 
         for(const eventType of this.eventTypes) {
             this.bot.on[eventType]((event: any) => void this.handleEvent(event))
