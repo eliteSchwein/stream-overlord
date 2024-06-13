@@ -9,13 +9,14 @@ import registerEventCooldown, {
 } from "../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
 import {logWarn} from "../../../helper/LogHelper";
+import BoostChannelPoint from "./channel_points/BoostChannelPoint";
 
 export default class ChannelPointsEvent extends BaseEvent{
     name = 'ChannelPointEvents'
     eventTypes = []
 
     protected channelPoints = [
-        'test'
+        'Boost'
     ]
 
     async register() {
@@ -59,6 +60,8 @@ export default class ChannelPointsEvent extends BaseEvent{
         const eventUuid = uuidv4()
 
         addEventToCooldown(eventUuid, this.name, event.broadcasterName)
+
+        await new BoostChannelPoint().handleChannelPoint(event)
 
         // here channel point events
 
