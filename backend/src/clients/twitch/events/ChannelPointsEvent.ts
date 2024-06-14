@@ -8,21 +8,23 @@ import registerEventCooldown, {
     removeEventFromCooldown, sleep
 } from "../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
-import {logWarn} from "../../../helper/LogHelper";
+import {logNotice, logRegular, logWarn} from "../../../helper/LogHelper";
 import BoostChannelPoint from "./channel_points/BoostChannelPoint";
 
 export default class ChannelPointsEvent extends BaseEvent{
     name = 'ChannelPointEvents'
     eventTypes = []
 
-    protected channelPoints = [
-        'Boost'
-    ]
+    protected channelPoints = []
 
     async register() {
         const eventSubListener = new EventSubWsListener({ apiClient: this.bot.api, logger: { minLevel: 'ERROR' } });
         eventSubListener.start();
         registerEventCooldown(this.name)
+
+        logRegular(`register channel point handler`)
+
+        this.channelPoints.push(new BoostChannelPoint())
 
         const channels = getConfig(/twitch/g)[0]['channels']
 
@@ -38,14 +40,27 @@ export default class ChannelPointsEvent extends BaseEvent{
         const rewardNames = presentChannelPoints.map(reward => reward.title)
 
         for(const channelPoint of this.channelPoints) {
-            if(rewardNames.includes(channelPoint)) continue
+            const channelPointTitle = channelPoint.getTitle()
 
-            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPoint, cost: 666})
+            if(rewardNames.includes(channelPointTitle)) continue
+
+            logNotice(`create channel point ${channelPointTitle}`)
+
+            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPointTitle, cost: 666})
         }
     }
 
     async handleEventSub(event: EventSubChannelRedemptionAddEvent) {
-        if(!this.channelPoints.includes(event.rewardTitle)) return
+        let isValid = false
+
+        for(const channelPoint of this.channelPoints) {
+            if(channelPoint.getTitle() !== event.rewardTitle) continue
+
+            isValid = true
+            break
+        }
+
+        if(!isValid) return
 
         if(isEventFull(this.name, event.broadcasterName, this.eventLimit)) {
             if(event.broadcasterName !== event.userName) {
@@ -61,9 +76,9 @@ export default class ChannelPointsEvent extends BaseEvent{
 
         addEventToCooldown(eventUuid, this.name, event.broadcasterName)
 
-        await new BoostChannelPoint().handleChannelPoint(event)
-
-        // here channel point events
+        for(const channelPoint of this.channelPoints) {
+            await channelPoint.handleChannelPoint(event)
+        }
 
         await sleep(this.eventCooldown * 1000)
 
