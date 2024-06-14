@@ -8,7 +8,7 @@ import registerEventCooldown, {
     removeEventFromCooldown, sleep
 } from "../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
-import {logNotice, logRegular, logWarn} from "../../../helper/LogHelper";
+import {logError, logNotice, logRegular, logWarn} from "../../../helper/LogHelper";
 import BoostChannelPoint from "./channel_points/BoostChannelPoint";
 
 export default class ChannelPointsEvent extends BaseEvent{
@@ -77,7 +77,18 @@ export default class ChannelPointsEvent extends BaseEvent{
         addEventToCooldown(eventUuid, this.name, event.broadcasterName)
 
         for(const channelPoint of this.channelPoints) {
-            await channelPoint.handleChannelPoint(event)
+            try {
+                await channelPoint.handleChannelPoint(event)
+            } catch (error) {
+                if(event.broadcasterName !== event.userName) {
+                    await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.')
+                }
+
+                logError(`channel point denied for ${event.userName} because of a exception:`)
+                logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                await event.updateStatus('CANCELED')
+                return
+            }
         }
 
         await sleep(this.eventCooldown * 1000)
