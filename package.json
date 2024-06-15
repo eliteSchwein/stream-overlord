@@ -9,9 +9,9 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:dev": "npm run build:backend:dev && npm run build:frontend:dev",
     "build:backend": "esbuild backend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend": "esbuild frontend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=frontend/dist/index.js",
+    "build:frontend": "esbuild frontend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=browser --loader:.html=copy --asset-names=[name] --outfile=frontend/dist/app.js",
     "build:backend:dev": "esbuild backend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend:dev": "esbuild frontend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=frontend/dist/index.js"
+    "build:frontend:dev": "esbuild frontend/src/App.ts  --tree-shaking=true --target=es2020 --bundle --color=true --platform=browser --loader:.html=copy --asset-names=[name] --outfile=frontend/dist/app.js"
   },
   "repository": {
     "type": "git",

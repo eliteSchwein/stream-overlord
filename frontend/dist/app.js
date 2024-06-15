@@ -1,0 +1,1 @@
+(()=>{var p=(i=>typeof require<"u"?require:typeof Proxy<"u"?new Proxy(i,{get:(m,o)=>(typeof require<"u"?require:m)[o]}):i)(function(i){if(typeof require<"u")return require.apply(this,arguments);throw Error('Dynamic require of "'+i+'" is not supported')});var t=p("./index.html");})();
