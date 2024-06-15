@@ -39,6 +39,7 @@
     "@types/readline-sync": "^1.4.8",
     "@types/sharp": "^0.31.1",
     "@types/uuid": "^9.0.8",
+    "@types/ws": "^8.5.10",
     "async-wait-until": "^2.0.12",
     "axios": "^1.6.8",
     "bytes": "^3.1.2",
@@ -57,9 +58,9 @@
     "stacktrace-js": "^2.0.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
-    "websocket-ts": "^1.1.1",
     "uuid": "^10.0.0",
-    "ws": "^8.13.0"
+    "websocket-ts": "^1.1.1",
+    "ws": "^8.17.0"
   },
   "dependencies": {
     "sharp": "^0.33.2"

@@ -9,8 +9,6 @@ export default async function registerPermissions(bot: Bot) {
     const channels = getConfig(/twitch/g)[0]['channels']
 
     for(const channel of channels) {
-        logRegular(`update permissions: ${channel}`);
-
         moderators[channel] = []
         vips[channel] = []
 
