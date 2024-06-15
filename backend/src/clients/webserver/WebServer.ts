@@ -17,5 +17,9 @@ export default class WebServer {
         this.webServer.listen(config.port, '0.0.0.0', () => {
             logSuccess('web server is ready')
         })
+
+        this.webServer.get('/config.json',
+            (req, res) =>
+                res.json(getConfig()))
     }
 }
