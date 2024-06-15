@@ -41,3 +41,7 @@ export async function editDeathCounter(mode: string, value: number = 0) {
 export async function updateGameState(state: string) {
     return await requestApi(`updateGame&state=${state}`)
 }
+
+export async function updateTwitchData() {
+    return await requestApi(`updateTwitch`)
+}

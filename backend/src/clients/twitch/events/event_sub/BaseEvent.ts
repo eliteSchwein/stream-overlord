@@ -1,14 +1,17 @@
-import {Bot} from "@twurple/easy-bot";
 import registerEventCooldown, {
     addEventToCooldown,
     isEventFull,
     removeEventFromCooldown,
     sleep
-} from "../helper/CooldownHelper";
-import {logRegular} from "../../../helper/LogHelper";
+} from "../../helper/CooldownHelper";
+import {logRegular} from "../../../../helper/LogHelper";
 import {v4 as uuidv4} from 'uuid';
+import {EventSubWsListener} from "@twurple/eventsub-ws";
+import {Bot} from "@twurple/easy-bot";
+import {getConfig} from "../../../../helper/ConfigHelper";
 
 export default class BaseEvent {
+    eventSubWs: EventSubWsListener
     bot: Bot
 
     name: string
@@ -16,18 +19,28 @@ export default class BaseEvent {
     eventLimit = 25
     eventCooldown = 5
 
-    public constructor(bot: Bot) {
-        this.bot = bot;
+    public constructor(eventSubWs: EventSubWsListener, bot: Bot) {
+        this.eventSubWs = eventSubWs
+        this.bot = bot
     }
 
-    register() {
+    async register() {
         registerEventCooldown(this.name)
 
-        logRegular(`register event: ${this.name}`)
+        const primaryChannel = await this.bot.api.users.getUserByName(
+            getConfig(/twitch/g)[0]['channels'][0])
+
+        logRegular(`register eventsub event: ${this.name}`)
 
         for(const eventType of this.eventTypes) {
-            this.bot[eventType]((event: any) => void this.handleEvent(event))
+            this.eventSubWs[eventType](primaryChannel.id, (event: any) => this.handleEvent(event))
         }
+
+        void this.handleRegister()
+    }
+
+    async handleRegister() {
+
     }
 
     private async handleEvent(event: any) {

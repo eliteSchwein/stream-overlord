@@ -1,40 +1,22 @@
-import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base"
 import BaseEvent from "./BaseEvent";
-import {EventSubWsListener} from "@twurple/eventsub-ws";
-import {getConfig} from "../../../helper/ConfigHelper";
-import registerEventCooldown, {
-    addEventToCooldown,
-    isEventFull,
-    removeEventFromCooldown, sleep
-} from "../helper/CooldownHelper";
+import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
+import {logError, logNotice, logWarn} from "../../../../helper/LogHelper";
+import {getConfig} from "../../../../helper/ConfigHelper";
+import BoostChannelPoint from "../channel_points/BoostChannelPoint";
+import {addEventToCooldown, isEventFull, removeEventFromCooldown, sleep} from "../../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
-import {logError, logNotice, logRegular, logWarn} from "../../../helper/LogHelper";
-import BoostChannelPoint from "./channel_points/BoostChannelPoint";
 
-export default class ChannelPointsEvent extends BaseEvent{
-    name = 'ChannelPointEvents'
-    eventTypes = []
+export default class ChannelPointsEvent extends BaseEvent {
+    name = 'ChannelPointsEvent'
+    eventTypes = ['onChannelRedemptionAdd']
 
     protected channelPoints = []
 
-    async register() {
-        const eventSubListener = new EventSubWsListener({ apiClient: this.bot.api, logger: { minLevel: 'ERROR' } });
-        eventSubListener.start();
-        registerEventCooldown(this.name)
-
-        logRegular(`register channel point handler`)
+    async handleRegister() {
+        const primaryChannel = await this.bot.api.users.getUserByName(
+            getConfig(/twitch/g)[0]['channels'][0])
 
         this.channelPoints.push(new BoostChannelPoint())
-
-        const channels = getConfig(/twitch/g)[0]['channels']
-
-        for(const channel of channels) {
-            const channelId = await this.bot.api.users.getUserByName(channel)
-
-            eventSubListener.onChannelRedemptionAdd(channelId, async (event: EventSubChannelRedemptionAddEvent) => await this.handleEventSub(event))
-        }
-
-        const primaryChannel = await this.bot.api.users.getUserByName(channels[0])
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)
@@ -44,13 +26,13 @@ export default class ChannelPointsEvent extends BaseEvent{
 
             if(rewardNames.includes(channelPointTitle)) continue
 
-            logNotice(`create channel point ${channelPointTitle}`)
+            logNotice(`create channel point: ${channelPointTitle}`)
 
             await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPointTitle, cost: 666})
         }
     }
 
-    async handleEventSub(event: EventSubChannelRedemptionAddEvent) {
+    async handle(event: EventSubChannelRedemptionAddEvent) {
         let isValid = false
 
         for(const channelPoint of this.channelPoints) {
