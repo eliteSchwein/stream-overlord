@@ -12,7 +12,7 @@ export default class TwitchClient {
     public async connect() {
         this.auth = new TwitchAuth()
 
-        const config = getConfig()['twitch']
+        const config = getConfig(/twitch/g)[0]
 
         const authProvider = await this.auth.getAuthCode()
 

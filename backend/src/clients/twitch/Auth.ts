@@ -91,7 +91,7 @@ export default class TwitchAuth {
     ])
 
     public async getAuthCode() {
-        const config = getConfig()['twitch']
+        const config = getConfig(/twitch/g)[0]
         const clientId = config['client_id'];
         const clientSecret = config['client_secret'];
         const tokenData = await this.readTokenFile(clientId, clientSecret)

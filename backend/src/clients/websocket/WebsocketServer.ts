@@ -8,7 +8,7 @@ export default class WebsocketServer {
     websocket: WebSocketServer
     
     public initial() {
-        const config = getConfig()['websocket']
+        const config = getConfig(/websocket/g)[0]
 
         logRegular(`initial websocket server`)
 
