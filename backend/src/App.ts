@@ -4,6 +4,7 @@ import {logRegular, logSuccess} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
 import registerPermissions, {registerPermissionInterval} from "./clients/twitch/helper/PermissionHelper";
 import WebsocketServer from "./clients/websocket/WebsocketServer";
+import {fetchTheme} from "./helper/ThemeHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -28,6 +29,8 @@ async function init() {
     websocketServer.initial()
     websocketServer.registerEvents()
     logSuccess('websocket server is ready')
+
+    await fetchTheme()
 
     logSuccess('backend is ready')
 }

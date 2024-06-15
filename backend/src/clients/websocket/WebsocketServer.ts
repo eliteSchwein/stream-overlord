@@ -18,4 +18,10 @@ export default class WebsocketServer {
     public registerEvents() {
         void new ConnectEvent(this.websocket).register()
     }
+
+    public post(method: string, data: any) {
+        this.websocket.clients.forEach((client) => {
+            client.send(JSON.stringify({method: method, data: data}))
+        })
+    }
 }
