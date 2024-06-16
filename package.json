@@ -9,9 +9,9 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:dev": "npm run build:backend:dev && npm run build:frontend:dev",
     "build:backend": "esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend": "cp frontend/src/html/* frontend/dist && esbuild frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=browser --asset-names=[name] --outfile=frontend/dist/app.js",
+    "build:frontend": "rm -rf frontend/dist/* && cp frontend/src/html/* frontend/dist && esbuild frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --loader:.mp4=copy --loader:.svg=copy --loader:.gif=copy --loader:.ttf=copy --loader:.webp=copy --platform=browser --asset-names=[name] --outfile=frontend/dist/app.js",
     "build:backend:dev": "esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend:dev": "cp frontend/src/html/* frontend/dist && frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --color=true --platform=browser --asset-names=[name] --outfile=frontend/dist/app.js"
+    "build:frontend:dev": "rm -rf frontend/dist/* && cp frontend/src/html/* frontend/dist && frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --color=true --platform=browser --loader:.mp4=copy --loader:.svg=copy --loader:.gif=copy --loader:.ttf=copy --loader:.webp=copy --asset-names=[name] --outfile=frontend/dist/app.js"
   },
   "repository": {
     "type": "git",
@@ -42,6 +42,7 @@
     "@types/ws": "^8.5.10",
     "async-wait-until": "^2.0.12",
     "axios": "^1.6.8",
+    "bootstrap": "^5.3.3",
     "bytes": "^3.1.2",
     "colorts": "^0.1.63",
     "esbuild": "^0.19.12",
@@ -57,6 +58,7 @@
     "shelljs": "^0.8.5",
     "stacktrace-js": "^2.0.2",
     "ts-node": "^10.9.2",
+    "tsparticles": "^3.4.0",
     "typescript": "^5.3.3",
     "uuid": "^10.0.0",
     "websocket-ts": "^1.1.1",

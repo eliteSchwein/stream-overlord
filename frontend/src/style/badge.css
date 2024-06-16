@@ -1,0 +1,78 @@
+.badge {
+    background: #000;
+    border-radius: 20px;
+    position: relative;
+}
+
+.badge canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.badge .badge-container .logo {
+    height: 107px;
+    width: 100px;
+    background-size: cover;
+    background-image: url("../images/eliteSCHW31N.webp");
+}
+
+.badge .badge-container {
+    color: white;
+    padding-left: 10px;
+    height: 100px;
+    border-radius: 10px;
+    width: 500px;
+    position: relative;
+    z-index: 999;
+}
+
+.badge .badge-container .badge-content {
+    width: 370px;
+    position: absolute;
+    top: 12px;
+    left: 120px;
+    height: 80px;
+}
+
+.badge .badge-container.badge-full .content {
+    width: 100%;
+    left: 0;
+}
+
+.badge .badge-container .badge-subtitle {
+    color: #e5e5e5;
+    width: 100%;
+    height: 50%;
+    text-align: center;
+    font-size: 25px;
+    font-family: 'Silkscreen', sans-serif;
+}
+
+.badge .badge-container .badge-title {
+    place-items: center;
+    width: 100%;
+    height: 50%;
+    text-align: center;
+    font-size: 40px;
+    font-family: 'Orbitron', sans-serif;
+    grid-template-columns: 1fr;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+}
+
+.badge .badge-container .badge-title img {
+    max-width: 370px!important;
+    max-height: 40px!important;
+}
+
+.badge .expand-container {
+    transition-duration: 0.25s;
+    transition-timing-function: ease-in-out;
+    height: 0;
+}
+
+.badge.expand .expand-container {
+    height: 300px;
+}
