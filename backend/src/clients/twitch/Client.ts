@@ -7,9 +7,6 @@ import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import {waitUntil} from "async-wait-until";
 import {logRegular} from "../../helper/LogHelper";
 import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
-import {
-    type ChatClientOptions,
-} from '@twurple/chat';
 
 export default class TwitchClient {
     protected auth: TwitchAuth
