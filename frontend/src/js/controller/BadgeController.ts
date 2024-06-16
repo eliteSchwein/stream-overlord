@@ -83,5 +83,6 @@ export default class BadgeController extends BaseController {
 
     async handleTheme(websocket: Websocket, data: any) {
         await this.particle.loadThemeColor(data.color)
+        this.element.style.boxShadow = `0 0 7px 0 ${data.color}`
     }
 }
