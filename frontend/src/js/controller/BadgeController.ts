@@ -4,9 +4,10 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class BadgeController extends BaseController {
-    static targets = ['title', 'subtitle', 'titleImage']
+    static targets = ['title', 'subtitle', 'titleImage', 'logo']
 
     declare readonly titleTargets: HTMLElement[]
+    declare readonly logoTarget: HTMLElement
     declare readonly titleImageTarget: HTMLImageElement
     declare readonly subtitleTargets: HTMLElement[]
 
