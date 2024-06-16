@@ -27,7 +27,7 @@ export async function fetchTheme() {
 }
 
 export function pushTheme() {
-    getWebsocketServer().post('theme_update', getTheme())
+    getWebsocketServer().send('theme_update', getTheme())
 }
 
 export function setManual(value: string|undefined) {

@@ -2,6 +2,7 @@ import {getConfig} from "../../helper/ConfigHelper";
 import {logRegular, logSuccess} from "../../helper/LogHelper";
 import express, { Express, Request, Response } from "express";
 import * as path from "node:path";
+import ToggleBadgeApi from "./api/ToggleBadgeApi";
 
 export default class WebServer {
     webServer: Express
@@ -21,5 +22,7 @@ export default class WebServer {
         this.webServer.get('/config.json',
             (req, res) =>
                 res.json(getConfig()))
+
+        new ToggleBadgeApi().register(this.webServer)
     }
 }

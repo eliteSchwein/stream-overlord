@@ -63,13 +63,18 @@ export default class BadgeController extends BaseController {
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method !== 'ad_result') return
+        switch (method) {
+            case 'ad_result':
+                if(JSON.stringify(this.ads) === JSON.stringify(data)) return
 
-        if(JSON.stringify(this.ads) === JSON.stringify(data)) return
+                this.ads = data
 
-        this.ads = data
-
-        this.createInterval()
+                this.createInterval()
+                break
+            case 'toggle_badge':
+                this.element.classList.toggle('expand')
+                break
+        }
     }
 
     async handleTheme(websocket: Websocket, data: any) {
