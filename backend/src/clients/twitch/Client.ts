@@ -7,6 +7,9 @@ import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import {waitUntil} from "async-wait-until";
 import {logRegular} from "../../helper/LogHelper";
 import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
+import {
+    type ChatClientOptions,
+} from '@twurple/chat';
 
 export default class TwitchClient {
     protected auth: TwitchAuth
@@ -19,13 +22,22 @@ export default class TwitchClient {
 
         const config = getConfig(/twitch/g)[0]
 
+        let chatClientOptions = undefined
+
+        if(config.test_mode) {
+            chatClientOptions = {
+                secure: true,
+                hostName: 'irc.fdgt.dev'
+            }
+        }
+
         const authProvider = await this.auth.getAuthCode()
 
-        const tempBot = new Bot({ authProvider, channels: config.channels })
+        const tempBot = new Bot({ authProvider, channels: config.channels, chatClientOptions: chatClientOptions})
 
         const commands = buildCommands(tempBot);
 
-        this.bot = new Bot({ authProvider, channels: config.channels, commands })
+        this.bot = new Bot({ authProvider, channels: config.channels, chatClientOptions: chatClientOptions, commands })
 
         this.bot.onConnect(() => {botActive = true})
 
