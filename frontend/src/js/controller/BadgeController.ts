@@ -30,6 +30,7 @@ export default class BadgeController extends BaseController {
         await sleep(50)
 
         if(data.type === 'text') {
+            this.titleImageTarget.src = ''
             this.titleImageTarget.style.display = 'none'
 
             for (const titleElement of this.titleTargets) {
@@ -41,6 +42,9 @@ export default class BadgeController extends BaseController {
         }
 
         this.titleImageTarget.src = data.url
+
+        await sleep(50)
+
         this.titleImageTarget.style.display = null
     }
 
