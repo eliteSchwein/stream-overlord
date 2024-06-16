@@ -52,6 +52,7 @@
     "lodash": "^4.17.21",
     "node-fetch": "^3.3.2",
     "npm-check-updates": "^16.14.12",
+    "obs-websocket-js": "^5.0.5",
     "querystring": "^0.2.1",
     "readline-sync": "^1.4.10",
     "regex-parser": "^2.3.0",

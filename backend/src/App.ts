@@ -6,10 +6,12 @@ import registerPermissions, {registerPermissionInterval} from "./clients/twitch/
 import WebsocketServer from "./clients/websocket/WebsocketServer";
 import {fetchTheme} from "./helper/ThemeHelper";
 import WebServer from "./clients/webserver/WebServer";
+import {OBSClient} from "./clients/obs/OBSClient";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
 let webServer: WebServer
+let obsClient: OBSClient
 
 void init()
 
@@ -32,6 +34,11 @@ async function init() {
     websocketServer.registerEvents()
     logSuccess('websocket server is ready')
 
+    logRegular('connect obs')
+    obsClient = new OBSClient()
+    await obsClient.connect()
+    logSuccess('obs client is ready')
+
     webServer = new WebServer()
     webServer.initial()
 
@@ -50,4 +57,8 @@ export function getTwitchClient() {
 
 export function getWebServer() {
     return webServer
+}
+
+export function getOBSClient() {
+    return obsClient
 }
