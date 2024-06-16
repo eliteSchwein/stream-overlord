@@ -27,12 +27,11 @@ async function init(){
     await loadFull(tsParticles);
 
     websocketClient = new WebsocketClient()
+    await websocketClient.connect()
 
     const stimulus = Application.start()
     stimulus.register('background', BackgroundController)
     stimulus.register('badge', BadgeController)
-
-    websocketClient.connect()
 }
 
 export function getWebsocketClient() {

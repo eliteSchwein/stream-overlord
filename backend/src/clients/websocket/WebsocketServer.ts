@@ -2,6 +2,7 @@ import {WebSocketServer} from "ws";
 import {getConfig} from "../../helper/ConfigHelper";
 import {logRegular} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
+import MessageEvent from "./events/MessageEvent";
 
 
 export default class WebsocketServer {

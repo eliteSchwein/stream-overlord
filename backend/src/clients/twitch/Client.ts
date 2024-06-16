@@ -5,7 +5,6 @@ import buildCommands from "./TwitchCommands";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
 import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import {waitUntil} from "async-wait-until";
-import {sleep} from "./helper/CooldownHelper";
 import {logRegular} from "../../helper/LogHelper";
 import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
 

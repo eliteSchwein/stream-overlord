@@ -3,8 +3,9 @@ import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logError, logNotice, logWarn} from "../../../../helper/LogHelper";
 import {getConfig} from "../../../../helper/ConfigHelper";
 import BoostChannelPoint from "../channel_points/BoostChannelPoint";
-import {addEventToCooldown, isEventFull, removeEventFromCooldown, sleep} from "../../helper/CooldownHelper";
+import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
+import {sleep} from "../../../../../../helper/GeneralHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'

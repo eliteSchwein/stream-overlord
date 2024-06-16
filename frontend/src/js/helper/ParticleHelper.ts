@@ -1,4 +1,4 @@
-import {tsParticles, Options} from "@tsparticles/engine";
+import {tsParticles, Options, Container} from "@tsparticles/engine";
 
 export default class ParticleHelper {
     private config = {
@@ -246,12 +246,27 @@ export default class ParticleHelper {
             }
         }
     }
+    private container: Container
+    private element: HTMLElement
 
     public async loadParticle(element: HTMLElement) {
-        // @ts-ignore
-        const container = await tsParticles.load({
+        if(this.container) {
+            this.container.destroy(true)
+        }
+
+        this.element = element
+
+        this.container = await tsParticles.load({
             element: element,
-            options: this.config,
+            // @ts-ignore
+            options: this.config
         });
+    }
+
+    public  async loadThemeColor(color: string) {
+        this.config.particles.color.value = color
+        this.config.particles.links.color.value = color
+
+        await this.loadParticle(this.element)
     }
 }

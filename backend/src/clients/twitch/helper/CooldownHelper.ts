@@ -32,7 +32,3 @@ export function removeEventFromCooldown(randomHash: string, name: string, channe
 
     activeEvents[name][channel] = array
 }
-
-export function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}

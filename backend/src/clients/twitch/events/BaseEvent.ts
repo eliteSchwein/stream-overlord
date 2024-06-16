@@ -2,11 +2,11 @@ import {Bot} from "@twurple/easy-bot";
 import registerEventCooldown, {
     addEventToCooldown,
     isEventFull,
-    removeEventFromCooldown,
-    sleep
+    removeEventFromCooldown
 } from "../helper/CooldownHelper";
 import {logRegular} from "../../../helper/LogHelper";
 import {v4 as uuidv4} from 'uuid';
+import {sleep} from "../../../../../helper/GeneralHelper";
 
 export default class BaseEvent {
     bot: Bot

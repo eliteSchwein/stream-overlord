@@ -1,12 +1,15 @@
 import {Controller} from "@hotwired/stimulus";
 import {getWebsocketClient} from "../../App";
 import {Websocket, WebsocketEvents} from "websocket-ts";
+import WebsocketClient from "../client/WebsocketClient";
 
 export default class BaseController extends Controller<HTMLElement> {
-    async register() {
-        const websocket = getWebsocketClient().getWebsocket()
+    websocket: WebsocketClient;
 
-        websocket.addEventListener(WebsocketEvents.message, (websocket, event) => this.handleWebsocket(websocket, event))
+    async register() {
+        this.websocket = getWebsocketClient()
+
+        this.websocket.getWebsocket().addEventListener(WebsocketEvents.message, (websocket, event) => this.handleWebsocket(websocket, event))
     }
 
     async connect() {
@@ -36,14 +39,14 @@ export default class BaseController extends Controller<HTMLElement> {
             return
         }
 
-        await this.handleMessage(websocket, data)
+        await this.handleMessage(websocket, data.method, data.data)
     }
 
     async handleTheme(websocket: Websocket, data: any) {
 
     }
 
-    async handleMessage(websocket: Websocket, data: any) {
+    async handleMessage(websocket: Websocket, method: string, data: any) {
 
     }
 }

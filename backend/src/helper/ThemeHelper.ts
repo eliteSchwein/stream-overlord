@@ -14,6 +14,10 @@ export default function getTheme() {
         clonedTheme.data['color'] = clonedTheme.manual
     }
 
+    if(clonedTheme.data['color'] === '') {
+        clonedTheme.data['color'] = '#FFA5A5'
+    }
+
     return clonedTheme
 }
 
