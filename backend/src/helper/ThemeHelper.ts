@@ -1,6 +1,7 @@
 import getThemeData from "../clients/website/WebsiteClient";
 import {logRegular} from "./LogHelper";
 import getWebsocketServer from "../App";
+import {getConfig} from "./ConfigHelper";
 
 const theme = {
     data: {},
@@ -8,6 +9,7 @@ const theme = {
 }
 
 export default function getTheme() {
+    const config = getConfig(/theme/g)[0]
     const clonedTheme = structuredClone(theme)
 
     if(clonedTheme.manual !== '') {
@@ -15,7 +17,7 @@ export default function getTheme() {
     }
 
     if(clonedTheme.data['color'] === '') {
-        clonedTheme.data['color'] = '#FFA5A5'
+        clonedTheme.data['color'] = config.default_color
     }
 
     return clonedTheme

@@ -1,6 +1,6 @@
 import readConfig from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
-import {logRegular, logSuccess} from "./helper/LogHelper";
+import {logError, logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
 import registerPermissions, {registerPermissionInterval} from "./clients/twitch/helper/PermissionHelper";
 import WebsocketServer from "./clients/websocket/WebsocketServer";
@@ -34,10 +34,15 @@ async function init() {
     websocketServer.registerEvents()
     logSuccess('websocket server is ready')
 
-    logRegular('connect obs')
-    obsClient = new OBSClient()
-    await obsClient.connect()
-    logSuccess('obs client is ready')
+    try {
+        logRegular('connect obs')
+        obsClient = new OBSClient()
+        await obsClient.connect()
+        logSuccess('obs client is ready')
+    } catch(error) {
+        logWarn('obs connection failed:')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
 
     webServer = new WebServer()
     webServer.initial()
