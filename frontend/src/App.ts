@@ -4,6 +4,7 @@ import "./style/fonts.css"
 import "./style/animation.css"
 import "./style/background.css"
 import "./style/badge.css"
+import "./style/alert.css"
 import "bootstrap/dist/css/bootstrap.css"
 
 // javascript
