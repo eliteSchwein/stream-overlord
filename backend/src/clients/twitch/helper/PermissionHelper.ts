@@ -1,6 +1,5 @@
 import {Bot} from "@twurple/easy-bot";
 import {getConfig} from "../../../helper/ConfigHelper";
-import {logRegular} from "../../../helper/LogHelper";
 
 const moderators = {}
 const vips = {}

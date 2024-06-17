@@ -20,4 +20,12 @@ export default class WebsocketClient {
     public send(method: string, data: any = {}) {
         this.websocket.send(JSON.stringify({method: method, data: data}))
     }
+
+    public editColor(color: string|undefined = undefined) {
+        this.send('set_color', {color: color})
+    }
+
+    public clearEvent(eventUuid: string) {
+        this.send('clear_event', {'event-uuid': eventUuid})
+    }
 }

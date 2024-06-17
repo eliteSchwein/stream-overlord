@@ -8,9 +8,15 @@
     <title>Title</title>
 </head>
 <body>
-    <div class="alert-container px-3 py-3" data-controller="alert">
-        <i class="mdi mdi-diamond-stone" data-alert-target="icon"></i>
-        <div data-alert-target="content"></div>
+    <div class="alert-container px-4 py-3" data-controller="alert" style="opacity: 0">
+        <i class="alert-logo mdi mdi-pen" data-alert-target="icon"></i>
+        <div class="alert-content">
+            <div class="stack" style="--stacks: 3;">
+                <span style="--index: 0;" data-alert-target="content"></span>
+                <span style="--index: 1;" data-alert-target="content"></span>
+                <span style="--index: 2;" data-alert-target="content"></span>
+            </div>
+        </div>
     </div>
 </body>
 </html>
