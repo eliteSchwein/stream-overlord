@@ -1,12 +1,3 @@
-import WebsocketClient from "./js/client/WebsocketClient";
-import {Application} from "@hotwired/stimulus";
-import BackgroundController from "./js/controller/BackgroundController";
-import BadgeController from "./js/controller/BadgeController";
-import fetchConfig from "./js/helper/ConfigHelper";
-import * as packageConfig from '../../package.json'
-import {loadFull} from "tsparticles";
-import {tsParticles} from "@tsparticles/engine"
-
 // styles
 import "./style/global.css"
 import "./style/fonts.css"
@@ -16,6 +7,17 @@ import "./style/badge.css"
 import "bootstrap/dist/css/bootstrap.css"
 
 // javascript
+import WebsocketClient from "./js/client/WebsocketClient";
+import {Application} from "@hotwired/stimulus";
+import BackgroundController from "./js/controller/BackgroundController";
+import BadgeController from "./js/controller/BadgeController";
+import fetchConfig from "./js/helper/ConfigHelper";
+import * as packageConfig from '../../package.json'
+import {loadFull} from "tsparticles";
+import {tsParticles} from "@tsparticles/engine"
+import AlertController from "./js/controller/AlertController";
+
+// variables
 let websocketClient: WebsocketClient
 
 void init()
@@ -32,6 +34,7 @@ async function init(){
     const stimulus = Application.start()
     stimulus.register('background', BackgroundController)
     stimulus.register('badge', BadgeController)
+    stimulus.register('alert', AlertController)
 }
 
 export function getWebsocketClient() {
