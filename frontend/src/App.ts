@@ -6,6 +6,7 @@ import "./style/background.css"
 import "./style/badge.css"
 import "./style/alert.css"
 import "bootstrap/dist/css/bootstrap.css"
+import "@mdi/font/css/materialdesignicons.css"
 
 // javascript
 import WebsocketClient from "./js/client/WebsocketClient";

@@ -1,0 +1,13 @@
+.alert-container {
+    height: 90vh;
+    background: rgba(52, 52, 52, 0.71);
+    border-radius: 20px;
+    position: relative;
+    margin: 20px;
+}
+
+.alert-container canvas{
+    position: absolute;
+    top: 0;
+    left: 0;
+}
