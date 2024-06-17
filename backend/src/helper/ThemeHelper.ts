@@ -32,7 +32,7 @@ export function pushTheme() {
     getWebsocketServer().send('theme_update', getTheme())
 }
 
-export function setManual(value: string|undefined) {
+export function setManual(value: string|undefined = undefined) {
     if(value) {
         logRegular(`set manual theme color: ${value}`);
         theme.manual = value
