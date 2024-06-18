@@ -1,9 +1,9 @@
 import registerEventCooldown, {
     addEventToCooldown,
-    isEventFull,
-    removeEventFromCooldown
+    isEventFull, queryEvent,
+    removeEventFromCooldown, removeEventFromQuery
 } from "../../helper/CooldownHelper";
-import {logRegular} from "../../../../helper/LogHelper";
+import {logError, logRegular} from "../../../../helper/LogHelper";
 import {v4 as uuidv4} from 'uuid';
 import {EventSubWsListener} from "@twurple/eventsub-ws";
 import {Bot} from "@twurple/easy-bot";
@@ -18,6 +18,7 @@ export default class BaseEvent {
     eventTypes = []
     eventLimit = 25
     eventCooldown = 5
+    eventUuid: string
 
     public constructor(eventSubWs: EventSubWsListener, bot: Bot) {
         this.eventSubWs = eventSubWs
@@ -46,15 +47,22 @@ export default class BaseEvent {
     private async handleEvent(event: any) {
         if(isEventFull(this.name, event.broadcasterName, this.eventLimit)) return
 
-        const eventUuid = uuidv4()
+        this.eventUuid = uuidv4()
 
-        addEventToCooldown(eventUuid, this.name, event.broadcasterName)
+        queryEvent(this.eventUuid)
+        addEventToCooldown(this.eventUuid, this.name, event.broadcasterName)
 
-        await this.handle(event)
+        try {
+            await this.handle(event)
+        } catch (error) {
+            logError(`event ${this.name} failed:`)
+            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
 
         await sleep(this.eventCooldown * 1000)
 
-        removeEventFromCooldown(eventUuid, this.name, event.broadcasterName)
+        removeEventFromCooldown(this.eventUuid, this.name, event.broadcasterName)
+        removeEventFromQuery(this.eventUuid)
     }
 
     async handle(event: any) {}

@@ -34,6 +34,16 @@ export default class AlertController extends BaseController{
 
                 activeAlert.active = true
 
+                if(activeAlert.expand === true) {
+                    this.iconTarget.style.display = 'none'
+                    if(!this.element.classList.contains('expand')) {
+                        this.element.classList.add('expand')
+                    }
+                } else {
+                    this.iconTarget.style.display = null
+                    this.element.classList.remove('expand')
+                }
+
                 this.websocket.editColor(activeAlert.color)
 
                 for(const contentElement of this.contentTargets) {
@@ -53,13 +63,21 @@ export default class AlertController extends BaseController{
 
             this.alerts.shift()
 
+            this.element.classList.remove('expand')
+
+            this.element.style.opacity = '0'
+
+            await sleep(500)
+
             for(const contentElement of this.contentTargets) {
                 contentElement.innerHTML = ''
             }
 
+            this.iconTarget.setAttribute('class', `alert-logo mdi`)
+
             if(this.alerts.length !== 0) return
 
-            this.element.style.opacity = '0'
+            this.iconTarget.style.display = null
 
             await sleep(500)
 

@@ -1,12 +1,17 @@
 .alert-container {
     transition-duration: 0.25s;
     transition-timing-function: ease-in-out;
-    height: 90vh;
+    height: 500px;
+    width: 1600px;
     background: rgba(52, 52, 52, 0.71);
     border-radius: 20px;
     position: relative;
     margin: 20px;
     display: flex;
+}
+
+.alert-container.expand {
+    height: 90vh;
 }
 
 .alert-container canvas{
@@ -17,7 +22,7 @@
 
 .alert-container .alert-logo {
     text-shadow: 0 0 15px #000000c4;
-    font-size: 60vh;
+    font-size: 300px;
 }
 
 .alert-container .alert-content {
@@ -30,5 +35,4 @@
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255);
-    text-shadow: 0 0 15px #000000c4;
 }

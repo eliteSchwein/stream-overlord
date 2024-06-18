@@ -10,6 +10,7 @@ import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
 import SubEvent from "./events/SubEvent";
 import CommunitySubEvent from "./events/CommunitySubEvent";
 import SubGiftEvent from "./events/SubGiftEvent";
+import BitEvent from "./events/event_sub/BitEvent";
 
 export default class TwitchClient {
     protected auth: TwitchAuth
@@ -60,6 +61,7 @@ export default class TwitchClient {
         // eventsub events
         await new ChannelPointsEvent(this.eventSub, this.bot).register()
         await new ChannelUpdateEvent(this.eventSub, this.bot).register()
+        await new BitEvent(this.eventSub, this.bot).register()
     }
 
     public getBot() {
