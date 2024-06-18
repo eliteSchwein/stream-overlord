@@ -4,11 +4,13 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class AlertController extends BaseController{
-    static targets = ['icon', 'content', 'sound']
+    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer']
 
     declare readonly iconTarget: HTMLElement
     declare readonly soundTarget: HTMLAudioElement
     declare readonly contentTargets: HTMLDivElement[]
+    declare readonly contentContainerTarget: HTMLDivElement
+    declare readonly videoTarget: HTMLVideoElement
 
     protected alerts = []
     protected particle: ParticleHelper
@@ -34,26 +36,36 @@ export default class AlertController extends BaseController{
 
                 activeAlert.active = true
 
-                if(activeAlert.expand === true) {
-                    this.iconTarget.style.display = 'none'
+                this.websocket.editColor(activeAlert.color)
+
+                if(activeAlert.video) {
+                    this.videoTarget.style.display = null
+                    this.element.style.padding = '0 !important'
+
                     if(!this.element.classList.contains('expand')) {
                         this.element.classList.add('expand')
                     }
-                } else {
-                    this.iconTarget.style.display = null
-                    this.element.classList.remove('expand')
-                }
 
-                this.websocket.editColor(activeAlert.color)
+                    this.videoTarget.querySelector('source').src = activeAlert.video
+                    this.videoTarget.load()
+                    await this.videoTarget.play()
+                    this.particle.destroyParticle()
+                } else {
+                    this.videoTarget.style.display = 'none'
+                    this.element.style.padding = null
+
+                    this.element.classList.remove('expand')
+
+                    this.soundTarget.querySelector('source').src = activeAlert.sound
+                    this.soundTarget.load()
+                    await this.soundTarget.play()
+                }
 
                 for(const contentElement of this.contentTargets) {
                     contentElement.innerHTML = activeAlert.message
                 }
 
                 this.iconTarget.setAttribute('class', `alert-logo mdi mdi-${activeAlert.icon}`)
-
-                this.soundTarget.querySelector('source').src = activeAlert.sound
-                await this.soundTarget.play()
 
                 this.alerts[0] = activeAlert
                 return
@@ -63,9 +75,14 @@ export default class AlertController extends BaseController{
 
             this.alerts.shift()
 
+            this.videoTarget.pause()
+
             this.element.classList.remove('expand')
 
             this.element.style.opacity = '0'
+
+            this.element.style.width = null
+            this.element.style.padding = null
 
             await sleep(500)
 

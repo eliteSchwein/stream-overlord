@@ -14,7 +14,7 @@ export default class ParticleHelper {
             "zIndex": 0
         },
         "duration": 0,
-        "fpsLimit": 120,
+        "fpsLimit": 60,
         "interactivity": {
             "detectsOn": "window",
             "events": {
@@ -216,7 +216,7 @@ export default class ParticleHelper {
                     "value": "#FFA5A5"
                 },
                 "consent": false,
-                "distance": 150,
+                "distance": 170,
                 "enable": true,
                 "frequency": 1,
                 "opacity": 0.3,
@@ -250,9 +250,7 @@ export default class ParticleHelper {
     private element: HTMLElement
 
     public async loadParticle(element: HTMLElement) {
-        if(this.container) {
-            this.container.destroy(true)
-        }
+        this.destroyParticle()
 
         this.element = element
 
@@ -261,6 +259,12 @@ export default class ParticleHelper {
             // @ts-ignore
             options: this.config
         });
+    }
+
+    public destroyParticle() {
+        if(this.container) {
+            this.container.destroy(true)
+        }
     }
 
     public  async loadThemeColor(color: string) {

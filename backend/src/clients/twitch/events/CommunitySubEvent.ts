@@ -18,7 +18,8 @@ export default class CommunitySubEvent extends BaseEvent {
             'color': theme.color,
             'icon': theme.icon,
             'message': `${event.gifterDisplayName} haut ${event.plan} subs raus`,
-            'event-uuid': this.eventUuid
+            'event-uuid': this.eventUuid,
+            'video': theme.video
         })
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})

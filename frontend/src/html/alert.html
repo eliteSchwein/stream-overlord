@@ -12,8 +12,13 @@
         <audio data-alert-target="sound">
             <source src="" type="audio/mpeg">
         </audio>
+        <div class="alert-video-container" data-alert-target="videoContainer">
+            <video loop data-alert-target="video" style="display: none">
+                <source src="" type="video/mp4">
+            </video>
+        </div>
         <i class="alert-logo mdi mdi-pen" data-alert-target="icon"></i>
-        <div class="alert-content">
+        <div class="alert-content" data-alert-target="contentContainer">
             <div class="stack" style="--stacks: 3;">
                 <span style="--index: 0;" data-alert-target="content"></span>
                 <span style="--index: 1;" data-alert-target="content"></span>
