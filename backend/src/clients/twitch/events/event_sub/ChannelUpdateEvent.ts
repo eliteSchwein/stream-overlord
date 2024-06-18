@@ -8,7 +8,7 @@ export default class ChannelUpdateEvent extends BaseEvent {
     eventTypes = ['onChannelUpdate']
 
     async handle(event: any) {
-        logNotice('update theme data on website')
+        logNotice('update theme assets on website')
         await updateTwitchData()
         await fetchTheme()
         pushTheme()

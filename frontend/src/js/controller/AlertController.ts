@@ -4,9 +4,10 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class AlertController extends BaseController{
-    static targets = ['icon', 'content']
+    static targets = ['icon', 'content', 'sound']
 
     declare readonly iconTarget: HTMLElement
+    declare readonly soundTarget: HTMLAudioElement
     declare readonly contentTargets: HTMLDivElement[]
 
     protected alerts = []
@@ -49,11 +50,11 @@ export default class AlertController extends BaseController{
 
             this.alerts.shift()
 
-            if(this.alerts.length !== 0) return
-
             for(const contentElement of this.contentTargets) {
                 contentElement.innerHTML = ''
             }
+
+            if(this.alerts.length !== 0) return
 
             this.element.style.opacity = '0'
 

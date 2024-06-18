@@ -9,9 +9,9 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:dev": "npm run build:backend:dev && npm run build:frontend:dev",
     "build:backend": "esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend": "rm -rf frontend/dist/* && cp frontend/src/html/* frontend/dist && esbuild frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --loader:.mp4=copy --loader:.svg=copy --loader:.gif=copy --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy --loader:.webp=copy --platform=browser --asset-names=[name] --outfile=frontend/dist/app.js",
+    "build:frontend": "rm -rf frontend/dist/* && esbuild frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --loader:.mp4=copy --loader:.svg=copy --loader:.gif=copy --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy --loader:.webp=copy --platform=browser --asset-names=[name] --outfile=frontend/dist/app.js",
     "build:backend:dev": "esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --outfile=backend/dist/index.js",
-    "build:frontend:dev": "rm -rf frontend/dist/* && cp frontend/src/html/* frontend/dist && frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --color=true --platform=browser --loader:.mp4=copy --loader:.svg=copy --loader:.gif=copy --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy --loader:.webp=copy --asset-names=[name] --outfile=frontend/dist/app.js"
+    "build:frontend:dev": "rm -rf frontend/dist/* && esbuild  frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --color=true --platform=browser --loader:.mp4=copy --loader:.svg=copy --loader:.gif=copy --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy --loader:.webp=copy --asset-names=[name] --outfile=frontend/dist/app.js"
   },
   "repository": {
     "type": "git",

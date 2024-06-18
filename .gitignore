@@ -2,3 +2,5 @@ node_modules
 .idea
 .env.conf
 twitchTokens.json
+assets/*
+!assets/placeholder

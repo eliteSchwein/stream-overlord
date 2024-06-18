@@ -17,6 +17,8 @@ export default class WebServer {
 
         this.webServer = express();
         this.webServer.use(express.static(path.join(__dirname, '../../frontend/dist')))
+        this.webServer.use(express.static(path.join(__dirname, '../../frontend/src/html')))
+        this.webServer.use(express.static(path.join(__dirname, '../../assets')))
         this.webServer.use(bodyParser.json())
 
         this.webServer.listen(config.port, '0.0.0.0', () => {

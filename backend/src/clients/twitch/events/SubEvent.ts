@@ -24,7 +24,7 @@ export default class SubEvent extends BaseEvent {
             'duration': 15,
             'color': config.sub_color,
             'icon': 'star-outline',
-            'message': `${event.userDisplayName} abonniert im ${event.months} Monat auf Stufe ${event.plan}`,
+            'message': `${event.userDisplayName} abonniert im ${event.months}. Monat auf Stufe ${event.plan}`,
             'event-uuid': this.eventUuid
         })
 
