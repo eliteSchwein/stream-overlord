@@ -21,6 +21,6 @@ export default class ConnectEvent extends BaseEvent{
 
         await sleep(500)
 
-        pushTheme()
+        pushTheme(event)
     }
 }

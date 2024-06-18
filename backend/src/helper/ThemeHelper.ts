@@ -2,6 +2,7 @@ import getThemeData from "../clients/website/WebsiteClient";
 import {logRegular} from "./LogHelper";
 import getWebsocketServer from "../App";
 import {getConfig} from "./ConfigHelper";
+import {Websocket} from "websocket-ts";
 
 const theme = {
     data: {},
@@ -28,7 +29,11 @@ export async function fetchTheme() {
     theme.data = await getThemeData()
 }
 
-export function pushTheme() {
+export function pushTheme(websocket: Websocket|undefined = undefined) {
+    if(websocket) {
+        websocket.send(JSON.stringify({method: 'theme_update', data: getTheme()}))
+        return
+    }
     getWebsocketServer().send('theme_update', getTheme())
 }
 
