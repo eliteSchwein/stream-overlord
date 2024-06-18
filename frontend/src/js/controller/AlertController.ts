@@ -42,6 +42,9 @@ export default class AlertController extends BaseController{
 
                 this.iconTarget.setAttribute('class', `alert-logo mdi mdi-${activeAlert.icon}`)
 
+                this.soundTarget.querySelector('source').src = activeAlert.sound
+                await this.soundTarget.play()
+
                 this.alerts[0] = activeAlert
                 return
             }

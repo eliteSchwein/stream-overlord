@@ -10,12 +10,13 @@ export default class CommunitySubEvent extends BaseEvent {
     eventTypes = ['onCommunitySub']
 
     async handle(event: EasyEvent) {
-        const config = getConfig(/theme/g)[0]
+        const theme = getConfig(/asset sub/g)[0]
 
         getWebsocketServer().send('show_alert', {
+            'sound': theme.sound,
             'duration': 15,
-            'color': config.sub_color,
-            'icon': 'diamond-stone',
+            'color': theme.color,
+            'icon': theme.icon,
             'message': `${event.gifterDisplayName} haut ${event.plan} subs raus`,
             'event-uuid': this.eventUuid
         })

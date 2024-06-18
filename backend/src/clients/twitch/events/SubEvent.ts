@@ -10,20 +10,13 @@ export default class SubEvent extends BaseEvent {
     eventTypes = ['onSub', 'onResub']
 
     async handle(event: EasyEvent) {
-       // getWebsocketServer().send('twitch_sub', {
-      //      message: event.message,
-       //     months: event.months,
-      //      streak: event.streak,
-       //     userName: event.userDisplayName,
-      //      prime: event.isPrime,
-      //      plan: event.plan,
-//})
-        const config = getConfig(/theme/g)[0]
+        const theme = getConfig(/asset sub/g)[0]
 
         getWebsocketServer().send('show_alert', {
+            'sound': theme.sound,
             'duration': 15,
-            'color': config.sub_color,
-            'icon': 'star-outline',
+            'color': theme.color,
+            'icon': theme.icon,
             'message': `${event.userDisplayName} abonniert im ${event.months}. Monat auf Stufe ${event.plan}`,
             'event-uuid': this.eventUuid
         })

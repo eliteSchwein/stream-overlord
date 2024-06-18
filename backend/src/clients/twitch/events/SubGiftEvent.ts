@@ -10,19 +10,13 @@ export default class SubGiftEvent extends BaseEvent {
     eventTypes = ['onSubGift']
 
     async handle(event: EasyEvent) {
-        getWebsocketServer().send('twitch_sub_gift', {
-            months: event.months,
-            streak: event.streak,
-            userName: event.userDisplayName,
-            plan: event.plan,
-            gifterName: event.gifterDisplayName
-        })
-        const config = getConfig(/theme/g)[0]
+        const theme = getConfig(/asset sub/g)[0]
 
         getWebsocketServer().send('show_alert', {
+            'sound': theme.sound,
             'duration': 15,
-            'color': config.sub_color,
-            'icon': 'gift-outline',
+            'color': theme.color,
+            'icon': theme.icon,
             'message': `${event.gifterDisplayName} schenkt ${event.userDisplayName} ein Abo auf Stufe ${event.plan}`,
             'event-uuid': this.eventUuid
         })
