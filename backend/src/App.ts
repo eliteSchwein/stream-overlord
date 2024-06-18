@@ -38,6 +38,7 @@ async function init() {
         logRegular('connect obs')
         obsClient = new OBSClient()
         await obsClient.connect()
+        obsClient.registerEvents()
         logSuccess('obs client is ready')
     } catch(error) {
         logWarn('obs connection failed:')
@@ -48,6 +49,8 @@ async function init() {
     webServer.initial()
 
     await fetchTheme()
+
+    await obsClient.reloadAllBrowserScenes()
 
     logSuccess('backend is ready')
 }
