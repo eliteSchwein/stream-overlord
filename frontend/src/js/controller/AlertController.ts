@@ -50,7 +50,7 @@ export default class AlertController extends BaseController{
                     this.videoTarget.load()
                     await this.videoTarget.play()
                     this.particle.destroyParticle()
-                } else {
+                } else if(activeAlert.sound) {
                     this.videoTarget.style.display = 'none'
                     this.element.style.padding = null
 

@@ -11,6 +11,7 @@ import SubEvent from "./events/SubEvent";
 import CommunitySubEvent from "./events/CommunitySubEvent";
 import SubGiftEvent from "./events/SubGiftEvent";
 import BitEvent from "./events/event_sub/BitEvent";
+import RaidEvent from "./events/RaidEvent";
 
 export default class TwitchClient {
     protected auth: TwitchAuth
@@ -57,6 +58,7 @@ export default class TwitchClient {
         new SubEvent(this.bot).register()
         new CommunitySubEvent(this.bot).register()
         new SubGiftEvent(this.bot).register()
+        new RaidEvent(this.bot).register()
 
         // eventsub events
         await new ChannelPointsEvent(this.eventSub, this.bot).register()

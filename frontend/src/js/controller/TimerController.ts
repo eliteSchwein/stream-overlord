@@ -56,6 +56,7 @@ export default class TimerController extends BaseController {
     }
 
     private handleTimerUpdate(data: any) {
+        this.element.parentElement.style.opacity = null
         const date = new Date(data.time * 1000);
         let hours:any = date.getUTCHours();
         let minutes: any = date.getUTCMinutes();
@@ -100,7 +101,7 @@ export default class TimerController extends BaseController {
             element.innerHTML = content
         }
 
-        await sleep(5)
+        await sleep(25)
 
         for(const element of this[`${type}Targets`]) {
             element.style.display = null
