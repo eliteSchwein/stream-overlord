@@ -7,6 +7,7 @@ import WebsocketServer from "./clients/websocket/WebsocketServer";
 import {fetchTheme} from "./helper/ThemeHelper";
 import WebServer from "./clients/webserver/WebServer";
 import {OBSClient} from "./clients/obs/OBSClient";
+import initialTimers from "./helper/TimerHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -51,6 +52,9 @@ async function init() {
     await fetchTheme()
 
     await obsClient.reloadAllBrowserScenes()
+
+    logRegular('initial timers')
+    initialTimers()
 
     logSuccess('backend is ready')
 }

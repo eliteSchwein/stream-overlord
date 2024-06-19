@@ -4,6 +4,7 @@ import {logRegular} from "../../helper/LogHelper";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
+    connected = false
 
     public async connect() {
         const config = getConfig(/obs/g)[0]
@@ -12,6 +13,7 @@ export class OBSClient {
         await this.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password, {
             eventSubscriptions: EventSubscription.All
         })
+        this.connected = true
     }
 
     public registerEvents() {
@@ -23,6 +25,7 @@ export class OBSClient {
     }
 
     public async reloadAllBrowserScenes() {
+        if(!this.connected) return
         logRegular('reload all browser scenes')
 
         const {inputs} = await this.obsWebsocket.call('GetInputList', {inputKind: 'browser_source'})
