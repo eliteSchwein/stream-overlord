@@ -30,14 +30,14 @@ export function registerPermissionInterval(bot: Bot) {
     }, 60 * 1000)
 }
 
-export function hasVip(channel: string, userId: string) {
+export function hasVip(channel: string, userId: string): boolean {
     if(!vips[channel]) return false
 
-    return vips[channel] && vips[channel].includes(userId)
+    return vips[channel].includes(`${userId}`)
 }
 
-export function hasModerator(channel: string, userId: string) {
+export function hasModerator(channel: string, userId: string): boolean {
     if(!moderators[channel]) return false
 
-    return moderators[channel] && moderators[channel].includes(userId)
+    return moderators[channel].includes(`${userId}`)
 }

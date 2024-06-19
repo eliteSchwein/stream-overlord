@@ -12,7 +12,7 @@ export default class BaseCommand {
     globalCooldown = 5
     userCooldown = 10
 
-    private bot: Bot
+    bot: Bot
 
     public constructor(bot: Bot) {
         this.bot = bot;
@@ -20,15 +20,15 @@ export default class BaseCommand {
 
     // params examples:
     // {
-    // name: string
+    // name: string,
     // type: number
     // },
     // {
-    // name: string
+    // name: string,
     // type: string
     // },
     // {
-    // name: string
+    // name: string,
     // type: user
     // }
 
@@ -49,11 +49,15 @@ export default class BaseCommand {
             await this.replyPermissionError(context)
             return
         }
-        if(this.requiresMod && hasModerator(context.broadcasterName, context.userId)) {
+        if(this.requiresMod &&
+            !hasModerator(context.broadcasterName, context.userId) &&
+            context.broadcasterId !== context.userId) {
             await this.replyPermissionError(context)
             return
         }
-        if(this.requiresVip && hasVip(context.broadcasterName, context.userId)) {
+        if(this.requiresVip &&
+            !hasVip(context.broadcasterName, context.userId) &&
+            context.broadcasterId !== context.userId) {
             await this.replyPermissionError(context)
             return
         }
@@ -67,40 +71,50 @@ export default class BaseCommand {
 
         let paramIndex = 0
 
-        for(const paramPartial of param) {
-            const paramOptions = this.params[paramIndex]
+        const firstParamOptions = this.params[0]
 
-            if(!paramOptions) continue
+        if(firstParamOptions && firstParamOptions.type === 'all') {
+            let data = ''
+            for(const paramPartial of param) {
+                data = `${data} ${paramPartial}`
+            }
+            params[firstParamOptions.name] = data.substring(1)
+        } else {
+            for(const paramPartial of param) {
+                const paramOptions = this.params[paramIndex]
 
-            if(paramOptions.type === 'number') {
-                const number = Number(paramPartial)
-                if (isNaN(number)) {
-                    await this.replyParamSyntaxError(param, context, paramIndex, 'Nummer')
-                    return
+                if(!paramOptions) continue
+
+                if(paramOptions.type === 'number') {
+                    const number = Number(paramPartial)
+                    if (isNaN(number)) {
+                        await this.replyParamSyntaxError(param, context, paramIndex, 'Nummer')
+                        return
+                    }
+
+                    params[paramOptions.name] = number
+                    continue
                 }
 
-                params[paramOptions.name] = number
-                continue
-            }
+                if(paramOptions.type === 'user') {
+                    let userName = paramPartial
 
-            if(paramOptions.type === 'user') {
-                let userName = paramPartial
+                    if(userName.startsWith('@')) userName = userName.substring(1)
 
-                if(userName.startsWith('@')) userName = userName.substring(1)
+                    const user = await this.bot.api.users.getUserByName(userName)
+                    if(user === null || user === undefined) {
+                        await this.replyParamSyntaxError(param, context, paramIndex, 'Benutzer')
+                        return
+                    }
 
-                const user = await this.bot.api.users.getUserByName(userName)
-                if(user === null || user === undefined) {
-                    await this.replyParamSyntaxError(param, context, paramIndex, 'Benutzer')
-                    return
+                    params[paramOptions.name] = user
+                    continue
                 }
 
-                params[paramOptions.name] = user
-                continue
+                params[paramOptions.name] = paramPartial
+
+                paramIndex++
             }
-
-            params[paramOptions.name] = paramPartial
-
-            paramIndex++
         }
 
         logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
