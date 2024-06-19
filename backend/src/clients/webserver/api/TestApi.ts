@@ -11,7 +11,7 @@ export default class TestApi extends BaseApi {
 
         if(!body.method || !body.data) {
             return {
-                error: 'method or assets missing',
+                error: 'method or data missing',
                 status: 400
             }
         }

@@ -5,6 +5,7 @@ import * as path from "node:path";
 import ToggleBadgeApi from "./api/ToggleBadgeApi";
 import TestApi from "./api/TestApi";
 import * as bodyParser from "body-parser";
+import TimerApi from "./api/TimerApi";
 
 export default class WebServer {
     webServer: Express
@@ -30,6 +31,7 @@ export default class WebServer {
                 res.json(getConfig()))
 
         new ToggleBadgeApi().register(this.webServer)
+        new TimerApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 

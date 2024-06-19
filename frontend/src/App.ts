@@ -5,6 +5,7 @@ import "./style/animation.css"
 import "./style/background.css"
 import "./style/badge.css"
 import "./style/alert.css"
+import "./style/timer.css"
 import "bootstrap/dist/css/bootstrap.css"
 import "@mdi/font/css/materialdesignicons.css"
 
@@ -18,6 +19,7 @@ import * as packageConfig from '../../package.json'
 import {loadFull} from "tsparticles";
 import {tsParticles} from "@tsparticles/engine"
 import AlertController from "./js/controller/AlertController";
+import TimerController from "./js/controller/TimerController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -37,6 +39,7 @@ async function init(){
     stimulus.register('background', BackgroundController)
     stimulus.register('badge', BadgeController)
     stimulus.register('alert', AlertController)
+    stimulus.register('timer', TimerController)
 }
 
 export function getWebsocketClient() {

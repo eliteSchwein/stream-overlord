@@ -184,3 +184,20 @@
         top: 12px;
     }
 }
+
+@keyframes blink {
+    0% { color: red; }
+    50% { color: white; }
+    100% { color: red; }
+}
+@-webkit-keyframes blink {
+    0% { color: red; }
+    50% { color: white; }
+    100% { color: red; }
+}
+
+.blink {
+    -webkit-animation: blink 1s linear infinite;
+    -moz-animation: blink 1s linear infinite;
+    animation: blink 1s linear infinite;
+}

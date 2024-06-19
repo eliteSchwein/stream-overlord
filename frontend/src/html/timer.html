@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="application/javascript" src="./app.js"></script>
+    <link rel="stylesheet" href="app.css">
+    <meta charset="UTF-8">
+    <title>Timer</title>
+</head>
+<body>
+    <div class="timer">
+        <div class="timer-container" data-controller="timer" data-timer-name="start">
+            <div class="stack" style="--stacks: 3;">
+                <span style="--index: 0;" data-timer-target="leadingMinute">9</span>
+                <span style="--index: 1;" data-timer-target="leadingMinute">9</span>
+                <span style="--index: 2;" data-timer-target="leadingMinute">9</span>
+            </div>
+            <div class="stack" style="--stacks: 3;">
+                <span style="--index: 0;" data-timer-target="lastMinute">9</span>
+                <span style="--index: 1;" data-timer-target="lastMinute">9</span>
+                <span style="--index: 2;" data-timer-target="lastMinute">9</span>
+            </div>
+            <div class="stack" style="--stacks: 3;">
+                <span style="--index: 0;">:</span>
+                <span style="--index: 1;">:</span>
+                <span style="--index: 2;">:</span>
+            </div>
+            <div class="stack" style="--stacks: 3;">
+                <span style="--index: 0;" data-timer-target="leadingSecond">9</span>
+                <span style="--index: 1;" data-timer-target="leadingSecond">9</span>
+                <span style="--index: 2;" data-timer-target="leadingSecond">9</span>
+            </div>
+            <div class="stack" style="--stacks: 3;">
+                <span style="--index: 0;" data-timer-target="lastSecond">9</span>
+                <span style="--index: 1;" data-timer-target="lastSecond">9</span>
+                <span style="--index: 2;" data-timer-target="lastSecond">9</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

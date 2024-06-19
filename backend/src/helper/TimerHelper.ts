@@ -1,17 +1,52 @@
 import {getConfig} from "./ConfigHelper";
+import getWebsocketServer from "../App";
 
 const timers = []
 
 export default function initialTimers() {
-    const configTImers = getConfig((/^timer /g), true)
-    console.log(configTImers)
+    const configTimers = getConfig((/^timer /g), true)
 
-    for(const timerName in configTImers) {
-        const configTimer = configTImers[timerName]
+    for(const timerName in configTimers) {
+        const configTimer = configTimers[timerName]
         configTimer.name = timerName
         configTimer.defaultTime = configTimer.time
         configTimer.active = false
-        console.log(configTimer)
         timers.push(configTimer)
+    }
+
+    const websocket = getWebsocketServer()
+
+    setInterval(() => {
+        for(const timerIndex in timers) {
+            const timer = timers[timerIndex]
+
+            if(!timer.active) continue
+
+            if(timer.time === 0) {
+                websocket.send('timer_finished', timer)
+                timer.active = false
+            } else {
+                websocket.send('timer_update', timer)
+                timer.time--
+            }
+
+            timers[timerIndex] = timer
+        }
+    }, 1000)
+}
+
+export function activateTimer(name: string) {
+    for(const timerIndex in timers) {
+        const timer = timers[timerIndex]
+
+        if(timer.name !== name) continue
+
+        if(timer.time === 0) {
+            timer.time = timer.defaultTime
+        }
+
+        timer.active = true
+
+        timers[timerIndex] = timer
     }
 }
