@@ -1,6 +1,6 @@
 import {getConfig} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
-import {logNotice, logRegular} from "./LogHelper";
+import {logError, logNotice, logRegular, logWarn} from "./LogHelper";
 
 const scenes = {}
 
@@ -22,19 +22,24 @@ export async function triggerScene(name: string) {
     logNotice(`trigger ${tasks.length} tasks from ${name} scene`)
 
     for (const task of tasks) {
-        switch (task.channel) {
-            case "obs": {
-                await handleObs(task.method, task.data)
-                break
+        try {
+            switch (task.channel) {
+                case "obs": {
+                    await handleObs(task.method, task.data)
+                    break
+                }
+                case "rest": {
+                    await handleRest(task.method, task.endpoint, task.data)
+                    break
+                }
+                case "websocket": {
+                    handleWebsocket(task.method, task.data)
+                    break
+                }
             }
-            case "rest": {
-                await handleRest(task.method, task.endpoint, task.data)
-                break
-            }
-            case "websocket": {
-                handleWebsocket(task.method, task.data)
-                break
-            }
+        } catch (error) {
+            logWarn(`task failed:`)
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
     }
 
