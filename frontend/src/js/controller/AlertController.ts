@@ -12,33 +12,19 @@ export default class AlertController extends BaseController{
     declare readonly contentContainerTarget: HTMLDivElement
     declare readonly videoTarget: HTMLVideoElement
 
-    protected alerts = []
     protected particle: ParticleHelper
 
     async postConnect() {
         this.particle = new ParticleHelper()
         await this.particle.loadParticle(this.element)
+    }
 
-        setInterval(async () => {
-            if(this.alerts.length === 0) return
+    async handleMessage(websocket: Websocket, method: string, data: any) {
+        switch (method) {
+            case 'show_alert': {
+                this.element.style.opacity = '1'
 
-            this.element.style.opacity = '1'
-
-            const activeAlert = this.alerts[0]
-
-            if(activeAlert.duration !== 0) {
-                activeAlert.duration--
-
-                if(activeAlert.active) {
-                    this.alerts[0] = activeAlert
-                    return
-                }
-
-                activeAlert.active = true
-
-                this.websocket.editColor(activeAlert.color)
-
-                if(activeAlert.video) {
+                if(data.video) {
                     this.videoTarget.style.display = null
                     this.element.style.padding = '0 !important'
 
@@ -46,66 +32,49 @@ export default class AlertController extends BaseController{
                         this.element.classList.add('expand')
                     }
 
-                    this.videoTarget.querySelector('source').src = activeAlert.video
+                    this.videoTarget.querySelector('source').src = data.video
                     this.videoTarget.load()
                     await this.videoTarget.play()
                     this.particle.destroyParticle()
-                } else if(activeAlert.sound) {
+                } else if(data.sound) {
                     this.videoTarget.style.display = 'none'
                     this.element.style.padding = null
 
                     this.element.classList.remove('expand')
 
-                    this.soundTarget.querySelector('source').src = activeAlert.sound
+                    this.soundTarget.querySelector('source').src = data.sound
                     this.soundTarget.load()
                     await this.soundTarget.play()
                 }
 
                 for(const contentElement of this.contentTargets) {
-                    contentElement.innerHTML = activeAlert.message
+                    contentElement.innerHTML = data.message
                 }
 
-                this.iconTarget.setAttribute('class', `alert-logo mdi mdi-${activeAlert.icon}`)
-
-                this.alerts[0] = activeAlert
+                this.iconTarget.setAttribute('class', `alert-logo mdi mdi-${data.icon}`)
                 return
             }
+            case 'hide_alert': {
+                this.soundTarget.pause()
+                this.videoTarget.pause()
 
-            this.websocket.clearEvent(activeAlert['event-uuid'])
+                this.element.classList.remove('expand')
 
-            this.alerts.shift()
+                this.element.style.opacity = '0'
 
-            this.videoTarget.pause()
+                this.element.style.width = null
+                this.element.style.padding = null
 
-            this.element.classList.remove('expand')
+                await sleep(500)
 
-            this.element.style.opacity = '0'
+                for(const contentElement of this.contentTargets) {
+                    contentElement.innerHTML = ''
+                }
 
-            this.element.style.width = null
-            this.element.style.padding = null
-
-            await sleep(500)
-
-            for(const contentElement of this.contentTargets) {
-                contentElement.innerHTML = ''
+                this.iconTarget.setAttribute('class', `alert-logo mdi`)
+                return
             }
-
-            this.iconTarget.setAttribute('class', `alert-logo mdi`)
-
-            if(this.alerts.length !== 0) return
-
-            this.iconTarget.style.display = null
-
-            await sleep(500)
-
-            this.websocket.editColor()
-        }, 1000)
-    }
-
-    async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method !== 'show_alert') return
-
-        this.alerts.push(data)
+        }
     }
 
     async handleTheme(websocket: Websocket, data: any) {

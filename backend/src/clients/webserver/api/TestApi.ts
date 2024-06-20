@@ -1,6 +1,9 @@
 import BaseApi from "./BaseApi";
 import getWebsocketServer from "../../../App";
 import {pushTheme, setManual} from "../../../helper/ThemeHelper";
+import {Websocket} from "websocket-ts";
+import {getConfig} from "../../../helper/ConfigHelper";
+import {waitUntil} from "async-wait-until";
 
 export default class TestApi extends BaseApi {
     endpoint = 'test'
@@ -38,6 +41,14 @@ export default class TestApi extends BaseApi {
         }
 
         getWebsocketServer().send(method, data)
+
+        const config = getConfig(/websocket/g)[0]
+
+        const websocketClient = new Websocket(`ws://localhost:${config.port}`)
+
+        await waitUntil(() => websocketClient.underlyingWebsocket.readyState === websocketClient.underlyingWebsocket.OPEN)
+
+        websocketClient.send(JSON.stringify({method: method, data: data}))
 
         return {
             status: 200

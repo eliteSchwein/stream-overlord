@@ -1,0 +1,59 @@
+import {removeEventFromQuery} from "../clients/twitch/helper/CooldownHelper";
+import getWebsocketServer from "../App";
+import {pushTheme, setManual} from "./ThemeHelper";
+
+const alertQuery = []
+
+export default function initialAlerts() {
+    const websocketServer = getWebsocketServer()
+
+    setInterval(() => {
+        if(alertQuery.length === 0) return
+
+        const activeAlert = alertQuery[0]
+
+        if(activeAlert.duration > 0) {
+            activeAlert.duration --
+
+            if(activeAlert.active) {
+                alertQuery[0] = activeAlert
+                return
+            }
+
+            activeAlert.active = true
+
+            setManual(activeAlert.color)
+            pushTheme()
+
+            websocketServer.send('show_alert', activeAlert)
+
+            alertQuery[0] = activeAlert
+            return
+        }
+
+        websocketServer.send('hide_alert', {})
+
+        removeAlert(activeAlert)
+
+        if(alertQuery.length > 0) return
+
+        setManual()
+        pushTheme()
+    }, 1000)
+}
+
+export function addAlert(alert: any) {
+    this.alerts.push(alert)
+}
+
+export function removeAlert(alert: any) {
+    for(const alertIndex in alertQuery) {
+        const alertPartial = alertQuery[alertIndex]
+
+        if(alert['event-uuid'] !== alertPartial['event-uuid']) continue
+
+        alert.splice(alertIndex, 1)
+
+        removeEventFromQuery(alert['event-uuid'])
+    }
+}
