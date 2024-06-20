@@ -44,7 +44,7 @@ export default class BaseEvent {
 
     }
 
-    private async handleEvent(event: any) {
+    async handleEvent(event: any) {
         if(isEventFull(this.name, event.broadcasterName, this.eventLimit)) return
 
         this.eventUuid = uuidv4()

@@ -1,7 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelCheerEvent} from "@twurple/eventsub-base";
 import {getConfig} from "../../../../helper/ConfigHelper";
-import getWebsocketServer from "../../../../App";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
