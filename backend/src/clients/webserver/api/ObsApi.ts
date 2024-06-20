@@ -1,7 +1,6 @@
 import BaseApi from "./BaseApi";
-import {logRegular} from "../../../helper/LogHelper";
-import {addAlert} from "../../../helper/AlertHelper";
 import {getOBSClient} from "../../../App";
+import {logRegular} from "../../../helper/LogHelper";
 
 export default class ObsApi extends BaseApi {
     endpoint = 'obs'
@@ -24,17 +23,7 @@ export default class ObsApi extends BaseApi {
 
         await obsClient.send(method, data)
 
-        switch (method) {
-            case 'add':
-                logRegular(`add alert`)
-                addAlert(data)
-                break
-            default:
-                return {
-                    error: 'method invalid',
-                    status: 400
-                }
-        }
+        logRegular(`trigger obs command: ${method}`)
 
         return {
             status: 200
