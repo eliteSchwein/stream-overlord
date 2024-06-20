@@ -4,6 +4,7 @@ import {getConfig} from "../../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../../App";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
+import {addAlert} from "../../../../helper/AlertHelper";
 
 export default class BitEvent extends BaseEvent {
     name = 'Bits'
@@ -13,7 +14,7 @@ export default class BitEvent extends BaseEvent {
     async handle(event: EventSubChannelCheerEvent) {
         const theme = getConfig(/asset bits/g)[0]
 
-        getWebsocketServer().send('show_alert', {
+        addAlert({
             'sound': theme.sound,
             'duration': 15,
             'color': theme.color,

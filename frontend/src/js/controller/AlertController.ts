@@ -22,6 +22,8 @@ export default class AlertController extends BaseController{
     async handleMessage(websocket: Websocket, method: string, data: any) {
         switch (method) {
             case 'show_alert': {
+                if(this.element.style.opacity === "1") return
+
                 this.element.style.opacity = '1'
 
                 if(data.video) {

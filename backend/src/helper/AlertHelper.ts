@@ -13,7 +13,9 @@ export default function initialAlerts() {
         const activeAlert = alertQuery[0]
 
         if(activeAlert.duration > 0) {
-            activeAlert.duration --
+            activeAlert.duration--
+
+            websocketServer.send('show_alert', activeAlert)
 
             if(activeAlert.active) {
                 alertQuery[0] = activeAlert
@@ -24,8 +26,6 @@ export default function initialAlerts() {
 
             setManual(activeAlert.color)
             pushTheme()
-
-            websocketServer.send('show_alert', activeAlert)
 
             alertQuery[0] = activeAlert
             return
@@ -43,7 +43,7 @@ export default function initialAlerts() {
 }
 
 export function addAlert(alert: any) {
-    this.alerts.push(alert)
+    alertQuery.push(alert)
 }
 
 export function removeAlert(alert: any) {
@@ -52,7 +52,7 @@ export function removeAlert(alert: any) {
 
         if(alert['event-uuid'] !== alertPartial['event-uuid']) continue
 
-        alert.splice(alertIndex, 1)
+        alertQuery.splice(Number(alertIndex), 1)
 
         removeEventFromQuery(alert['event-uuid'])
     }

@@ -4,6 +4,7 @@ import {getConfig} from "../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../App";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
+import {addAlert} from "../../../helper/AlertHelper";
 
 export default class RaidEvent extends BaseEvent {
     name = 'Raid'
@@ -12,7 +13,7 @@ export default class RaidEvent extends BaseEvent {
     async handle(event: EasyEvent) {
         const theme = getConfig(/asset raid/g)[0]
 
-        getWebsocketServer().send('show_alert', {
+        addAlert({
             'sound': theme.sound,
             'duration': 15,
             'color': theme.color,

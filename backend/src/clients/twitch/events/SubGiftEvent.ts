@@ -1,9 +1,9 @@
 import BaseEvent from "./BaseEvent";
 import {SubGiftEvent as EasyEvent} from "@twurple/easy-bot";
-import getWebsocketServer from "../../../App";
 import {waitUntil} from "async-wait-until";
-import {hasEventHash, isEventQueried} from "../helper/CooldownHelper";
+import {isEventQueried} from "../helper/CooldownHelper";
 import {getConfig} from "../../../helper/ConfigHelper";
+import {addAlert} from "../../../helper/AlertHelper";
 
 export default class SubGiftEvent extends BaseEvent {
     name = 'SubGift'
@@ -12,7 +12,7 @@ export default class SubGiftEvent extends BaseEvent {
     async handle(event: EasyEvent) {
         const theme = getConfig(/asset sub/g)[0]
 
-        getWebsocketServer().send('show_alert', {
+        addAlert({
             'sound': theme.sound,
             'duration': 15,
             'color': theme.color,

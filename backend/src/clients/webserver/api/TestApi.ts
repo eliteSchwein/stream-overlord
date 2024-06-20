@@ -4,6 +4,7 @@ import {pushTheme, setManual} from "../../../helper/ThemeHelper";
 import {Websocket} from "websocket-ts";
 import {getConfig} from "../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
+import {addAlert} from "../../../helper/AlertHelper";
 
 export default class TestApi extends BaseApi {
     endpoint = 'test'
@@ -31,6 +32,14 @@ export default class TestApi extends BaseApi {
             }
         }
 
+        if(method === 'alert') {
+            addAlert(data)
+
+            return {
+                status: 200
+            }
+        }
+
         if(method === 'reset_color') {
             setManual()
             pushTheme()
@@ -49,6 +58,8 @@ export default class TestApi extends BaseApi {
         await waitUntil(() => websocketClient.underlyingWebsocket.readyState === websocketClient.underlyingWebsocket.OPEN)
 
         websocketClient.send(JSON.stringify({method: method, data: data}))
+
+        websocketClient.close()
 
         return {
             status: 200
