@@ -1,6 +1,6 @@
 import {getConfig} from "../../helper/ConfigHelper";
 import OBSWebSocket, {EventSubscription} from "obs-websocket-js";
-import {logRegular} from "../../helper/LogHelper";
+import {logNotice, logRegular} from "../../helper/LogHelper";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
@@ -22,6 +22,27 @@ export class OBSClient {
 
     public getOBSWebSocket() {
         return this.obsWebsocket
+    }
+
+    public async send(method: string, data: any) {
+        // @ts-ignore
+        await this.obsWebsocket.call(method, data)
+    }
+
+    public async getItems() {
+        if(!this.connected) return
+
+        const {scenes} = await this.obsWebsocket.call('GetSceneList')
+
+        logNotice('scenes:')
+        console.log(scenes)
+
+        for(const scene of scenes) {
+            // @ts-ignore
+            const {sceneItems} = await this.obsWebsocket.call('GetSceneItemList', {sceneUuid: scene.sceneUuid})
+            logNotice(`items for scene ${scene.sceneName}:`)
+            console.log(sceneItems)
+        }
     }
 
     public async reloadAllBrowserScenes() {

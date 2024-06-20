@@ -34,6 +34,7 @@ export default class TimerController extends BaseController {
 
         switch (method) {
             case "timer_update":
+                this.element.classList.remove('blink')
                 this.handleTimerUpdate(data)
                 return
             case "timer_finished":
