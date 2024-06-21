@@ -76,8 +76,13 @@ export default class BadgeController extends BaseController {
 
                 this.createInterval()
                 break
-            case 'toggle_badge':
-                this.element.classList.toggle('expand')
+            case 'expand_badge':
+                if(this.element.classList.contains('expand')) break
+
+                this.element.classList.add('expand')
+                break
+            case 'collapse_badge':
+                this.element.classList.remove('expand')
                 break
         }
     }
