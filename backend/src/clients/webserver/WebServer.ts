@@ -1,6 +1,6 @@
 import {getConfig} from "../../helper/ConfigHelper";
 import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
-import express, { Express, Request, Response } from "express";
+import express, {Express} from "express";
 import * as path from "node:path";
 import ToggleBadgeApi from "./api/ToggleBadgeApi";
 import TestApi from "./api/TestApi";

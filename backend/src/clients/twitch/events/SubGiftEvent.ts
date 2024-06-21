@@ -2,7 +2,7 @@ import BaseEvent from "./BaseEvent";
 import {SubGiftEvent as EasyEvent} from "@twurple/easy-bot";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
-import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
+import {getAssetConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
 
 export default class SubGiftEvent extends BaseEvent {

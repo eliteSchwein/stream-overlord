@@ -1,5 +1,5 @@
 import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
-import {logError, logRegular, logWarn} from "../../../helper/LogHelper";
+import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {hasModerator, hasVip} from "../helper/PermissionHelper";
 
 export default class BaseCommand {

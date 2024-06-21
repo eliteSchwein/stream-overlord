@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelCheerEvent} from "@twurple/eventsub-base";
-import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
+import {getAssetConfig} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {addAlert} from "../../../../helper/AlertHelper";

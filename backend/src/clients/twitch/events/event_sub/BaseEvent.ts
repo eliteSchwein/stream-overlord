@@ -1,7 +1,9 @@
 import registerEventCooldown, {
     addEventToCooldown,
-    isEventFull, queryEvent,
-    removeEventFromCooldown, removeEventFromQuery
+    isEventFull,
+    queryEvent,
+    removeEventFromCooldown,
+    removeEventFromQuery
 } from "../../helper/CooldownHelper";
 import {logError, logRegular} from "../../../../helper/LogHelper";
 import {v4 as uuidv4} from 'uuid';

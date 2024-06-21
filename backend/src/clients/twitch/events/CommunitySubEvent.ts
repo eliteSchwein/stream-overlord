@@ -1,9 +1,8 @@
 import BaseEvent from "./BaseEvent";
 import {CommunitySubEvent as EasyEvent} from "@twurple/easy-bot";
-import getWebsocketServer from "../../../App";
 import {waitUntil} from "async-wait-until";
-import {hasEventHash, isEventQueried} from "../helper/CooldownHelper";
-import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
+import {isEventQueried} from "../helper/CooldownHelper";
+import {getAssetConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
 
 export default class CommunitySubEvent extends BaseEvent {

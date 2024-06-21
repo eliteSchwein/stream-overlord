@@ -1,6 +1,6 @@
 import {getConfig} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
-import {logError, logNotice, logRegular, logWarn} from "./LogHelper";
+import {logNotice, logRegular, logWarn} from "./LogHelper";
 
 const scenes = {}
 

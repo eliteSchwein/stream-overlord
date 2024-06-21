@@ -1,6 +1,4 @@
 import BaseApi from "./BaseApi";
-import getWebsocketServer from "../../../App";
-import {pushTheme, setManual} from "../../../helper/ThemeHelper";
 import {activateTimer} from "../../../helper/TimerHelper";
 import {logRegular} from "../../../helper/LogHelper";
 

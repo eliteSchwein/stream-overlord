@@ -1,6 +1,6 @@
 import readConfig from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
-import {logError, logRegular, logSuccess, logWarn} from "./helper/LogHelper";
+import {logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
 import registerPermissions, {registerPermissionInterval} from "./clients/twitch/helper/PermissionHelper";
 import WebsocketServer from "./clients/websocket/WebsocketServer";
