@@ -1,6 +1,7 @@
 import {getConfig} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
+import {sleep} from "../../../helper/GeneralHelper";
 
 const scenes = {}
 
@@ -36,6 +37,10 @@ export async function triggerScene(name: string) {
                     handleWebsocket(task.method, task.data)
                     break
                 }
+                case "function": {
+                    await handleFunction(task.method, task.data)
+                    break
+                }
             }
         } catch (error) {
             logWarn(`task failed:`)
@@ -44,6 +49,16 @@ export async function triggerScene(name: string) {
     }
 
     return true
+}
+
+async function handleFunction(method: string, data: any) {
+    logRegular(`trigger function: ${method}`)
+    switch (method) {
+        case 'sleep': {
+            await sleep(data.time)
+            break
+        }
+    }
 }
 
 async function handleObs(method: string, data: any) {
