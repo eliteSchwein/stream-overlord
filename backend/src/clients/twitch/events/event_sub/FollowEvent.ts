@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelFollowEvent} from "@twurple/eventsub-base";
-import {getConfig} from "../../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
@@ -17,7 +17,7 @@ export default class FollowEvent extends BaseEvent {
     }
 
     async handle(event: EventSubChannelFollowEvent) {
-        const theme = getConfig(/asset follow/g)[0]
+        const theme = getAssetConfig('follow')
 
         addAlert({
             'sound': theme.sound,

@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelCheerEvent} from "@twurple/eventsub-base";
-import {getConfig} from "../../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
@@ -11,7 +11,7 @@ export default class BitEvent extends BaseEvent {
 
 
     async handle(event: EventSubChannelCheerEvent) {
-        const theme = getConfig(/asset bits/g)[0]
+        const theme = getAssetConfig('bits')
 
         addAlert({
             'sound': theme.sound,

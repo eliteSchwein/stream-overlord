@@ -3,7 +3,7 @@ import {SubEvent as EasyEvent} from "@twurple/easy-bot";
 import getWebsocketServer from "../../../App";
 import {waitUntil} from "async-wait-until";
 import {hasEventHash, isEventQueried} from "../helper/CooldownHelper";
-import {getConfig} from "../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
 
 export default class SubEvent extends BaseEvent {
@@ -11,7 +11,7 @@ export default class SubEvent extends BaseEvent {
     eventTypes = ['onSub', 'onResub']
 
     async handle(event: EasyEvent) {
-        const theme = getConfig(/asset sub/g)[0]
+        const theme = getAssetConfig('sub')
 
         addAlert({
             'sound': theme.sound,

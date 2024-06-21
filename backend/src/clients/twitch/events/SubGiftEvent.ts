@@ -2,7 +2,7 @@ import BaseEvent from "./BaseEvent";
 import {SubGiftEvent as EasyEvent} from "@twurple/easy-bot";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
-import {getConfig} from "../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
 
 export default class SubGiftEvent extends BaseEvent {
@@ -10,7 +10,7 @@ export default class SubGiftEvent extends BaseEvent {
     eventTypes = ['onSubGift']
 
     async handle(event: EasyEvent) {
-        const theme = getConfig(/asset sub/g)[0]
+        const theme = getAssetConfig('sub')
 
         addAlert({
             'sound': theme.sound,

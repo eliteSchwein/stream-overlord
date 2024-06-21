@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {RaidEvent as EasyEvent} from "@twurple/easy-bot/lib/events/RaidEvent";
-import {getConfig} from "../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../App";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
@@ -11,7 +11,7 @@ export default class RaidEvent extends BaseEvent {
     eventTypes = ['onRaid']
 
     async handle(event: EasyEvent) {
-        const theme = getConfig(/asset raid/g)[0]
+        const theme = getAssetConfig('raid')
 
         addAlert({
             'sound': theme.sound,

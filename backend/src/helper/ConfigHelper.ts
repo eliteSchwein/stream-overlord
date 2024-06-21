@@ -26,3 +26,17 @@ export function getConfig(filter: RegExp|undefined = undefined, asObject = false
 
     return result
 }
+
+export function getAssetConfig(asset: string) {
+    const assetData = getConfig(/asset /g, true)[asset]
+
+    let video = undefined
+
+    if(assetData.video) {
+        video = assetData.video[Math.floor((Math.random()*assetData.video.length))]
+    }
+
+    assetData.video = video
+
+    return assetData
+}
