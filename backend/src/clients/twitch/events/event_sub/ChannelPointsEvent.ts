@@ -17,7 +17,7 @@ export default class ChannelPointsEvent extends BaseEvent {
         const primaryChannel = await this.bot.api.users.getUserByName(
             getConfig(/twitch/g)[0]['channels'][0])
 
-        this.channelPoints.push(new BoostChannelPoint())
+        this.channelPoints.push(new BoostChannelPoint(this.eventSubWs, this.bot))
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)

@@ -16,6 +16,21 @@ export default class BoostChannelPoint extends BaseChannelPoint {
 
         const shipApiData = await (await fetch(shipDiagnosticsConfig.url)).json()
 
+        if(shipApiData.in_supercruise) {
+            if(shipApiData.low_fuel) {
+                await this.deny(event, "Deine Kanalpunkte wurden dir zurück gegeben weil das Schiff zu wenig Treibstoff hat.", "low_fuel")
+                return
+            }
+
+            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
+
+            await sleep(15_000)
+
+            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
+            
+            return
+        }
+
         if(shipApiData.gear_down) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['l']})
         if(shipApiData.scoop_deployed) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['home']})
 
