@@ -4,6 +4,7 @@ import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {getAssetConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
+import {logRegular} from "../../../helper/LogHelper";
 
 export default class CommunitySubEvent extends BaseEvent {
     name = 'CommunitySub'
@@ -12,12 +13,14 @@ export default class CommunitySubEvent extends BaseEvent {
     async handle(event: EasyEvent) {
         const theme = getAssetConfig('sub')
 
+        logRegular(`${event.count} subs gifted from ${event.gifterDisplayName} on tier ${event.plan}`)
+
         addAlert({
             'sound': theme.sound,
             'duration': 15,
             'color': theme.color,
             'icon': theme.icon,
-            'message': `${event.gifterDisplayName} haut ${event.plan} subs raus`,
+            'message': `${event.gifterDisplayName} haut ${event.count} subs raus`,
             'event-uuid': this.eventUuid,
             'video': theme.video
         })

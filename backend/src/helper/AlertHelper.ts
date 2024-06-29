@@ -22,6 +22,8 @@ export default function initialAlerts() {
                 return
             }
 
+            console.log(activeAlert)
+
             activeAlert.active = true
 
             setManual(activeAlert.color)
@@ -43,6 +45,9 @@ export default function initialAlerts() {
 }
 
 export function addAlert(alert: any) {
+    if(alert.video) alert.video = `${alert.video}.mp4`
+    if(alert.sound) alert.sound = `${alert.sound}.mp3`
+
     alertQuery.push(alert)
 }
 

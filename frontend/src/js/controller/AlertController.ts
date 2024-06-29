@@ -34,20 +34,31 @@ export default class AlertController extends BaseController{
                         this.element.classList.add('expand')
                     }
 
-                    this.videoTarget.querySelector('source').src = data.video
-                    this.videoTarget.load()
-                    await this.videoTarget.play()
-                    this.particle.destroyParticle()
+                    try {
+                        this.videoTarget.querySelector('source').src = data.video
+                        this.videoTarget.load()
+                        await this.videoTarget.play()
+                    } catch (e) {
+                        console.error(e)
+                    }
                 } else if(data.sound) {
                     this.videoTarget.style.display = 'none'
                     this.element.style.padding = null
 
                     this.element.classList.remove('expand')
 
-                    this.soundTarget.querySelector('source').src = data.sound
-                    this.soundTarget.load()
-                    await this.soundTarget.play()
+                    try {
+                        this.soundTarget.querySelector('source').src = data.sound
+                        this.soundTarget.load()
+                        await this.soundTarget.play()
+                    } catch (e) {
+                        console.error(e)
+                    }
                 }
+
+                this.particle.destroyParticle()
+
+                console.log(data)
 
                 for(const contentElement of this.contentTargets) {
                     contentElement.innerHTML = data.message

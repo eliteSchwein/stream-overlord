@@ -4,6 +4,7 @@ import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {getAssetConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
+import {logRegular} from "../../../helper/LogHelper";
 
 export default class SubEvent extends BaseEvent {
     name = 'Sub'
@@ -11,6 +12,8 @@ export default class SubEvent extends BaseEvent {
 
     async handle(event: EasyEvent) {
         const theme = getAssetConfig('sub')
+
+        logRegular(`sub from ${event.userDisplayName} in ${event.months} month on tier ${event.plan}`)
 
         addAlert({
             'sound': theme.sound,

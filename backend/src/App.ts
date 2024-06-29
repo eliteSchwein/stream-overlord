@@ -1,4 +1,4 @@
-import readConfig from "./helper/ConfigHelper";
+import readConfig, {getConfig} from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
 import {logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
@@ -23,6 +23,8 @@ async function init() {
 
     logRegular('load config')
     readConfig()
+
+    console.log(JSON.stringify(getConfig(), null, 4))
 
     logRegular('connect twitch')
     twitchClient = new TwitchClient()

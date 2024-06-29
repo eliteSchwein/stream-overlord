@@ -4,6 +4,7 @@ import {getAssetConfig} from "../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {addAlert} from "../../../helper/AlertHelper";
+import {logRegular} from "../../../helper/LogHelper";
 
 export default class RaidEvent extends BaseEvent {
     name = 'Raid'
@@ -11,6 +12,8 @@ export default class RaidEvent extends BaseEvent {
 
     async handle(event: EasyEvent) {
         const theme = getAssetConfig('raid')
+
+        logRegular(`raid from ${event.userDisplayName} with ${event.viewerCount} viewers`)
 
         addAlert({
             'sound': theme.sound,

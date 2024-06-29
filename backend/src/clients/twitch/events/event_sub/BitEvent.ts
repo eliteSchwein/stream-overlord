@@ -4,6 +4,7 @@ import {getAssetConfig} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
+import {logRegular} from "../../../../helper/LogHelper";
 
 export default class BitEvent extends BaseEvent {
     name = 'Bits'
@@ -12,6 +13,8 @@ export default class BitEvent extends BaseEvent {
 
     async handle(event: EventSubChannelCheerEvent) {
         const theme = getAssetConfig('bits')
+
+        logRegular(`${event.bits} bits from ${event.userDisplayName}`)
 
         addAlert({
             'sound': theme.sound,

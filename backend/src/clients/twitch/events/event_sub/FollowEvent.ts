@@ -4,6 +4,7 @@ import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
+import {logRegular} from "../../../../helper/LogHelper";
 
 export default class FollowEvent extends BaseEvent {
     name = 'Follow'
@@ -18,6 +19,8 @@ export default class FollowEvent extends BaseEvent {
 
     async handle(event: EventSubChannelFollowEvent) {
         const theme = getAssetConfig('follow')
+
+        logRegular(`follow from ${event.userDisplayName}`)
 
         addAlert({
             'sound': theme.sound,
