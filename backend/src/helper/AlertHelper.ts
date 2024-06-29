@@ -22,8 +22,6 @@ export default function initialAlerts() {
                 return
             }
 
-            console.log(activeAlert)
-
             activeAlert.active = true
 
             setManual(activeAlert.color)
