@@ -21,6 +21,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)
+        const soundAlerts = getConfig(/soundalert /g, true)
 
         for(const channelPoint of this.channelPoints) {
             const channelPointTitle = channelPoint.getTitle()
@@ -31,10 +32,25 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPointTitle, cost: 666})
         }
+
+        for(const soundAlert of soundAlerts) {
+            if(rewardNames.includes(soundAlert.point_label)) continue
+
+            logNotice(`create channel point alert: ${soundAlert.point_label}`)
+
+            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: soundAlert.point_label, cost: 69})
+        }
     }
 
     async handle(event: EventSubChannelRedemptionAddEvent) {
         let isValid = false
+        const soundAlerts = getConfig(/soundalert /g, true)
+
+        for(const soundAlert of soundAlerts) {
+            if(soundAlert.point_label !== event.rewardTitle) continue
+            // todo: soundalert trigger handeling stuff
+            return
+        }
 
         for(const channelPoint of this.channelPoints) {
             if(channelPoint.getTitle() !== event.rewardTitle) continue
