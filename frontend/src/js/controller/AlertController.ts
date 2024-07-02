@@ -22,6 +22,7 @@ export default class AlertController extends BaseController {
 
     videoEnd(event: Event) {
         this.videoTarget.style.opacity = '0'
+        this.element.querySelector('canvas').style.opacity = '1'
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
@@ -30,10 +31,12 @@ export default class AlertController extends BaseController {
                 if(this.element.style.opacity === "1") return
 
                 this.element.style.opacity = '1'
+                this.element.style.height = null
+                this.videoTarget.style.opacity = '0'
 
                 if(data.video) {
                     this.videoTarget.style.display = null
-                    this.videoTarget.style.opacity = '1'
+                    this.element.querySelector('canvas').style.opacity = '0'
                     this.element.style.padding = '0 !important'
 
                     if(!this.element.classList.contains('expand')) {
@@ -43,6 +46,14 @@ export default class AlertController extends BaseController {
                     try {
                         this.videoTarget.querySelector('source').src = data.video
                         this.videoTarget.load()
+
+                        await sleep(50)
+
+                        this.element.style.height = `${this.videoTarget.getBoundingClientRect().height}px`
+
+                        await sleep(50)
+
+                        this.videoTarget.style.opacity = '1'
                         await this.videoTarget.play()
                     } catch (e) {
                         console.error(e)
@@ -74,6 +85,7 @@ export default class AlertController extends BaseController {
                 this.videoTarget.pause()
 
                 this.element.classList.remove('expand')
+                this.element.style.height = null
 
                 this.element.style.opacity = '0'
 
