@@ -81,8 +81,12 @@ export default class AlertController extends BaseController {
                 return
             }
             case 'hide_alert': {
-                this.soundTarget.pause()
-                this.videoTarget.pause()
+                try {
+                    this.soundTarget.pause()
+                    this.videoTarget.pause()
+                } catch (e) {
+                    console.error(e)
+                }
 
                 this.element.classList.remove('expand')
                 this.element.style.height = null
