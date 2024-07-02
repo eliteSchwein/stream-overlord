@@ -3,7 +3,7 @@ import ParticleHelper from "../helper/ParticleHelper";
 import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
-export default class AlertController extends BaseController{
+export default class AlertController extends BaseController {
     static targets = ['icon', 'content', 'sound', 'video', 'contentContainer']
 
     declare readonly iconTarget: HTMLElement
@@ -17,6 +17,11 @@ export default class AlertController extends BaseController{
     async postConnect() {
         this.particle = new ParticleHelper()
         await this.particle.loadParticle(this.element)
+        this.videoTarget.addEventListener('ended', (event) => this.videoEnd(event))
+    }
+
+    videoEnd(event: Event) {
+        this.videoTarget.style.opacity = '0'
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
@@ -28,6 +33,7 @@ export default class AlertController extends BaseController{
 
                 if(data.video) {
                     this.videoTarget.style.display = null
+                    this.videoTarget.style.opacity = '1'
                     this.element.style.padding = '0 !important'
 
                     if(!this.element.classList.contains('expand')) {
@@ -55,10 +61,6 @@ export default class AlertController extends BaseController{
                         console.error(e)
                     }
                 }
-
-                this.particle.destroyParticle()
-
-                console.log(data)
 
                 for(const contentElement of this.contentTargets) {
                     contentElement.innerHTML = data.message
@@ -91,6 +93,7 @@ export default class AlertController extends BaseController{
     }
 
     async handleTheme(websocket: Websocket, data: any) {
+        console.log('test')
         await this.particle.loadThemeColor(data.color)
         this.element.style.boxShadow = `0 0 7px 0 ${data.color}`
         this.iconTarget.style.color = data.color
