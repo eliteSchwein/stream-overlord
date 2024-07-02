@@ -24,8 +24,10 @@ export default function initialAlerts() {
 
             activeAlert.active = true
 
-            setManual(activeAlert.color)
-            pushTheme()
+            if(activeAlert.color) {
+                setManual(activeAlert.color)
+                pushTheme()
+            }
 
             alertQuery[0] = activeAlert
             return

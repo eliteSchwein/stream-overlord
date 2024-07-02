@@ -6,6 +6,7 @@ import BoostChannelPoint from "../channel_points/BoostChannelPoint";
 import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
+import {addAlert} from "../../../../helper/AlertHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -48,7 +49,19 @@ export default class ChannelPointsEvent extends BaseEvent {
 
         for(const soundAlert of soundAlerts) {
             if(soundAlert.point_label !== event.rewardTitle) continue
-            // todo: soundalert trigger handeling stuff
+
+            addAlert({
+                'sound': soundAlert.sound,
+                'duration': soundAlert.duration,
+                'icon': '',
+                'event-uuid': `alert-${soundAlert.point_label}`,
+                'video': soundAlert.video
+            })
+
+            if(soundAlert.auto_accept) {
+                await event.updateStatus('FULFILLED')
+            }
+
             return
         }
 
