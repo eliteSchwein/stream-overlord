@@ -1,6 +1,6 @@
 import {WebSocketServer} from "ws";
 import {getConfig} from "../../helper/ConfigHelper";
-import {logRegular} from "../../helper/LogHelper";
+import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 
 
@@ -21,7 +21,12 @@ export default class WebsocketServer {
 
     public send(method: string, data: any) {
         this.websocket.clients.forEach((client) => {
-            client.send(JSON.stringify({method: method, data: data}))
+            try {
+                client.send(JSON.stringify({method: method, data: data}))
+            } catch (error) {
+                logError('request to a websocket client failed!')
+                logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            }
         })
     }
 }
