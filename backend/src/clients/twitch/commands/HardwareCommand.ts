@@ -10,10 +10,26 @@ export default class HardwareCommand extends BaseCommand{
         const cpuTemp = await systeminformation.cpuTemperature()
         const cpuClock = await systeminformation.cpuCurrentSpeed()
 
-        await context.say(`CPU: ${cpuData.manufacturer} ${cpuData.brand} @ ${cpuClock.avg} GHz`)
-        await context.say(`Temp: ${cpuTemp.main}°C`)
+        void context.say(`CPU: ${cpuData.manufacturer} ${cpuData.brand} @ ${cpuClock.avg}GHz`)
+        void context.say(`Temp: ${cpuTemp.main}°C`)
 
         const gpuData = await systeminformation.graphics()
-        console.log(gpuData)
+
+        for(const index in gpuData.controllers) {
+            const gpu = gpuData.controllers[index]
+
+            const displayIndex = parseInt(index) + 1
+
+            if(gpu.name) {
+                void context.say(`GPU ${displayIndex}: ${gpu.model} @ ${gpu.clockCore}MHz`)
+                void context.say(`Temp: ${gpu.temperatureGpu}°C`)
+                if(gpu.utilizationGpu) {
+                    void context.say(`Usage: ${gpu.utilizationGpu}%`)
+                }
+                continue
+            }
+
+            void context.say(`GPU ${displayIndex}: ${gpu.vendor} ${gpu.model}`)
+        }
     }
 }
