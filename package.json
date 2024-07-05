@@ -68,6 +68,7 @@
     "ws": "^8.17.0"
   },
   "dependencies": {
-    "sharp": "^0.33.2"
+    "sharp": "^0.33.2",
+    "systeminformation": "^5.22.11"
   }
 }

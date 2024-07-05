@@ -3,6 +3,7 @@ import {Bot, createBotCommand} from "@twurple/easy-bot";
 import InfoCommand from "./commands/InfoCommand";
 import {logRegular} from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
+import HardwareCommand from "./commands/HardwareCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -10,6 +11,7 @@ export default function buildCommands(bot: Bot) {
     // coded commands
     commands = commands.concat(new InfoCommand(bot).register())
     commands = commands.concat(new SetGameCommand(bot).register())
+    commands = commands.concat(new HardwareCommand(bot).register())
 
     // configured commands
     commands = buildConfigCommands(commands)
