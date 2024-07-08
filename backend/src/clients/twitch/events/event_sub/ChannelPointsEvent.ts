@@ -54,10 +54,10 @@ export default class ChannelPointsEvent extends BaseEvent {
             addAlert({
                 'sound': soundAlert.sound,
                 'duration': soundAlert.duration,
-                'icon': '',
-                'message': '',
+                'icon': (soundAlert.icon) ? soundAlert.icon : '',
+                'message': (soundAlert.message) ? soundAlert.message : '',
                 'event-uuid': `alert-${soundAlert.point_label}`,
-                'video': soundAlert.video
+                'video': (soundAlert.video) ? soundAlert.video : ''
             })
 
             if(soundAlert.auto_accept) {
