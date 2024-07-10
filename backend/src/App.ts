@@ -10,6 +10,7 @@ import {OBSClient} from "./clients/obs/OBSClient";
 import initialTimers from "./helper/TimerHelper";
 import initialAlerts from "./helper/AlertHelper";
 import loadScenes from "./helper/SceneHelper";
+import initialSchedulers from "./helper/SchedulerHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -60,6 +61,7 @@ async function init() {
     logRegular('initial schedulers')
     initialTimers()
     initialAlerts()
+    initialSchedulers()
 
     logRegular('load scenes')
     loadScenes()

@@ -1,12 +1,13 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logError, logNotice, logWarn} from "../../../../helper/LogHelper";
-import {getConfig} from "../../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import BoostChannelPoint from "../channel_points/BoostChannelPoint";
 import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
+import {triggerScene} from "../../../../helper/SceneHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -22,7 +23,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)
-        const soundAlerts = getConfig(/soundalert /g)
+        const configChannelPoints = getConfig(/channel_point /g)
 
 
         for(const channelPoint of this.channelPoints) {
@@ -35,32 +36,60 @@ export default class ChannelPointsEvent extends BaseEvent {
             await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPointTitle, cost: 666})
         }
 
-        for(const soundAlert of soundAlerts) {
-            if(rewardNames.includes(soundAlert.point_label)) continue
+        for(const configChannelPoint of configChannelPoints) {
+            if(rewardNames.includes(configChannelPoint.label)) continue
 
-            logNotice(`create channel point alert: ${soundAlert.point_label}`)
+            logNotice(`create config channel point: ${configChannelPoint.label}`)
 
-            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: soundAlert.point_label, cost: 69})
+            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: configChannelPoint.label, cost: 69})
         }
     }
 
     async handle(event: EventSubChannelRedemptionAddEvent) {
         let isValid = false
-        const soundAlerts = getConfig(/soundalert /g)
+        const configChannelPoints = getConfig(/channel_point /g)
 
-        for(const soundAlert of soundAlerts) {
-            if(soundAlert.point_label !== event.rewardTitle) continue
+        for(const configChannelPoint of configChannelPoints) {
+            if(configChannelPoint.label !== event.rewardTitle) continue
 
-            addAlert({
-                'sound': soundAlert.sound,
-                'duration': soundAlert.duration,
-                'icon': (soundAlert.icon) ? soundAlert.icon : '',
-                'message': (soundAlert.message) ? soundAlert.message : '',
-                'event-uuid': `alert-${soundAlert.point_label}`,
-                'video': (soundAlert.video) ? soundAlert.video : ''
-            })
+            switch (configChannelPoint.type) {
+                case 'alert':
+                    const asset = getAssetConfig(configChannelPoint.asset)
 
-            if(soundAlert.auto_accept) {
+                    if(!asset) {
+                        if(event.broadcasterName !== event.userName) {
+                            await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.')
+                        }
+
+                        logWarn(`channel point denied for ${event.userName} because asset is invalid configured!`)
+                        await event.updateStatus('CANCELED')
+                        return
+                    }
+
+                    addAlert({
+                         'sound': asset.sound,
+                         'duration': asset.duration,
+                         'icon': (asset.icon) ? asset.icon : '',
+                         'message': (asset.message) ? asset.message : '',
+                         'event-uuid': `alert-${asset.point_label}`,
+                         'video': (asset.video) ? asset.video : ''
+                    })
+
+                    break
+                case 'scene':
+                    if(!await triggerScene(configChannelPoint.trigger)) {
+                        if(event.broadcasterName !== event.userName) {
+                            await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.')
+                        }
+
+                        logWarn(`channel point denied for ${event.userName} because scene was not found!`)
+                        await event.updateStatus('CANCELED')
+                        return
+                    }
+                    break
+            }
+
+            if(configChannelPoint.auto_accept) {
                 await event.updateStatus('FULFILLED')
             }
 
