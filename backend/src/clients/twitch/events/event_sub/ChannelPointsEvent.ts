@@ -71,7 +71,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                          'duration': asset.duration,
                          'icon': (asset.icon) ? asset.icon : '',
                          'message': (asset.message) ? asset.message : '',
-                         'event-uuid': `alert-${asset.point_label}`,
+                         'event-uuid': `alert-${configChannelPoint.label}`,
                          'video': (asset.video) ? asset.video : ''
                     })
 
