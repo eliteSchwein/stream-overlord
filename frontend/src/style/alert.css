@@ -27,6 +27,7 @@
 }
 
 .alert-container .alert-logo {
+    margin-left: 150px;
     z-index: 3;
     text-shadow: 0 0 15px #000000c4;
     font-size: 300px;
