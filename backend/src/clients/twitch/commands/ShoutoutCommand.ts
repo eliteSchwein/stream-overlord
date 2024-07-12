@@ -23,7 +23,7 @@ export default class ShoutoutCommand extends BaseCommand {
             return
         }
 
-        const stream = await user.getStream()
+        //const stream = await user.getStream()
 
         const clipUrl = `https://twitch.guru/clipsworks/${user.name}/&period=all&vol=1`
 
@@ -37,7 +37,7 @@ export default class ShoutoutCommand extends BaseCommand {
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
 
-        await context.say(`${user.displayName} hat zuletzt ${stream.gameName} gespielt`)
+        //await context.say(`${user.displayName} hat zuletzt ${stream.gameName} gespielt`)
         await context.say(`checkt denn channel ab -> https://twitch.tv/${user.name}`)
 
         logRegular(`shout from ${context.userDisplayName} to ${user.displayName}`)
