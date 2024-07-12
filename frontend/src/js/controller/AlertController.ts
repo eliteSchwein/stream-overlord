@@ -4,13 +4,15 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class AlertController extends BaseController {
-    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer']
+    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer', 'logo', 'iframe']
 
     declare readonly iconTarget: HTMLElement
     declare readonly soundTarget: HTMLAudioElement
     declare readonly contentTargets: HTMLDivElement[]
     declare readonly contentContainerTarget: HTMLDivElement
     declare readonly videoTarget: HTMLVideoElement
+    declare readonly logoTarget: HTMLImageElement
+    declare readonly iframeTarget: HTMLIFrameElement
 
     protected particle: ParticleHelper
 
@@ -58,7 +60,8 @@ export default class AlertController extends BaseController {
                     } catch (e) {
                         console.error(e)
                     }
-                } else if(data.sound) {
+                }
+                if(data.sound) {
                     this.videoTarget.style.display = 'none'
                     this.element.style.padding = null
 
@@ -71,6 +74,15 @@ export default class AlertController extends BaseController {
                     } catch (e) {
                         console.error(e)
                     }
+                }
+                if(data.iframe) {
+                    this.iframeTarget.classList.remove('d-none')
+                    this.iframeTarget.src = data.iframe
+                    this.element.classList.add('aspect')
+                }
+                if(data.logo) {
+                    this.logoTarget.classList.remove('d-none')
+                    this.logoTarget.src = data.logo
                 }
 
                 for(const contentElement of this.contentTargets) {
@@ -88,7 +100,17 @@ export default class AlertController extends BaseController {
                     console.error(e)
                 }
 
+                this.iframeTarget.src = ''
+                this.logoTarget.src = ''
+
+                if(!this.iframeTarget.classList.contains('d-none'))
+                    this.iframeTarget.classList.add('d-none')
+
+                if(!this.logoTarget.classList.contains('d-none'))
+                    this.logoTarget.classList.add('d-none')
+
                 this.element.classList.remove('expand')
+                this.element.classList.remove('aspect')
                 this.element.style.height = null
 
                 this.element.style.opacity = '0'

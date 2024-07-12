@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {RaidEvent as EasyEvent} from "@twurple/easy-bot/lib/events/RaidEvent";
-import {getAssetConfig} from "../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {addAlert} from "../../../helper/AlertHelper";
@@ -26,5 +26,10 @@ export default class RaidEvent extends BaseEvent {
         })
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})
+
+        const primaryChannel = await this.bot.api.users.getUserByName(
+            getConfig(/twitch/g)[0]['channels'][0])
+
+        await this.bot.api.chat.sendChatMessage(primaryChannel, `!so ${event.userName}`)
     }
 }

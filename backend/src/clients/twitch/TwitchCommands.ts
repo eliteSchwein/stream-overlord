@@ -4,6 +4,7 @@ import InfoCommand from "./commands/InfoCommand";
 import {logRegular} from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
 import HardwareCommand from "./commands/HardwareCommand";
+import ShoutoutCommand from "./commands/ShoutoutCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -12,6 +13,7 @@ export default function buildCommands(bot: Bot) {
     commands = commands.concat(new InfoCommand(bot).register())
     commands = commands.concat(new SetGameCommand(bot).register())
     commands = commands.concat(new HardwareCommand(bot).register())
+    commands = commands.concat(new ShoutoutCommand(bot).register())
 
     // configured commands
     commands = buildConfigCommands(commands)

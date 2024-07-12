@@ -15,7 +15,12 @@
 .alert-container.expand {
 }
 
-.alert-container canvas{
+.alert-container.aspect {
+    aspect-ratio: auto 16 / 9;
+    height: unset;
+}
+
+.alert-container canvas {
     position: absolute;
     top: 0;
     left: 0;
@@ -53,8 +58,30 @@
     overflow: hidden
 }
 
-.alert-container video{
+.alert-container video {
     width: 100%;
     transition-duration: 0.25s;
     transition-timing-function: ease-in-out;
+}
+
+.alert-container .logo {
+    margin-left: 150px;
+    z-index: 3;
+    height: 256px;
+    width: 256px;
+    border-radius: 15px;
+}
+
+.alert-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    border-radius: 20px;
+    overflow: hidden
 }
