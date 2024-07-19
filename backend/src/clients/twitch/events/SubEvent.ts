@@ -25,6 +25,6 @@ export default class SubEvent extends BaseEvent {
             'video': theme.video
         })
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})
+        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})
     }
 }
