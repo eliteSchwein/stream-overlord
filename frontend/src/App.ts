@@ -22,6 +22,7 @@ import {tsParticles} from "@tsparticles/engine"
 import AlertController from "./js/controller/AlertController";
 import TimerController from "./js/controller/TimerController";
 import AnnounceController from "./js/controller/AnnounceController";
+import EffectController from "./js/controller/EffectController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -43,6 +44,7 @@ async function init(){
     stimulus.register('alert', AlertController)
     stimulus.register('timer', TimerController)
     stimulus.register('announce', AnnounceController)
+    stimulus.register('effect', EffectController)
 }
 
 export function getWebsocketClient() {

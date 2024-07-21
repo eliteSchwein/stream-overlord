@@ -4,6 +4,8 @@ import {pushTheme} from "../../../helper/ThemeHelper";
 import AdMessage from "./messages/AdMessage";
 import {sleep} from "../../../../../helper/GeneralHelper";
 import EditColorMessage from "./messages/EditColorMessage";
+import ClearEventMessage from "./messages/ClearEventMessage";
+import GetEffectMessage from "./messages/GetEffectMessage";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -17,6 +19,8 @@ export default class ConnectEvent extends BaseEvent{
 
             await new AdMessage(this.webSocketServer, event).handleMessage(data)
             await new EditColorMessage(this.webSocketServer, event).handleMessage(data)
+            await new ClearEventMessage(this.webSocketServer, event).handleMessage(data)
+            await new GetEffectMessage(this.webSocketServer, event).handleMessage(data)
         })
 
         await sleep(500)

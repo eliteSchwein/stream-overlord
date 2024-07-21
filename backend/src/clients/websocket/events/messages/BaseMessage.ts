@@ -1,4 +1,5 @@
 import {WebSocket, WebSocketServer} from "ws";
+import {logError} from "../../../../helper/LogHelper";
 
 export default class BaseMessage {
     webSocketServer: WebSocketServer
@@ -14,6 +15,16 @@ export default class BaseMessage {
         if(data.method !== this.method) { return}
 
         await this.handle(data.data)
+    }
+
+
+    public send(method: string, data: any) {
+        try {
+            this.webSocket.send(JSON.stringify({method: method, data: data}))
+        } catch (error) {
+            logError('request to a websocket client failed!')
+            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
     }
 
     async handle(data: any) {
