@@ -4,8 +4,8 @@ import {getConfig} from "../../../helper/ConfigHelper";
 
 export default class ClipCommand extends BaseCommand{
     command = 'clip'
-    globalCooldown = 60
-    userCooldown = 75
+    globalCooldown = 10
+    userCooldown = 15
 
     async handle(params: any, context: BotCommandContext) {
         const primaryChannel = await this.bot.api.users.getUserByName(
