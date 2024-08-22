@@ -2,7 +2,7 @@ import BaseEvent from "./BaseEvent";
 import {EventSubChannelFollowEvent} from "@twurple/eventsub-base";
 import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
-import {waitUntil} from "async-wait-until";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {logRegular} from "../../../../helper/LogHelper";
 
@@ -32,6 +32,6 @@ export default class FollowEvent extends BaseEvent {
             'video': theme.video
         })
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})
+        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
     }
 }
