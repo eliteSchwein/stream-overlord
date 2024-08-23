@@ -8,6 +8,7 @@ import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {triggerScene} from "../../../../helper/SceneHelper";
+import isShieldActive from "../../../../helper/ShieldHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -48,6 +49,15 @@ export default class ChannelPointsEvent extends BaseEvent {
     async handle(event: EventSubChannelRedemptionAddEvent) {
         let isValid = false
         const configChannelPoints = getConfig(/channel_point /g)
+
+        if(isShieldActive()) {
+            logWarn(`channel point denied for ${event.userName} because shield mode is active!`)
+            if(event.broadcasterName !== event.userName) {
+                await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil der Schild Modus aktiv ist.')
+            }
+            await event.updateStatus('CANCELED')
+            return
+        }
 
         for(const configChannelPoint of configChannelPoints) {
             if(configChannelPoint.label !== event.rewardTitle) continue
@@ -92,7 +102,6 @@ export default class ChannelPointsEvent extends BaseEvent {
             if(configChannelPoint.auto_accept) {
                 await event.updateStatus('FULFILLED')
             }
-
             return
         }
 

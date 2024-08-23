@@ -1,6 +1,7 @@
 import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {hasModerator, hasVip} from "../helper/PermissionHelper";
+import isShieldActive from "../../../helper/ShieldHelper";
 
 export default class BaseCommand {
     command: string
@@ -59,6 +60,11 @@ export default class BaseCommand {
             !hasVip(context.broadcasterName, context.userId) &&
             context.broadcasterId !== context.userId) {
             await this.replyPermissionError(context)
+            return
+        }
+
+        if(isShieldActive() && !hasModerator(context.broadcasterName, context.userId) && context.broadcasterId !== context.userId) {
+            await context.reply('der Schild Modus ist aktiv!')
             return
         }
 

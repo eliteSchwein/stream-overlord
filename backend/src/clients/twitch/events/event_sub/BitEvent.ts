@@ -4,7 +4,8 @@ import {getAssetConfig} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
-import {logRegular} from "../../../../helper/LogHelper";
+import {logRegular, logWarn} from "../../../../helper/LogHelper";
+import isShieldActive from "../../../../helper/ShieldHelper";
 
 export default class BitEvent extends BaseEvent {
     name = 'Bits'
@@ -15,6 +16,11 @@ export default class BitEvent extends BaseEvent {
         const theme = getAssetConfig('bits')
 
         logRegular(`${event.bits} bits from ${event.userDisplayName}`)
+
+        if(isShieldActive()) {
+            logWarn('Shield mode active!')
+            return
+        }
 
         addAlert({
             'sound': theme.sound,

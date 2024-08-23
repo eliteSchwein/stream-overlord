@@ -2,6 +2,8 @@ import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
 import {Bot} from "@twurple/easy-bot";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
+import isShieldActive from "../../../../helper/ShieldHelper";
+import {hasModerator} from "../../helper/PermissionHelper";
 
 export default class BaseChannelPoint {
     eventSubWs: EventSubWsListener

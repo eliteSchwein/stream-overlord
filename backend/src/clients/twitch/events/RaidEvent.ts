@@ -4,7 +4,8 @@ import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {addAlert} from "../../../helper/AlertHelper";
-import {logRegular} from "../../../helper/LogHelper";
+import {logRegular, logWarn} from "../../../helper/LogHelper";
+import isShieldActive from "../../../helper/ShieldHelper";
 
 export default class RaidEvent extends BaseEvent {
     name = 'Raid'
@@ -14,6 +15,11 @@ export default class RaidEvent extends BaseEvent {
         const theme = getAssetConfig('raid')
 
         logRegular(`raid from ${event.userDisplayName} with ${event.viewerCount} viewers`)
+
+        if(isShieldActive()) {
+            logWarn('Shield mode active!')
+            return
+        }
 
         addAlert({
             'sound': theme.sound,

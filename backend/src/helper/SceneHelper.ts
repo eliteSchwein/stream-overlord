@@ -41,6 +41,10 @@ export async function triggerScene(name: string) {
                     await handleFunction(task.method, task.data)
                     break
                 }
+                case "scene": {
+                    await triggerScene(task.method)
+                    break
+                }
             }
         } catch (error) {
             logWarn(`task failed:`)

@@ -4,7 +4,8 @@ import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
-import {logRegular} from "../../../../helper/LogHelper";
+import {logRegular, logWarn} from "../../../../helper/LogHelper";
+import isShieldActive from "../../../../helper/ShieldHelper";
 
 export default class FollowEvent extends BaseEvent {
     name = 'Follow'
@@ -21,6 +22,11 @@ export default class FollowEvent extends BaseEvent {
         const theme = getAssetConfig('follow')
 
         logRegular(`follow from ${event.userDisplayName}`)
+
+        if(isShieldActive()) {
+            logWarn('Shield mode active!')
+            return
+        }
 
         addAlert({
             'sound': theme.sound,

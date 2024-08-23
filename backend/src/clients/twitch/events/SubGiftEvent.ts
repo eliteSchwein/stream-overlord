@@ -4,7 +4,8 @@ import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {getAssetConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
-import {logRegular} from "../../../helper/LogHelper";
+import {logRegular, logWarn} from "../../../helper/LogHelper";
+import isShieldActive from "../../../helper/ShieldHelper";
 
 export default class SubGiftEvent extends BaseEvent {
     name = 'SubGift'
@@ -14,6 +15,11 @@ export default class SubGiftEvent extends BaseEvent {
         const theme = getAssetConfig('sub')
 
         logRegular(`sub gift from ${event.gifterDisplayName} to ${event.userDisplayName} in ${event.months} month on tier ${event.plan}`)
+
+        if(isShieldActive()) {
+            logWarn('Shield mode active!')
+            return
+        }
 
         addAlert({
             'sound': theme.sound,

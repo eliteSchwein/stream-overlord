@@ -2,9 +2,11 @@ import {Controller} from "@hotwired/stimulus";
 import {getWebsocketClient} from "../../App";
 import {Websocket, WebsocketEvents} from "websocket-ts";
 import WebsocketClient from "../client/WebsocketClient";
+import * as wasi from "node:wasi";
 
 export default class BaseController extends Controller<HTMLElement> {
     websocket: WebsocketClient;
+    shieldActive = false;
 
     async register() {
         this.websocket = getWebsocketClient()
@@ -39,7 +41,16 @@ export default class BaseController extends Controller<HTMLElement> {
             return
         }
 
+        if(data.method === 'shield_mode') {
+            this.shieldActive = data.data.status
+            await this.handleShield()
+        }
+
         await this.handleMessage(websocket, data.method, data.data)
+    }
+
+    async handleShield() {
+
     }
 
     async handleTheme(websocket: Websocket, data: any) {

@@ -23,6 +23,31 @@ export default class BadgeController extends BaseController {
         await this.particle.loadParticle(this.element)
     }
 
+    loadBadgeContent() {
+        this.websocket.send('get_ads', {})
+
+        this.logoTarget.style.backgroundImage = null
+
+        void this.updateTitle(this.ads[this.adIndex])
+    }
+
+    async handleShield() {
+        await sleep(250)
+        if(this.shieldActive) {
+            await sleep(250)
+            this.logoTarget.style.backgroundImage = 'url("/shieldIcon.png")'
+
+            await this.updateTitle({type: "text", content: "eliteSCHW31N"})
+
+            for (const subtitleElement of this.subtitleTargets) {
+                subtitleElement.style.display = null
+                subtitleElement.innerHTML = "Shield active!"
+            }
+        } else {
+            this.loadBadgeContent()
+        }
+    }
+
     async updateTitle(data: any) {
         for (const titleElement of this.titleTargets) {
             titleElement.style.display = 'none'
@@ -37,6 +62,11 @@ export default class BadgeController extends BaseController {
             for (const titleElement of this.titleTargets) {
                 titleElement.style.display = null
                 titleElement.innerHTML = data.content
+            }
+
+            for (const subtitleElement of this.subtitleTargets) {
+                subtitleElement.style.display = null
+                subtitleElement.innerHTML = "mehr als ein SCHW31N"
             }
 
             return
@@ -55,13 +85,15 @@ export default class BadgeController extends BaseController {
         this.adIndex = 0
 
         this.adInterval = setInterval(() => {
+            if(this.shieldActive) {
+                return
+            }
+
             if(this.adIndex === this.ads.length ) {
                 this.adIndex = 0
             }
 
-            this.websocket.send('get_ads', {})
-
-            void this.updateTitle(this.ads[this.adIndex])
+            this.loadBadgeContent()
 
             this.adIndex++
         }, 5 * 1000)
