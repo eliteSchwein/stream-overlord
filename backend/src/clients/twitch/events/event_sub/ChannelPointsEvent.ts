@@ -9,6 +9,7 @@ import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {triggerScene} from "../../../../helper/SceneHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
+import FAChannelPoint from "../channel_points/FAChannelPoint";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -21,6 +22,7 @@ export default class ChannelPointsEvent extends BaseEvent {
             getConfig(/twitch/g)[0]['channels'][0])
 
         this.channelPoints.push(new BoostChannelPoint(this.eventSubWs, this.bot))
+        this.channelPoints.push(new FAChannelPoint(this.eventSubWs, this.bot))
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)
