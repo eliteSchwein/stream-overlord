@@ -110,12 +110,10 @@ export default class ChannelPointsEvent extends BaseEvent {
                     const keyStrokes = configChannelPoint.key_strokes
 
                     for(const keyStroke of keyStrokes) {
-                        console.log(keyStroke)
                         const subKeyStrokes = keyStroke.split(',')
                         const websocketServer = getWebsocketServer()
 
-                        console.log(subKeyStrokes)
-                        //websocketServer.send('trigger_keyboard', {'name': configChannelPoint.label, 'keys': subKeyStrokes})
+                        websocketServer.send('trigger_keyboard', {'name': configChannelPoint.label, 'keys': subKeyStrokes})
                     }
 
                     break
