@@ -10,6 +10,7 @@ import {addAlert} from "../../../../helper/AlertHelper";
 import {triggerScene} from "../../../../helper/SceneHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
 import FAChannelPoint from "../channel_points/FAChannelPoint";
+import getWebsocketServer from "../../../../App";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -51,6 +52,7 @@ export default class ChannelPointsEvent extends BaseEvent {
     async handle(event: EventSubChannelRedemptionAddEvent) {
         let isValid = false
         const configChannelPoints = getConfig(/channel_point /g)
+        const eventUuid = uuidv4()
 
         if(isShieldActive()) {
             logWarn(`channel point denied for ${event.userName} because shield mode is active!`)
@@ -61,13 +63,38 @@ export default class ChannelPointsEvent extends BaseEvent {
             return
         }
 
+        if(isEventFull(this.name, event.broadcasterName, this.eventLimit)) {
+            if(event.broadcasterName !== event.userName) {
+                await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil aktuell die Punkte Warteschlange voll ist.')
+            }
+
+            logWarn(`channel point denied for ${event.userName} because global spam protection is active!`)
+            await event.updateStatus('CANCELED')
+            return
+        }
+
         for(const configChannelPoint of configChannelPoints) {
             if(configChannelPoint.label !== event.rewardTitle) continue
 
+            if(!configChannelPoint.auto_accept) {
+                addEventToCooldown(eventUuid, this.name, event.broadcasterName)
+            }
+
+            const asset = getAssetConfig(configChannelPoint.asset)
+
+            if(asset) {
+                addAlert({
+                    'sound': asset.sound,
+                    'duration': asset.duration,
+                    'icon': (asset.icon) ? asset.icon : '',
+                    'message': (asset.message) ? asset.message : '',
+                    'event-uuid': `alert-${configChannelPoint.label}`,
+                    'video': (asset.video) ? asset.video : ''
+                })
+            }
+
             switch (configChannelPoint.type) {
                 case 'alert':
-                    const asset = getAssetConfig(configChannelPoint.asset)
-
                     if(!asset) {
                         if(event.broadcasterName !== event.userName) {
                             await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.')
@@ -78,14 +105,16 @@ export default class ChannelPointsEvent extends BaseEvent {
                         return
                     }
 
-                    addAlert({
-                         'sound': asset.sound,
-                         'duration': asset.duration,
-                         'icon': (asset.icon) ? asset.icon : '',
-                         'message': (asset.message) ? asset.message : '',
-                         'event-uuid': `alert-${configChannelPoint.label}`,
-                         'video': (asset.video) ? asset.video : ''
-                    })
+                    break
+                case 'keystrokes':
+                    const keyStrokes = configChannelPoint.key_strokes
+
+                    for(const keyStroke of keyStrokes) {
+                        const subKeyStrokes = keyStroke.split(':')
+                        const websocketServer = getWebsocketServer()
+
+                        websocketServer.send('trigger_keyboard', {'name': configChannelPoint.label, 'keys': subKeyStrokes})
+                    }
 
                     break
                 case 'scene':
@@ -103,7 +132,12 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             if(configChannelPoint.auto_accept) {
                 await event.updateStatus('FULFILLED')
+                return
             }
+
+            await sleep(this.eventCooldown * 1000)
+
+            removeEventFromCooldown(eventUuid, this.name, event.broadcasterName)
             return
         }
 
@@ -115,18 +149,6 @@ export default class ChannelPointsEvent extends BaseEvent {
         }
 
         if(!isValid) return
-
-        if(isEventFull(this.name, event.broadcasterName, this.eventLimit)) {
-            if(event.broadcasterName !== event.userName) {
-                await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil aktuell die Punkte Warteschlange voll ist.')
-            }
-
-            logWarn(`channel point denied for ${event.userName} because global spam protection is active!`)
-            await event.updateStatus('CANCELED')
-            return
-        }
-
-        const eventUuid = uuidv4()
 
         addEventToCooldown(eventUuid, this.name, event.broadcasterName)
 
