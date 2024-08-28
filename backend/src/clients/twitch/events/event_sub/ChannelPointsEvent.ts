@@ -111,7 +111,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
                     for(const keyStroke of keyStrokes) {
                         console.log(keyStroke)
-                        const subKeyStrokes = keyStroke.split(':')
+                        const subKeyStrokes = keyStroke.split(',')
                         const websocketServer = getWebsocketServer()
 
                         console.log(subKeyStrokes)
