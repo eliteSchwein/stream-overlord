@@ -51,6 +51,6 @@ export default class FAChannelPoint extends BaseChannelPoint {
             'video': theme.video
         })
 
-        websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['y']})
+        websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['z']})
     }
 }
