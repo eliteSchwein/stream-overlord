@@ -1,4 +1,4 @@
-import {tsParticles, Options, Container} from "@tsparticles/engine";
+import {Container, tsParticles} from "@tsparticles/engine";
 
 export default class ParticleHelper {
     private config = {

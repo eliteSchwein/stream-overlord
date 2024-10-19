@@ -2,7 +2,6 @@ import BaseChannelPoint from "./BaseChannelPoint";
 import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../../App";
-import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 
 export default class FAChannelPoint extends BaseChannelPoint {

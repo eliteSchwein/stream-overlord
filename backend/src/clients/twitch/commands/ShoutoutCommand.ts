@@ -25,7 +25,7 @@ export default class ShoutoutCommand extends BaseCommand {
 
         const channelInfo = await this.bot.api.channels.getChannelInfoById(user)
 
-        const clipUrl = `https://twitch.guru/clipsworks/${user.name}/&period=all&vol=1`
+        const clipUrl = `https://streamgood.gg/clips/player?mode=random&current_game=false&info=false&volume=50&max_length=60&filter_long_videos=false&show_timer=false&recent_clips=0&channel=${user.name}`
 
         const primaryChannel = await this.bot.api.users.getUserByName(
             getConfig(/twitch/g)[0]['channels'][0])

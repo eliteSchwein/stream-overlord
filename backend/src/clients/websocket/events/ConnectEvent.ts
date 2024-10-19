@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {logNotice} from "../../../helper/LogHelper";
-import getTheme, {pushTheme} from "../../../helper/ThemeHelper";
+import {pushTheme} from "../../../helper/ThemeHelper";
 import AdMessage from "./messages/AdMessage";
 import {sleep} from "../../../../../helper/GeneralHelper";
 import EditColorMessage from "./messages/EditColorMessage";

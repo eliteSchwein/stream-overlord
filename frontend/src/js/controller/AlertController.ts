@@ -76,9 +76,11 @@ export default class AlertController extends BaseController {
                     }
                 }
                 if(data.iframe) {
-                    this.iframeTarget.classList.remove('d-none')
-                    this.iframeTarget.src = data.iframe
                     this.element.classList.add('aspect')
+                    this.iframeTarget.src = data.iframe
+                    setTimeout(() => {
+                        this.iframeTarget.classList.remove('d-none')
+                    }, 2_000)
                 }
                 if(data.logo) {
                     this.logoTarget.classList.remove('d-none')

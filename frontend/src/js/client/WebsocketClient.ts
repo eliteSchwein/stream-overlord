@@ -1,4 +1,4 @@
-import {Websocket, WebsocketEvents} from "websocket-ts";
+import {Websocket} from "websocket-ts";
 import {getConfig} from "../helper/ConfigHelper";
 import {sleep} from "../../../../helper/GeneralHelper";
 

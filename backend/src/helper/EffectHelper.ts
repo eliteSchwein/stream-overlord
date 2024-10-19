@@ -1,4 +1,4 @@
-import getWebsocketServer, {getWebServer} from "../App";
+import getWebsocketServer from "../App";
 
 let isActive = false
 let activeEffect = ''

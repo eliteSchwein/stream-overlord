@@ -1,6 +1,6 @@
 import {WebSocketServer} from "ws";
 import {getConfig} from "../../helper/ConfigHelper";
-import {logError, logRegular, logWarn} from "../../helper/LogHelper";
+import {logError, logRegular} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 
 

@@ -1,8 +1,7 @@
 import {Controller} from "@hotwired/stimulus";
 import {getWebsocketClient} from "../../App";
-import {Websocket, WebsocketEvents} from "websocket-ts";
+import {Websocket, WebsocketEvent} from "websocket-ts";
 import WebsocketClient from "../client/WebsocketClient";
-import * as wasi from "node:wasi";
 
 export default class BaseController extends Controller<HTMLElement> {
     websocket: WebsocketClient;
@@ -11,7 +10,7 @@ export default class BaseController extends Controller<HTMLElement> {
     async register() {
         this.websocket = getWebsocketClient()
 
-        this.websocket.getWebsocket().addEventListener(WebsocketEvents.message, (websocket, event) => this.handleWebsocket(websocket, event))
+        this.websocket.getWebsocket().addEventListener(WebsocketEvent.message, (websocket, event) => this.handleWebsocket(websocket, event))
     }
 
     async connect() {
