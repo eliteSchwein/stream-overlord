@@ -17,18 +17,18 @@ export default class ClipCommand extends BaseCommand{
 
         await context.say(`created clip: ${clipUrl}`)
 
-        const webhookContent = `{
-          "content": "${context.userDisplayName} hat Live ein Clip erstellt mit !clip:\n\n${clipUrl}",
+        const webhookContent = {
+          "content": `${context.userDisplayName} hat Live ein Clip erstellt mit !clip:\n\n${clipUrl}`,
           "embeds": null,
           "attachments": []
-        }`
+        }
 
         await fetch(webhookUrl.url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify(webhookContent)
+            body: JSON.stringify(webhookContent),
         })
     }
 }
