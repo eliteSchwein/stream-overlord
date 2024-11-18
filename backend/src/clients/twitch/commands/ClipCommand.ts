@@ -23,7 +23,7 @@ export default class ClipCommand extends BaseCommand{
           "attachments": []
         }`
 
-        await fetch(webhookUrl, {
+        await fetch(webhookUrl.url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
