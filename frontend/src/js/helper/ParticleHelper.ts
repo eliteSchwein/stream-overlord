@@ -250,6 +250,9 @@ export default class ParticleHelper {
     private element: HTMLElement
 
     public async loadParticle(element: HTMLElement) {
+        if(!element) return
+        if(element.hasAttribute("data-disable-particles")) return
+
         this.destroyParticle()
 
         this.element = element

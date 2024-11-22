@@ -41,6 +41,7 @@ export default class FAChannelPoint extends BaseChannelPoint {
         const sound = (shipApiData.flight_fa_off) ? "fa-on" : "fa-off"
 
         addAlert({
+            'channel': 'elite_override',
             'sound': sound,
             'duration': 5,
             'color': theme.color,

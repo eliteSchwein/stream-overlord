@@ -41,6 +41,7 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             }
 
             addAlert({
+                'channel': 'elite_override',
                 'sound': theme.sound,
                 'duration': 15,
                 'color': theme.color,

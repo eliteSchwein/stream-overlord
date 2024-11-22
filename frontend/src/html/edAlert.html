@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="application/javascript" src="./app.js"></script>
+    <link rel="stylesheet" href="app.css">
+    <meta charset="UTF-8">
+    <title>AlertBox</title>
+</head>
+<body>
+    <div class="alert-container flex-wrap flex-row system-alert"
+         data-controller="alert"
+         data-alert-channel="elite_override"
+         data-disable-particles="true"
+         data-disable-theme="true"
+         style="opacity: 1">
+        <div class="col-12 alert-header d-flex align-items-center py-2 px-3" style="margin-top: -5px">
+            <i class="mdi mdi-alert col-2 mx-3 display-3"></i>
+            <div class="col stack text-center font-orbitron text-uppercase display-5" style="--stacks: 3;">
+                <span style="--index: 0;" data-alert-target="content">System Override detected</span>
+                <span style="--index: 1;" data-alert-target="content">System Override detected</span>
+                <span style="--index: 2;" data-alert-target="content">System Override detected</span>
+            </div>
+            <i class="mdi mdi-alert col-2 text-right mx-3 display-3"></i>
+        </div>
+        <div class="col-12 position-relative d-flex">
+            <audio data-alert-target="sound">
+                <source src="" type="audio/mpeg">
+            </audio>
+            <div class="alert-video-container" data-alert-target="videoContainer">
+                <video data-alert-target="video" style="display: none; opacity: 0">
+                    <source src="" type="video/mp4">
+                </video>
+            </div>
+            <iframe class="d-none" data-alert-target="iframe"></iframe>
+            <img src="" data-alert-target="logo" class="d-none logo"/>
+            <i class="alert-logo mdi mdi-pen" data-alert-target="icon"></i>
+            <div class="alert-content" data-alert-target="contentContainer">
+                <div class="stack" style="--stacks: 3;">
+                    <span style="--index: 0;" data-alert-target="content">AA</span>
+                    <span style="--index: 1;" data-alert-target="content">AA</span>
+                    <span style="--index: 2;" data-alert-target="content">AA</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
