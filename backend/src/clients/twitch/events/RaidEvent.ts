@@ -31,7 +31,7 @@ export default class RaidEvent extends BaseEvent {
             'video': theme.video
         })
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})
+        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: Number.POSITIVE_INFINITY})
 
         const primaryChannel = await this.bot.api.users.getUserByName(
             getConfig(/twitch/g)[0]['channels'][0])

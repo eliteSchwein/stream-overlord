@@ -3,7 +3,9 @@ import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../../App";
 import {sleep} from "../../../../../../helper/GeneralHelper";
-import {addAlert} from "../../../../helper/AlertHelper";
+import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
+import {waitUntil} from "async-wait-until";
+import {isEventQueried} from "../../helper/CooldownHelper";
 
 export default class BoostChannelPoint extends BaseChannelPoint {
     title = 'Boost'
@@ -56,6 +58,8 @@ export default class BoostChannelPoint extends BaseChannelPoint {
                 'video': theme.video
             })
 
+            await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+
             websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
 
             await sleep(15_000)
@@ -74,6 +78,8 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             'event-uuid': this.title,
             'video': theme.video
         })
+
+        await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
 
         if(shipApiData.gear_down) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['l']})
         if(shipApiData.scoop_deployed) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['home']})

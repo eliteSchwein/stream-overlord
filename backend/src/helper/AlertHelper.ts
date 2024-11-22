@@ -3,6 +3,7 @@ import getWebsocketServer from "../App";
 import {pushTheme, setManual} from "./ThemeHelper";
 
 const alertQuery = {}
+const activeAlerts = []
 
 export default function initialAlerts() {
     const websocketServer = getWebsocketServer()
@@ -20,6 +21,8 @@ export default function initialAlerts() {
                 websocketServer.send('show_alert', activeAlert)
 
                 if(activeAlert.active) {
+                    if(!activeAlerts.includes(activeAlert['event-uuid'])) activeAlerts.push(activeAlert['event-uuid'])
+
                     alertQuery[key][0] = activeAlert
                     return
                 }
@@ -49,6 +52,10 @@ export default function initialAlerts() {
     }, 1000)
 }
 
+export function isAlertActive(eventUuid: string) {
+    return activeAlerts.indexOf(eventUuid) > -1
+}
+
 export function addAlert(alert: any) {
     if(alert.video) alert.video = `${alert.video}.mp4`
     if(alert.sound) alert.sound = `${alert.sound}.mp3`
@@ -72,6 +79,8 @@ export function removeAlert(alert: any) {
         if(alertQuery[alert.channel].length === 0) {
             delete alertQuery[alert.channel]
         }
+
+        activeAlerts.splice(activeAlerts.indexOf(alert['event-uuid']), 1)
 
         removeEventFromQuery(alert['event-uuid'])
     }
