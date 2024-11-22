@@ -47,7 +47,7 @@ export default class BoostChannelPoint extends BaseChannelPoint {
                 return
             }
 
-            addAlert({
+            const isActive = addAlert({
                 'channel': 'elite_override',
                 'sound': theme.sound,
                 'duration': 15,
@@ -58,7 +58,9 @@ export default class BoostChannelPoint extends BaseChannelPoint {
                 'video': theme.video
             })
 
-            await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+            if(!isActive) {
+                await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+            }
 
             websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
 

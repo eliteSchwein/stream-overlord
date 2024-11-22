@@ -46,7 +46,7 @@ export default class FAChannelPoint extends BaseChannelPoint {
         const icon = (shipApiData.flight_fa_off) ? "toggle-switch" : "toggle-switch-off-outline"
         const sound = (shipApiData.flight_fa_off) ? "fa-on" : "fa-off"
 
-        addAlert({
+        const isActive = addAlert({
             'channel': 'elite_override',
             'sound': sound,
             'duration': 5,
@@ -57,7 +57,9 @@ export default class FAChannelPoint extends BaseChannelPoint {
             'video': theme.video
         })
 
-        await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+        if(!isActive) {
+            await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+        }
 
         websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['z']})
     }

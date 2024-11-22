@@ -61,9 +61,19 @@ export function addAlert(alert: any) {
     if(alert.sound) alert.sound = `${alert.sound}.mp3`
     if(!alert.channel) alert.channel = 'general'
 
-    if(!alertQuery[alert.channel]) alertQuery[alert.channel] = []
+    let active = false
+
+    if(!alertQuery[alert.channel]) {
+        const websocketServer = getWebsocketServer()
+
+        alertQuery[alert.channel] = []
+        websocketServer.send('show_alert', alert)
+        active = true
+    }
 
     alertQuery[alert.channel].push(alert)
+
+    return active
 }
 
 export function removeAlert(alert: any) {
