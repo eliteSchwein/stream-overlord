@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
-import {logError, logNotice, logWarn} from "../../../../helper/LogHelper";
+import {logError, logNotice, logRegular, logWarn} from "../../../../helper/LogHelper";
 import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import BoostChannelPoint from "../channel_points/BoostChannelPoint";
 import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../helper/CooldownHelper";
@@ -130,6 +130,8 @@ export default class ChannelPointsEvent extends BaseEvent {
                     }
                     break
             }
+
+            logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`)
 
             if(configChannelPoint.auto_accept) {
                 await event.updateStatus('FULFILLED')

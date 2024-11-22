@@ -67,7 +67,6 @@ export default class AlertController extends BaseController {
                     }
                 }
                 if(data.sound) {
-                    console.log(this.soundTarget)
                     this.videoTarget.style.display = 'none'
                     this.element.style.padding = null
 
