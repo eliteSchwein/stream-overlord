@@ -15,8 +15,8 @@
 .alert-container.system-alert {
     border-bottom: #fb1b03 5px solid;
     box-shadow: none!important;
-    background: rgb(0,0,0)!important;
-    background: radial-gradient(circle, rgba(0,0,0,0.1431818181818182) 0%, rgba(0,0,0,0.43181818181818177) 100%)!important;
+    background: none!important;
+    height: unset!important;
     border-radius: 0;
 }
 
@@ -25,6 +25,11 @@
     border-bottom: #fb1b03 5px solid;
     color: #fb1b03;
     background: rgba(52, 52, 52, 0.71);
+}
+
+.system-alert .alert-content-container {
+    background: rgb(0,0,0)!important;
+    background: radial-gradient(circle, rgba(0,0,0,0.1431818181818182) 0%, rgba(0,0,0,0.43181818181818177) 100%)!important;
 }
 
 .system-alert .alert-logo {

@@ -35,7 +35,9 @@ export default function initialAlerts() {
                 return
             }
 
-            websocketServer.send('hide_alert', {})
+            websocketServer.send('hide_alert', {
+                'channel': key
+            })
 
             removeAlert(activeAlert)
         }

@@ -27,6 +27,11 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             return
         }
 
+        if(shipApiData.ship_landed) {
+            await this.deny(event, "Deine Kanalpunkte wurden dir zurück gegeben weil das Schiff gelandet ist.", "ship_landed")
+            return
+        }
+
         if(shipApiData.fsd_jump) {
             await this.deny(event, "Deine Kanalpunkte wurden dir zurück gegeben weil im Hyperraum kein Boost aktuell möglich ist.", "in_hyperspace")
             return

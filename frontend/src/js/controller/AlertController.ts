@@ -4,11 +4,12 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class AlertController extends BaseController {
-    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer', 'logo', 'iframe']
+    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer', 'logo', 'iframe', 'delayed']
 
     declare readonly iconTarget: HTMLElement
     declare readonly soundTarget: HTMLAudioElement
     declare readonly contentTargets: HTMLDivElement[]
+    declare readonly delayedTargets: HTMLDivElement[]
     declare readonly contentContainerTarget: HTMLDivElement
     declare readonly videoTarget: HTMLVideoElement
     declare readonly logoTarget: HTMLImageElement
@@ -66,6 +67,7 @@ export default class AlertController extends BaseController {
                     }
                 }
                 if(data.sound) {
+                    console.log(this.soundTarget)
                     this.videoTarget.style.display = 'none'
                     this.element.style.padding = null
 
@@ -94,6 +96,12 @@ export default class AlertController extends BaseController {
                 for(const contentElement of this.contentTargets) {
                     contentElement.innerHTML = data.message
                 }
+
+                setTimeout(() => {
+                    for(const delayedElement of this.delayedTargets) {
+                        delayedElement.style.display = null
+                    }
+                }, 250)
 
                 this.iconTarget.setAttribute('class', `alert-logo mdi mdi-${data.icon}`)
                 return
@@ -128,6 +136,10 @@ export default class AlertController extends BaseController {
 
                 for(const contentElement of this.contentTargets) {
                     contentElement.innerHTML = ''
+                }
+
+                for(const delayedElement of this.delayedTargets) {
+                    delayedElement.style.display = 'none'
                 }
 
                 this.iconTarget.setAttribute('class', `alert-logo mdi`)
