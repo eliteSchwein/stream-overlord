@@ -84,6 +84,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             if(asset) {
                 addAlert({
+                    'channel': asset.channel,
                     'sound': asset.sound,
                     'duration': asset.duration,
                     'icon': (asset.icon) ? asset.icon : '',

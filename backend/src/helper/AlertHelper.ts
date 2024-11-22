@@ -12,6 +12,7 @@ export default function initialAlerts() {
 
         for(const key in alertQuery) {
             const activeAlert = alertQuery[key][0]
+            if(!activeAlert) continue
 
             if(activeAlert.duration > 0) {
                 activeAlert.duration--
@@ -19,7 +20,7 @@ export default function initialAlerts() {
                 websocketServer.send('show_alert', activeAlert)
 
                 if(activeAlert.active) {
-                    alertQuery[0] = activeAlert
+                    alertQuery[key][0] = activeAlert
                     return
                 }
 
