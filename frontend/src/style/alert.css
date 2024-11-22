@@ -13,23 +13,25 @@
 }
 
 .alert-container.system-alert {
+    box-shadow: 0 0 45px #000 !important;
+    margin-top: 300px;
     border-bottom: #fb1b03 5px solid;
-    box-shadow: none!important;
     background: none!important;
     height: unset!important;
     border-radius: 0;
+    transform: scaleX(1) scaleY(1) scaleZ(1) rotateX(-8deg) rotateY(-20deg) rotateZ(0deg) translateX(0px) translateY(0px) translateZ(0px) skewX(0deg) skewY(2deg);
 }
 
 .system-alert .alert-header {
     border-top: #fb1b03 5px solid;
     border-bottom: #fb1b03 5px solid;
     color: #fb1b03;
-    background: rgba(52, 52, 52, 0.71);
+    background: rgba(85, 85, 85, 0.89);
 }
 
 .system-alert .alert-content-container {
     background: rgb(0,0,0)!important;
-    background: radial-gradient(circle, rgba(0,0,0,0.1431818181818182) 0%, rgba(0,0,0,0.43181818181818177) 100%)!important;
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.74) 0%, rgba(0, 0, 0, 0.85) 100%)!important;
 }
 
 .system-alert .alert-logo {
