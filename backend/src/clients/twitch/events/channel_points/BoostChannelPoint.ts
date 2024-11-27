@@ -71,7 +71,8 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             return
         }
 
-        addAlert({
+        const isActive = addAlert({
+            'channel': 'elite_override',
             'sound': theme.sound,
             'duration': 5,
             'color': theme.color,
@@ -81,7 +82,9 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             'video': theme.video
         })
 
-        await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+        if(!isActive) {
+            await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+        }
 
         if(shipApiData.gear_down) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['l']})
         if(shipApiData.scoop_deployed) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['home']})

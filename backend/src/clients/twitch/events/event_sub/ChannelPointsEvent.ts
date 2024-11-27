@@ -11,6 +11,7 @@ import {triggerScene} from "../../../../helper/SceneHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
 import FAChannelPoint from "../channel_points/FAChannelPoint";
 import getWebsocketServer from "../../../../App";
+import HudChannelPoint from "../channel_points/HudChannelPoint";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -24,6 +25,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
         this.channelPoints.push(new BoostChannelPoint(this.eventSubWs, this.bot))
         this.channelPoints.push(new FAChannelPoint(this.eventSubWs, this.bot))
+        this.channelPoints.push(new HudChannelPoint(this.eventSubWs, this.bot))
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)
