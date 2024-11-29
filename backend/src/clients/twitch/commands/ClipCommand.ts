@@ -14,12 +14,36 @@ export default class ClipCommand extends BaseCommand{
 
         const clipId = await this.bot.api.clips.createClip({channel: primaryChannel, createAfterDelay: true})
         const clipUrl = `https://www.twitch.tv/${primaryChannel.name}/clip/${clipId}`
+        const clip = await this.bot.api.clips.getClipById(clipId)
 
         await context.say(`created clip: ${clipUrl}`)
 
         const webhookContent = {
-          "content": `${context.userDisplayName} hat Live ein Clip erstellt mit !clip:\n\n${clipUrl}`,
-          "embeds": null,
+          "content": "",
+          "embeds": [
+              {
+                  "id": 10674342,
+                  "title": `${context.userDisplayName} hat ein Clip Live erstellt mit !clip`,
+                  "color": 6570405,
+                  "fields": [
+                      {
+                          "id": 472281785,
+                          "name": "Game",
+                          "value": (await clip.getGame()).name,
+                          "inline": true
+                      },
+                      {
+                          "id": 608893643,
+                          "name": "URL",
+                          "value": clipUrl,
+                          "inline": true
+                      }
+                  ],
+                  "image": {
+                      "url": clip.thumbnailUrl
+                  }
+              }
+          ],
           "attachments": []
         }
 
