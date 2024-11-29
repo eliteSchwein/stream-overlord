@@ -13,10 +13,9 @@ export default class ClipCommand extends BaseCommand{
         const webhookUrl = getConfig(/api clip_url/g)[0]
 
         const clipId = await this.bot.api.clips.createClip({channel: primaryChannel, createAfterDelay: true})
-        const clipUrl = `https://www.twitch.tv/${primaryChannel.name}/clip/${clipId}`
         const clip = await this.bot.api.clips.getClipById(clipId)
 
-        await context.say(`created clip: ${clipUrl}`)
+        await context.say(`created clip: ${clip.url}`)
 
         const webhookContent = {
           "content": "",
@@ -35,7 +34,7 @@ export default class ClipCommand extends BaseCommand{
                       {
                           "id": 608893643,
                           "name": "URL",
-                          "value": clipUrl,
+                          "value": clip.url,
                           "inline": true
                       }
                   ],
