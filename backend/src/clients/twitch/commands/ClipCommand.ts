@@ -1,6 +1,7 @@
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
 import {getConfig} from "../../../helper/ConfigHelper";
+import {sleep} from "../../../../../helper/GeneralHelper";
 
 export default class ClipCommand extends BaseCommand{
     command = 'clip'
@@ -13,6 +14,9 @@ export default class ClipCommand extends BaseCommand{
         const webhookUrl = getConfig(/api clip_url/g)[0]
 
         const clipId = await this.bot.api.clips.createClip({channel: primaryChannel, createAfterDelay: true})
+
+        await sleep(5_000)
+
         const clip = await this.bot.api.clips.getClipById(clipId)
 
         await context.say(`created clip: ${clip.url}`)
