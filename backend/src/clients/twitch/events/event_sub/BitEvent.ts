@@ -29,7 +29,8 @@ export default class BitEvent extends BaseEvent {
             'icon': theme.icon,
             'message': `${event.userDisplayName} haut ${event.bits} Bits raus`,
             'event-uuid': this.eventUuid,
-            'video': theme.video
+            'video': theme.video,
+            'lamp_color': theme.lamp_color
         })
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})

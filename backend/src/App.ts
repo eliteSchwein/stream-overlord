@@ -11,6 +11,7 @@ import initialTimers from "./helper/TimerHelper";
 import initialAlerts from "./helper/AlertHelper";
 import loadScenes from "./helper/SceneHelper";
 import initialSchedulers from "./helper/SchedulerHelper";
+import {setLedColor} from "./helper/WledHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -68,6 +69,9 @@ async function init() {
 
     logRegular('dump obs scenes and items')
     await obsClient.getItems()
+
+    logRegular('activate configured wled lamps')
+    await setLedColor()
 
     logSuccess('backend is ready')
 }

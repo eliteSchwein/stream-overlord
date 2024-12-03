@@ -27,8 +27,9 @@ export default class SubEvent extends BaseEvent {
             'color': theme.color,
             'icon': theme.icon,
             'message': `${event.userDisplayName} abonniert im ${event.months}. Monat auf Stufe ${event.plan}`,
-            'event-uuid': this.eventUuid,
-            'video': theme.video
+            'eventv-uuid': this.eventUuid,
+            'video': theme.video,
+            'lamp_color': theme.lamp_color
         })
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})

@@ -3,6 +3,7 @@ import {logRegular} from "./LogHelper";
 import getWebsocketServer from "../App";
 import {getConfig} from "./ConfigHelper";
 import {Websocket} from "websocket-ts";
+import {setLedColor} from "./WledHelper";
 
 const theme = {
     data: {},
@@ -30,11 +31,12 @@ export async function fetchTheme() {
 }
 
 export function pushTheme(websocket: Websocket|undefined = undefined) {
+    const theme = getTheme()
     if(websocket) {
-        websocket.send(JSON.stringify({method: 'theme_update', data: getTheme()}))
+        websocket.send(JSON.stringify({method: 'theme_update', data: theme}))
         return
     }
-    getWebsocketServer().send('theme_update', getTheme())
+    getWebsocketServer().send('theme_update', theme)
 }
 
 export function setManual(value: string|undefined = undefined) {
@@ -46,4 +48,5 @@ export function setManual(value: string|undefined = undefined) {
 
     logRegular('reset manual theme color');
     theme.manual = ''
+    void setLedColor()
 }

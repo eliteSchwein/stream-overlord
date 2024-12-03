@@ -1,6 +1,7 @@
 import {removeEventFromQuery} from "../clients/twitch/helper/CooldownHelper";
 import getWebsocketServer from "../App";
 import {pushTheme, setManual} from "./ThemeHelper";
+import {setLedColor} from "./WledHelper";
 
 const alertQuery = {}
 const activeAlerts = []
@@ -32,6 +33,10 @@ export default function initialAlerts() {
                 if(activeAlert.color) {
                     setManual(activeAlert.color)
                     pushTheme()
+                }
+
+                if(activeAlert.lamp_color) {
+                    void setLedColor(activeAlert.lamp_color)
                 }
 
                 alertQuery[key][0] = activeAlert

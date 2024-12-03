@@ -28,7 +28,8 @@ export default class SubGiftEvent extends BaseEvent {
             'icon': theme.icon,
             'message': `${event.gifterDisplayName} schenkt ${event.userDisplayName} ein Abo auf Stufe ${event.plan}`,
             'event-uuid': this.eventUuid,
-            'video': theme.video
+            'video': theme.video,
+            'lamp_color': theme.lamp_color
         })
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})

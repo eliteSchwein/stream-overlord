@@ -23,7 +23,8 @@ export default class HudChannelPoint extends BaseChannelPoint {
             'icon': theme.icon,
             'message': `HUD Fuse blown`,
             'event-uuid': this.title,
-            'video': theme.video
+            'video': theme.video,
+            'lamp_color': theme.lamp_color
         })
 
         if(!isActive) {
