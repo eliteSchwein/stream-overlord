@@ -14,7 +14,13 @@ export default class SubEvent extends BaseEvent {
     async handle(event: EasyEvent) {
         const theme = getAssetConfig('sub')
 
-        logRegular(`sub from ${event.userDisplayName} in ${event.months} month on tier ${event.plan}`)
+        let plan = event.plan
+
+        if(!isNaN(Number.parseInt(plan))) {
+            plan = `${Number.parseInt(plan)/1000}`
+        }
+
+        logRegular(`sub from ${event.userDisplayName} in ${event.months} month on tier ${plan}`)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')
@@ -26,7 +32,7 @@ export default class SubEvent extends BaseEvent {
             'duration': 15,
             'color': theme.color,
             'icon': theme.icon,
-            'message': `${event.userDisplayName} abonniert im ${event.months}. Monat auf Stufe ${event.plan}`,
+            'message': `${event.userDisplayName} abonniert im ${event.months}. Monat auf Stufe ${plan}`,
             'eventv-uuid': this.eventUuid,
             'video': theme.video,
             'lamp_color': theme.lamp_color

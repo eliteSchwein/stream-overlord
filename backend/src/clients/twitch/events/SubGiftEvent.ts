@@ -14,7 +14,13 @@ export default class SubGiftEvent extends BaseEvent {
     async handle(event: EasyEvent) {
         const theme = getAssetConfig('sub')
 
-        logRegular(`sub gift from ${event.gifterDisplayName} to ${event.userDisplayName} in ${event.months} month on tier ${event.plan}`)
+        let plan = event.plan
+
+        if(!isNaN(Number.parseInt(plan))) {
+            plan = `${Number.parseInt(plan)/1000}`
+        }
+
+        logRegular(`sub gift from ${event.gifterDisplayName} to ${event.userDisplayName} in ${event.months} month on tier ${plan}`)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')
@@ -26,7 +32,7 @@ export default class SubGiftEvent extends BaseEvent {
             'duration': 15,
             'color': theme.color,
             'icon': theme.icon,
-            'message': `${event.gifterDisplayName} schenkt ${event.userDisplayName} ein Abo auf Stufe ${event.plan}`,
+            'message': `${event.gifterDisplayName} schenkt ${event.userDisplayName} ein Abo auf Stufe ${plan}`,
             'event-uuid': this.eventUuid,
             'video': theme.video,
             'lamp_color': theme.lamp_color

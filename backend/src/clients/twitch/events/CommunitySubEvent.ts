@@ -14,7 +14,13 @@ export default class CommunitySubEvent extends BaseEvent {
     async handle(event: EasyEvent) {
         const theme = getAssetConfig('sub')
 
-        logRegular(`${event.count} subs gifted from ${event.gifterDisplayName} on tier ${event.plan}`)
+        let plan = event.plan
+
+        if(!isNaN(Number.parseInt(plan))) {
+            plan = `${Number.parseInt(plan)/1000}`
+        }
+
+        logRegular(`${event.count} subs gifted from ${event.gifterDisplayName} on tier ${plan}`)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')
