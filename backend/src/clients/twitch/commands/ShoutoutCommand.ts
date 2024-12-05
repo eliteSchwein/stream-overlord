@@ -48,8 +48,7 @@ export default class ShoutoutCommand extends BaseCommand {
             'duration': 30,
             'icon': '',
             'message': `checkt ${user.displayName} aus`,
-            'event-uuid': `shoutout-${user.id}`,
-            'lamp_color': theme.lamp_color
+            'event-uuid': `shoutout-${user.id}`
         })
     }
 }
