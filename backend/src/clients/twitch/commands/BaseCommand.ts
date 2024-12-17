@@ -125,7 +125,12 @@ export default class BaseCommand {
 
         logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
 
-        await this.handle(params, context)
+        try {
+            await this.handle(params, context)
+        } catch (error) {
+            logWarn(`command ${this.command} failed:`)
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
     }
 
     private async replyParamSyntaxError(param: string[], context: BotCommandContext, index: number, type: string) {
