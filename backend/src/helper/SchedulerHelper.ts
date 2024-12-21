@@ -3,16 +3,20 @@ import {logWarn} from "./LogHelper";
 import getWebsocketServer from "../App";
 
 export default function initialSchedulers() {
+    void updateAdData()
 
     // moderate scheduler
     setInterval(async () => {
-        const webSocketServer = getWebsocketServer()
-        try {
-            const adData = (await getAdData()).ads
-            webSocketServer.send('ad_result', adData)
-        } catch (error) {
-            logWarn('ads fetch failed:')
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-        }
-    }, 60_000 * 15)
+        await updateAdData()
+    }, 60_000)
+}
+
+async function updateAdData() {
+    try {
+        const adData = (await getAdData()).ads
+        getWebsocketServer().send('ad_result', adData)
+    } catch (error) {
+        logWarn('ads fetch failed:')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
 }
