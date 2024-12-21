@@ -1,7 +1,10 @@
 import {getConfig} from "../../helper/ConfigHelper";
+import {logRegular} from "../../helper/LogHelper";
 
 async function requestApi(slug: string) {
     const config = getConfig(/api website/g)[0]
+
+    logRegular(`request website api: ${config.url}${config.api_slug}&token=REDACTED&method=${slug}`)
 
     return await (await fetch(`${config.url}${config.api_slug}&token=${config.token}&method=${slug}`)).json()
 }
