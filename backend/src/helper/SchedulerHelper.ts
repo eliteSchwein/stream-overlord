@@ -14,5 +14,5 @@ export default function initialSchedulers() {
             logWarn('ads fetch failed:')
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
-    }, 15_000)
+    }, 60_000 * 15)
 }
