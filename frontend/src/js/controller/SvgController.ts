@@ -18,19 +18,34 @@ export default class SvgController extends BaseController {
 
         this.element.setAttribute('viewBox', parsedContent.getAttribute('viewBox'))
 
+        let hasStyle = true
+
+        // @ts-ignore
+        let svgStyleElement = this.element.querySelector('style') as SVGStyleElement
+
+        if (!svgStyleElement) {
+            svgStyleElement = document.createElementNS("http://www.w3.org/2000/svg", "style") as SVGStyleElement
+            svgStyleElement.innerHTML = `.insvg-fader {
+                transition: all 1s ease-in-out;
+              }`
+            this.element.appendChild(svgStyleElement)
+            hasStyle = false
+        }
+
+        let styleContent = svgStyleElement.innerHTML
+
         const svgElements = this.element.querySelectorAll('*')
 
         svgElements.forEach((element) => {
             const computedFill = getComputedStyle(element).fill;
-            if (computedFill === "rgb(255, 165, 165)") { // Check for #ffa5a5 in RGB
-                this.themeElements.push(element)
-            }
+            if (computedFill !== "rgb(255, 165, 165)") return
+
+            this.themeElements.push(element)
+
+            if(hasStyle) return
+
+            element.classList.add('insvg-fader')
         })
-
-        // @ts-ignore
-        const svgStyleElement = this.element.querySelector('style') as SVGStyleElement
-
-        let styleContent = svgStyleElement.innerHTML
 
         styleContent = styleContent.replace(/fill:\s*#ffa5a5/g, 'transition: all 1s ease-in-out')
 

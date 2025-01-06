@@ -14,7 +14,7 @@ export default class BadgeController extends BaseController {
     protected ads: any
     protected adInterval: any
     protected adIndex = 0
-    protected particle: ParticleHelper
+    //protected particle: ParticleHelper
 
     async postConnect() {
         this.websocket.send('get_ads', {})

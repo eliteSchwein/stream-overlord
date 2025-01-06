@@ -1,0 +1,34 @@
+.shoutout {
+    position: relative;
+}
+
+.shoutout .shoutout-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.shoutout .shoutout-content-container {
+    height: 490px;
+    z-index: 100;
+    position: absolute;
+    top: 46px;
+    left: 67px;
+    width: 828px;
+}
+
+.shoutout .shoutout-content-container .shoutout-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.shoutout .shoutout-content-container .shoutout-content iframe {
+    position: absolute;
+    top: 50%; /* Center vertically */
+    left: 50%; /* Center horizontally */
+    transform: translate(-50%, -50%); /* Adjust to center */
+    width: 115%;
+    height: 115%;
+}

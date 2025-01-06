@@ -35,6 +35,8 @@ export default class AlertController extends BaseController {
 
         switch (method) {
             case 'show_alert': {
+                if(data.dummy) return
+
                 if(this.element.style.opacity === "1") return
 
                 this.element.style.opacity = '1'
@@ -106,6 +108,8 @@ export default class AlertController extends BaseController {
                 return
             }
             case 'hide_alert': {
+                if(data.dummy) return
+
                 try {
                     this.soundTarget.pause()
                     this.videoTarget.pause()

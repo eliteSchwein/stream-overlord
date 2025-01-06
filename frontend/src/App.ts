@@ -7,6 +7,8 @@ import "./style/badge.css"
 import "./style/alert.css"
 import "./style/timer.css"
 import "./style/announce.css"
+import "./style/toggle.css"
+import "./style/shoutout.css"
 import "bootstrap/dist/css/bootstrap.css"
 import "@mdi/font/css/materialdesignicons.css"
 
@@ -24,6 +26,8 @@ import TimerController from "./js/controller/TimerController";
 import AnnounceController from "./js/controller/AnnounceController";
 import EffectController from "./js/controller/EffectController";
 import SvgController from "./js/controller/SvgController";
+import ToggleController from "./js/controller/ToggleController";
+import ShoutoutController from "./js/controller/ShoutoutController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -47,6 +51,8 @@ async function init(){
     stimulus.register('announce', AnnounceController)
     stimulus.register('effect', EffectController)
     stimulus.register('svg', SvgController)
+    stimulus.register('toggle', ToggleController)
+    stimulus.register('shoutout', ShoutoutController)
 }
 
 export function getWebsocketClient() {
