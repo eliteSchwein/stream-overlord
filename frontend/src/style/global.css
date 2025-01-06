@@ -16,3 +16,7 @@ body {
 .text-left {
     text-align: left;
 }
+
+.mw-80 {
+    max-width: 80%;
+}

@@ -1,6 +1,5 @@
 import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
-import ParticleHelper from "../helper/ParticleHelper";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class TimerController extends BaseController {
@@ -13,18 +12,11 @@ export default class TimerController extends BaseController {
 
     protected name: string
 
-    protected particle: ParticleHelper
-
     async postConnect() {
         this.name = this.element.getAttribute('data-timer-name') as string
-
-        this.particle = new ParticleHelper()
-        await this.particle.loadParticle(this.element)
     }
 
     async handleTheme(websocket: Websocket, data: any) {
-        await this.particle.loadThemeColor(data.color)
-        this.element.style.boxShadow = `0 0 7px 0 ${data.color}`
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {

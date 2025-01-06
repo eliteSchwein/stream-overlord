@@ -28,6 +28,7 @@ import EffectController from "./js/controller/EffectController";
 import SvgController from "./js/controller/SvgController";
 import ToggleController from "./js/controller/ToggleController";
 import ShoutoutController from "./js/controller/ShoutoutController";
+import InfoController from "./js/controller/InfoController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -53,6 +54,7 @@ async function init(){
     stimulus.register('svg', SvgController)
     stimulus.register('toggle', ToggleController)
     stimulus.register('shoutout', ShoutoutController)
+    stimulus.register('info', InfoController)
 }
 
 export function getWebsocketClient() {
