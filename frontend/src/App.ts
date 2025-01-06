@@ -23,6 +23,7 @@ import AlertController from "./js/controller/AlertController";
 import TimerController from "./js/controller/TimerController";
 import AnnounceController from "./js/controller/AnnounceController";
 import EffectController from "./js/controller/EffectController";
+import SvgController from "./js/controller/SvgController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -45,6 +46,7 @@ async function init(){
     stimulus.register('timer', TimerController)
     stimulus.register('announce', AnnounceController)
     stimulus.register('effect', EffectController)
+    stimulus.register('svg', SvgController)
 }
 
 export function getWebsocketClient() {

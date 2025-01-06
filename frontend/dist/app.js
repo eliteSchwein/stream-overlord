@@ -1,8 +1,15454 @@
-(()=>{var El=Object.defineProperty;var Dl=(o,e,t)=>e in o?El(o,e,{enumerable:!0,configurable:!0,writable:!0,value:t}):o[e]=t;var R=(o,e,t)=>Dl(o,typeof e!="symbol"?e+"":e,t);var q;(function(o){o.open="open",o.close="close",o.error="error",o.message="message",o.retry="retry",o.reconnect="reconnect"})(q||(q={}));var qt=class{constructor(e,t,n){var r,i,a,s,c,d,l,m,f,b,p,u,v,F,w;this._closedByUser=!1,this.handleOpenEvent=k=>this.handleEvent(q.open,k),this.handleErrorEvent=k=>this.handleEvent(q.error,k),this.handleCloseEvent=k=>this.handleEvent(q.close,k),this.handleMessageEvent=k=>this.handleEvent(q.message,k),this._url=e,this._protocols=t,this._options={buffer:n?.buffer,retry:{maxRetries:(r=n?.retry)===null||r===void 0?void 0:r.maxRetries,instantReconnect:(i=n?.retry)===null||i===void 0?void 0:i.instantReconnect,backoff:(a=n?.retry)===null||a===void 0?void 0:a.backoff},listeners:{open:[...(c=(s=n?.listeners)===null||s===void 0?void 0:s.open)!==null&&c!==void 0?c:[]],close:[...(l=(d=n?.listeners)===null||d===void 0?void 0:d.close)!==null&&l!==void 0?l:[]],error:[...(f=(m=n?.listeners)===null||m===void 0?void 0:m.error)!==null&&f!==void 0?f:[]],message:[...(p=(b=n?.listeners)===null||b===void 0?void 0:b.message)!==null&&p!==void 0?p:[]],retry:[...(v=(u=n?.listeners)===null||u===void 0?void 0:u.retry)!==null&&v!==void 0?v:[]],reconnect:[...(w=(F=n?.listeners)===null||F===void 0?void 0:F.reconnect)!==null&&w!==void 0?w:[]]}},this._underlyingWebsocket=this.tryConnect()}get url(){return this._url}get protocols(){return this._protocols}get buffer(){return this._options.buffer}get maxRetries(){return this._options.retry.maxRetries}get instantReconnect(){return this._options.retry.instantReconnect}get backoff(){return this._options.retry.backoff}get closedByUser(){return this._closedByUser}get lastConnection(){return this._lastConnection}get underlyingWebsocket(){return this._underlyingWebsocket}get readyState(){return this._underlyingWebsocket.readyState}get bufferedAmount(){return this._underlyingWebsocket.bufferedAmount}get extensions(){return this._underlyingWebsocket.extensions}get binaryType(){return this._underlyingWebsocket.binaryType}set binaryType(e){this._underlyingWebsocket.binaryType=e}send(e){this.closedByUser||(this._underlyingWebsocket.readyState===this._underlyingWebsocket.OPEN?this._underlyingWebsocket.send(e):this.buffer!==void 0&&this.buffer.add(e))}close(e,t){this.cancelScheduledConnectionRetry(),this._closedByUser=!0,this._underlyingWebsocket.close(e,t)}addEventListener(e,t,n){this._options.listeners[e].push({listener:t,options:n})}removeEventListener(e,t,n){let r=i=>i.listener!==t||i.options!==n;this._options.listeners[e]=this._options.listeners[e].filter(r)}tryConnect(){return this._underlyingWebsocket=new WebSocket(this.url,this.protocols),this._underlyingWebsocket.addEventListener(q.open,this.handleOpenEvent),this._underlyingWebsocket.addEventListener(q.close,this.handleCloseEvent),this._underlyingWebsocket.addEventListener(q.error,this.handleErrorEvent),this._underlyingWebsocket.addEventListener(q.message,this.handleMessageEvent),this._underlyingWebsocket}clearWebsocket(){this._underlyingWebsocket.removeEventListener(q.open,this.handleOpenEvent),this._underlyingWebsocket.removeEventListener(q.close,this.handleCloseEvent),this._underlyingWebsocket.removeEventListener(q.error,this.handleErrorEvent),this._underlyingWebsocket.removeEventListener(q.message,this.handleMessageEvent),this._underlyingWebsocket.close()}dispatchEvent(e,t){let n=this._options.listeners[e],r=[];n.forEach(({listener:i,options:a})=>{i(this,t),(a===void 0||a.once===void 0||!a.once)&&r.push({listener:i,options:a})}),this._options.listeners[e]=r}handleEvent(e,t){switch(e){case q.close:this.dispatchEvent(e,t),this.scheduleConnectionRetryIfNeeded();break;case q.open:if(this.backoff!==void 0&&this._lastConnection!==void 0){let n={retries:this.backoff.retries,lastConnection:new Date(this._lastConnection)},r=new CustomEvent(q.reconnect,{detail:n});this.dispatchEvent(q.reconnect,r),this.backoff.reset()}this._lastConnection=new Date,this.dispatchEvent(e,t),this.sendBufferedData();break;case q.retry:this.dispatchEvent(e,t),this.clearWebsocket(),this.tryConnect();break;default:this.dispatchEvent(e,t);break}}sendBufferedData(){if(this.buffer!==void 0)for(let e=this.buffer.read();e!==void 0;e=this.buffer.read())this.send(e)}scheduleConnectionRetryIfNeeded(){if(this.closedByUser||this.backoff===void 0)return;let e=n=>{let r=new CustomEvent(q.retry,{detail:n});this.handleEvent(q.retry,r)},t={backoff:this._options.retry.instantReconnect===!0?0:this.backoff.next(),retries:this._options.retry.instantReconnect===!0?0:this.backoff.retries,lastConnection:this._lastConnection};(this._options.retry.maxRetries===void 0||t.retries<=this._options.retry.maxRetries)&&(this.retryTimeout=globalThis.setTimeout(()=>e(t),t.backoff))}cancelScheduledConnectionRetry(){globalThis.clearTimeout(this.retryTimeout)}};var Vt;async function Gi(){Vt=await(await fetch("/config.json")).json()}function Qa(o=void 0,e=!1){if(!o)return Vt;let t=[];for(let n in Vt)if(n.match(o))if(e){let r=n.replace(o,"");t[r]=Vt[n]}else t.push(Vt[n]);return t}function de(o){return new Promise(e=>setTimeout(e,o))}var Nt=class{constructor(){R(this,"websocket")}async connect(){let e=Qa(/websocket/g)[0];this.websocket=new qt("ws://"+window.location.hostname+":"+e.port),await de(250)}getWebsocket(){return this.websocket}send(e,t={}){this.websocket.send(JSON.stringify({method:e,data:t}))}editColor(e=void 0){this.send("set_color",{color:e})}clearEvent(e){this.send("clear_event",{"event-uuid":e})}};var Ki=class{constructor(e,t,n){this.eventTarget=e,this.eventName=t,this.eventOptions=n,this.unorderedBindings=new Set}connect(){this.eventTarget.addEventListener(this.eventName,this,this.eventOptions)}disconnect(){this.eventTarget.removeEventListener(this.eventName,this,this.eventOptions)}bindingConnected(e){this.unorderedBindings.add(e)}bindingDisconnected(e){this.unorderedBindings.delete(e)}handleEvent(e){let t=zl(e);for(let n of this.bindings){if(t.immediatePropagationStopped)break;n.handleEvent(t)}}hasBindings(){return this.unorderedBindings.size>0}get bindings(){return Array.from(this.unorderedBindings).sort((e,t)=>{let n=e.index,r=t.index;return n<r?-1:n>r?1:0})}};function zl(o){if("immediatePropagationStopped"in o)return o;{let{stopImmediatePropagation:e}=o;return Object.assign(o,{immediatePropagationStopped:!1,stopImmediatePropagation(){this.immediatePropagationStopped=!0,e.call(this)}})}}var Xi=class{constructor(e){this.application=e,this.eventListenerMaps=new Map,this.started=!1}start(){this.started||(this.started=!0,this.eventListeners.forEach(e=>e.connect()))}stop(){this.started&&(this.started=!1,this.eventListeners.forEach(e=>e.disconnect()))}get eventListeners(){return Array.from(this.eventListenerMaps.values()).reduce((e,t)=>e.concat(Array.from(t.values())),[])}bindingConnected(e){this.fetchEventListenerForBinding(e).bindingConnected(e)}bindingDisconnected(e,t=!1){this.fetchEventListenerForBinding(e).bindingDisconnected(e),t&&this.clearEventListenersForBinding(e)}handleError(e,t,n={}){this.application.handleError(e,`Error ${t}`,n)}clearEventListenersForBinding(e){let t=this.fetchEventListenerForBinding(e);t.hasBindings()||(t.disconnect(),this.removeMappedEventListenerFor(e))}removeMappedEventListenerFor(e){let{eventTarget:t,eventName:n,eventOptions:r}=e,i=this.fetchEventListenerMapForEventTarget(t),a=this.cacheKey(n,r);i.delete(a),i.size==0&&this.eventListenerMaps.delete(t)}fetchEventListenerForBinding(e){let{eventTarget:t,eventName:n,eventOptions:r}=e;return this.fetchEventListener(t,n,r)}fetchEventListener(e,t,n){let r=this.fetchEventListenerMapForEventTarget(e),i=this.cacheKey(t,n),a=r.get(i);return a||(a=this.createEventListener(e,t,n),r.set(i,a)),a}createEventListener(e,t,n){let r=new Ki(e,t,n);return this.started&&r.connect(),r}fetchEventListenerMapForEventTarget(e){let t=this.eventListenerMaps.get(e);return t||(t=new Map,this.eventListenerMaps.set(e,t)),t}cacheKey(e,t){let n=[e];return Object.keys(t).sort().forEach(r=>{n.push(`${t[r]?"":"!"}${r}`)}),n.join(":")}},Ol={stop({event:o,value:e}){return e&&o.stopPropagation(),!0},prevent({event:o,value:e}){return e&&o.preventDefault(),!0},self({event:o,value:e,element:t}){return e?t===o.target:!0}},_l=/^(?:(?:([^.]+?)\+)?(.+?)(?:\.(.+?))?(?:@(window|document))?->)?(.+?)(?:#([^:]+?))(?::(.+))?$/;function Ml(o){let t=o.trim().match(_l)||[],n=t[2],r=t[3];return r&&!["keydown","keyup","keypress"].includes(n)&&(n+=`.${r}`,r=""),{eventTarget:Rl(t[4]),eventName:n,eventOptions:t[7]?Sl(t[7]):{},identifier:t[5],methodName:t[6],keyFilter:t[1]||r}}function Rl(o){if(o=="window")return window;if(o=="document")return document}function Sl(o){return o.split(":").reduce((e,t)=>Object.assign(e,{[t.replace(/^!/,"")]:!/^!/.test(t)}),{})}function Tl(o){if(o==window)return"window";if(o==document)return"document"}function ga(o){return o.replace(/(?:[_-])([a-z0-9])/g,(e,t)=>t.toUpperCase())}function Yi(o){return ga(o.replace(/--/g,"-").replace(/__/g,"_"))}function Ht(o){return o.charAt(0).toUpperCase()+o.slice(1)}function ss(o){return o.replace(/([A-Z])/g,(e,t)=>`-${t.toLowerCase()}`)}function Pl(o){return o.match(/[^\s]+/g)||[]}function Za(o){return o!=null}function Qi(o,e){return Object.prototype.hasOwnProperty.call(o,e)}var Ja=["meta","ctrl","alt","shift"],Zi=class{constructor(e,t,n,r){this.element=e,this.index=t,this.eventTarget=n.eventTarget||e,this.eventName=n.eventName||Il(e)||ho("missing event name"),this.eventOptions=n.eventOptions||{},this.identifier=n.identifier||ho("missing identifier"),this.methodName=n.methodName||ho("missing method name"),this.keyFilter=n.keyFilter||"",this.schema=r}static forToken(e,t){return new this(e.element,e.index,Ml(e.content),t)}toString(){let e=this.keyFilter?`.${this.keyFilter}`:"",t=this.eventTargetName?`@${this.eventTargetName}`:"";return`${this.eventName}${e}${t}->${this.identifier}#${this.methodName}`}shouldIgnoreKeyboardEvent(e){if(!this.keyFilter)return!1;let t=this.keyFilter.split("+");if(this.keyFilterDissatisfied(e,t))return!0;let n=t.filter(r=>!Ja.includes(r))[0];return n?(Qi(this.keyMappings,n)||ho(`contains unknown key filter: ${this.keyFilter}`),this.keyMappings[n].toLowerCase()!==e.key.toLowerCase()):!1}shouldIgnoreMouseEvent(e){if(!this.keyFilter)return!1;let t=[this.keyFilter];return!!this.keyFilterDissatisfied(e,t)}get params(){let e={},t=new RegExp(`^data-${this.identifier}-(.+)-param$`,"i");for(let{name:n,value:r}of Array.from(this.element.attributes)){let i=n.match(t),a=i&&i[1];a&&(e[ga(a)]=Ll(r))}return e}get eventTargetName(){return Tl(this.eventTarget)}get keyMappings(){return this.schema.keyMappings}keyFilterDissatisfied(e,t){let[n,r,i,a]=Ja.map(s=>t.includes(s));return e.metaKey!==n||e.ctrlKey!==r||e.altKey!==i||e.shiftKey!==a}},es={a:()=>"click",button:()=>"click",form:()=>"submit",details:()=>"toggle",input:o=>o.getAttribute("type")=="submit"?"click":"input",select:()=>"change",textarea:()=>"input"};function Il(o){let e=o.tagName.toLowerCase();if(e in es)return es[e](o)}function ho(o){throw new Error(o)}function Ll(o){try{return JSON.parse(o)}catch{return o}}var Ji=class{constructor(e,t){this.context=e,this.action=t}get index(){return this.action.index}get eventTarget(){return this.action.eventTarget}get eventOptions(){return this.action.eventOptions}get identifier(){return this.context.identifier}handleEvent(e){let t=this.prepareActionEvent(e);this.willBeInvokedByEvent(e)&&this.applyEventModifiers(t)&&this.invokeWithEvent(t)}get eventName(){return this.action.eventName}get method(){let e=this.controller[this.methodName];if(typeof e=="function")return e;throw new Error(`Action "${this.action}" references undefined method "${this.methodName}"`)}applyEventModifiers(e){let{element:t}=this.action,{actionDescriptorFilters:n}=this.context.application,{controller:r}=this.context,i=!0;for(let[a,s]of Object.entries(this.eventOptions))if(a in n){let c=n[a];i=i&&c({name:a,value:s,event:e,element:t,controller:r})}else continue;return i}prepareActionEvent(e){return Object.assign(e,{params:this.action.params})}invokeWithEvent(e){let{target:t,currentTarget:n}=e;try{this.method.call(this.controller,e),this.context.logDebugActivity(this.methodName,{event:e,target:t,currentTarget:n,action:this.methodName})}catch(r){let{identifier:i,controller:a,element:s,index:c}=this,d={identifier:i,controller:a,element:s,index:c,event:e};this.context.handleError(r,`invoking action "${this.action}"`,d)}}willBeInvokedByEvent(e){let t=e.target;return e instanceof KeyboardEvent&&this.action.shouldIgnoreKeyboardEvent(e)||e instanceof MouseEvent&&this.action.shouldIgnoreMouseEvent(e)?!1:this.element===t?!0:t instanceof Element&&this.element.contains(t)?this.scope.containsElement(t):this.scope.containsElement(this.action.element)}get controller(){return this.context.controller}get methodName(){return this.action.methodName}get element(){return this.scope.element}get scope(){return this.context.scope}},go=class{constructor(e,t){this.mutationObserverInit={attributes:!0,childList:!0,subtree:!0},this.element=e,this.started=!1,this.delegate=t,this.elements=new Set,this.mutationObserver=new MutationObserver(n=>this.processMutations(n))}start(){this.started||(this.started=!0,this.mutationObserver.observe(this.element,this.mutationObserverInit),this.refresh())}pause(e){this.started&&(this.mutationObserver.disconnect(),this.started=!1),e(),this.started||(this.mutationObserver.observe(this.element,this.mutationObserverInit),this.started=!0)}stop(){this.started&&(this.mutationObserver.takeRecords(),this.mutationObserver.disconnect(),this.started=!1)}refresh(){if(this.started){let e=new Set(this.matchElementsInTree());for(let t of Array.from(this.elements))e.has(t)||this.removeElement(t);for(let t of Array.from(e))this.addElement(t)}}processMutations(e){if(this.started)for(let t of e)this.processMutation(t)}processMutation(e){e.type=="attributes"?this.processAttributeChange(e.target,e.attributeName):e.type=="childList"&&(this.processRemovedNodes(e.removedNodes),this.processAddedNodes(e.addedNodes))}processAttributeChange(e,t){this.elements.has(e)?this.delegate.elementAttributeChanged&&this.matchElement(e)?this.delegate.elementAttributeChanged(e,t):this.removeElement(e):this.matchElement(e)&&this.addElement(e)}processRemovedNodes(e){for(let t of Array.from(e)){let n=this.elementFromNode(t);n&&this.processTree(n,this.removeElement)}}processAddedNodes(e){for(let t of Array.from(e)){let n=this.elementFromNode(t);n&&this.elementIsActive(n)&&this.processTree(n,this.addElement)}}matchElement(e){return this.delegate.matchElement(e)}matchElementsInTree(e=this.element){return this.delegate.matchElementsInTree(e)}processTree(e,t){for(let n of this.matchElementsInTree(e))t.call(this,n)}elementFromNode(e){if(e.nodeType==Node.ELEMENT_NODE)return e}elementIsActive(e){return e.isConnected!=this.element.isConnected?!1:this.element.contains(e)}addElement(e){this.elements.has(e)||this.elementIsActive(e)&&(this.elements.add(e),this.delegate.elementMatched&&this.delegate.elementMatched(e))}removeElement(e){this.elements.has(e)&&(this.elements.delete(e),this.delegate.elementUnmatched&&this.delegate.elementUnmatched(e))}},Fo=class{constructor(e,t,n){this.attributeName=t,this.delegate=n,this.elementObserver=new go(e,this)}get element(){return this.elementObserver.element}get selector(){return`[${this.attributeName}]`}start(){this.elementObserver.start()}pause(e){this.elementObserver.pause(e)}stop(){this.elementObserver.stop()}refresh(){this.elementObserver.refresh()}get started(){return this.elementObserver.started}matchElement(e){return e.hasAttribute(this.attributeName)}matchElementsInTree(e){let t=this.matchElement(e)?[e]:[],n=Array.from(e.querySelectorAll(this.selector));return t.concat(n)}elementMatched(e){this.delegate.elementMatchedAttribute&&this.delegate.elementMatchedAttribute(e,this.attributeName)}elementUnmatched(e){this.delegate.elementUnmatchedAttribute&&this.delegate.elementUnmatchedAttribute(e,this.attributeName)}elementAttributeChanged(e,t){this.delegate.elementAttributeValueChanged&&this.attributeName==t&&this.delegate.elementAttributeValueChanged(e,t)}};function jl(o,e,t){cs(o,e).add(t)}function ql(o,e,t){cs(o,e).delete(t),Vl(o,e)}function cs(o,e){let t=o.get(e);return t||(t=new Set,o.set(e,t)),t}function Vl(o,e){let t=o.get(e);t!=null&&t.size==0&&o.delete(e)}var Te=class{constructor(){this.valuesByKey=new Map}get keys(){return Array.from(this.valuesByKey.keys())}get values(){return Array.from(this.valuesByKey.values()).reduce((t,n)=>t.concat(Array.from(n)),[])}get size(){return Array.from(this.valuesByKey.values()).reduce((t,n)=>t+n.size,0)}add(e,t){jl(this.valuesByKey,e,t)}delete(e,t){ql(this.valuesByKey,e,t)}has(e,t){let n=this.valuesByKey.get(e);return n!=null&&n.has(t)}hasKey(e){return this.valuesByKey.has(e)}hasValue(e){return Array.from(this.valuesByKey.values()).some(n=>n.has(e))}getValuesForKey(e){let t=this.valuesByKey.get(e);return t?Array.from(t):[]}getKeysForValue(e){return Array.from(this.valuesByKey).filter(([t,n])=>n.has(e)).map(([t,n])=>t)}};var ea=class{constructor(e,t,n,r){this._selector=t,this.details=r,this.elementObserver=new go(e,this),this.delegate=n,this.matchesByElement=new Te}get started(){return this.elementObserver.started}get selector(){return this._selector}set selector(e){this._selector=e,this.refresh()}start(){this.elementObserver.start()}pause(e){this.elementObserver.pause(e)}stop(){this.elementObserver.stop()}refresh(){this.elementObserver.refresh()}get element(){return this.elementObserver.element}matchElement(e){let{selector:t}=this;if(t){let n=e.matches(t);return this.delegate.selectorMatchElement?n&&this.delegate.selectorMatchElement(e,this.details):n}else return!1}matchElementsInTree(e){let{selector:t}=this;if(t){let n=this.matchElement(e)?[e]:[],r=Array.from(e.querySelectorAll(t)).filter(i=>this.matchElement(i));return n.concat(r)}else return[]}elementMatched(e){let{selector:t}=this;t&&this.selectorMatched(e,t)}elementUnmatched(e){let t=this.matchesByElement.getKeysForValue(e);for(let n of t)this.selectorUnmatched(e,n)}elementAttributeChanged(e,t){let{selector:n}=this;if(n){let r=this.matchElement(e),i=this.matchesByElement.has(n,e);r&&!i?this.selectorMatched(e,n):!r&&i&&this.selectorUnmatched(e,n)}}selectorMatched(e,t){this.delegate.selectorMatched(e,t,this.details),this.matchesByElement.add(t,e)}selectorUnmatched(e,t){this.delegate.selectorUnmatched(e,t,this.details),this.matchesByElement.delete(t,e)}},ta=class{constructor(e,t){this.element=e,this.delegate=t,this.started=!1,this.stringMap=new Map,this.mutationObserver=new MutationObserver(n=>this.processMutations(n))}start(){this.started||(this.started=!0,this.mutationObserver.observe(this.element,{attributes:!0,attributeOldValue:!0}),this.refresh())}stop(){this.started&&(this.mutationObserver.takeRecords(),this.mutationObserver.disconnect(),this.started=!1)}refresh(){if(this.started)for(let e of this.knownAttributeNames)this.refreshAttribute(e,null)}processMutations(e){if(this.started)for(let t of e)this.processMutation(t)}processMutation(e){let t=e.attributeName;t&&this.refreshAttribute(t,e.oldValue)}refreshAttribute(e,t){let n=this.delegate.getStringMapKeyForAttribute(e);if(n!=null){this.stringMap.has(e)||this.stringMapKeyAdded(n,e);let r=this.element.getAttribute(e);if(this.stringMap.get(e)!=r&&this.stringMapValueChanged(r,n,t),r==null){let i=this.stringMap.get(e);this.stringMap.delete(e),i&&this.stringMapKeyRemoved(n,e,i)}else this.stringMap.set(e,r)}}stringMapKeyAdded(e,t){this.delegate.stringMapKeyAdded&&this.delegate.stringMapKeyAdded(e,t)}stringMapValueChanged(e,t,n){this.delegate.stringMapValueChanged&&this.delegate.stringMapValueChanged(e,t,n)}stringMapKeyRemoved(e,t,n){this.delegate.stringMapKeyRemoved&&this.delegate.stringMapKeyRemoved(e,t,n)}get knownAttributeNames(){return Array.from(new Set(this.currentAttributeNames.concat(this.recordedAttributeNames)))}get currentAttributeNames(){return Array.from(this.element.attributes).map(e=>e.name)}get recordedAttributeNames(){return Array.from(this.stringMap.keys())}},vo=class{constructor(e,t,n){this.attributeObserver=new Fo(e,t,this),this.delegate=n,this.tokensByElement=new Te}get started(){return this.attributeObserver.started}start(){this.attributeObserver.start()}pause(e){this.attributeObserver.pause(e)}stop(){this.attributeObserver.stop()}refresh(){this.attributeObserver.refresh()}get element(){return this.attributeObserver.element}get attributeName(){return this.attributeObserver.attributeName}elementMatchedAttribute(e){this.tokensMatched(this.readTokensForElement(e))}elementAttributeValueChanged(e){let[t,n]=this.refreshTokensForElement(e);this.tokensUnmatched(t),this.tokensMatched(n)}elementUnmatchedAttribute(e){this.tokensUnmatched(this.tokensByElement.getValuesForKey(e))}tokensMatched(e){e.forEach(t=>this.tokenMatched(t))}tokensUnmatched(e){e.forEach(t=>this.tokenUnmatched(t))}tokenMatched(e){this.delegate.tokenMatched(e),this.tokensByElement.add(e.element,e)}tokenUnmatched(e){this.delegate.tokenUnmatched(e),this.tokensByElement.delete(e.element,e)}refreshTokensForElement(e){let t=this.tokensByElement.getValuesForKey(e),n=this.readTokensForElement(e),r=$l(t,n).findIndex(([i,a])=>!Hl(i,a));return r==-1?[[],[]]:[t.slice(r),n.slice(r)]}readTokensForElement(e){let t=this.attributeName,n=e.getAttribute(t)||"";return Nl(n,e,t)}};function Nl(o,e,t){return o.trim().split(/\s+/).filter(n=>n.length).map((n,r)=>({element:e,attributeName:t,content:n,index:r}))}function $l(o,e){let t=Math.max(o.length,e.length);return Array.from({length:t},(n,r)=>[o[r],e[r]])}function Hl(o,e){return o&&e&&o.index==e.index&&o.content==e.content}var xo=class{constructor(e,t,n){this.tokenListObserver=new vo(e,t,this),this.delegate=n,this.parseResultsByToken=new WeakMap,this.valuesByTokenByElement=new WeakMap}get started(){return this.tokenListObserver.started}start(){this.tokenListObserver.start()}stop(){this.tokenListObserver.stop()}refresh(){this.tokenListObserver.refresh()}get element(){return this.tokenListObserver.element}get attributeName(){return this.tokenListObserver.attributeName}tokenMatched(e){let{element:t}=e,{value:n}=this.fetchParseResultForToken(e);n&&(this.fetchValuesByTokenForElement(t).set(e,n),this.delegate.elementMatchedValue(t,n))}tokenUnmatched(e){let{element:t}=e,{value:n}=this.fetchParseResultForToken(e);n&&(this.fetchValuesByTokenForElement(t).delete(e),this.delegate.elementUnmatchedValue(t,n))}fetchParseResultForToken(e){let t=this.parseResultsByToken.get(e);return t||(t=this.parseToken(e),this.parseResultsByToken.set(e,t)),t}fetchValuesByTokenForElement(e){let t=this.valuesByTokenByElement.get(e);return t||(t=new Map,this.valuesByTokenByElement.set(e,t)),t}parseToken(e){try{return{value:this.delegate.parseValueForToken(e)}}catch(t){return{error:t}}}},oa=class{constructor(e,t){this.context=e,this.delegate=t,this.bindingsByAction=new Map}start(){this.valueListObserver||(this.valueListObserver=new xo(this.element,this.actionAttribute,this),this.valueListObserver.start())}stop(){this.valueListObserver&&(this.valueListObserver.stop(),delete this.valueListObserver,this.disconnectAllActions())}get element(){return this.context.element}get identifier(){return this.context.identifier}get actionAttribute(){return this.schema.actionAttribute}get schema(){return this.context.schema}get bindings(){return Array.from(this.bindingsByAction.values())}connectAction(e){let t=new Ji(this.context,e);this.bindingsByAction.set(e,t),this.delegate.bindingConnected(t)}disconnectAction(e){let t=this.bindingsByAction.get(e);t&&(this.bindingsByAction.delete(e),this.delegate.bindingDisconnected(t))}disconnectAllActions(){this.bindings.forEach(e=>this.delegate.bindingDisconnected(e,!0)),this.bindingsByAction.clear()}parseValueForToken(e){let t=Zi.forToken(e,this.schema);if(t.identifier==this.identifier)return t}elementMatchedValue(e,t){this.connectAction(t)}elementUnmatchedValue(e,t){this.disconnectAction(t)}},na=class{constructor(e,t){this.context=e,this.receiver=t,this.stringMapObserver=new ta(this.element,this),this.valueDescriptorMap=this.controller.valueDescriptorMap}start(){this.stringMapObserver.start(),this.invokeChangedCallbacksForDefaultValues()}stop(){this.stringMapObserver.stop()}get element(){return this.context.element}get controller(){return this.context.controller}getStringMapKeyForAttribute(e){if(e in this.valueDescriptorMap)return this.valueDescriptorMap[e].name}stringMapKeyAdded(e,t){let n=this.valueDescriptorMap[t];this.hasValue(e)||this.invokeChangedCallback(e,n.writer(this.receiver[e]),n.writer(n.defaultValue))}stringMapValueChanged(e,t,n){let r=this.valueDescriptorNameMap[t];e!==null&&(n===null&&(n=r.writer(r.defaultValue)),this.invokeChangedCallback(t,e,n))}stringMapKeyRemoved(e,t,n){let r=this.valueDescriptorNameMap[e];this.hasValue(e)?this.invokeChangedCallback(e,r.writer(this.receiver[e]),n):this.invokeChangedCallback(e,r.writer(r.defaultValue),n)}invokeChangedCallbacksForDefaultValues(){for(let{key:e,name:t,defaultValue:n,writer:r}of this.valueDescriptors)n!=null&&!this.controller.data.has(e)&&this.invokeChangedCallback(t,r(n),void 0)}invokeChangedCallback(e,t,n){let r=`${e}Changed`,i=this.receiver[r];if(typeof i=="function"){let a=this.valueDescriptorNameMap[e];try{let s=a.reader(t),c=n;n&&(c=a.reader(n)),i.call(this.receiver,s,c)}catch(s){throw s instanceof TypeError&&(s.message=`Stimulus Value "${this.context.identifier}.${a.name}" - ${s.message}`),s}}}get valueDescriptors(){let{valueDescriptorMap:e}=this;return Object.keys(e).map(t=>e[t])}get valueDescriptorNameMap(){let e={};return Object.keys(this.valueDescriptorMap).forEach(t=>{let n=this.valueDescriptorMap[t];e[n.name]=n}),e}hasValue(e){let t=this.valueDescriptorNameMap[e],n=`has${Ht(t.name)}`;return this.receiver[n]}},ra=class{constructor(e,t){this.context=e,this.delegate=t,this.targetsByName=new Te}start(){this.tokenListObserver||(this.tokenListObserver=new vo(this.element,this.attributeName,this),this.tokenListObserver.start())}stop(){this.tokenListObserver&&(this.disconnectAllTargets(),this.tokenListObserver.stop(),delete this.tokenListObserver)}tokenMatched({element:e,content:t}){this.scope.containsElement(e)&&this.connectTarget(e,t)}tokenUnmatched({element:e,content:t}){this.disconnectTarget(e,t)}connectTarget(e,t){var n;this.targetsByName.has(t,e)||(this.targetsByName.add(t,e),(n=this.tokenListObserver)===null||n===void 0||n.pause(()=>this.delegate.targetConnected(e,t)))}disconnectTarget(e,t){var n;this.targetsByName.has(t,e)&&(this.targetsByName.delete(t,e),(n=this.tokenListObserver)===null||n===void 0||n.pause(()=>this.delegate.targetDisconnected(e,t)))}disconnectAllTargets(){for(let e of this.targetsByName.keys)for(let t of this.targetsByName.getValuesForKey(e))this.disconnectTarget(t,e)}get attributeName(){return`data-${this.context.identifier}-target`}get element(){return this.context.element}get scope(){return this.context.scope}};function Wt(o,e){let t=ds(o);return Array.from(t.reduce((n,r)=>(Ul(r,e).forEach(i=>n.add(i)),n),new Set))}function Wl(o,e){return ds(o).reduce((n,r)=>(n.push(...Gl(r,e)),n),[])}function ds(o){let e=[];for(;o;)e.push(o),o=Object.getPrototypeOf(o);return e.reverse()}function Ul(o,e){let t=o[e];return Array.isArray(t)?t:[]}function Gl(o,e){let t=o[e];return t?Object.keys(t).map(n=>[n,t[n]]):[]}var ia=class{constructor(e,t){this.started=!1,this.context=e,this.delegate=t,this.outletsByName=new Te,this.outletElementsByName=new Te,this.selectorObserverMap=new Map,this.attributeObserverMap=new Map}start(){this.started||(this.outletDefinitions.forEach(e=>{this.setupSelectorObserverForOutlet(e),this.setupAttributeObserverForOutlet(e)}),this.started=!0,this.dependentContexts.forEach(e=>e.refresh()))}refresh(){this.selectorObserverMap.forEach(e=>e.refresh()),this.attributeObserverMap.forEach(e=>e.refresh())}stop(){this.started&&(this.started=!1,this.disconnectAllOutlets(),this.stopSelectorObservers(),this.stopAttributeObservers())}stopSelectorObservers(){this.selectorObserverMap.size>0&&(this.selectorObserverMap.forEach(e=>e.stop()),this.selectorObserverMap.clear())}stopAttributeObservers(){this.attributeObserverMap.size>0&&(this.attributeObserverMap.forEach(e=>e.stop()),this.attributeObserverMap.clear())}selectorMatched(e,t,{outletName:n}){let r=this.getOutlet(e,n);r&&this.connectOutlet(r,e,n)}selectorUnmatched(e,t,{outletName:n}){let r=this.getOutletFromMap(e,n);r&&this.disconnectOutlet(r,e,n)}selectorMatchElement(e,{outletName:t}){let n=this.selector(t),r=this.hasOutlet(e,t),i=e.matches(`[${this.schema.controllerAttribute}~=${t}]`);return n?r&&i&&e.matches(n):!1}elementMatchedAttribute(e,t){let n=this.getOutletNameFromOutletAttributeName(t);n&&this.updateSelectorObserverForOutlet(n)}elementAttributeValueChanged(e,t){let n=this.getOutletNameFromOutletAttributeName(t);n&&this.updateSelectorObserverForOutlet(n)}elementUnmatchedAttribute(e,t){let n=this.getOutletNameFromOutletAttributeName(t);n&&this.updateSelectorObserverForOutlet(n)}connectOutlet(e,t,n){var r;this.outletElementsByName.has(n,t)||(this.outletsByName.add(n,e),this.outletElementsByName.add(n,t),(r=this.selectorObserverMap.get(n))===null||r===void 0||r.pause(()=>this.delegate.outletConnected(e,t,n)))}disconnectOutlet(e,t,n){var r;this.outletElementsByName.has(n,t)&&(this.outletsByName.delete(n,e),this.outletElementsByName.delete(n,t),(r=this.selectorObserverMap.get(n))===null||r===void 0||r.pause(()=>this.delegate.outletDisconnected(e,t,n)))}disconnectAllOutlets(){for(let e of this.outletElementsByName.keys)for(let t of this.outletElementsByName.getValuesForKey(e))for(let n of this.outletsByName.getValuesForKey(e))this.disconnectOutlet(n,t,e)}updateSelectorObserverForOutlet(e){let t=this.selectorObserverMap.get(e);t&&(t.selector=this.selector(e))}setupSelectorObserverForOutlet(e){let t=this.selector(e),n=new ea(document.body,t,this,{outletName:e});this.selectorObserverMap.set(e,n),n.start()}setupAttributeObserverForOutlet(e){let t=this.attributeNameForOutletName(e),n=new Fo(this.scope.element,t,this);this.attributeObserverMap.set(e,n),n.start()}selector(e){return this.scope.outlets.getSelectorForOutletName(e)}attributeNameForOutletName(e){return this.scope.schema.outletAttributeForScope(this.identifier,e)}getOutletNameFromOutletAttributeName(e){return this.outletDefinitions.find(t=>this.attributeNameForOutletName(t)===e)}get outletDependencies(){let e=new Te;return this.router.modules.forEach(t=>{let n=t.definition.controllerConstructor;Wt(n,"outlets").forEach(i=>e.add(i,t.identifier))}),e}get outletDefinitions(){return this.outletDependencies.getKeysForValue(this.identifier)}get dependentControllerIdentifiers(){return this.outletDependencies.getValuesForKey(this.identifier)}get dependentContexts(){let e=this.dependentControllerIdentifiers;return this.router.contexts.filter(t=>e.includes(t.identifier))}hasOutlet(e,t){return!!this.getOutlet(e,t)||!!this.getOutletFromMap(e,t)}getOutlet(e,t){return this.application.getControllerForElementAndIdentifier(e,t)}getOutletFromMap(e,t){return this.outletsByName.getValuesForKey(t).find(n=>n.element===e)}get scope(){return this.context.scope}get schema(){return this.context.schema}get identifier(){return this.context.identifier}get application(){return this.context.application}get router(){return this.application.router}},aa=class{constructor(e,t){this.logDebugActivity=(n,r={})=>{let{identifier:i,controller:a,element:s}=this;r=Object.assign({identifier:i,controller:a,element:s},r),this.application.logDebugActivity(this.identifier,n,r)},this.module=e,this.scope=t,this.controller=new e.controllerConstructor(this),this.bindingObserver=new oa(this,this.dispatcher),this.valueObserver=new na(this,this.controller),this.targetObserver=new ra(this,this),this.outletObserver=new ia(this,this);try{this.controller.initialize(),this.logDebugActivity("initialize")}catch(n){this.handleError(n,"initializing controller")}}connect(){this.bindingObserver.start(),this.valueObserver.start(),this.targetObserver.start(),this.outletObserver.start();try{this.controller.connect(),this.logDebugActivity("connect")}catch(e){this.handleError(e,"connecting controller")}}refresh(){this.outletObserver.refresh()}disconnect(){try{this.controller.disconnect(),this.logDebugActivity("disconnect")}catch(e){this.handleError(e,"disconnecting controller")}this.outletObserver.stop(),this.targetObserver.stop(),this.valueObserver.stop(),this.bindingObserver.stop()}get application(){return this.module.application}get identifier(){return this.module.identifier}get schema(){return this.application.schema}get dispatcher(){return this.application.dispatcher}get element(){return this.scope.element}get parentElement(){return this.element.parentElement}handleError(e,t,n={}){let{identifier:r,controller:i,element:a}=this;n=Object.assign({identifier:r,controller:i,element:a},n),this.application.handleError(e,`Error ${t}`,n)}targetConnected(e,t){this.invokeControllerMethod(`${t}TargetConnected`,e)}targetDisconnected(e,t){this.invokeControllerMethod(`${t}TargetDisconnected`,e)}outletConnected(e,t,n){this.invokeControllerMethod(`${Yi(n)}OutletConnected`,e,t)}outletDisconnected(e,t,n){this.invokeControllerMethod(`${Yi(n)}OutletDisconnected`,e,t)}invokeControllerMethod(e,...t){let n=this.controller;typeof n[e]=="function"&&n[e](...t)}};function Kl(o){return Xl(o,Yl(o))}function Xl(o,e){let t=em(o),n=Ql(o.prototype,e);return Object.defineProperties(t.prototype,n),t}function Yl(o){return Wt(o,"blessings").reduce((t,n)=>{let r=n(o);for(let i in r){let a=t[i]||{};t[i]=Object.assign(a,r[i])}return t},{})}function Ql(o,e){return Jl(e).reduce((t,n)=>{let r=Zl(o,e,n);return r&&Object.assign(t,{[n]:r}),t},{})}function Zl(o,e,t){let n=Object.getOwnPropertyDescriptor(o,t);if(!(n&&"value"in n)){let i=Object.getOwnPropertyDescriptor(e,t).value;return n&&(i.get=n.get||i.get,i.set=n.set||i.set),i}}var Jl=typeof Object.getOwnPropertySymbols=="function"?o=>[...Object.getOwnPropertyNames(o),...Object.getOwnPropertySymbols(o)]:Object.getOwnPropertyNames,em=(()=>{function o(t){function n(){return Reflect.construct(t,arguments,new.target)}return n.prototype=Object.create(t.prototype,{constructor:{value:n}}),Reflect.setPrototypeOf(n,t),n}function e(){let n=o(function(){this.a.call(this)});return n.prototype.a=function(){},new n}try{return e(),o}catch{return n=>class extends n{}}})();function tm(o){return{identifier:o.identifier,controllerConstructor:Kl(o.controllerConstructor)}}var sa=class{constructor(e,t){this.application=e,this.definition=tm(t),this.contextsByScope=new WeakMap,this.connectedContexts=new Set}get identifier(){return this.definition.identifier}get controllerConstructor(){return this.definition.controllerConstructor}get contexts(){return Array.from(this.connectedContexts)}connectContextForScope(e){let t=this.fetchContextForScope(e);this.connectedContexts.add(t),t.connect()}disconnectContextForScope(e){let t=this.contextsByScope.get(e);t&&(this.connectedContexts.delete(t),t.disconnect())}fetchContextForScope(e){let t=this.contextsByScope.get(e);return t||(t=new aa(this,e),this.contextsByScope.set(e,t)),t}},ca=class{constructor(e){this.scope=e}has(e){return this.data.has(this.getDataKey(e))}get(e){return this.getAll(e)[0]}getAll(e){let t=this.data.get(this.getDataKey(e))||"";return Pl(t)}getAttributeName(e){return this.data.getAttributeNameForKey(this.getDataKey(e))}getDataKey(e){return`${e}-class`}get data(){return this.scope.data}},da=class{constructor(e){this.scope=e}get element(){return this.scope.element}get identifier(){return this.scope.identifier}get(e){let t=this.getAttributeNameForKey(e);return this.element.getAttribute(t)}set(e,t){let n=this.getAttributeNameForKey(e);return this.element.setAttribute(n,t),this.get(e)}has(e){let t=this.getAttributeNameForKey(e);return this.element.hasAttribute(t)}delete(e){if(this.has(e)){let t=this.getAttributeNameForKey(e);return this.element.removeAttribute(t),!0}else return!1}getAttributeNameForKey(e){return`data-${this.identifier}-${ss(e)}`}},la=class{constructor(e){this.warnedKeysByObject=new WeakMap,this.logger=e}warn(e,t,n){let r=this.warnedKeysByObject.get(e);r||(r=new Set,this.warnedKeysByObject.set(e,r)),r.has(t)||(r.add(t),this.logger.warn(n,e))}};function ma(o,e){return`[${o}~="${e}"]`}var fa=class{constructor(e){this.scope=e}get element(){return this.scope.element}get identifier(){return this.scope.identifier}get schema(){return this.scope.schema}has(e){return this.find(e)!=null}find(...e){return e.reduce((t,n)=>t||this.findTarget(n)||this.findLegacyTarget(n),void 0)}findAll(...e){return e.reduce((t,n)=>[...t,...this.findAllTargets(n),...this.findAllLegacyTargets(n)],[])}findTarget(e){let t=this.getSelectorForTargetName(e);return this.scope.findElement(t)}findAllTargets(e){let t=this.getSelectorForTargetName(e);return this.scope.findAllElements(t)}getSelectorForTargetName(e){let t=this.schema.targetAttributeForScope(this.identifier);return ma(t,e)}findLegacyTarget(e){let t=this.getLegacySelectorForTargetName(e);return this.deprecate(this.scope.findElement(t),e)}findAllLegacyTargets(e){let t=this.getLegacySelectorForTargetName(e);return this.scope.findAllElements(t).map(n=>this.deprecate(n,e))}getLegacySelectorForTargetName(e){let t=`${this.identifier}.${e}`;return ma(this.schema.targetAttribute,t)}deprecate(e,t){if(e){let{identifier:n}=this,r=this.schema.targetAttribute,i=this.schema.targetAttributeForScope(n);this.guide.warn(e,`target:${t}`,`Please replace ${r}="${n}.${t}" with ${i}="${t}". The ${r} attribute is deprecated and will be removed in a future version of Stimulus.`)}return e}get guide(){return this.scope.guide}},ba=class{constructor(e,t){this.scope=e,this.controllerElement=t}get element(){return this.scope.element}get identifier(){return this.scope.identifier}get schema(){return this.scope.schema}has(e){return this.find(e)!=null}find(...e){return e.reduce((t,n)=>t||this.findOutlet(n),void 0)}findAll(...e){return e.reduce((t,n)=>[...t,...this.findAllOutlets(n)],[])}getSelectorForOutletName(e){let t=this.schema.outletAttributeForScope(this.identifier,e);return this.controllerElement.getAttribute(t)}findOutlet(e){let t=this.getSelectorForOutletName(e);if(t)return this.findElement(t,e)}findAllOutlets(e){let t=this.getSelectorForOutletName(e);return t?this.findAllElements(t,e):[]}findElement(e,t){return this.scope.queryElements(e).filter(r=>this.matchesElement(r,e,t))[0]}findAllElements(e,t){return this.scope.queryElements(e).filter(r=>this.matchesElement(r,e,t))}matchesElement(e,t,n){let r=e.getAttribute(this.scope.schema.controllerAttribute)||"";return e.matches(t)&&r.split(" ").includes(n)}},pa=class o{constructor(e,t,n,r){this.targets=new fa(this),this.classes=new ca(this),this.data=new da(this),this.containsElement=i=>i.closest(this.controllerSelector)===this.element,this.schema=e,this.element=t,this.identifier=n,this.guide=new la(r),this.outlets=new ba(this.documentScope,t)}findElement(e){return this.element.matches(e)?this.element:this.queryElements(e).find(this.containsElement)}findAllElements(e){return[...this.element.matches(e)?[this.element]:[],...this.queryElements(e).filter(this.containsElement)]}queryElements(e){return Array.from(this.element.querySelectorAll(e))}get controllerSelector(){return ma(this.schema.controllerAttribute,this.identifier)}get isDocumentScope(){return this.element===document.documentElement}get documentScope(){return this.isDocumentScope?this:new o(this.schema,document.documentElement,this.identifier,this.guide.logger)}},ua=class{constructor(e,t,n){this.element=e,this.schema=t,this.delegate=n,this.valueListObserver=new xo(this.element,this.controllerAttribute,this),this.scopesByIdentifierByElement=new WeakMap,this.scopeReferenceCounts=new WeakMap}start(){this.valueListObserver.start()}stop(){this.valueListObserver.stop()}get controllerAttribute(){return this.schema.controllerAttribute}parseValueForToken(e){let{element:t,content:n}=e;return this.parseValueForElementAndIdentifier(t,n)}parseValueForElementAndIdentifier(e,t){let n=this.fetchScopesByIdentifierForElement(e),r=n.get(t);return r||(r=this.delegate.createScopeForElementAndIdentifier(e,t),n.set(t,r)),r}elementMatchedValue(e,t){let n=(this.scopeReferenceCounts.get(t)||0)+1;this.scopeReferenceCounts.set(t,n),n==1&&this.delegate.scopeConnected(t)}elementUnmatchedValue(e,t){let n=this.scopeReferenceCounts.get(t);n&&(this.scopeReferenceCounts.set(t,n-1),n==1&&this.delegate.scopeDisconnected(t))}fetchScopesByIdentifierForElement(e){let t=this.scopesByIdentifierByElement.get(e);return t||(t=new Map,this.scopesByIdentifierByElement.set(e,t)),t}},ha=class{constructor(e){this.application=e,this.scopeObserver=new ua(this.element,this.schema,this),this.scopesByIdentifier=new Te,this.modulesByIdentifier=new Map}get element(){return this.application.element}get schema(){return this.application.schema}get logger(){return this.application.logger}get controllerAttribute(){return this.schema.controllerAttribute}get modules(){return Array.from(this.modulesByIdentifier.values())}get contexts(){return this.modules.reduce((e,t)=>e.concat(t.contexts),[])}start(){this.scopeObserver.start()}stop(){this.scopeObserver.stop()}loadDefinition(e){this.unloadIdentifier(e.identifier);let t=new sa(this.application,e);this.connectModule(t);let n=e.controllerConstructor.afterLoad;n&&n.call(e.controllerConstructor,e.identifier,this.application)}unloadIdentifier(e){let t=this.modulesByIdentifier.get(e);t&&this.disconnectModule(t)}getContextForElementAndIdentifier(e,t){let n=this.modulesByIdentifier.get(t);if(n)return n.contexts.find(r=>r.element==e)}proposeToConnectScopeForElementAndIdentifier(e,t){let n=this.scopeObserver.parseValueForElementAndIdentifier(e,t);n?this.scopeObserver.elementMatchedValue(n.element,n):console.error(`Couldn't find or create scope for identifier: "${t}" and element:`,e)}handleError(e,t,n){this.application.handleError(e,t,n)}createScopeForElementAndIdentifier(e,t){return new pa(this.schema,e,t,this.logger)}scopeConnected(e){this.scopesByIdentifier.add(e.identifier,e);let t=this.modulesByIdentifier.get(e.identifier);t&&t.connectContextForScope(e)}scopeDisconnected(e){this.scopesByIdentifier.delete(e.identifier,e);let t=this.modulesByIdentifier.get(e.identifier);t&&t.disconnectContextForScope(e)}connectModule(e){this.modulesByIdentifier.set(e.identifier,e),this.scopesByIdentifier.getValuesForKey(e.identifier).forEach(n=>e.connectContextForScope(n))}disconnectModule(e){this.modulesByIdentifier.delete(e.identifier),this.scopesByIdentifier.getValuesForKey(e.identifier).forEach(n=>e.disconnectContextForScope(n))}},om={controllerAttribute:"data-controller",actionAttribute:"data-action",targetAttribute:"data-target",targetAttributeForScope:o=>`data-${o}-target`,outletAttributeForScope:(o,e)=>`data-${o}-${e}-outlet`,keyMappings:Object.assign(Object.assign({enter:"Enter",tab:"Tab",esc:"Escape",space:" ",up:"ArrowUp",down:"ArrowDown",left:"ArrowLeft",right:"ArrowRight",home:"Home",end:"End",page_up:"PageUp",page_down:"PageDown"},ts("abcdefghijklmnopqrstuvwxyz".split("").map(o=>[o,o]))),ts("0123456789".split("").map(o=>[o,o])))};function ts(o){return o.reduce((e,[t,n])=>Object.assign(Object.assign({},e),{[t]:n}),{})}var wo=class{constructor(e=document.documentElement,t=om){this.logger=console,this.debug=!1,this.logDebugActivity=(n,r,i={})=>{this.debug&&this.logFormattedMessage(n,r,i)},this.element=e,this.schema=t,this.dispatcher=new Xi(this),this.router=new ha(this),this.actionDescriptorFilters=Object.assign({},Ol)}static start(e,t){let n=new this(e,t);return n.start(),n}async start(){await nm(),this.logDebugActivity("application","starting"),this.dispatcher.start(),this.router.start(),this.logDebugActivity("application","start")}stop(){this.logDebugActivity("application","stopping"),this.dispatcher.stop(),this.router.stop(),this.logDebugActivity("application","stop")}register(e,t){this.load({identifier:e,controllerConstructor:t})}registerActionOption(e,t){this.actionDescriptorFilters[e]=t}load(e,...t){(Array.isArray(e)?e:[e,...t]).forEach(r=>{r.controllerConstructor.shouldLoad&&this.router.loadDefinition(r)})}unload(e,...t){(Array.isArray(e)?e:[e,...t]).forEach(r=>this.router.unloadIdentifier(r))}get controllers(){return this.router.contexts.map(e=>e.controller)}getControllerForElementAndIdentifier(e,t){let n=this.router.getContextForElementAndIdentifier(e,t);return n?n.controller:null}handleError(e,t,n){var r;this.logger.error(`%s
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+
+  // node_modules/websocket-ts/dist/esm/src/websocket_event.js
+  var WebsocketEvent;
+  (function(WebsocketEvent2) {
+    WebsocketEvent2["open"] = "open";
+    WebsocketEvent2["close"] = "close";
+    WebsocketEvent2["error"] = "error";
+    WebsocketEvent2["message"] = "message";
+    WebsocketEvent2["retry"] = "retry";
+    WebsocketEvent2["reconnect"] = "reconnect";
+  })(WebsocketEvent || (WebsocketEvent = {}));
+
+  // node_modules/websocket-ts/dist/esm/src/websocket.js
+  var Websocket = class {
+    /**
+     * Creates a new websocket.
+     *
+     * @param url to connect to.
+     * @param protocols optional protocols to use.
+     * @param options optional options to use.
+     */
+    constructor(url, protocols, options) {
+      var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+      this._closedByUser = false;
+      this.handleOpenEvent = (event) => this.handleEvent(WebsocketEvent.open, event);
+      this.handleErrorEvent = (event) => this.handleEvent(WebsocketEvent.error, event);
+      this.handleCloseEvent = (event) => this.handleEvent(WebsocketEvent.close, event);
+      this.handleMessageEvent = (event) => this.handleEvent(WebsocketEvent.message, event);
+      this._url = url;
+      this._protocols = protocols;
+      this._options = {
+        buffer: options === null || options === void 0 ? void 0 : options.buffer,
+        retry: {
+          maxRetries: (_a = options === null || options === void 0 ? void 0 : options.retry) === null || _a === void 0 ? void 0 : _a.maxRetries,
+          instantReconnect: (_b = options === null || options === void 0 ? void 0 : options.retry) === null || _b === void 0 ? void 0 : _b.instantReconnect,
+          backoff: (_c = options === null || options === void 0 ? void 0 : options.retry) === null || _c === void 0 ? void 0 : _c.backoff
+        },
+        listeners: {
+          open: [...(_e = (_d = options === null || options === void 0 ? void 0 : options.listeners) === null || _d === void 0 ? void 0 : _d.open) !== null && _e !== void 0 ? _e : []],
+          close: [...(_g = (_f = options === null || options === void 0 ? void 0 : options.listeners) === null || _f === void 0 ? void 0 : _f.close) !== null && _g !== void 0 ? _g : []],
+          error: [...(_j = (_h = options === null || options === void 0 ? void 0 : options.listeners) === null || _h === void 0 ? void 0 : _h.error) !== null && _j !== void 0 ? _j : []],
+          message: [...(_l = (_k = options === null || options === void 0 ? void 0 : options.listeners) === null || _k === void 0 ? void 0 : _k.message) !== null && _l !== void 0 ? _l : []],
+          retry: [...(_o = (_m = options === null || options === void 0 ? void 0 : options.listeners) === null || _m === void 0 ? void 0 : _m.retry) !== null && _o !== void 0 ? _o : []],
+          reconnect: [...(_q = (_p = options === null || options === void 0 ? void 0 : options.listeners) === null || _p === void 0 ? void 0 : _p.reconnect) !== null && _q !== void 0 ? _q : []]
+        }
+      };
+      this._underlyingWebsocket = this.tryConnect();
+    }
+    /**
+     * Getter for the url.
+     *
+     * @return the url.
+     */
+    get url() {
+      return this._url;
+    }
+    /**
+     * Getter for the protocols.
+     *
+     * @return the protocols, or undefined if none were provided.
+     */
+    get protocols() {
+      return this._protocols;
+    }
+    /**
+     * Getter for the buffer.
+     *
+     * @return the buffer, or undefined if none was provided.
+     */
+    get buffer() {
+      return this._options.buffer;
+    }
+    /**
+     * Getter for the maxRetries.
+     *
+     * @return the maxRetries, or undefined if none was provided (no limit).
+     */
+    get maxRetries() {
+      return this._options.retry.maxRetries;
+    }
+    /**
+     * Getter for the instantReconnect.
+     *
+     * @return the instantReconnect, or undefined if none was provided.
+     */
+    get instantReconnect() {
+      return this._options.retry.instantReconnect;
+    }
+    /**
+     * Getter for the backoff.
+     *
+     * @return the backoff, or undefined if none was provided.
+     */
+    get backoff() {
+      return this._options.retry.backoff;
+    }
+    /**
+     * Whether the websocket was closed by the user. A websocket is closed by the user if the close().
+     *
+     * @return true if the websocket was closed by the user, false otherwise.
+     */
+    get closedByUser() {
+      return this._closedByUser;
+    }
+    /**
+     * Getter for the last 'open' event, e.g. the last time the websocket was connected.
+     *
+     * @return the last 'open' event, or undefined if the websocket was never connected.
+     */
+    get lastConnection() {
+      return this._lastConnection;
+    }
+    /**
+     * Getter for the underlying websocket. This can be used to access the browser's native websocket directly.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket
+     * @return the underlying websocket.
+     */
+    get underlyingWebsocket() {
+      return this._underlyingWebsocket;
+    }
+    /**
+     * Getter for the readyState of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
+     * @return the readyState of the underlying websocket.
+     */
+    get readyState() {
+      return this._underlyingWebsocket.readyState;
+    }
+    /**
+     * Getter for the bufferedAmount of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/bufferedAmount
+     * @return the bufferedAmount of the underlying websocket.
+     */
+    get bufferedAmount() {
+      return this._underlyingWebsocket.bufferedAmount;
+    }
+    /**
+     * Getter for the extensions of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/extensions
+     * @return the extensions of the underlying websocket.
+     */
+    get extensions() {
+      return this._underlyingWebsocket.extensions;
+    }
+    /**
+     * Getter for the binaryType of the underlying websocket.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/binaryType
+     * @return the binaryType of the underlying websocket.
+     */
+    get binaryType() {
+      return this._underlyingWebsocket.binaryType;
+    }
+    /**
+     * Setter for the binaryType of the underlying websocket.
+     *
+     * @param value to set, 'blob' or 'arraybuffer'.
+     */
+    set binaryType(value) {
+      this._underlyingWebsocket.binaryType = value;
+    }
+    /**
+     * Sends data over the websocket.
+     *
+     * If the websocket is not connected and a buffer was provided on creation, the data will be added to the buffer.
+     * If no buffer was provided or the websocket was closed by the user, the data will be dropped.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/send
+     * @param data to send.
+     */
+    send(data) {
+      if (this.closedByUser)
+        return;
+      if (this._underlyingWebsocket.readyState === this._underlyingWebsocket.OPEN) {
+        this._underlyingWebsocket.send(data);
+      } else if (this.buffer !== void 0) {
+        this.buffer.add(data);
+      }
+    }
+    /**
+     * Close the websocket. No connection-retry will be attempted after this.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/close
+     * @param code optional close code.
+     * @param reason optional close reason.
+     */
+    close(code, reason) {
+      this.cancelScheduledConnectionRetry();
+      this._closedByUser = true;
+      this._underlyingWebsocket.close(code, reason);
+    }
+    /**
+     * Adds an event listener for the given event-type.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+     * @param type of the event to add the listener for.
+     * @param listener to add.
+     * @param options to use when adding the listener.
+     */
+    addEventListener(type, listener, options) {
+      this._options.listeners[type].push({ listener, options });
+    }
+    /**
+     * Removes one or more event listener for the given event-type that match the given listener and options.
+     *
+     * @param type of the event to remove the listener for.
+     * @param listener to remove.
+     * @param options that were used when the listener was added.
+     */
+    removeEventListener(type, listener, options) {
+      const isListenerNotToBeRemoved = (l) => l.listener !== listener || l.options !== options;
+      this._options.listeners[type] = this._options.listeners[type].filter(isListenerNotToBeRemoved);
+    }
+    /**
+     * Creates a new browser-native websocket and connects it to the given URL with the given protocols
+     * and adds all event listeners to the browser-native websocket.
+     *
+     * @return the created browser-native websocket which is also stored in the '_underlyingWebsocket' property.
+     */
+    tryConnect() {
+      this._underlyingWebsocket = new WebSocket(this.url, this.protocols);
+      this._underlyingWebsocket.addEventListener(WebsocketEvent.open, this.handleOpenEvent);
+      this._underlyingWebsocket.addEventListener(WebsocketEvent.close, this.handleCloseEvent);
+      this._underlyingWebsocket.addEventListener(WebsocketEvent.error, this.handleErrorEvent);
+      this._underlyingWebsocket.addEventListener(WebsocketEvent.message, this.handleMessageEvent);
+      return this._underlyingWebsocket;
+    }
+    /**
+     * Removes all event listeners from the browser-native websocket and closes it.
+     */
+    clearWebsocket() {
+      this._underlyingWebsocket.removeEventListener(WebsocketEvent.open, this.handleOpenEvent);
+      this._underlyingWebsocket.removeEventListener(WebsocketEvent.close, this.handleCloseEvent);
+      this._underlyingWebsocket.removeEventListener(WebsocketEvent.error, this.handleErrorEvent);
+      this._underlyingWebsocket.removeEventListener(WebsocketEvent.message, this.handleMessageEvent);
+      this._underlyingWebsocket.close();
+    }
+    /**
+     * Dispatch an event to all listeners of the given event-type.
+     *
+     * @param type of the event to dispatch.
+     * @param event to dispatch.
+     */
+    dispatchEvent(type, event) {
+      const eventListeners = this._options.listeners[type];
+      const newEventListeners = [];
+      eventListeners.forEach(({ listener, options }) => {
+        listener(this, event);
+        if (options === void 0 || options.once === void 0 || !options.once) {
+          newEventListeners.push({ listener, options });
+        }
+      });
+      this._options.listeners[type] = newEventListeners;
+    }
+    /**
+     * Handles the given event by dispatching it to all listeners of the given event-type.
+     *
+     * @param type of the event to handle.
+     * @param event to handle.
+     */
+    handleEvent(type, event) {
+      switch (type) {
+        case WebsocketEvent.close:
+          this.dispatchEvent(type, event);
+          this.scheduleConnectionRetryIfNeeded();
+          break;
+        case WebsocketEvent.open:
+          if (this.backoff !== void 0 && this._lastConnection !== void 0) {
+            const detail = {
+              retries: this.backoff.retries,
+              lastConnection: new Date(this._lastConnection)
+            };
+            const event2 = new CustomEvent(WebsocketEvent.reconnect, {
+              detail
+            });
+            this.dispatchEvent(WebsocketEvent.reconnect, event2);
+            this.backoff.reset();
+          }
+          this._lastConnection = /* @__PURE__ */ new Date();
+          this.dispatchEvent(type, event);
+          this.sendBufferedData();
+          break;
+        case WebsocketEvent.retry:
+          this.dispatchEvent(type, event);
+          this.clearWebsocket();
+          this.tryConnect();
+          break;
+        default:
+          this.dispatchEvent(type, event);
+          break;
+      }
+    }
+    /**
+     * Sends buffered data if there is a buffer defined.
+     */
+    sendBufferedData() {
+      if (this.buffer === void 0) {
+        return;
+      }
+      for (let ele = this.buffer.read(); ele !== void 0; ele = this.buffer.read()) {
+        this.send(ele);
+      }
+    }
+    /**
+     * Schedules a connection-retry if there is a backoff defined and the websocket was not closed by the user.
+     */
+    scheduleConnectionRetryIfNeeded() {
+      if (this.closedByUser) {
+        return;
+      }
+      if (this.backoff === void 0) {
+        return;
+      }
+      const handleRetryEvent = (detail) => {
+        const event = new CustomEvent(WebsocketEvent.retry, { detail });
+        this.handleEvent(WebsocketEvent.retry, event);
+      };
+      const retryEventDetail = {
+        backoff: this._options.retry.instantReconnect === true ? 0 : this.backoff.next(),
+        retries: this._options.retry.instantReconnect === true ? 0 : this.backoff.retries,
+        lastConnection: this._lastConnection
+      };
+      if (this._options.retry.maxRetries === void 0 || retryEventDetail.retries <= this._options.retry.maxRetries) {
+        this.retryTimeout = globalThis.setTimeout(() => handleRetryEvent(retryEventDetail), retryEventDetail.backoff);
+      }
+    }
+    /**
+     * Cancels the scheduled connection-retry, if there is one.
+     */
+    cancelScheduledConnectionRetry() {
+      globalThis.clearTimeout(this.retryTimeout);
+    }
+  };
+
+  // frontend/src/js/helper/ConfigHelper.ts
+  var config;
+  async function fetchConfig() {
+    config = await (await fetch("/config.json")).json();
+  }
+  function getConfig(filter = void 0, asObject = false) {
+    if (!filter) return config;
+    const result = [];
+    for (const key in config) {
+      if (!key.match(filter)) {
+        continue;
+      }
+      if (asObject) {
+        const realKey = key.replace(filter, "");
+        result[realKey] = config[key];
+      } else {
+        result.push(config[key]);
+      }
+    }
+    return result;
+  }
+
+  // helper/GeneralHelper.ts
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // frontend/src/js/client/WebsocketClient.ts
+  var WebsocketClient = class {
+    constructor() {
+      __publicField(this, "websocket");
+    }
+    async connect() {
+      const config2 = getConfig(/websocket/g)[0];
+      this.websocket = new Websocket("ws://" + window.location.hostname + ":" + config2.port);
+      await sleep(250);
+    }
+    getWebsocket() {
+      return this.websocket;
+    }
+    send(method, data = {}) {
+      this.websocket.send(JSON.stringify({ method, data }));
+    }
+    editColor(color = void 0) {
+      this.send("set_color", { color });
+    }
+    clearEvent(eventUuid) {
+      this.send("clear_event", { "event-uuid": eventUuid });
+    }
+  };
+
+  // node_modules/@hotwired/stimulus/dist/stimulus.js
+  var EventListener = class {
+    constructor(eventTarget, eventName, eventOptions) {
+      this.eventTarget = eventTarget;
+      this.eventName = eventName;
+      this.eventOptions = eventOptions;
+      this.unorderedBindings = /* @__PURE__ */ new Set();
+    }
+    connect() {
+      this.eventTarget.addEventListener(this.eventName, this, this.eventOptions);
+    }
+    disconnect() {
+      this.eventTarget.removeEventListener(this.eventName, this, this.eventOptions);
+    }
+    bindingConnected(binding) {
+      this.unorderedBindings.add(binding);
+    }
+    bindingDisconnected(binding) {
+      this.unorderedBindings.delete(binding);
+    }
+    handleEvent(event) {
+      const extendedEvent = extendEvent(event);
+      for (const binding of this.bindings) {
+        if (extendedEvent.immediatePropagationStopped) {
+          break;
+        } else {
+          binding.handleEvent(extendedEvent);
+        }
+      }
+    }
+    hasBindings() {
+      return this.unorderedBindings.size > 0;
+    }
+    get bindings() {
+      return Array.from(this.unorderedBindings).sort((left, right) => {
+        const leftIndex = left.index, rightIndex = right.index;
+        return leftIndex < rightIndex ? -1 : leftIndex > rightIndex ? 1 : 0;
+      });
+    }
+  };
+  function extendEvent(event) {
+    if ("immediatePropagationStopped" in event) {
+      return event;
+    } else {
+      const { stopImmediatePropagation } = event;
+      return Object.assign(event, {
+        immediatePropagationStopped: false,
+        stopImmediatePropagation() {
+          this.immediatePropagationStopped = true;
+          stopImmediatePropagation.call(this);
+        }
+      });
+    }
+  }
+  var Dispatcher = class {
+    constructor(application) {
+      this.application = application;
+      this.eventListenerMaps = /* @__PURE__ */ new Map();
+      this.started = false;
+    }
+    start() {
+      if (!this.started) {
+        this.started = true;
+        this.eventListeners.forEach((eventListener) => eventListener.connect());
+      }
+    }
+    stop() {
+      if (this.started) {
+        this.started = false;
+        this.eventListeners.forEach((eventListener) => eventListener.disconnect());
+      }
+    }
+    get eventListeners() {
+      return Array.from(this.eventListenerMaps.values()).reduce((listeners, map) => listeners.concat(Array.from(map.values())), []);
+    }
+    bindingConnected(binding) {
+      this.fetchEventListenerForBinding(binding).bindingConnected(binding);
+    }
+    bindingDisconnected(binding, clearEventListeners = false) {
+      this.fetchEventListenerForBinding(binding).bindingDisconnected(binding);
+      if (clearEventListeners)
+        this.clearEventListenersForBinding(binding);
+    }
+    handleError(error2, message, detail = {}) {
+      this.application.handleError(error2, `Error ${message}`, detail);
+    }
+    clearEventListenersForBinding(binding) {
+      const eventListener = this.fetchEventListenerForBinding(binding);
+      if (!eventListener.hasBindings()) {
+        eventListener.disconnect();
+        this.removeMappedEventListenerFor(binding);
+      }
+    }
+    removeMappedEventListenerFor(binding) {
+      const { eventTarget, eventName, eventOptions } = binding;
+      const eventListenerMap = this.fetchEventListenerMapForEventTarget(eventTarget);
+      const cacheKey = this.cacheKey(eventName, eventOptions);
+      eventListenerMap.delete(cacheKey);
+      if (eventListenerMap.size == 0)
+        this.eventListenerMaps.delete(eventTarget);
+    }
+    fetchEventListenerForBinding(binding) {
+      const { eventTarget, eventName, eventOptions } = binding;
+      return this.fetchEventListener(eventTarget, eventName, eventOptions);
+    }
+    fetchEventListener(eventTarget, eventName, eventOptions) {
+      const eventListenerMap = this.fetchEventListenerMapForEventTarget(eventTarget);
+      const cacheKey = this.cacheKey(eventName, eventOptions);
+      let eventListener = eventListenerMap.get(cacheKey);
+      if (!eventListener) {
+        eventListener = this.createEventListener(eventTarget, eventName, eventOptions);
+        eventListenerMap.set(cacheKey, eventListener);
+      }
+      return eventListener;
+    }
+    createEventListener(eventTarget, eventName, eventOptions) {
+      const eventListener = new EventListener(eventTarget, eventName, eventOptions);
+      if (this.started) {
+        eventListener.connect();
+      }
+      return eventListener;
+    }
+    fetchEventListenerMapForEventTarget(eventTarget) {
+      let eventListenerMap = this.eventListenerMaps.get(eventTarget);
+      if (!eventListenerMap) {
+        eventListenerMap = /* @__PURE__ */ new Map();
+        this.eventListenerMaps.set(eventTarget, eventListenerMap);
+      }
+      return eventListenerMap;
+    }
+    cacheKey(eventName, eventOptions) {
+      const parts = [eventName];
+      Object.keys(eventOptions).sort().forEach((key) => {
+        parts.push(`${eventOptions[key] ? "" : "!"}${key}`);
+      });
+      return parts.join(":");
+    }
+  };
+  var defaultActionDescriptorFilters = {
+    stop({ event, value }) {
+      if (value)
+        event.stopPropagation();
+      return true;
+    },
+    prevent({ event, value }) {
+      if (value)
+        event.preventDefault();
+      return true;
+    },
+    self({ event, value, element }) {
+      if (value) {
+        return element === event.target;
+      } else {
+        return true;
+      }
+    }
+  };
+  var descriptorPattern = /^(?:(?:([^.]+?)\+)?(.+?)(?:\.(.+?))?(?:@(window|document))?->)?(.+?)(?:#([^:]+?))(?::(.+))?$/;
+  function parseActionDescriptorString(descriptorString) {
+    const source = descriptorString.trim();
+    const matches = source.match(descriptorPattern) || [];
+    let eventName = matches[2];
+    let keyFilter = matches[3];
+    if (keyFilter && !["keydown", "keyup", "keypress"].includes(eventName)) {
+      eventName += `.${keyFilter}`;
+      keyFilter = "";
+    }
+    return {
+      eventTarget: parseEventTarget(matches[4]),
+      eventName,
+      eventOptions: matches[7] ? parseEventOptions(matches[7]) : {},
+      identifier: matches[5],
+      methodName: matches[6],
+      keyFilter: matches[1] || keyFilter
+    };
+  }
+  function parseEventTarget(eventTargetName) {
+    if (eventTargetName == "window") {
+      return window;
+    } else if (eventTargetName == "document") {
+      return document;
+    }
+  }
+  function parseEventOptions(eventOptions) {
+    return eventOptions.split(":").reduce((options, token) => Object.assign(options, { [token.replace(/^!/, "")]: !/^!/.test(token) }), {});
+  }
+  function stringifyEventTarget(eventTarget) {
+    if (eventTarget == window) {
+      return "window";
+    } else if (eventTarget == document) {
+      return "document";
+    }
+  }
+  function camelize(value) {
+    return value.replace(/(?:[_-])([a-z0-9])/g, (_, char) => char.toUpperCase());
+  }
+  function namespaceCamelize(value) {
+    return camelize(value.replace(/--/g, "-").replace(/__/g, "_"));
+  }
+  function capitalize(value) {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+  function dasherize(value) {
+    return value.replace(/([A-Z])/g, (_, char) => `-${char.toLowerCase()}`);
+  }
+  function tokenize(value) {
+    return value.match(/[^\s]+/g) || [];
+  }
+  function isSomething(object) {
+    return object !== null && object !== void 0;
+  }
+  function hasProperty(object, property) {
+    return Object.prototype.hasOwnProperty.call(object, property);
+  }
+  var allModifiers = ["meta", "ctrl", "alt", "shift"];
+  var Action = class {
+    constructor(element, index, descriptor, schema) {
+      this.element = element;
+      this.index = index;
+      this.eventTarget = descriptor.eventTarget || element;
+      this.eventName = descriptor.eventName || getDefaultEventNameForElement(element) || error("missing event name");
+      this.eventOptions = descriptor.eventOptions || {};
+      this.identifier = descriptor.identifier || error("missing identifier");
+      this.methodName = descriptor.methodName || error("missing method name");
+      this.keyFilter = descriptor.keyFilter || "";
+      this.schema = schema;
+    }
+    static forToken(token, schema) {
+      return new this(token.element, token.index, parseActionDescriptorString(token.content), schema);
+    }
+    toString() {
+      const eventFilter = this.keyFilter ? `.${this.keyFilter}` : "";
+      const eventTarget = this.eventTargetName ? `@${this.eventTargetName}` : "";
+      return `${this.eventName}${eventFilter}${eventTarget}->${this.identifier}#${this.methodName}`;
+    }
+    shouldIgnoreKeyboardEvent(event) {
+      if (!this.keyFilter) {
+        return false;
+      }
+      const filters = this.keyFilter.split("+");
+      if (this.keyFilterDissatisfied(event, filters)) {
+        return true;
+      }
+      const standardFilter = filters.filter((key) => !allModifiers.includes(key))[0];
+      if (!standardFilter) {
+        return false;
+      }
+      if (!hasProperty(this.keyMappings, standardFilter)) {
+        error(`contains unknown key filter: ${this.keyFilter}`);
+      }
+      return this.keyMappings[standardFilter].toLowerCase() !== event.key.toLowerCase();
+    }
+    shouldIgnoreMouseEvent(event) {
+      if (!this.keyFilter) {
+        return false;
+      }
+      const filters = [this.keyFilter];
+      if (this.keyFilterDissatisfied(event, filters)) {
+        return true;
+      }
+      return false;
+    }
+    get params() {
+      const params = {};
+      const pattern = new RegExp(`^data-${this.identifier}-(.+)-param$`, "i");
+      for (const { name: name2, value } of Array.from(this.element.attributes)) {
+        const match = name2.match(pattern);
+        const key = match && match[1];
+        if (key) {
+          params[camelize(key)] = typecast(value);
+        }
+      }
+      return params;
+    }
+    get eventTargetName() {
+      return stringifyEventTarget(this.eventTarget);
+    }
+    get keyMappings() {
+      return this.schema.keyMappings;
+    }
+    keyFilterDissatisfied(event, filters) {
+      const [meta, ctrl, alt, shift] = allModifiers.map((modifier) => filters.includes(modifier));
+      return event.metaKey !== meta || event.ctrlKey !== ctrl || event.altKey !== alt || event.shiftKey !== shift;
+    }
+  };
+  var defaultEventNames = {
+    a: () => "click",
+    button: () => "click",
+    form: () => "submit",
+    details: () => "toggle",
+    input: (e) => e.getAttribute("type") == "submit" ? "click" : "input",
+    select: () => "change",
+    textarea: () => "input"
+  };
+  function getDefaultEventNameForElement(element) {
+    const tagName = element.tagName.toLowerCase();
+    if (tagName in defaultEventNames) {
+      return defaultEventNames[tagName](element);
+    }
+  }
+  function error(message) {
+    throw new Error(message);
+  }
+  function typecast(value) {
+    try {
+      return JSON.parse(value);
+    } catch (o_O) {
+      return value;
+    }
+  }
+  var Binding = class {
+    constructor(context, action) {
+      this.context = context;
+      this.action = action;
+    }
+    get index() {
+      return this.action.index;
+    }
+    get eventTarget() {
+      return this.action.eventTarget;
+    }
+    get eventOptions() {
+      return this.action.eventOptions;
+    }
+    get identifier() {
+      return this.context.identifier;
+    }
+    handleEvent(event) {
+      const actionEvent = this.prepareActionEvent(event);
+      if (this.willBeInvokedByEvent(event) && this.applyEventModifiers(actionEvent)) {
+        this.invokeWithEvent(actionEvent);
+      }
+    }
+    get eventName() {
+      return this.action.eventName;
+    }
+    get method() {
+      const method = this.controller[this.methodName];
+      if (typeof method == "function") {
+        return method;
+      }
+      throw new Error(`Action "${this.action}" references undefined method "${this.methodName}"`);
+    }
+    applyEventModifiers(event) {
+      const { element } = this.action;
+      const { actionDescriptorFilters } = this.context.application;
+      const { controller } = this.context;
+      let passes = true;
+      for (const [name2, value] of Object.entries(this.eventOptions)) {
+        if (name2 in actionDescriptorFilters) {
+          const filter = actionDescriptorFilters[name2];
+          passes = passes && filter({ name: name2, value, event, element, controller });
+        } else {
+          continue;
+        }
+      }
+      return passes;
+    }
+    prepareActionEvent(event) {
+      return Object.assign(event, { params: this.action.params });
+    }
+    invokeWithEvent(event) {
+      const { target, currentTarget } = event;
+      try {
+        this.method.call(this.controller, event);
+        this.context.logDebugActivity(this.methodName, { event, target, currentTarget, action: this.methodName });
+      } catch (error2) {
+        const { identifier, controller, element, index } = this;
+        const detail = { identifier, controller, element, index, event };
+        this.context.handleError(error2, `invoking action "${this.action}"`, detail);
+      }
+    }
+    willBeInvokedByEvent(event) {
+      const eventTarget = event.target;
+      if (event instanceof KeyboardEvent && this.action.shouldIgnoreKeyboardEvent(event)) {
+        return false;
+      }
+      if (event instanceof MouseEvent && this.action.shouldIgnoreMouseEvent(event)) {
+        return false;
+      }
+      if (this.element === eventTarget) {
+        return true;
+      } else if (eventTarget instanceof Element && this.element.contains(eventTarget)) {
+        return this.scope.containsElement(eventTarget);
+      } else {
+        return this.scope.containsElement(this.action.element);
+      }
+    }
+    get controller() {
+      return this.context.controller;
+    }
+    get methodName() {
+      return this.action.methodName;
+    }
+    get element() {
+      return this.scope.element;
+    }
+    get scope() {
+      return this.context.scope;
+    }
+  };
+  var ElementObserver = class {
+    constructor(element, delegate) {
+      this.mutationObserverInit = { attributes: true, childList: true, subtree: true };
+      this.element = element;
+      this.started = false;
+      this.delegate = delegate;
+      this.elements = /* @__PURE__ */ new Set();
+      this.mutationObserver = new MutationObserver((mutations) => this.processMutations(mutations));
+    }
+    start() {
+      if (!this.started) {
+        this.started = true;
+        this.mutationObserver.observe(this.element, this.mutationObserverInit);
+        this.refresh();
+      }
+    }
+    pause(callback) {
+      if (this.started) {
+        this.mutationObserver.disconnect();
+        this.started = false;
+      }
+      callback();
+      if (!this.started) {
+        this.mutationObserver.observe(this.element, this.mutationObserverInit);
+        this.started = true;
+      }
+    }
+    stop() {
+      if (this.started) {
+        this.mutationObserver.takeRecords();
+        this.mutationObserver.disconnect();
+        this.started = false;
+      }
+    }
+    refresh() {
+      if (this.started) {
+        const matches = new Set(this.matchElementsInTree());
+        for (const element of Array.from(this.elements)) {
+          if (!matches.has(element)) {
+            this.removeElement(element);
+          }
+        }
+        for (const element of Array.from(matches)) {
+          this.addElement(element);
+        }
+      }
+    }
+    processMutations(mutations) {
+      if (this.started) {
+        for (const mutation of mutations) {
+          this.processMutation(mutation);
+        }
+      }
+    }
+    processMutation(mutation) {
+      if (mutation.type == "attributes") {
+        this.processAttributeChange(mutation.target, mutation.attributeName);
+      } else if (mutation.type == "childList") {
+        this.processRemovedNodes(mutation.removedNodes);
+        this.processAddedNodes(mutation.addedNodes);
+      }
+    }
+    processAttributeChange(element, attributeName) {
+      if (this.elements.has(element)) {
+        if (this.delegate.elementAttributeChanged && this.matchElement(element)) {
+          this.delegate.elementAttributeChanged(element, attributeName);
+        } else {
+          this.removeElement(element);
+        }
+      } else if (this.matchElement(element)) {
+        this.addElement(element);
+      }
+    }
+    processRemovedNodes(nodes) {
+      for (const node of Array.from(nodes)) {
+        const element = this.elementFromNode(node);
+        if (element) {
+          this.processTree(element, this.removeElement);
+        }
+      }
+    }
+    processAddedNodes(nodes) {
+      for (const node of Array.from(nodes)) {
+        const element = this.elementFromNode(node);
+        if (element && this.elementIsActive(element)) {
+          this.processTree(element, this.addElement);
+        }
+      }
+    }
+    matchElement(element) {
+      return this.delegate.matchElement(element);
+    }
+    matchElementsInTree(tree = this.element) {
+      return this.delegate.matchElementsInTree(tree);
+    }
+    processTree(tree, processor) {
+      for (const element of this.matchElementsInTree(tree)) {
+        processor.call(this, element);
+      }
+    }
+    elementFromNode(node) {
+      if (node.nodeType == Node.ELEMENT_NODE) {
+        return node;
+      }
+    }
+    elementIsActive(element) {
+      if (element.isConnected != this.element.isConnected) {
+        return false;
+      } else {
+        return this.element.contains(element);
+      }
+    }
+    addElement(element) {
+      if (!this.elements.has(element)) {
+        if (this.elementIsActive(element)) {
+          this.elements.add(element);
+          if (this.delegate.elementMatched) {
+            this.delegate.elementMatched(element);
+          }
+        }
+      }
+    }
+    removeElement(element) {
+      if (this.elements.has(element)) {
+        this.elements.delete(element);
+        if (this.delegate.elementUnmatched) {
+          this.delegate.elementUnmatched(element);
+        }
+      }
+    }
+  };
+  var AttributeObserver = class {
+    constructor(element, attributeName, delegate) {
+      this.attributeName = attributeName;
+      this.delegate = delegate;
+      this.elementObserver = new ElementObserver(element, this);
+    }
+    get element() {
+      return this.elementObserver.element;
+    }
+    get selector() {
+      return `[${this.attributeName}]`;
+    }
+    start() {
+      this.elementObserver.start();
+    }
+    pause(callback) {
+      this.elementObserver.pause(callback);
+    }
+    stop() {
+      this.elementObserver.stop();
+    }
+    refresh() {
+      this.elementObserver.refresh();
+    }
+    get started() {
+      return this.elementObserver.started;
+    }
+    matchElement(element) {
+      return element.hasAttribute(this.attributeName);
+    }
+    matchElementsInTree(tree) {
+      const match = this.matchElement(tree) ? [tree] : [];
+      const matches = Array.from(tree.querySelectorAll(this.selector));
+      return match.concat(matches);
+    }
+    elementMatched(element) {
+      if (this.delegate.elementMatchedAttribute) {
+        this.delegate.elementMatchedAttribute(element, this.attributeName);
+      }
+    }
+    elementUnmatched(element) {
+      if (this.delegate.elementUnmatchedAttribute) {
+        this.delegate.elementUnmatchedAttribute(element, this.attributeName);
+      }
+    }
+    elementAttributeChanged(element, attributeName) {
+      if (this.delegate.elementAttributeValueChanged && this.attributeName == attributeName) {
+        this.delegate.elementAttributeValueChanged(element, attributeName);
+      }
+    }
+  };
+  function add(map, key, value) {
+    fetch2(map, key).add(value);
+  }
+  function del(map, key, value) {
+    fetch2(map, key).delete(value);
+    prune(map, key);
+  }
+  function fetch2(map, key) {
+    let values = map.get(key);
+    if (!values) {
+      values = /* @__PURE__ */ new Set();
+      map.set(key, values);
+    }
+    return values;
+  }
+  function prune(map, key) {
+    const values = map.get(key);
+    if (values != null && values.size == 0) {
+      map.delete(key);
+    }
+  }
+  var Multimap = class {
+    constructor() {
+      this.valuesByKey = /* @__PURE__ */ new Map();
+    }
+    get keys() {
+      return Array.from(this.valuesByKey.keys());
+    }
+    get values() {
+      const sets = Array.from(this.valuesByKey.values());
+      return sets.reduce((values, set) => values.concat(Array.from(set)), []);
+    }
+    get size() {
+      const sets = Array.from(this.valuesByKey.values());
+      return sets.reduce((size, set) => size + set.size, 0);
+    }
+    add(key, value) {
+      add(this.valuesByKey, key, value);
+    }
+    delete(key, value) {
+      del(this.valuesByKey, key, value);
+    }
+    has(key, value) {
+      const values = this.valuesByKey.get(key);
+      return values != null && values.has(value);
+    }
+    hasKey(key) {
+      return this.valuesByKey.has(key);
+    }
+    hasValue(value) {
+      const sets = Array.from(this.valuesByKey.values());
+      return sets.some((set) => set.has(value));
+    }
+    getValuesForKey(key) {
+      const values = this.valuesByKey.get(key);
+      return values ? Array.from(values) : [];
+    }
+    getKeysForValue(value) {
+      return Array.from(this.valuesByKey).filter(([_key, values]) => values.has(value)).map(([key, _values]) => key);
+    }
+  };
+  var SelectorObserver = class {
+    constructor(element, selector, delegate, details) {
+      this._selector = selector;
+      this.details = details;
+      this.elementObserver = new ElementObserver(element, this);
+      this.delegate = delegate;
+      this.matchesByElement = new Multimap();
+    }
+    get started() {
+      return this.elementObserver.started;
+    }
+    get selector() {
+      return this._selector;
+    }
+    set selector(selector) {
+      this._selector = selector;
+      this.refresh();
+    }
+    start() {
+      this.elementObserver.start();
+    }
+    pause(callback) {
+      this.elementObserver.pause(callback);
+    }
+    stop() {
+      this.elementObserver.stop();
+    }
+    refresh() {
+      this.elementObserver.refresh();
+    }
+    get element() {
+      return this.elementObserver.element;
+    }
+    matchElement(element) {
+      const { selector } = this;
+      if (selector) {
+        const matches = element.matches(selector);
+        if (this.delegate.selectorMatchElement) {
+          return matches && this.delegate.selectorMatchElement(element, this.details);
+        }
+        return matches;
+      } else {
+        return false;
+      }
+    }
+    matchElementsInTree(tree) {
+      const { selector } = this;
+      if (selector) {
+        const match = this.matchElement(tree) ? [tree] : [];
+        const matches = Array.from(tree.querySelectorAll(selector)).filter((match2) => this.matchElement(match2));
+        return match.concat(matches);
+      } else {
+        return [];
+      }
+    }
+    elementMatched(element) {
+      const { selector } = this;
+      if (selector) {
+        this.selectorMatched(element, selector);
+      }
+    }
+    elementUnmatched(element) {
+      const selectors = this.matchesByElement.getKeysForValue(element);
+      for (const selector of selectors) {
+        this.selectorUnmatched(element, selector);
+      }
+    }
+    elementAttributeChanged(element, _attributeName) {
+      const { selector } = this;
+      if (selector) {
+        const matches = this.matchElement(element);
+        const matchedBefore = this.matchesByElement.has(selector, element);
+        if (matches && !matchedBefore) {
+          this.selectorMatched(element, selector);
+        } else if (!matches && matchedBefore) {
+          this.selectorUnmatched(element, selector);
+        }
+      }
+    }
+    selectorMatched(element, selector) {
+      this.delegate.selectorMatched(element, selector, this.details);
+      this.matchesByElement.add(selector, element);
+    }
+    selectorUnmatched(element, selector) {
+      this.delegate.selectorUnmatched(element, selector, this.details);
+      this.matchesByElement.delete(selector, element);
+    }
+  };
+  var StringMapObserver = class {
+    constructor(element, delegate) {
+      this.element = element;
+      this.delegate = delegate;
+      this.started = false;
+      this.stringMap = /* @__PURE__ */ new Map();
+      this.mutationObserver = new MutationObserver((mutations) => this.processMutations(mutations));
+    }
+    start() {
+      if (!this.started) {
+        this.started = true;
+        this.mutationObserver.observe(this.element, { attributes: true, attributeOldValue: true });
+        this.refresh();
+      }
+    }
+    stop() {
+      if (this.started) {
+        this.mutationObserver.takeRecords();
+        this.mutationObserver.disconnect();
+        this.started = false;
+      }
+    }
+    refresh() {
+      if (this.started) {
+        for (const attributeName of this.knownAttributeNames) {
+          this.refreshAttribute(attributeName, null);
+        }
+      }
+    }
+    processMutations(mutations) {
+      if (this.started) {
+        for (const mutation of mutations) {
+          this.processMutation(mutation);
+        }
+      }
+    }
+    processMutation(mutation) {
+      const attributeName = mutation.attributeName;
+      if (attributeName) {
+        this.refreshAttribute(attributeName, mutation.oldValue);
+      }
+    }
+    refreshAttribute(attributeName, oldValue) {
+      const key = this.delegate.getStringMapKeyForAttribute(attributeName);
+      if (key != null) {
+        if (!this.stringMap.has(attributeName)) {
+          this.stringMapKeyAdded(key, attributeName);
+        }
+        const value = this.element.getAttribute(attributeName);
+        if (this.stringMap.get(attributeName) != value) {
+          this.stringMapValueChanged(value, key, oldValue);
+        }
+        if (value == null) {
+          const oldValue2 = this.stringMap.get(attributeName);
+          this.stringMap.delete(attributeName);
+          if (oldValue2)
+            this.stringMapKeyRemoved(key, attributeName, oldValue2);
+        } else {
+          this.stringMap.set(attributeName, value);
+        }
+      }
+    }
+    stringMapKeyAdded(key, attributeName) {
+      if (this.delegate.stringMapKeyAdded) {
+        this.delegate.stringMapKeyAdded(key, attributeName);
+      }
+    }
+    stringMapValueChanged(value, key, oldValue) {
+      if (this.delegate.stringMapValueChanged) {
+        this.delegate.stringMapValueChanged(value, key, oldValue);
+      }
+    }
+    stringMapKeyRemoved(key, attributeName, oldValue) {
+      if (this.delegate.stringMapKeyRemoved) {
+        this.delegate.stringMapKeyRemoved(key, attributeName, oldValue);
+      }
+    }
+    get knownAttributeNames() {
+      return Array.from(new Set(this.currentAttributeNames.concat(this.recordedAttributeNames)));
+    }
+    get currentAttributeNames() {
+      return Array.from(this.element.attributes).map((attribute) => attribute.name);
+    }
+    get recordedAttributeNames() {
+      return Array.from(this.stringMap.keys());
+    }
+  };
+  var TokenListObserver = class {
+    constructor(element, attributeName, delegate) {
+      this.attributeObserver = new AttributeObserver(element, attributeName, this);
+      this.delegate = delegate;
+      this.tokensByElement = new Multimap();
+    }
+    get started() {
+      return this.attributeObserver.started;
+    }
+    start() {
+      this.attributeObserver.start();
+    }
+    pause(callback) {
+      this.attributeObserver.pause(callback);
+    }
+    stop() {
+      this.attributeObserver.stop();
+    }
+    refresh() {
+      this.attributeObserver.refresh();
+    }
+    get element() {
+      return this.attributeObserver.element;
+    }
+    get attributeName() {
+      return this.attributeObserver.attributeName;
+    }
+    elementMatchedAttribute(element) {
+      this.tokensMatched(this.readTokensForElement(element));
+    }
+    elementAttributeValueChanged(element) {
+      const [unmatchedTokens, matchedTokens] = this.refreshTokensForElement(element);
+      this.tokensUnmatched(unmatchedTokens);
+      this.tokensMatched(matchedTokens);
+    }
+    elementUnmatchedAttribute(element) {
+      this.tokensUnmatched(this.tokensByElement.getValuesForKey(element));
+    }
+    tokensMatched(tokens) {
+      tokens.forEach((token) => this.tokenMatched(token));
+    }
+    tokensUnmatched(tokens) {
+      tokens.forEach((token) => this.tokenUnmatched(token));
+    }
+    tokenMatched(token) {
+      this.delegate.tokenMatched(token);
+      this.tokensByElement.add(token.element, token);
+    }
+    tokenUnmatched(token) {
+      this.delegate.tokenUnmatched(token);
+      this.tokensByElement.delete(token.element, token);
+    }
+    refreshTokensForElement(element) {
+      const previousTokens = this.tokensByElement.getValuesForKey(element);
+      const currentTokens = this.readTokensForElement(element);
+      const firstDifferingIndex = zip(previousTokens, currentTokens).findIndex(([previousToken, currentToken]) => !tokensAreEqual(previousToken, currentToken));
+      if (firstDifferingIndex == -1) {
+        return [[], []];
+      } else {
+        return [previousTokens.slice(firstDifferingIndex), currentTokens.slice(firstDifferingIndex)];
+      }
+    }
+    readTokensForElement(element) {
+      const attributeName = this.attributeName;
+      const tokenString = element.getAttribute(attributeName) || "";
+      return parseTokenString(tokenString, element, attributeName);
+    }
+  };
+  function parseTokenString(tokenString, element, attributeName) {
+    return tokenString.trim().split(/\s+/).filter((content) => content.length).map((content, index) => ({ element, attributeName, content, index }));
+  }
+  function zip(left, right) {
+    const length = Math.max(left.length, right.length);
+    return Array.from({ length }, (_, index) => [left[index], right[index]]);
+  }
+  function tokensAreEqual(left, right) {
+    return left && right && left.index == right.index && left.content == right.content;
+  }
+  var ValueListObserver = class {
+    constructor(element, attributeName, delegate) {
+      this.tokenListObserver = new TokenListObserver(element, attributeName, this);
+      this.delegate = delegate;
+      this.parseResultsByToken = /* @__PURE__ */ new WeakMap();
+      this.valuesByTokenByElement = /* @__PURE__ */ new WeakMap();
+    }
+    get started() {
+      return this.tokenListObserver.started;
+    }
+    start() {
+      this.tokenListObserver.start();
+    }
+    stop() {
+      this.tokenListObserver.stop();
+    }
+    refresh() {
+      this.tokenListObserver.refresh();
+    }
+    get element() {
+      return this.tokenListObserver.element;
+    }
+    get attributeName() {
+      return this.tokenListObserver.attributeName;
+    }
+    tokenMatched(token) {
+      const { element } = token;
+      const { value } = this.fetchParseResultForToken(token);
+      if (value) {
+        this.fetchValuesByTokenForElement(element).set(token, value);
+        this.delegate.elementMatchedValue(element, value);
+      }
+    }
+    tokenUnmatched(token) {
+      const { element } = token;
+      const { value } = this.fetchParseResultForToken(token);
+      if (value) {
+        this.fetchValuesByTokenForElement(element).delete(token);
+        this.delegate.elementUnmatchedValue(element, value);
+      }
+    }
+    fetchParseResultForToken(token) {
+      let parseResult = this.parseResultsByToken.get(token);
+      if (!parseResult) {
+        parseResult = this.parseToken(token);
+        this.parseResultsByToken.set(token, parseResult);
+      }
+      return parseResult;
+    }
+    fetchValuesByTokenForElement(element) {
+      let valuesByToken = this.valuesByTokenByElement.get(element);
+      if (!valuesByToken) {
+        valuesByToken = /* @__PURE__ */ new Map();
+        this.valuesByTokenByElement.set(element, valuesByToken);
+      }
+      return valuesByToken;
+    }
+    parseToken(token) {
+      try {
+        const value = this.delegate.parseValueForToken(token);
+        return { value };
+      } catch (error2) {
+        return { error: error2 };
+      }
+    }
+  };
+  var BindingObserver = class {
+    constructor(context, delegate) {
+      this.context = context;
+      this.delegate = delegate;
+      this.bindingsByAction = /* @__PURE__ */ new Map();
+    }
+    start() {
+      if (!this.valueListObserver) {
+        this.valueListObserver = new ValueListObserver(this.element, this.actionAttribute, this);
+        this.valueListObserver.start();
+      }
+    }
+    stop() {
+      if (this.valueListObserver) {
+        this.valueListObserver.stop();
+        delete this.valueListObserver;
+        this.disconnectAllActions();
+      }
+    }
+    get element() {
+      return this.context.element;
+    }
+    get identifier() {
+      return this.context.identifier;
+    }
+    get actionAttribute() {
+      return this.schema.actionAttribute;
+    }
+    get schema() {
+      return this.context.schema;
+    }
+    get bindings() {
+      return Array.from(this.bindingsByAction.values());
+    }
+    connectAction(action) {
+      const binding = new Binding(this.context, action);
+      this.bindingsByAction.set(action, binding);
+      this.delegate.bindingConnected(binding);
+    }
+    disconnectAction(action) {
+      const binding = this.bindingsByAction.get(action);
+      if (binding) {
+        this.bindingsByAction.delete(action);
+        this.delegate.bindingDisconnected(binding);
+      }
+    }
+    disconnectAllActions() {
+      this.bindings.forEach((binding) => this.delegate.bindingDisconnected(binding, true));
+      this.bindingsByAction.clear();
+    }
+    parseValueForToken(token) {
+      const action = Action.forToken(token, this.schema);
+      if (action.identifier == this.identifier) {
+        return action;
+      }
+    }
+    elementMatchedValue(element, action) {
+      this.connectAction(action);
+    }
+    elementUnmatchedValue(element, action) {
+      this.disconnectAction(action);
+    }
+  };
+  var ValueObserver = class {
+    constructor(context, receiver) {
+      this.context = context;
+      this.receiver = receiver;
+      this.stringMapObserver = new StringMapObserver(this.element, this);
+      this.valueDescriptorMap = this.controller.valueDescriptorMap;
+    }
+    start() {
+      this.stringMapObserver.start();
+      this.invokeChangedCallbacksForDefaultValues();
+    }
+    stop() {
+      this.stringMapObserver.stop();
+    }
+    get element() {
+      return this.context.element;
+    }
+    get controller() {
+      return this.context.controller;
+    }
+    getStringMapKeyForAttribute(attributeName) {
+      if (attributeName in this.valueDescriptorMap) {
+        return this.valueDescriptorMap[attributeName].name;
+      }
+    }
+    stringMapKeyAdded(key, attributeName) {
+      const descriptor = this.valueDescriptorMap[attributeName];
+      if (!this.hasValue(key)) {
+        this.invokeChangedCallback(key, descriptor.writer(this.receiver[key]), descriptor.writer(descriptor.defaultValue));
+      }
+    }
+    stringMapValueChanged(value, name2, oldValue) {
+      const descriptor = this.valueDescriptorNameMap[name2];
+      if (value === null)
+        return;
+      if (oldValue === null) {
+        oldValue = descriptor.writer(descriptor.defaultValue);
+      }
+      this.invokeChangedCallback(name2, value, oldValue);
+    }
+    stringMapKeyRemoved(key, attributeName, oldValue) {
+      const descriptor = this.valueDescriptorNameMap[key];
+      if (this.hasValue(key)) {
+        this.invokeChangedCallback(key, descriptor.writer(this.receiver[key]), oldValue);
+      } else {
+        this.invokeChangedCallback(key, descriptor.writer(descriptor.defaultValue), oldValue);
+      }
+    }
+    invokeChangedCallbacksForDefaultValues() {
+      for (const { key, name: name2, defaultValue, writer } of this.valueDescriptors) {
+        if (defaultValue != void 0 && !this.controller.data.has(key)) {
+          this.invokeChangedCallback(name2, writer(defaultValue), void 0);
+        }
+      }
+    }
+    invokeChangedCallback(name2, rawValue, rawOldValue) {
+      const changedMethodName = `${name2}Changed`;
+      const changedMethod = this.receiver[changedMethodName];
+      if (typeof changedMethod == "function") {
+        const descriptor = this.valueDescriptorNameMap[name2];
+        try {
+          const value = descriptor.reader(rawValue);
+          let oldValue = rawOldValue;
+          if (rawOldValue) {
+            oldValue = descriptor.reader(rawOldValue);
+          }
+          changedMethod.call(this.receiver, value, oldValue);
+        } catch (error2) {
+          if (error2 instanceof TypeError) {
+            error2.message = `Stimulus Value "${this.context.identifier}.${descriptor.name}" - ${error2.message}`;
+          }
+          throw error2;
+        }
+      }
+    }
+    get valueDescriptors() {
+      const { valueDescriptorMap } = this;
+      return Object.keys(valueDescriptorMap).map((key) => valueDescriptorMap[key]);
+    }
+    get valueDescriptorNameMap() {
+      const descriptors = {};
+      Object.keys(this.valueDescriptorMap).forEach((key) => {
+        const descriptor = this.valueDescriptorMap[key];
+        descriptors[descriptor.name] = descriptor;
+      });
+      return descriptors;
+    }
+    hasValue(attributeName) {
+      const descriptor = this.valueDescriptorNameMap[attributeName];
+      const hasMethodName = `has${capitalize(descriptor.name)}`;
+      return this.receiver[hasMethodName];
+    }
+  };
+  var TargetObserver = class {
+    constructor(context, delegate) {
+      this.context = context;
+      this.delegate = delegate;
+      this.targetsByName = new Multimap();
+    }
+    start() {
+      if (!this.tokenListObserver) {
+        this.tokenListObserver = new TokenListObserver(this.element, this.attributeName, this);
+        this.tokenListObserver.start();
+      }
+    }
+    stop() {
+      if (this.tokenListObserver) {
+        this.disconnectAllTargets();
+        this.tokenListObserver.stop();
+        delete this.tokenListObserver;
+      }
+    }
+    tokenMatched({ element, content: name2 }) {
+      if (this.scope.containsElement(element)) {
+        this.connectTarget(element, name2);
+      }
+    }
+    tokenUnmatched({ element, content: name2 }) {
+      this.disconnectTarget(element, name2);
+    }
+    connectTarget(element, name2) {
+      var _a;
+      if (!this.targetsByName.has(name2, element)) {
+        this.targetsByName.add(name2, element);
+        (_a = this.tokenListObserver) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.targetConnected(element, name2));
+      }
+    }
+    disconnectTarget(element, name2) {
+      var _a;
+      if (this.targetsByName.has(name2, element)) {
+        this.targetsByName.delete(name2, element);
+        (_a = this.tokenListObserver) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.targetDisconnected(element, name2));
+      }
+    }
+    disconnectAllTargets() {
+      for (const name2 of this.targetsByName.keys) {
+        for (const element of this.targetsByName.getValuesForKey(name2)) {
+          this.disconnectTarget(element, name2);
+        }
+      }
+    }
+    get attributeName() {
+      return `data-${this.context.identifier}-target`;
+    }
+    get element() {
+      return this.context.element;
+    }
+    get scope() {
+      return this.context.scope;
+    }
+  };
+  function readInheritableStaticArrayValues(constructor, propertyName) {
+    const ancestors = getAncestorsForConstructor(constructor);
+    return Array.from(ancestors.reduce((values, constructor2) => {
+      getOwnStaticArrayValues(constructor2, propertyName).forEach((name2) => values.add(name2));
+      return values;
+    }, /* @__PURE__ */ new Set()));
+  }
+  function readInheritableStaticObjectPairs(constructor, propertyName) {
+    const ancestors = getAncestorsForConstructor(constructor);
+    return ancestors.reduce((pairs, constructor2) => {
+      pairs.push(...getOwnStaticObjectPairs(constructor2, propertyName));
+      return pairs;
+    }, []);
+  }
+  function getAncestorsForConstructor(constructor) {
+    const ancestors = [];
+    while (constructor) {
+      ancestors.push(constructor);
+      constructor = Object.getPrototypeOf(constructor);
+    }
+    return ancestors.reverse();
+  }
+  function getOwnStaticArrayValues(constructor, propertyName) {
+    const definition = constructor[propertyName];
+    return Array.isArray(definition) ? definition : [];
+  }
+  function getOwnStaticObjectPairs(constructor, propertyName) {
+    const definition = constructor[propertyName];
+    return definition ? Object.keys(definition).map((key) => [key, definition[key]]) : [];
+  }
+  var OutletObserver = class {
+    constructor(context, delegate) {
+      this.started = false;
+      this.context = context;
+      this.delegate = delegate;
+      this.outletsByName = new Multimap();
+      this.outletElementsByName = new Multimap();
+      this.selectorObserverMap = /* @__PURE__ */ new Map();
+      this.attributeObserverMap = /* @__PURE__ */ new Map();
+    }
+    start() {
+      if (!this.started) {
+        this.outletDefinitions.forEach((outletName) => {
+          this.setupSelectorObserverForOutlet(outletName);
+          this.setupAttributeObserverForOutlet(outletName);
+        });
+        this.started = true;
+        this.dependentContexts.forEach((context) => context.refresh());
+      }
+    }
+    refresh() {
+      this.selectorObserverMap.forEach((observer) => observer.refresh());
+      this.attributeObserverMap.forEach((observer) => observer.refresh());
+    }
+    stop() {
+      if (this.started) {
+        this.started = false;
+        this.disconnectAllOutlets();
+        this.stopSelectorObservers();
+        this.stopAttributeObservers();
+      }
+    }
+    stopSelectorObservers() {
+      if (this.selectorObserverMap.size > 0) {
+        this.selectorObserverMap.forEach((observer) => observer.stop());
+        this.selectorObserverMap.clear();
+      }
+    }
+    stopAttributeObservers() {
+      if (this.attributeObserverMap.size > 0) {
+        this.attributeObserverMap.forEach((observer) => observer.stop());
+        this.attributeObserverMap.clear();
+      }
+    }
+    selectorMatched(element, _selector, { outletName }) {
+      const outlet = this.getOutlet(element, outletName);
+      if (outlet) {
+        this.connectOutlet(outlet, element, outletName);
+      }
+    }
+    selectorUnmatched(element, _selector, { outletName }) {
+      const outlet = this.getOutletFromMap(element, outletName);
+      if (outlet) {
+        this.disconnectOutlet(outlet, element, outletName);
+      }
+    }
+    selectorMatchElement(element, { outletName }) {
+      const selector = this.selector(outletName);
+      const hasOutlet = this.hasOutlet(element, outletName);
+      const hasOutletController = element.matches(`[${this.schema.controllerAttribute}~=${outletName}]`);
+      if (selector) {
+        return hasOutlet && hasOutletController && element.matches(selector);
+      } else {
+        return false;
+      }
+    }
+    elementMatchedAttribute(_element, attributeName) {
+      const outletName = this.getOutletNameFromOutletAttributeName(attributeName);
+      if (outletName) {
+        this.updateSelectorObserverForOutlet(outletName);
+      }
+    }
+    elementAttributeValueChanged(_element, attributeName) {
+      const outletName = this.getOutletNameFromOutletAttributeName(attributeName);
+      if (outletName) {
+        this.updateSelectorObserverForOutlet(outletName);
+      }
+    }
+    elementUnmatchedAttribute(_element, attributeName) {
+      const outletName = this.getOutletNameFromOutletAttributeName(attributeName);
+      if (outletName) {
+        this.updateSelectorObserverForOutlet(outletName);
+      }
+    }
+    connectOutlet(outlet, element, outletName) {
+      var _a;
+      if (!this.outletElementsByName.has(outletName, element)) {
+        this.outletsByName.add(outletName, outlet);
+        this.outletElementsByName.add(outletName, element);
+        (_a = this.selectorObserverMap.get(outletName)) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.outletConnected(outlet, element, outletName));
+      }
+    }
+    disconnectOutlet(outlet, element, outletName) {
+      var _a;
+      if (this.outletElementsByName.has(outletName, element)) {
+        this.outletsByName.delete(outletName, outlet);
+        this.outletElementsByName.delete(outletName, element);
+        (_a = this.selectorObserverMap.get(outletName)) === null || _a === void 0 ? void 0 : _a.pause(() => this.delegate.outletDisconnected(outlet, element, outletName));
+      }
+    }
+    disconnectAllOutlets() {
+      for (const outletName of this.outletElementsByName.keys) {
+        for (const element of this.outletElementsByName.getValuesForKey(outletName)) {
+          for (const outlet of this.outletsByName.getValuesForKey(outletName)) {
+            this.disconnectOutlet(outlet, element, outletName);
+          }
+        }
+      }
+    }
+    updateSelectorObserverForOutlet(outletName) {
+      const observer = this.selectorObserverMap.get(outletName);
+      if (observer) {
+        observer.selector = this.selector(outletName);
+      }
+    }
+    setupSelectorObserverForOutlet(outletName) {
+      const selector = this.selector(outletName);
+      const selectorObserver = new SelectorObserver(document.body, selector, this, { outletName });
+      this.selectorObserverMap.set(outletName, selectorObserver);
+      selectorObserver.start();
+    }
+    setupAttributeObserverForOutlet(outletName) {
+      const attributeName = this.attributeNameForOutletName(outletName);
+      const attributeObserver = new AttributeObserver(this.scope.element, attributeName, this);
+      this.attributeObserverMap.set(outletName, attributeObserver);
+      attributeObserver.start();
+    }
+    selector(outletName) {
+      return this.scope.outlets.getSelectorForOutletName(outletName);
+    }
+    attributeNameForOutletName(outletName) {
+      return this.scope.schema.outletAttributeForScope(this.identifier, outletName);
+    }
+    getOutletNameFromOutletAttributeName(attributeName) {
+      return this.outletDefinitions.find((outletName) => this.attributeNameForOutletName(outletName) === attributeName);
+    }
+    get outletDependencies() {
+      const dependencies = new Multimap();
+      this.router.modules.forEach((module) => {
+        const constructor = module.definition.controllerConstructor;
+        const outlets = readInheritableStaticArrayValues(constructor, "outlets");
+        outlets.forEach((outlet) => dependencies.add(outlet, module.identifier));
+      });
+      return dependencies;
+    }
+    get outletDefinitions() {
+      return this.outletDependencies.getKeysForValue(this.identifier);
+    }
+    get dependentControllerIdentifiers() {
+      return this.outletDependencies.getValuesForKey(this.identifier);
+    }
+    get dependentContexts() {
+      const identifiers = this.dependentControllerIdentifiers;
+      return this.router.contexts.filter((context) => identifiers.includes(context.identifier));
+    }
+    hasOutlet(element, outletName) {
+      return !!this.getOutlet(element, outletName) || !!this.getOutletFromMap(element, outletName);
+    }
+    getOutlet(element, outletName) {
+      return this.application.getControllerForElementAndIdentifier(element, outletName);
+    }
+    getOutletFromMap(element, outletName) {
+      return this.outletsByName.getValuesForKey(outletName).find((outlet) => outlet.element === element);
+    }
+    get scope() {
+      return this.context.scope;
+    }
+    get schema() {
+      return this.context.schema;
+    }
+    get identifier() {
+      return this.context.identifier;
+    }
+    get application() {
+      return this.context.application;
+    }
+    get router() {
+      return this.application.router;
+    }
+  };
+  var Context = class {
+    constructor(module, scope) {
+      this.logDebugActivity = (functionName, detail = {}) => {
+        const { identifier, controller, element } = this;
+        detail = Object.assign({ identifier, controller, element }, detail);
+        this.application.logDebugActivity(this.identifier, functionName, detail);
+      };
+      this.module = module;
+      this.scope = scope;
+      this.controller = new module.controllerConstructor(this);
+      this.bindingObserver = new BindingObserver(this, this.dispatcher);
+      this.valueObserver = new ValueObserver(this, this.controller);
+      this.targetObserver = new TargetObserver(this, this);
+      this.outletObserver = new OutletObserver(this, this);
+      try {
+        this.controller.initialize();
+        this.logDebugActivity("initialize");
+      } catch (error2) {
+        this.handleError(error2, "initializing controller");
+      }
+    }
+    connect() {
+      this.bindingObserver.start();
+      this.valueObserver.start();
+      this.targetObserver.start();
+      this.outletObserver.start();
+      try {
+        this.controller.connect();
+        this.logDebugActivity("connect");
+      } catch (error2) {
+        this.handleError(error2, "connecting controller");
+      }
+    }
+    refresh() {
+      this.outletObserver.refresh();
+    }
+    disconnect() {
+      try {
+        this.controller.disconnect();
+        this.logDebugActivity("disconnect");
+      } catch (error2) {
+        this.handleError(error2, "disconnecting controller");
+      }
+      this.outletObserver.stop();
+      this.targetObserver.stop();
+      this.valueObserver.stop();
+      this.bindingObserver.stop();
+    }
+    get application() {
+      return this.module.application;
+    }
+    get identifier() {
+      return this.module.identifier;
+    }
+    get schema() {
+      return this.application.schema;
+    }
+    get dispatcher() {
+      return this.application.dispatcher;
+    }
+    get element() {
+      return this.scope.element;
+    }
+    get parentElement() {
+      return this.element.parentElement;
+    }
+    handleError(error2, message, detail = {}) {
+      const { identifier, controller, element } = this;
+      detail = Object.assign({ identifier, controller, element }, detail);
+      this.application.handleError(error2, `Error ${message}`, detail);
+    }
+    targetConnected(element, name2) {
+      this.invokeControllerMethod(`${name2}TargetConnected`, element);
+    }
+    targetDisconnected(element, name2) {
+      this.invokeControllerMethod(`${name2}TargetDisconnected`, element);
+    }
+    outletConnected(outlet, element, name2) {
+      this.invokeControllerMethod(`${namespaceCamelize(name2)}OutletConnected`, outlet, element);
+    }
+    outletDisconnected(outlet, element, name2) {
+      this.invokeControllerMethod(`${namespaceCamelize(name2)}OutletDisconnected`, outlet, element);
+    }
+    invokeControllerMethod(methodName, ...args) {
+      const controller = this.controller;
+      if (typeof controller[methodName] == "function") {
+        controller[methodName](...args);
+      }
+    }
+  };
+  function bless(constructor) {
+    return shadow(constructor, getBlessedProperties(constructor));
+  }
+  function shadow(constructor, properties) {
+    const shadowConstructor = extend(constructor);
+    const shadowProperties = getShadowProperties(constructor.prototype, properties);
+    Object.defineProperties(shadowConstructor.prototype, shadowProperties);
+    return shadowConstructor;
+  }
+  function getBlessedProperties(constructor) {
+    const blessings = readInheritableStaticArrayValues(constructor, "blessings");
+    return blessings.reduce((blessedProperties, blessing) => {
+      const properties = blessing(constructor);
+      for (const key in properties) {
+        const descriptor = blessedProperties[key] || {};
+        blessedProperties[key] = Object.assign(descriptor, properties[key]);
+      }
+      return blessedProperties;
+    }, {});
+  }
+  function getShadowProperties(prototype, properties) {
+    return getOwnKeys(properties).reduce((shadowProperties, key) => {
+      const descriptor = getShadowedDescriptor(prototype, properties, key);
+      if (descriptor) {
+        Object.assign(shadowProperties, { [key]: descriptor });
+      }
+      return shadowProperties;
+    }, {});
+  }
+  function getShadowedDescriptor(prototype, properties, key) {
+    const shadowingDescriptor = Object.getOwnPropertyDescriptor(prototype, key);
+    const shadowedByValue = shadowingDescriptor && "value" in shadowingDescriptor;
+    if (!shadowedByValue) {
+      const descriptor = Object.getOwnPropertyDescriptor(properties, key).value;
+      if (shadowingDescriptor) {
+        descriptor.get = shadowingDescriptor.get || descriptor.get;
+        descriptor.set = shadowingDescriptor.set || descriptor.set;
+      }
+      return descriptor;
+    }
+  }
+  var getOwnKeys = (() => {
+    if (typeof Object.getOwnPropertySymbols == "function") {
+      return (object) => [...Object.getOwnPropertyNames(object), ...Object.getOwnPropertySymbols(object)];
+    } else {
+      return Object.getOwnPropertyNames;
+    }
+  })();
+  var extend = (() => {
+    function extendWithReflect(constructor) {
+      function extended() {
+        return Reflect.construct(constructor, arguments, new.target);
+      }
+      extended.prototype = Object.create(constructor.prototype, {
+        constructor: { value: extended }
+      });
+      Reflect.setPrototypeOf(extended, constructor);
+      return extended;
+    }
+    function testReflectExtension() {
+      const a = function() {
+        this.a.call(this);
+      };
+      const b = extendWithReflect(a);
+      b.prototype.a = function() {
+      };
+      return new b();
+    }
+    try {
+      testReflectExtension();
+      return extendWithReflect;
+    } catch (error2) {
+      return (constructor) => class extended extends constructor {
+      };
+    }
+  })();
+  function blessDefinition(definition) {
+    return {
+      identifier: definition.identifier,
+      controllerConstructor: bless(definition.controllerConstructor)
+    };
+  }
+  var Module = class {
+    constructor(application, definition) {
+      this.application = application;
+      this.definition = blessDefinition(definition);
+      this.contextsByScope = /* @__PURE__ */ new WeakMap();
+      this.connectedContexts = /* @__PURE__ */ new Set();
+    }
+    get identifier() {
+      return this.definition.identifier;
+    }
+    get controllerConstructor() {
+      return this.definition.controllerConstructor;
+    }
+    get contexts() {
+      return Array.from(this.connectedContexts);
+    }
+    connectContextForScope(scope) {
+      const context = this.fetchContextForScope(scope);
+      this.connectedContexts.add(context);
+      context.connect();
+    }
+    disconnectContextForScope(scope) {
+      const context = this.contextsByScope.get(scope);
+      if (context) {
+        this.connectedContexts.delete(context);
+        context.disconnect();
+      }
+    }
+    fetchContextForScope(scope) {
+      let context = this.contextsByScope.get(scope);
+      if (!context) {
+        context = new Context(this, scope);
+        this.contextsByScope.set(scope, context);
+      }
+      return context;
+    }
+  };
+  var ClassMap = class {
+    constructor(scope) {
+      this.scope = scope;
+    }
+    has(name2) {
+      return this.data.has(this.getDataKey(name2));
+    }
+    get(name2) {
+      return this.getAll(name2)[0];
+    }
+    getAll(name2) {
+      const tokenString = this.data.get(this.getDataKey(name2)) || "";
+      return tokenize(tokenString);
+    }
+    getAttributeName(name2) {
+      return this.data.getAttributeNameForKey(this.getDataKey(name2));
+    }
+    getDataKey(name2) {
+      return `${name2}-class`;
+    }
+    get data() {
+      return this.scope.data;
+    }
+  };
+  var DataMap = class {
+    constructor(scope) {
+      this.scope = scope;
+    }
+    get element() {
+      return this.scope.element;
+    }
+    get identifier() {
+      return this.scope.identifier;
+    }
+    get(key) {
+      const name2 = this.getAttributeNameForKey(key);
+      return this.element.getAttribute(name2);
+    }
+    set(key, value) {
+      const name2 = this.getAttributeNameForKey(key);
+      this.element.setAttribute(name2, value);
+      return this.get(key);
+    }
+    has(key) {
+      const name2 = this.getAttributeNameForKey(key);
+      return this.element.hasAttribute(name2);
+    }
+    delete(key) {
+      if (this.has(key)) {
+        const name2 = this.getAttributeNameForKey(key);
+        this.element.removeAttribute(name2);
+        return true;
+      } else {
+        return false;
+      }
+    }
+    getAttributeNameForKey(key) {
+      return `data-${this.identifier}-${dasherize(key)}`;
+    }
+  };
+  var Guide = class {
+    constructor(logger) {
+      this.warnedKeysByObject = /* @__PURE__ */ new WeakMap();
+      this.logger = logger;
+    }
+    warn(object, key, message) {
+      let warnedKeys = this.warnedKeysByObject.get(object);
+      if (!warnedKeys) {
+        warnedKeys = /* @__PURE__ */ new Set();
+        this.warnedKeysByObject.set(object, warnedKeys);
+      }
+      if (!warnedKeys.has(key)) {
+        warnedKeys.add(key);
+        this.logger.warn(message, object);
+      }
+    }
+  };
+  function attributeValueContainsToken(attributeName, token) {
+    return `[${attributeName}~="${token}"]`;
+  }
+  var TargetSet = class {
+    constructor(scope) {
+      this.scope = scope;
+    }
+    get element() {
+      return this.scope.element;
+    }
+    get identifier() {
+      return this.scope.identifier;
+    }
+    get schema() {
+      return this.scope.schema;
+    }
+    has(targetName) {
+      return this.find(targetName) != null;
+    }
+    find(...targetNames) {
+      return targetNames.reduce((target, targetName) => target || this.findTarget(targetName) || this.findLegacyTarget(targetName), void 0);
+    }
+    findAll(...targetNames) {
+      return targetNames.reduce((targets, targetName) => [
+        ...targets,
+        ...this.findAllTargets(targetName),
+        ...this.findAllLegacyTargets(targetName)
+      ], []);
+    }
+    findTarget(targetName) {
+      const selector = this.getSelectorForTargetName(targetName);
+      return this.scope.findElement(selector);
+    }
+    findAllTargets(targetName) {
+      const selector = this.getSelectorForTargetName(targetName);
+      return this.scope.findAllElements(selector);
+    }
+    getSelectorForTargetName(targetName) {
+      const attributeName = this.schema.targetAttributeForScope(this.identifier);
+      return attributeValueContainsToken(attributeName, targetName);
+    }
+    findLegacyTarget(targetName) {
+      const selector = this.getLegacySelectorForTargetName(targetName);
+      return this.deprecate(this.scope.findElement(selector), targetName);
+    }
+    findAllLegacyTargets(targetName) {
+      const selector = this.getLegacySelectorForTargetName(targetName);
+      return this.scope.findAllElements(selector).map((element) => this.deprecate(element, targetName));
+    }
+    getLegacySelectorForTargetName(targetName) {
+      const targetDescriptor = `${this.identifier}.${targetName}`;
+      return attributeValueContainsToken(this.schema.targetAttribute, targetDescriptor);
+    }
+    deprecate(element, targetName) {
+      if (element) {
+        const { identifier } = this;
+        const attributeName = this.schema.targetAttribute;
+        const revisedAttributeName = this.schema.targetAttributeForScope(identifier);
+        this.guide.warn(element, `target:${targetName}`, `Please replace ${attributeName}="${identifier}.${targetName}" with ${revisedAttributeName}="${targetName}". The ${attributeName} attribute is deprecated and will be removed in a future version of Stimulus.`);
+      }
+      return element;
+    }
+    get guide() {
+      return this.scope.guide;
+    }
+  };
+  var OutletSet = class {
+    constructor(scope, controllerElement) {
+      this.scope = scope;
+      this.controllerElement = controllerElement;
+    }
+    get element() {
+      return this.scope.element;
+    }
+    get identifier() {
+      return this.scope.identifier;
+    }
+    get schema() {
+      return this.scope.schema;
+    }
+    has(outletName) {
+      return this.find(outletName) != null;
+    }
+    find(...outletNames) {
+      return outletNames.reduce((outlet, outletName) => outlet || this.findOutlet(outletName), void 0);
+    }
+    findAll(...outletNames) {
+      return outletNames.reduce((outlets, outletName) => [...outlets, ...this.findAllOutlets(outletName)], []);
+    }
+    getSelectorForOutletName(outletName) {
+      const attributeName = this.schema.outletAttributeForScope(this.identifier, outletName);
+      return this.controllerElement.getAttribute(attributeName);
+    }
+    findOutlet(outletName) {
+      const selector = this.getSelectorForOutletName(outletName);
+      if (selector)
+        return this.findElement(selector, outletName);
+    }
+    findAllOutlets(outletName) {
+      const selector = this.getSelectorForOutletName(outletName);
+      return selector ? this.findAllElements(selector, outletName) : [];
+    }
+    findElement(selector, outletName) {
+      const elements = this.scope.queryElements(selector);
+      return elements.filter((element) => this.matchesElement(element, selector, outletName))[0];
+    }
+    findAllElements(selector, outletName) {
+      const elements = this.scope.queryElements(selector);
+      return elements.filter((element) => this.matchesElement(element, selector, outletName));
+    }
+    matchesElement(element, selector, outletName) {
+      const controllerAttribute = element.getAttribute(this.scope.schema.controllerAttribute) || "";
+      return element.matches(selector) && controllerAttribute.split(" ").includes(outletName);
+    }
+  };
+  var Scope = class _Scope {
+    constructor(schema, element, identifier, logger) {
+      this.targets = new TargetSet(this);
+      this.classes = new ClassMap(this);
+      this.data = new DataMap(this);
+      this.containsElement = (element2) => {
+        return element2.closest(this.controllerSelector) === this.element;
+      };
+      this.schema = schema;
+      this.element = element;
+      this.identifier = identifier;
+      this.guide = new Guide(logger);
+      this.outlets = new OutletSet(this.documentScope, element);
+    }
+    findElement(selector) {
+      return this.element.matches(selector) ? this.element : this.queryElements(selector).find(this.containsElement);
+    }
+    findAllElements(selector) {
+      return [
+        ...this.element.matches(selector) ? [this.element] : [],
+        ...this.queryElements(selector).filter(this.containsElement)
+      ];
+    }
+    queryElements(selector) {
+      return Array.from(this.element.querySelectorAll(selector));
+    }
+    get controllerSelector() {
+      return attributeValueContainsToken(this.schema.controllerAttribute, this.identifier);
+    }
+    get isDocumentScope() {
+      return this.element === document.documentElement;
+    }
+    get documentScope() {
+      return this.isDocumentScope ? this : new _Scope(this.schema, document.documentElement, this.identifier, this.guide.logger);
+    }
+  };
+  var ScopeObserver = class {
+    constructor(element, schema, delegate) {
+      this.element = element;
+      this.schema = schema;
+      this.delegate = delegate;
+      this.valueListObserver = new ValueListObserver(this.element, this.controllerAttribute, this);
+      this.scopesByIdentifierByElement = /* @__PURE__ */ new WeakMap();
+      this.scopeReferenceCounts = /* @__PURE__ */ new WeakMap();
+    }
+    start() {
+      this.valueListObserver.start();
+    }
+    stop() {
+      this.valueListObserver.stop();
+    }
+    get controllerAttribute() {
+      return this.schema.controllerAttribute;
+    }
+    parseValueForToken(token) {
+      const { element, content: identifier } = token;
+      return this.parseValueForElementAndIdentifier(element, identifier);
+    }
+    parseValueForElementAndIdentifier(element, identifier) {
+      const scopesByIdentifier = this.fetchScopesByIdentifierForElement(element);
+      let scope = scopesByIdentifier.get(identifier);
+      if (!scope) {
+        scope = this.delegate.createScopeForElementAndIdentifier(element, identifier);
+        scopesByIdentifier.set(identifier, scope);
+      }
+      return scope;
+    }
+    elementMatchedValue(element, value) {
+      const referenceCount = (this.scopeReferenceCounts.get(value) || 0) + 1;
+      this.scopeReferenceCounts.set(value, referenceCount);
+      if (referenceCount == 1) {
+        this.delegate.scopeConnected(value);
+      }
+    }
+    elementUnmatchedValue(element, value) {
+      const referenceCount = this.scopeReferenceCounts.get(value);
+      if (referenceCount) {
+        this.scopeReferenceCounts.set(value, referenceCount - 1);
+        if (referenceCount == 1) {
+          this.delegate.scopeDisconnected(value);
+        }
+      }
+    }
+    fetchScopesByIdentifierForElement(element) {
+      let scopesByIdentifier = this.scopesByIdentifierByElement.get(element);
+      if (!scopesByIdentifier) {
+        scopesByIdentifier = /* @__PURE__ */ new Map();
+        this.scopesByIdentifierByElement.set(element, scopesByIdentifier);
+      }
+      return scopesByIdentifier;
+    }
+  };
+  var Router = class {
+    constructor(application) {
+      this.application = application;
+      this.scopeObserver = new ScopeObserver(this.element, this.schema, this);
+      this.scopesByIdentifier = new Multimap();
+      this.modulesByIdentifier = /* @__PURE__ */ new Map();
+    }
+    get element() {
+      return this.application.element;
+    }
+    get schema() {
+      return this.application.schema;
+    }
+    get logger() {
+      return this.application.logger;
+    }
+    get controllerAttribute() {
+      return this.schema.controllerAttribute;
+    }
+    get modules() {
+      return Array.from(this.modulesByIdentifier.values());
+    }
+    get contexts() {
+      return this.modules.reduce((contexts, module) => contexts.concat(module.contexts), []);
+    }
+    start() {
+      this.scopeObserver.start();
+    }
+    stop() {
+      this.scopeObserver.stop();
+    }
+    loadDefinition(definition) {
+      this.unloadIdentifier(definition.identifier);
+      const module = new Module(this.application, definition);
+      this.connectModule(module);
+      const afterLoad = definition.controllerConstructor.afterLoad;
+      if (afterLoad) {
+        afterLoad.call(definition.controllerConstructor, definition.identifier, this.application);
+      }
+    }
+    unloadIdentifier(identifier) {
+      const module = this.modulesByIdentifier.get(identifier);
+      if (module) {
+        this.disconnectModule(module);
+      }
+    }
+    getContextForElementAndIdentifier(element, identifier) {
+      const module = this.modulesByIdentifier.get(identifier);
+      if (module) {
+        return module.contexts.find((context) => context.element == element);
+      }
+    }
+    proposeToConnectScopeForElementAndIdentifier(element, identifier) {
+      const scope = this.scopeObserver.parseValueForElementAndIdentifier(element, identifier);
+      if (scope) {
+        this.scopeObserver.elementMatchedValue(scope.element, scope);
+      } else {
+        console.error(`Couldn't find or create scope for identifier: "${identifier}" and element:`, element);
+      }
+    }
+    handleError(error2, message, detail) {
+      this.application.handleError(error2, message, detail);
+    }
+    createScopeForElementAndIdentifier(element, identifier) {
+      return new Scope(this.schema, element, identifier, this.logger);
+    }
+    scopeConnected(scope) {
+      this.scopesByIdentifier.add(scope.identifier, scope);
+      const module = this.modulesByIdentifier.get(scope.identifier);
+      if (module) {
+        module.connectContextForScope(scope);
+      }
+    }
+    scopeDisconnected(scope) {
+      this.scopesByIdentifier.delete(scope.identifier, scope);
+      const module = this.modulesByIdentifier.get(scope.identifier);
+      if (module) {
+        module.disconnectContextForScope(scope);
+      }
+    }
+    connectModule(module) {
+      this.modulesByIdentifier.set(module.identifier, module);
+      const scopes = this.scopesByIdentifier.getValuesForKey(module.identifier);
+      scopes.forEach((scope) => module.connectContextForScope(scope));
+    }
+    disconnectModule(module) {
+      this.modulesByIdentifier.delete(module.identifier);
+      const scopes = this.scopesByIdentifier.getValuesForKey(module.identifier);
+      scopes.forEach((scope) => module.disconnectContextForScope(scope));
+    }
+  };
+  var defaultSchema = {
+    controllerAttribute: "data-controller",
+    actionAttribute: "data-action",
+    targetAttribute: "data-target",
+    targetAttributeForScope: (identifier) => `data-${identifier}-target`,
+    outletAttributeForScope: (identifier, outlet) => `data-${identifier}-${outlet}-outlet`,
+    keyMappings: Object.assign(Object.assign({ enter: "Enter", tab: "Tab", esc: "Escape", space: " ", up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight", home: "Home", end: "End", page_up: "PageUp", page_down: "PageDown" }, objectFromEntries("abcdefghijklmnopqrstuvwxyz".split("").map((c) => [c, c]))), objectFromEntries("0123456789".split("").map((n) => [n, n])))
+  };
+  function objectFromEntries(array) {
+    return array.reduce((memo, [k, v]) => Object.assign(Object.assign({}, memo), { [k]: v }), {});
+  }
+  var Application = class {
+    constructor(element = document.documentElement, schema = defaultSchema) {
+      this.logger = console;
+      this.debug = false;
+      this.logDebugActivity = (identifier, functionName, detail = {}) => {
+        if (this.debug) {
+          this.logFormattedMessage(identifier, functionName, detail);
+        }
+      };
+      this.element = element;
+      this.schema = schema;
+      this.dispatcher = new Dispatcher(this);
+      this.router = new Router(this);
+      this.actionDescriptorFilters = Object.assign({}, defaultActionDescriptorFilters);
+    }
+    static start(element, schema) {
+      const application = new this(element, schema);
+      application.start();
+      return application;
+    }
+    async start() {
+      await domReady();
+      this.logDebugActivity("application", "starting");
+      this.dispatcher.start();
+      this.router.start();
+      this.logDebugActivity("application", "start");
+    }
+    stop() {
+      this.logDebugActivity("application", "stopping");
+      this.dispatcher.stop();
+      this.router.stop();
+      this.logDebugActivity("application", "stop");
+    }
+    register(identifier, controllerConstructor) {
+      this.load({ identifier, controllerConstructor });
+    }
+    registerActionOption(name2, filter) {
+      this.actionDescriptorFilters[name2] = filter;
+    }
+    load(head, ...rest) {
+      const definitions = Array.isArray(head) ? head : [head, ...rest];
+      definitions.forEach((definition) => {
+        if (definition.controllerConstructor.shouldLoad) {
+          this.router.loadDefinition(definition);
+        }
+      });
+    }
+    unload(head, ...rest) {
+      const identifiers = Array.isArray(head) ? head : [head, ...rest];
+      identifiers.forEach((identifier) => this.router.unloadIdentifier(identifier));
+    }
+    get controllers() {
+      return this.router.contexts.map((context) => context.controller);
+    }
+    getControllerForElementAndIdentifier(element, identifier) {
+      const context = this.router.getContextForElementAndIdentifier(element, identifier);
+      return context ? context.controller : null;
+    }
+    handleError(error2, message, detail) {
+      var _a;
+      this.logger.error(`%s
 
 %o
 
-%o`,t,e,n),(r=window.onerror)===null||r===void 0||r.call(window,t,"",0,0,e)}logFormattedMessage(e,t,n={}){n=Object.assign({application:this},n),this.logger.groupCollapsed(`${e} #${t}`),this.logger.log("details:",Object.assign({},n)),this.logger.groupEnd()}};function nm(){return new Promise(o=>{document.readyState=="loading"?document.addEventListener("DOMContentLoaded",()=>o()):o()})}function rm(o){return Wt(o,"classes").reduce((t,n)=>Object.assign(t,im(n)),{})}function im(o){return{[`${o}Class`]:{get(){let{classes:e}=this;if(e.has(o))return e.get(o);{let t=e.getAttributeName(o);throw new Error(`Missing attribute "${t}"`)}}},[`${o}Classes`]:{get(){return this.classes.getAll(o)}},[`has${Ht(o)}Class`]:{get(){return this.classes.has(o)}}}}function am(o){return Wt(o,"outlets").reduce((t,n)=>Object.assign(t,sm(n)),{})}function os(o,e,t){return o.application.getControllerForElementAndIdentifier(e,t)}function ns(o,e,t){let n=os(o,e,t);if(n||(o.application.router.proposeToConnectScopeForElementAndIdentifier(e,t),n=os(o,e,t),n))return n}function sm(o){let e=Yi(o);return{[`${e}Outlet`]:{get(){let t=this.outlets.find(o),n=this.outlets.getSelectorForOutletName(o);if(t){let r=ns(this,t,o);if(r)return r;throw new Error(`The provided outlet element is missing an outlet controller "${o}" instance for host controller "${this.identifier}"`)}throw new Error(`Missing outlet element "${o}" for host controller "${this.identifier}". Stimulus couldn't find a matching outlet element using selector "${n}".`)}},[`${e}Outlets`]:{get(){let t=this.outlets.findAll(o);return t.length>0?t.map(n=>{let r=ns(this,n,o);if(r)return r;console.warn(`The provided outlet element is missing an outlet controller "${o}" instance for host controller "${this.identifier}"`,n)}).filter(n=>n):[]}},[`${e}OutletElement`]:{get(){let t=this.outlets.find(o),n=this.outlets.getSelectorForOutletName(o);if(t)return t;throw new Error(`Missing outlet element "${o}" for host controller "${this.identifier}". Stimulus couldn't find a matching outlet element using selector "${n}".`)}},[`${e}OutletElements`]:{get(){return this.outlets.findAll(o)}},[`has${Ht(e)}Outlet`]:{get(){return this.outlets.has(o)}}}}function cm(o){return Wt(o,"targets").reduce((t,n)=>Object.assign(t,dm(n)),{})}function dm(o){return{[`${o}Target`]:{get(){let e=this.targets.find(o);if(e)return e;throw new Error(`Missing target element "${o}" for "${this.identifier}" controller`)}},[`${o}Targets`]:{get(){return this.targets.findAll(o)}},[`has${Ht(o)}Target`]:{get(){return this.targets.has(o)}}}}function lm(o){let e=Wl(o,"values"),t={valueDescriptorMap:{get(){return e.reduce((n,r)=>{let i=ls(r,this.identifier),a=this.data.getAttributeNameForKey(i.key);return Object.assign(n,{[a]:i})},{})}}};return e.reduce((n,r)=>Object.assign(n,mm(r)),t)}function mm(o,e){let t=ls(o,e),{key:n,name:r,reader:i,writer:a}=t;return{[r]:{get(){let s=this.data.get(n);return s!==null?i(s):t.defaultValue},set(s){s===void 0?this.data.delete(n):this.data.set(n,a(s))}},[`has${Ht(r)}`]:{get(){return this.data.has(n)||t.hasCustomDefaultValue}}}}function ls([o,e],t){return um({controller:t,token:o,typeDefinition:e})}function yo(o){switch(o){case Array:return"array";case Boolean:return"boolean";case Number:return"number";case Object:return"object";case String:return"string"}}function $t(o){switch(typeof o){case"boolean":return"boolean";case"number":return"number";case"string":return"string"}if(Array.isArray(o))return"array";if(Object.prototype.toString.call(o)==="[object Object]")return"object"}function fm(o){let{controller:e,token:t,typeObject:n}=o,r=Za(n.type),i=Za(n.default),a=r&&i,s=r&&!i,c=!r&&i,d=yo(n.type),l=$t(o.typeObject.default);if(s)return d;if(c)return l;if(d!==l){let m=e?`${e}.${t}`:t;throw new Error(`The specified default value for the Stimulus Value "${m}" must match the defined type "${d}". The provided default value of "${n.default}" is of type "${l}".`)}if(a)return d}function bm(o){let{controller:e,token:t,typeDefinition:n}=o,i=fm({controller:e,token:t,typeObject:n}),a=$t(n),s=yo(n),c=i||a||s;if(c)return c;let d=e?`${e}.${n}`:t;throw new Error(`Unknown value type "${d}" for "${t}" value`)}function pm(o){let e=yo(o);if(e)return rs[e];let t=Qi(o,"default"),n=Qi(o,"type"),r=o;if(t)return r.default;if(n){let{type:i}=r,a=yo(i);if(a)return rs[a]}return o}function um(o){let{token:e,typeDefinition:t}=o,n=`${ss(e)}-value`,r=bm(o);return{type:r,key:n,name:ga(n),get defaultValue(){return pm(t)},get hasCustomDefaultValue(){return $t(t)!==void 0},reader:hm[r],writer:is[r]||is.default}}var rs={get array(){return[]},boolean:!1,number:0,get object(){return{}},string:""},hm={array(o){let e=JSON.parse(o);if(!Array.isArray(e))throw new TypeError(`expected value of type "array" but instead got value "${o}" of type "${$t(e)}"`);return e},boolean(o){return!(o=="0"||String(o).toLowerCase()=="false")},number(o){return Number(o.replace(/_/g,""))},object(o){let e=JSON.parse(o);if(e===null||typeof e!="object"||Array.isArray(e))throw new TypeError(`expected value of type "object" but instead got value "${o}" of type "${$t(e)}"`);return e},string(o){return o}},is={default:gm,array:as,object:as};function as(o){return JSON.stringify(o)}function gm(o){return`${o}`}var He=class{constructor(e){this.context=e}static get shouldLoad(){return!0}static afterLoad(e,t){}get application(){return this.context.application}get scope(){return this.context.scope}get element(){return this.scope.element}get identifier(){return this.scope.identifier}get targets(){return this.scope.targets}get outlets(){return this.scope.outlets}get classes(){return this.scope.classes}get data(){return this.scope.data}initialize(){}connect(){}disconnect(){}dispatch(e,{target:t=this.element,detail:n={},prefix:r=this.identifier,bubbles:i=!0,cancelable:a=!0}={}){let s=r?`${r}:${e}`:e,c=new CustomEvent(s,{detail:n,bubbles:i,cancelable:a});return t.dispatchEvent(c),c}};He.blessings=[rm,cm,lm,am];He.targets=[];He.outlets=[];He.values={};var ae=class extends He{constructor(){super(...arguments);R(this,"websocket");R(this,"shieldActive",!1)}async register(){this.websocket=ms(),this.websocket.getWebsocket().addEventListener(q.message,(t,n)=>this.handleWebsocket(t,n))}async connect(){await this.preConnect(),await this.register(),await this.postConnect()}async preConnect(){}async postConnect(){}async handleWebsocket(t,n){let r=JSON.parse(n.data);if(r.method==="theme_update"){let i=r.data.data;await this.handleTheme(t,i);let a=document.createElement("style");a.innerHTML=`:root {--theme-color: ${i.color}}`,document.head.appendChild(a);return}r.method==="shield_mode"&&(this.shieldActive=r.data.status,await this.handleShield()),await this.handleMessage(t,r.method,r.data)}async handleShield(){}async handleTheme(t,n){}async handleMessage(t,n,r){}};var Ut=class extends ae{constructor(){super(...arguments);R(this,"videoExtensions",["mp4","webm"]);R(this,"imageExtensions",["gif","png","jpg","webp"])}async handleTheme(t,n){let r=n.animated_background;this.element.innerHTML="";let i=r.split(".").pop();i=i.toLowerCase(),this.imageExtensions.includes(i)&&(this.element.innerHTML=`<img src="${r}">`),this.videoExtensions.includes(i)&&(this.element.innerHTML=`<video loop muted autoplay><source src="${r}"></video>`)}};var Pe="generated",fs="pointerdown",bs="pointerup",Gt="pointerleave",ps="pointerout",ue="pointermove",us="touchstart",Fa="touchend",hs="touchmove",gs="touchcancel",Fs="resize",vs="visibilitychange",Q="tsParticles - Error";var Z;(function(o){o.bottom="bottom",o.bottomLeft="bottom-left",o.bottomRight="bottom-right",o.left="left",o.none="none",o.right="right",o.top="top",o.topLeft="top-left",o.topRight="top-right",o.outside="outside",o.inside="inside"})(Z||(Z={}));function ko(o){return typeof o=="boolean"}function Fe(o){return typeof o=="string"}function X(o){return typeof o=="number"}function Ie(o){return typeof o=="object"&&o!==null}function V(o){return Array.isArray(o)}var Ce={x:0,y:0,z:0},xs=2,Fm=1,mt=class o{constructor(e,t,n){if(this._updateFromAngle=(r,i)=>{this.x=Math.cos(r)*i,this.y=Math.sin(r)*i},!X(e)&&e){this.x=e.x,this.y=e.y;let r=e;this.z=r.z?r.z:Ce.z}else if(e!==void 0&&t!==void 0)this.x=e,this.y=t,this.z=n??Ce.z;else throw new Error(`${Q} Vector3d not initialized correctly`)}static get origin(){return o.create(Ce.x,Ce.y,Ce.z)}get angle(){return Math.atan2(this.y,this.x)}set angle(e){this._updateFromAngle(e,this.length)}get length(){return Math.sqrt(this.getLengthSq())}set length(e){this._updateFromAngle(this.angle,e)}static clone(e){return o.create(e.x,e.y,e.z)}static create(e,t,n){return new o(e,t,n)}add(e){return o.create(this.x+e.x,this.y+e.y,this.z+e.z)}addTo(e){this.x+=e.x,this.y+=e.y,this.z+=e.z}copy(){return o.clone(this)}distanceTo(e){return this.sub(e).length}distanceToSq(e){return this.sub(e).getLengthSq()}div(e){return o.create(this.x/e,this.y/e,this.z/e)}divTo(e){this.x/=e,this.y/=e,this.z/=e}getLengthSq(){return this.x**xs+this.y**xs}mult(e){return o.create(this.x*e,this.y*e,this.z*e)}multTo(e){this.x*=e,this.y*=e,this.z*=e}normalize(){let e=this.length;e!=0&&this.multTo(Fm/e)}rotate(e){return o.create(this.x*Math.cos(e)-this.y*Math.sin(e),this.x*Math.sin(e)+this.y*Math.cos(e),Ce.z)}setTo(e){this.x=e.x,this.y=e.y;let t=e;this.z=t.z?t.z:Ce.z}sub(e){return o.create(this.x-e.x,this.y-e.y,this.z-e.z)}subFrom(e){this.x-=e.x,this.y-=e.y,this.z-=e.z}},z=class o extends mt{constructor(e,t){super(e,t,Ce.z)}static get origin(){return o.create(Ce.x,Ce.y)}static clone(e){return o.create(e.x,e.y)}static create(e,t){return new o(e,t)}};var vm=Math.random,ws={nextFrame:o=>requestAnimationFrame(o),cancel:o=>cancelAnimationFrame(o)},va=new Map,xm=2,wm=Math.PI*xm;function Co(o,e){va.get(o)||va.set(o,e)}function Ao(o){return va.get(o)??(e=>e)}function y(){return Y(vm(),0,1-Number.EPSILON)}function ys(o){return ws.nextFrame(o)}function ks(o){ws.cancel(o)}function Y(o,e,t){return Math.min(Math.max(o,e),t)}function Bo(o,e,t,n){return Math.floor((o*t+e*n)/(t+n))}function N(o){let e=re(o),t=0,n=ft(o);return e===n&&(n=t),y()*(e-n)+n}function h(o){return X(o)?o:N(o)}function ft(o){return X(o)?o:o.min}function re(o){return X(o)?o:o.max}function g(o,e){if(o===e||e===void 0&&X(o))return o;let t=ft(o),n=re(o);return e!==void 0?{min:Math.min(t,e),max:Math.max(n,e)}:g(t,n)}function I(o,e){let t=o.x-e.x,n=o.y-e.y,r=2;return{dx:t,dy:n,distance:Math.sqrt(t**r+n**r)}}function L(o,e){return I(o,e).distance}function le(o){return o*Math.PI/180}function Cs(o,e,t){if(X(o))return le(o);let n=0,r=.5,i=.25,a=r+i;switch(o){case Z.top:return-Math.PI*r;case Z.topRight:return-Math.PI*i;case Z.right:return n;case Z.bottomRight:return Math.PI*i;case Z.bottom:return Math.PI*r;case Z.bottomLeft:return Math.PI*a;case Z.left:return Math.PI;case Z.topLeft:return-Math.PI*a;case Z.inside:return Math.atan2(t.y-e.y,t.x-e.x);case Z.outside:return Math.atan2(e.y-t.y,e.x-t.x);default:return y()*wm}}function As(o){let e=z.origin;return e.length=1,e.angle=o,e}function xa(o,e,t,n){return z.create(o.x*(t-n)/(t+n)+e.x*2*n/(t+n),o.y)}function wa(o){return{x:(o.position?.x??y()*100)*o.size.width/100,y:(o.position?.y??y()*100)*o.size.height/100}}function Eo(o){let e={x:o.position?.x!==void 0?h(o.position.x):void 0,y:o.position?.y!==void 0?h(o.position.y):void 0};return wa({size:o.size,position:e})}function Bs(o){return{x:o.position?.x??y()*o.size.width,y:o.position?.y??y()*o.size.height}}function Do(o){return o?o.endsWith("%")?parseFloat(o)/100:parseFloat(o):1}var Le;(function(o){o.auto="auto",o.increase="increase",o.decrease="decrease",o.random="random"})(Le||(Le={}));var j;(function(o){o.increasing="increasing",o.decreasing="decreasing"})(j||(j={}));var he;(function(o){o.none="none",o.max="max",o.min="min"})(he||(he={}));var C;(function(o){o.bottom="bottom",o.left="left",o.right="right",o.top="top"})(C||(C={}));var te;(function(o){o.precise="precise",o.percent="percent"})(te||(te={}));var We;(function(o){o.max="max",o.min="min",o.random="random"})(We||(We={}));var ym={debug:console.debug,error:console.error,info:console.info,log:console.log,verbose:console.log,warning:console.warn};function ve(){return ym}function Es(o){let e={bounced:!1},{pSide:t,pOtherSide:n,rectSide:r,rectOtherSide:i,velocity:a,factor:s}=o,c=.5,d=0;return n.min<i.min||n.min>i.max||n.max<i.min||n.max>i.max||(t.max>=r.min&&t.max<=(r.max+r.min)*c&&a>d||t.min<=r.max&&t.min>(r.max+r.min)*c&&a<d)&&(e.velocity=a*-s,e.bounced=!0),e}function km(o,e){let t=D(e,n=>o.matches(n));return V(t)?t.some(n=>n):t}function Be(){return typeof window>"u"||!window||typeof window.document>"u"||!window.document}function Cm(){return!Be()&&typeof matchMedia<"u"}function zo(o){if(Cm())return matchMedia(o)}function Ds(o){if(!(Be()||typeof IntersectionObserver>"u"))return new IntersectionObserver(o)}function zs(o){if(!(Be()||typeof MutationObserver>"u"))return new MutationObserver(o)}function A(o,e){return o===e||V(e)&&e.indexOf(o)>-1}async function Kt(o,e){try{await document.fonts.load(`${e??"400"} 36px '${o??"Verdana"}'`)}catch{}}function ya(o){return Math.floor(y()*o.length)}function Ue(o,e,t=!0){return o[e!==void 0&&t?e%o.length:ya(o)]}function Ee(o,e,t,n,r){return Am(Ge(o,n??0),e,t,r)}function Am(o,e,t,n){let r=!0;return(!n||n===C.bottom)&&(r=o.top<e.height+t.x),r&&(!n||n===C.left)&&(r=o.right>t.x),r&&(!n||n===C.right)&&(r=o.left<e.width+t.y),r&&(!n||n===C.top)&&(r=o.bottom>t.y),r}function Ge(o,e){return{bottom:o.y+e,left:o.x-e,right:o.x+e,top:o.y-e}}function B(o,...e){for(let t of e){if(t==null)continue;if(!Ie(t)){o=t;continue}let n=Array.isArray(t);n&&(Ie(o)||!o||!Array.isArray(o))?o=[]:!n&&(Ie(o)||!o||Array.isArray(o))&&(o={});for(let r in t){if(r==="__proto__")continue;let i=t,a=i[r],s=o;s[r]=Ie(a)&&Array.isArray(a)?a.map(c=>B(s[r],c)):B(s[r],a)}}return o}function bt(o,e){return!!_s(e,t=>t.enable&&A(o,t.mode))}function pt(o,e,t){D(e,n=>{let r=n.mode;n.enable&&A(o,r)&&Bm(n,t)})}function Bm(o,e){let t=o.selectors;D(t,n=>{e(n,o)})}function Oo(o,e){if(!(!e||!o))return _s(o,t=>km(e,t.selectors))}function Xt(o){return{position:o.getPosition(),radius:o.getRadius(),mass:o.getMass(),velocity:o.velocity,factor:z.create(h(o.options.bounce.horizontal.value),h(o.options.bounce.vertical.value))}}function _o(o,e){let{x:t,y:n}=o.velocity.sub(e.velocity),[r,i]=[o.position,e.position],{dx:a,dy:s}=I(i,r);if(t*a+n*s<0)return;let d=-Math.atan2(s,a),l=o.mass,m=e.mass,f=o.velocity.rotate(d),b=e.velocity.rotate(d),p=xa(f,b,l,m),u=xa(b,f,l,m),v=p.rotate(-d),F=u.rotate(-d);o.velocity.x=v.x*o.factor.x,o.velocity.y=v.y*o.factor.y,e.velocity.x=F.x*e.factor.x,e.velocity.y=F.y*e.factor.y}function Os(o,e){let t=o.getPosition(),n=o.getRadius(),r=Ge(t,n),i=o.options.bounce,a=Es({pSide:{min:r.left,max:r.right},pOtherSide:{min:r.top,max:r.bottom},rectSide:{min:e.left,max:e.right},rectOtherSide:{min:e.top,max:e.bottom},velocity:o.velocity.x,factor:h(i.horizontal.value)});a.bounced&&(a.velocity!==void 0&&(o.velocity.x=a.velocity),a.position!==void 0&&(o.position.x=a.position));let s=Es({pSide:{min:r.top,max:r.bottom},pOtherSide:{min:r.left,max:r.right},rectSide:{min:e.top,max:e.bottom},rectOtherSide:{min:e.left,max:e.right},velocity:o.velocity.y,factor:h(i.vertical.value)});s.bounced&&(s.velocity!==void 0&&(o.velocity.y=s.velocity),s.position!==void 0&&(o.position.y=s.position))}function D(o,e){return V(o)?o.map((n,r)=>e(n,r)):e(o,0)}function P(o,e,t){return V(o)?Ue(o,e,t):o}function _s(o,e){return V(o)?o.find((n,r)=>e(n,r)):e(o,0)?o:void 0}function Mo(o,e){let t=o.value,n=o.animation,r={delayTime:h(n.delay)*1e3,enable:n.enable,value:h(o.value)*e,max:re(t)*e,min:ft(t)*e,loops:0,maxLoops:h(n.count),time:0},i=1;if(n.enable){switch(r.decay=i-h(n.decay),n.mode){case Le.increase:r.status=j.increasing;break;case Le.decrease:r.status=j.decreasing;break;case Le.random:r.status=y()>=.5?j.increasing:j.decreasing;break}let a=n.mode===Le.auto;switch(n.startValue){case We.min:r.value=r.min,a&&(r.status=j.increasing);break;case We.max:r.value=r.max,a&&(r.status=j.decreasing);break;case We.random:default:r.value=N(r),a&&(r.status=y()>=.5?j.increasing:j.decreasing);break}}return r.initialValue=r.value,r}function Ms(o,e){if(!(o.mode===te.percent)){let{mode:r,...i}=o;return i}return"x"in o?{x:o.x/100*e.width,y:o.y/100*e.height}:{width:o.width/100*e.width,height:o.height/100*e.height}}function Ro(o,e){return Ms(o,e)}function ka(o,e){return Ms(o,e)}function Em(o,e,t,n,r){switch(e){case he.max:t>=r&&o.destroy();break;case he.min:t<=n&&o.destroy();break}}function Ke(o,e,t,n,r){if(o.destroyed||!e||!e.enable||(e.maxLoops??0)>0&&(e.loops??0)>(e.maxLoops??0))return;let l=(e.velocity??0)*r.factor,m=e.min,f=e.max,b=e.decay??1;if(e.time||(e.time=0),(e.delayTime??0)>0&&e.time<(e.delayTime??0)&&(e.time+=r.value),!((e.delayTime??0)>0&&e.time<(e.delayTime??0))){switch(e.status){case j.increasing:e.value>=f?(t?e.status=j.decreasing:e.value-=f,e.loops||(e.loops=0),e.loops++):e.value+=l;break;case j.decreasing:e.value<=m?(t?e.status=j.increasing:e.value+=f,e.loops||(e.loops=0),e.loops++):e.value-=l}e.velocity&&b!==1&&(e.velocity*=b),Em(o,n,e.value,m,f),o.destroyed||(e.value=Y(e.value,m,f))}}var De;(function(o){o.darken="darken",o.enlighten="enlighten"})(De||(De={}));var tt;(function(o){o[o.r=1]="r",o[o.g=2]="g",o[o.b=3]="b",o[o.a=4]="a"})(tt||(tt={}));var To="random",So="mid",Po=new Map;function Ba(o){Po.set(o.key,o)}function Dm(o){for(let[,c]of Po)if(o.startsWith(c.stringPrefix))return c.parseString(o);let e=/^#?([a-f\d])([a-f\d])([a-f\d])([a-f\d])?$/i,t=o.replace(e,(c,d,l,m,f)=>d+d+l+l+m+m+(f!==void 0?f+f:"")),n=/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i,r=n.exec(t),i=16;return r?{a:r[tt.a]!==void 0?parseInt(r[tt.a],i)/255:1,b:parseInt(r[tt.b],i),g:parseInt(r[tt.g],i),r:parseInt(r[tt.r],i)}:void 0}function oe(o,e,t=!0){if(!o)return;let n=Fe(o)?{value:o}:o;if(Fe(n.value))return Rs(n.value,e,t);if(V(n.value))return oe({value:Ue(n.value,e,t)});for(let[,r]of Po){let i=r.handleRangeColor(n);if(i)return i}}function Rs(o,e,t=!0){if(!o)return;let n=Fe(o)?{value:o}:o;if(Fe(n.value))return n.value===To?Ts():zm(n.value);if(V(n.value))return Rs({value:Ue(n.value,e,t)});for(let[,r]of Po){let i=r.handleColor(n);if(i)return i}}function se(o,e,t=!0){let n=oe(o,e,t);return n?Ea(n):void 0}function Ea(o){let l=o.r/255,m=o.g/255,f=o.b/255,b=Math.max(l,m,f),p=Math.min(l,m,f),u={h:0,l:(b+p)*.5,s:0};return b!==p&&(u.s=u.l<.5?(b-p)/(b+p):(b-p)/(2-b-p),u.h=l===b?(m-f)/(b-p):u.h=m===b?2+(f-l)/(b-p):2*2+(l-m)/(b-p)),u.l*=100,u.s*=100,u.h*=60,u.h<0&&(u.h+=360),u.h>=360&&(u.h-=360),u}function zm(o){return Dm(o)}function ot(o){let a=(o.h%360+360)%360,s=Math.max(0,Math.min(100,o.s)),c=Math.max(0,Math.min(100,o.l)),d=a/360,l=s/100,m=c/100,f=255,b=3;if(s===0){let G=Math.round(m*f);return{r:G,g:G,b:G}}let p=.5,u=2,v=(G,be,pe)=>{if(pe<0&&pe++,pe>1&&pe--,pe*6<1)return G+(be-G)*6*pe;if(pe*u<1)return be;if(pe*b<1*u){let Bl=u/b;return G+(be-G)*(Bl-pe)*6}return G},F=1,w=m<p?m*(F+l):m+l-m*l,k=u*m-w,x=1,M=x/b,E=Math.min(f,f*v(k,w,d+M)),ce=Math.min(f,f*v(k,w,d)),S=Math.min(f,f*v(k,w,d-M));return{r:Math.round(E),g:Math.round(ce),b:Math.round(S)}}function Ss(o){let e=ot(o);return{a:o.a,b:e.b,g:e.g,r:e.r}}function Ts(o){let t=o??0,n=256;return{b:Math.floor(N(g(t,n))),g:Math.floor(N(g(t,n))),r:Math.floor(N(g(t,n)))}}function ie(o,e){return`rgba(${o.r}, ${o.g}, ${o.b}, ${e??1})`}function ze(o,e){return`hsla(${o.h}, ${o.s}%, ${o.l}%, ${e??1})`}function Yt(o,e,t,n){let r=o,i=e;return r.r===void 0&&(r=ot(o)),i.r===void 0&&(i=ot(e)),{b:Bo(r.b,i.b,t,n),g:Bo(r.g,i.g,t,n),r:Bo(r.r,i.r,t,n)}}function Qt(o,e,t){if(t===To)return Ts();if(t===So){let n=o.getFillColor()??o.getStrokeColor(),r=e?.getFillColor()??e?.getStrokeColor();if(n&&r&&e)return Yt(n,r,o.getRadius(),e.getRadius());{let i=n??r;if(i)return ot(i)}}else return t}function Io(o,e,t){let n=Fe(o)?o:o.value;return n===To?t?oe({value:n}):e?To:So:n===So?So:oe({value:n})}function Da(o){return o!==void 0?{h:o.h.value,s:o.s.value,l:o.l.value}:void 0}function Lo(o,e,t){let n={h:{enable:!1,value:o.h},s:{enable:!1,value:o.s},l:{enable:!1,value:o.l}};return e&&(Ca(n.h,e.h,t),Ca(n.s,e.s,t),Ca(n.l,e.l,t)),n}function Ca(o,e,t){o.enable=e.enable;let n=0,r=1,i=0,a=0;o.enable?(o.velocity=h(e.speed)/100*t,o.decay=r-h(e.decay),o.status=j.increasing,o.loops=i,o.maxLoops=h(e.count),o.time=a,o.delayTime=h(e.delay)*1e3,e.sync||(o.velocity*=y(),o.value*=y()),o.initialValue=o.value,o.offset=g(e.offset)):o.velocity=n}function Aa(o,e,t,n){if(!o||!o.enable||(o.maxLoops??0)>0&&(o.loops??0)>(o.maxLoops??0)||(o.time||(o.time=0),(o.delayTime??0)>0&&o.time<(o.delayTime??0)&&(o.time+=n.value),(o.delayTime??0)>0&&o.time<(o.delayTime??0)))return;let l=o.offset?N(o.offset):0,m=(o.velocity??0)*n.factor+l*3.6,f=o.decay??1,b=re(e),p=ft(e);!t||o.status===j.increasing?(o.value+=m,o.value>b&&(o.loops||(o.loops=0),o.loops++,t?o.status=j.decreasing:o.value-=b)):(o.value-=m,o.value<0&&(o.loops||(o.loops=0),o.loops++,o.status=j.increasing)),o.velocity&&f!==1&&(o.velocity*=f),o.value=Y(o.value,p,b)}function jo(o,e){if(!o)return;let{h:t,s:n,l:r}=o,i={h:{min:0,max:360},s:{min:0,max:100},l:{min:0,max:100}};t&&Aa(t,i.h,!1,e),n&&Aa(n,i.s,!0,e),r&&Aa(r,i.l,!0,e)}var ut={x:0,y:0},qo={a:1,b:0,c:0,d:1};function Xe(o,e,t){o.beginPath(),o.moveTo(e.x,e.y),o.lineTo(t.x,t.y),o.closePath()}function Ps(o,e,t){o.fillStyle=t??"rgba(0,0,0,0)",o.fillRect(ut.x,ut.y,e.width,e.height)}function Is(o,e,t,n){t&&(o.globalAlpha=n,o.drawImage(t,ut.x,ut.y,e.width,e.height),o.globalAlpha=1)}function Vo(o,e){o.clearRect(ut.x,ut.y,e.width,e.height)}function Ls(o){let{container:e,context:t,particle:n,delta:r,colorStyles:i,backgroundMask:a,composite:s,radius:c,opacity:d,shadow:l,transform:m}=o,f=n.getPosition(),b=0,p=n.rotation+(n.pathRotation?n.velocity.angle:b),u={sin:Math.sin(p),cos:Math.cos(p)},v=!!p,F=1,w={a:u.cos*(m.a??qo.a),b:v?u.sin*(m.b??F):m.b??qo.b,c:v?-u.sin*(m.c??F):m.c??qo.c,d:u.cos*(m.d??qo.d)};t.setTransform(w.a,w.b,w.c,w.d,f.x,f.y),a&&(t.globalCompositeOperation=s);let k=n.shadowColor;l.enable&&k&&(t.shadowBlur=l.blur,t.shadowColor=ie(k),t.shadowOffsetX=l.offset.x,t.shadowOffsetY=l.offset.y),i.fill&&(t.fillStyle=i.fill);let x=0,M=n.strokeWidth??x;t.lineWidth=M,i.stroke&&(t.strokeStyle=i.stroke);let E={container:e,context:t,particle:n,radius:c,opacity:d,delta:r,transformData:w,strokeWidth:M};_m(E),Mm(E),Om(E),t.globalCompositeOperation="source-over",t.resetTransform()}function Om(o){let{container:e,context:t,particle:n,radius:r,opacity:i,delta:a,transformData:s}=o;if(!n.effect)return;let c=e.effectDrawers.get(n.effect);c&&c.draw({context:t,particle:n,radius:r,opacity:i,delta:a,pixelRatio:e.retina.pixelRatio,transformData:{...s}})}function _m(o){let{container:e,context:t,particle:n,radius:r,opacity:i,delta:a,strokeWidth:s,transformData:c}=o,d=0;if(!n.shape)return;let l=e.shapeDrawers.get(n.shape);l&&(t.beginPath(),l.draw({context:t,particle:n,radius:r,opacity:i,delta:a,pixelRatio:e.retina.pixelRatio,transformData:{...c}}),n.shapeClose&&t.closePath(),s>d&&t.stroke(),n.shapeFill&&t.fill())}function Mm(o){let{container:e,context:t,particle:n,radius:r,opacity:i,delta:a,transformData:s}=o;if(!n.shape)return;let c=e.shapeDrawers.get(n.shape);c?.afterDraw&&c.afterDraw({context:t,particle:n,radius:r,opacity:i,delta:a,pixelRatio:e.retina.pixelRatio,transformData:{...s}})}function js(o,e,t){e.draw&&e.draw(o,t)}function qs(o,e,t,n){e.drawParticle&&e.drawParticle(o,t,n)}function Vs(o,e,t){return{h:o.h,s:o.s,l:o.l+(e===De.darken?-1:1)*t}}function Rm(o,e,t){let n=e[t],r=1;n!==void 0&&(o[t]=(o[t]??r)*n)}function Ns(o,e,t=!1){if(!e)return;let n=o;if(!n)return;let r=n.style;if(r)for(let i in e){let a=e[i];a&&r.setProperty(i,a,t?"important":"")}}var No=class{constructor(e){this.container=e,this._applyPostDrawUpdaters=t=>{for(let n of this._postDrawUpdaters)n.afterDraw?.(t)},this._applyPreDrawUpdaters=(t,n,r,i,a,s)=>{for(let c of this._preDrawUpdaters){if(c.getColorStyles){let{fill:d,stroke:l}=c.getColorStyles(n,t,r,i);d&&(a.fill=d),l&&(a.stroke=l)}if(c.getTransformValues){let d=c.getTransformValues(n);for(let l in d)Rm(s,d,l)}c.beforeDraw?.(n)}},this._applyResizePlugins=()=>{for(let t of this._resizePlugins)t.resize?.()},this._getPluginParticleColors=t=>{let n,r;for(let i of this._colorPlugins)if(!n&&i.particleFillColor&&(n=se(i.particleFillColor(t))),!r&&i.particleStrokeColor&&(r=se(i.particleStrokeColor(t))),n&&r)break;return[n,r]},this._initCover=async()=>{let t=this.container.actualOptions,n=t.backgroundMask.cover,r=n.color;if(r){let i=oe(r);if(i){let a={...i,a:n.opacity};this._coverColorStyle=ie(a,a.a)}}else await new Promise((i,a)=>{if(!n.image)return;let s=document.createElement("img");s.addEventListener("load",()=>{this._coverImage={image:s,opacity:n.opacity},i()}),s.addEventListener("error",c=>{a(c.error)}),s.src=n.image})},this._initStyle=()=>{let t=this.element,n=this.container.actualOptions;if(t){this._fullScreen?(this._originalStyle=B({},t.style),this._setFullScreenStyle()):this._resetOriginalStyle();for(let r in n.style){if(!r||!n.style)continue;let i=n.style[r];i&&t.style.setProperty(r,i,"important")}}},this._initTrail=async()=>{let t=this.container.actualOptions,n=t.particles.move.trail,r=n.fill;if(!n.enable)return;let i=1,a=i/n.length;if(r.color){let s=oe(r.color);if(!s)return;this._trailFill={color:{...s},opacity:a}}else await new Promise((s,c)=>{if(!r.image)return;let d=document.createElement("img");d.addEventListener("load",()=>{this._trailFill={image:d,opacity:a},s()}),d.addEventListener("error",l=>{c(l.error)}),d.src=r.image})},this._paintBase=t=>{this.draw(n=>Ps(n,this.size,t))},this._paintImage=(t,n)=>{this.draw(r=>Is(r,this.size,t,n))},this._repairStyle=()=>{let t=this.element;t&&(this._safeMutationObserver(n=>n.disconnect()),this._initStyle(),this.initBackground(),this._safeMutationObserver(n=>{!t||!(t instanceof Node)||n.observe(t,{attributes:!0})}))},this._resetOriginalStyle=()=>{let t=this.element,n=this._originalStyle;t&&n&&Ns(t,n)},this._safeMutationObserver=t=>{this._mutationObserver&&t(this._mutationObserver)},this._setFullScreenStyle=()=>{let t=this.element;if(!t)return;Ns(t,{position:"fixed",zIndex:this.container.actualOptions.fullScreen.zIndex.toString(10),top:"0",left:"0",width:"100%",height:"100%"},!0)},this.size={height:0,width:0},this._context=null,this._generated=!1,this._preDrawUpdaters=[],this._postDrawUpdaters=[],this._resizePlugins=[],this._colorPlugins=[]}get _fullScreen(){return this.container.actualOptions.fullScreen.enable}clear(){let e=this.container.actualOptions,t=e.particles.move.trail,n=this._trailFill;e.backgroundMask.enable?this.paint():t.enable&&t.length>0&&n?n.color?this._paintBase(ie(n.color,n.opacity)):n.image&&this._paintImage(n.image,n.opacity):e.clear&&this.draw(i=>{Vo(i,this.size)})}destroy(){this.stop(),this._generated?this.element?.remove():this._resetOriginalStyle(),this._preDrawUpdaters=[],this._postDrawUpdaters=[],this._resizePlugins=[],this._colorPlugins=[]}draw(e){let t=this._context;if(t)return e(t)}drawAsync(e){let t=this._context;if(t)return e(t)}drawParticle(e,t){if(e.spawning||e.destroyed)return;let n=e.getRadius();if(n<=0)return;let i=e.getFillColor(),a=e.getStrokeColor()??i,[s,c]=this._getPluginParticleColors(e);s||(s=i),c||(c=a),!(!s&&!c)&&this.draw(d=>{let l=this.container,m=l.actualOptions,f=e.options.zIndex,b=1,p=b-e.zIndexFactor,u=p**f.opacityRate,v=1,F=e.bubble.opacity??e.opacity?.value??v,w=e.strokeOpacity??F,k=F*u,x=w*u,M={},E={fill:s?ze(s,k):void 0};E.stroke=c?ze(c,x):E.fill,this._applyPreDrawUpdaters(d,e,n,k,E,M),Ls({container:l,context:d,particle:e,delta:t,colorStyles:E,backgroundMask:m.backgroundMask.enable,composite:m.backgroundMask.composite,radius:n*p**f.sizeRate,opacity:k,shadow:e.options.shadow,transform:M}),this._applyPostDrawUpdaters(e)})}drawParticlePlugin(e,t,n){this.draw(r=>qs(r,e,t,n))}drawPlugin(e,t){this.draw(n=>js(n,e,t))}async init(){this._safeMutationObserver(e=>e.disconnect()),this._mutationObserver=zs(e=>{for(let t of e)t.type==="attributes"&&t.attributeName==="style"&&this._repairStyle()}),this.resize(),this._initStyle(),await this._initCover();try{await this._initTrail()}catch(e){ve().error(e)}this.initBackground(),this._safeMutationObserver(e=>{!this.element||!(this.element instanceof Node)||e.observe(this.element,{attributes:!0})}),this.initUpdaters(),this.initPlugins(),this.paint()}initBackground(){let e=this.container.actualOptions,t=e.background,n=this.element;if(!n)return;let r=n.style;if(r){if(t.color){let i=oe(t.color);r.backgroundColor=i?ie(i,t.opacity):""}else r.backgroundColor="";r.backgroundImage=t.image||"",r.backgroundPosition=t.position||"",r.backgroundRepeat=t.repeat||"",r.backgroundSize=t.size||""}}initPlugins(){this._resizePlugins=[];for(let[,e]of this.container.plugins)e.resize&&this._resizePlugins.push(e),(e.particleFillColor??e.particleStrokeColor)&&this._colorPlugins.push(e)}initUpdaters(){this._preDrawUpdaters=[],this._postDrawUpdaters=[];for(let e of this.container.particles.updaters)e.afterDraw&&this._postDrawUpdaters.push(e),(e.getColorStyles??e.getTransformValues??e.beforeDraw)&&this._preDrawUpdaters.push(e)}loadCanvas(e){this._generated&&this.element&&this.element.remove(),this._generated=e.dataset&&Pe in e.dataset?e.dataset[Pe]==="true":this._generated,this.element=e,this.element.ariaHidden="true",this._originalStyle=B({},this.element.style),this.size.height=e.offsetHeight,this.size.width=e.offsetWidth,this._context=this.element.getContext("2d"),this._safeMutationObserver(t=>{!this.element||!(this.element instanceof Node)||t.observe(this.element,{attributes:!0})}),this.container.retina.init(),this.initBackground()}paint(){let e=this.container.actualOptions;this.draw(t=>{e.backgroundMask.enable&&e.backgroundMask.cover?(Vo(t,this.size),this._coverImage?this._paintImage(this._coverImage.image,this._coverImage.opacity):this._coverColorStyle?this._paintBase(this._coverColorStyle):this._paintBase()):this._paintBase()})}resize(){if(!this.element)return!1;let e=this.container,t=e.retina.pixelRatio,n=e.canvas.size,r={width:this.element.offsetWidth*t,height:this.element.offsetHeight*t};if(r.height===n.height&&r.width===n.width&&r.height===this.element.height&&r.width===this.element.width)return!1;let i={...n};return this.element.width=n.width=this.element.offsetWidth*t,this.element.height=n.height=this.element.offsetHeight*t,this.container.started&&e.particles.setResizeFactor({width:n.width/i.width,height:n.height/i.height}),!0}stop(){this._safeMutationObserver(e=>e.disconnect()),this._mutationObserver=void 0,this.draw(e=>Vo(e,this.size))}async windowResize(){if(!this.element||!this.resize())return;let e=this.container,t=e.updateActualOptions();e.particles.setDensity(),this._applyResizePlugins(),t&&await e.refresh()}};var Ye;(function(o){o.canvas="canvas",o.parent="parent",o.window="window"})(Ye||(Ye={}));var $s=2;function xe(o,e,t,n,r){if(n){let i={passive:!0};ko(r)?i.capture=r:r!==void 0&&(i=r),o.addEventListener(e,t,i)}else{let i=r;o.removeEventListener(e,t,i)}}var $o=class{constructor(e){this.container=e,this._doMouseTouchClick=t=>{let n=this.container,r=n.actualOptions;if(this._canPush){let i=n.interactivity.mouse,a=i.position;if(!a)return;i.clickPosition={...a},i.clickTime=new Date().getTime();let s=r.interactivity.events.onClick;D(s.mode,c=>this.container.handleClickMode(c))}t.type==="touchend"&&setTimeout(()=>this._mouseTouchFinish(),500)},this._handleThemeChange=t=>{let n=t,r=this.container,i=r.options,a=i.defaultThemes,s=n.matches?a.dark:a.light;i.themes.find(d=>d.name===s)?.default.auto&&r.loadTheme(s)},this._handleVisibilityChange=()=>{let t=this.container,n=t.actualOptions;this._mouseTouchFinish(),n.pauseOnBlur&&(document?.hidden?(t.pageHidden=!0,t.pause()):(t.pageHidden=!1,t.animationStatus?t.play(!0):t.draw(!0)))},this._handleWindowResize=()=>{this._resizeTimeout&&(clearTimeout(this._resizeTimeout),delete this._resizeTimeout);let t=async()=>{await this.container.canvas?.windowResize()};this._resizeTimeout=setTimeout(()=>void t(),this.container.actualOptions.interactivity.events.resize.delay*1e3)},this._manageInteractivityListeners=(t,n)=>{let r=this._handlers,i=this.container,a=i.actualOptions,s=i.interactivity.element;if(!s)return;let c=s,d=i.canvas.element;d&&(d.style.pointerEvents=c===d?"initial":"none"),(a.interactivity.events.onHover.enable||a.interactivity.events.onClick.enable)&&(xe(s,ue,r.mouseMove,n),xe(s,us,r.touchStart,n),xe(s,hs,r.touchMove,n),a.interactivity.events.onClick.enable?(xe(s,Fa,r.touchEndClick,n),xe(s,bs,r.mouseUp,n),xe(s,fs,r.mouseDown,n)):xe(s,Fa,r.touchEnd,n),xe(s,t,r.mouseLeave,n),xe(s,gs,r.touchCancel,n))},this._manageListeners=t=>{let n=this._handlers,r=this.container,i=r.actualOptions,a=i.interactivity.detectsOn,s=r.canvas.element,c=Gt;a===Ye.window?(r.interactivity.element=window,c=ps):a===Ye.parent&&s?r.interactivity.element=s.parentElement??s.parentNode:r.interactivity.element=s,this._manageMediaMatch(t),this._manageResize(t),this._manageInteractivityListeners(c,t),document&&xe(document,vs,n.visibilityChange,t,!1)},this._manageMediaMatch=t=>{let n=this._handlers,r=zo("(prefers-color-scheme: dark)");if(r){if(r.addEventListener!==void 0){xe(r,"change",n.themeChange,t);return}r.addListener!==void 0&&(t?r.addListener(n.oldThemeChange):r.removeListener(n.oldThemeChange))}},this._manageResize=t=>{let n=this._handlers,r=this.container;if(!r.actualOptions.interactivity.events.resize)return;if(typeof ResizeObserver>"u"){xe(window,Fs,n.resize,t);return}let a=r.canvas.element;this._resizeObserver&&!t?(a&&this._resizeObserver.unobserve(a),this._resizeObserver.disconnect(),delete this._resizeObserver):!this._resizeObserver&&t&&a&&(this._resizeObserver=new ResizeObserver(s=>{s.find(d=>d.target===a)&&this._handleWindowResize()}),this._resizeObserver.observe(a))},this._mouseDown=()=>{let{interactivity:t}=this.container;if(!t)return;let{mouse:n}=t;n.clicking=!0,n.downPosition=n.position},this._mouseTouchClick=t=>{let n=this.container,r=n.actualOptions,{mouse:i}=n.interactivity;i.inside=!0;let a=!1,s=i.position;if(!(!s||!r.interactivity.events.onClick.enable)){for(let[,c]of n.plugins)if(c.clickPositionValid&&(a=c.clickPositionValid(s),a))break;a||this._doMouseTouchClick(t),i.clicking=!1}},this._mouseTouchFinish=()=>{let t=this.container.interactivity;if(!t)return;let n=t.mouse;delete n.position,delete n.clickPosition,delete n.downPosition,t.status=Gt,n.inside=!1,n.clicking=!1},this._mouseTouchMove=t=>{let n=this.container,r=n.actualOptions,i=n.interactivity,a=n.canvas.element;if(!i?.element)return;i.mouse.inside=!0;let s;if(t.type.startsWith("pointer")){this._canPush=!0;let d=t;if(i.element===window){if(a){let l=a.getBoundingClientRect();s={x:d.clientX-l.left,y:d.clientY-l.top}}}else if(r.interactivity.detectsOn===Ye.parent){let l=d.target,m=d.currentTarget;if(l&&m&&a){let f=l.getBoundingClientRect(),b=m.getBoundingClientRect(),p=a.getBoundingClientRect();s={x:d.offsetX+$s*f.left-(b.left+p.left),y:d.offsetY+$s*f.top-(b.top+p.top)}}else s={x:d.offsetX??d.clientX,y:d.offsetY??d.clientY}}else d.target===a&&(s={x:d.offsetX??d.clientX,y:d.offsetY??d.clientY})}else if(this._canPush=t.type!=="touchmove",a){let d=t,l=1,m=d.touches[d.touches.length-l],f=a.getBoundingClientRect(),b=0;s={x:m.clientX-(f.left??b),y:m.clientY-(f.top??b)}}let c=n.retina.pixelRatio;s&&(s.x*=c,s.y*=c),i.mouse.position=s,i.status=ue},this._touchEnd=t=>{let n=t,r=Array.from(n.changedTouches);for(let i of r)this._touches.delete(i.identifier);this._mouseTouchFinish()},this._touchEndClick=t=>{let n=t,r=Array.from(n.changedTouches);for(let i of r)this._touches.delete(i.identifier);this._mouseTouchClick(t)},this._touchStart=t=>{let n=t,r=Array.from(n.changedTouches);for(let i of r)this._touches.set(i.identifier,performance.now());this._mouseTouchMove(t)},this._canPush=!0,this._touches=new Map,this._handlers={mouseDown:()=>this._mouseDown(),mouseLeave:()=>this._mouseTouchFinish(),mouseMove:t=>this._mouseTouchMove(t),mouseUp:t=>this._mouseTouchClick(t),touchStart:t=>this._touchStart(t),touchMove:t=>this._mouseTouchMove(t),touchEnd:t=>this._touchEnd(t),touchCancel:t=>this._touchEnd(t),touchEndClick:t=>this._touchEndClick(t),visibilityChange:()=>this._handleVisibilityChange(),themeChange:t=>this._handleThemeChange(t),oldThemeChange:t=>this._handleThemeChange(t),resize:()=>{this._handleWindowResize()}}}addListeners(){this._manageListeners(!0)}removeListeners(){this._manageListeners(!1)}};var ee;(function(o){o.configAdded="configAdded",o.containerInit="containerInit",o.particlesSetup="particlesSetup",o.containerStarted="containerStarted",o.containerStopped="containerStopped",o.containerDestroyed="containerDestroyed",o.containerPaused="containerPaused",o.containerPlay="containerPlay",o.containerBuilt="containerBuilt",o.particleAdded="particleAdded",o.particleDestroyed="particleDestroyed",o.particleRemoved="particleRemoved"})(ee||(ee={}));var _=class o{constructor(){this.value=""}static create(e,t){let n=new o;return n.load(e),t!==void 0&&(Fe(t)||V(t)?n.load({value:t}):n.load(t)),n}load(e){e?.value!==void 0&&(this.value=e.value)}};var Ho=class{constructor(){this.color=new _,this.color.value="",this.image="",this.position="",this.repeat="",this.size="",this.opacity=1}load(e){e&&(e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.image!==void 0&&(this.image=e.image),e.position!==void 0&&(this.position=e.position),e.repeat!==void 0&&(this.repeat=e.repeat),e.size!==void 0&&(this.size=e.size),e.opacity!==void 0&&(this.opacity=e.opacity))}};var Wo=class{constructor(){this.opacity=1}load(e){e&&(e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.image!==void 0&&(this.image=e.image),e.opacity!==void 0&&(this.opacity=e.opacity))}};var Uo=class{constructor(){this.composite="destination-out",this.cover=new Wo,this.enable=!1}load(e){if(e){if(e.composite!==void 0&&(this.composite=e.composite),e.cover!==void 0){let t=e.cover,n=Fe(e.cover)?{color:e.cover}:e.cover;this.cover.load(t.color!==void 0||t.image!==void 0?t:{color:n})}e.enable!==void 0&&(this.enable=e.enable)}}};var Go=class{constructor(){this.enable=!0,this.zIndex=0}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.zIndex!==void 0&&(this.zIndex=e.zIndex))}};var Ko=class{constructor(){this.enable=!1,this.mode=[]}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.mode!==void 0&&(this.mode=e.mode))}};var Oe;(function(o){o.circle="circle",o.rectangle="rectangle"})(Oe||(Oe={}));var Zt=class{constructor(){this.selectors=[],this.enable=!1,this.mode=[],this.type=Oe.circle}load(e){e&&(e.selectors!==void 0&&(this.selectors=e.selectors),e.enable!==void 0&&(this.enable=e.enable),e.mode!==void 0&&(this.mode=e.mode),e.type!==void 0&&(this.type=e.type))}};var Xo=class{constructor(){this.enable=!1,this.force=2,this.smooth=10}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.force!==void 0&&(this.force=e.force),e.smooth!==void 0&&(this.smooth=e.smooth))}};var Yo=class{constructor(){this.enable=!1,this.mode=[],this.parallax=new Xo}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.mode!==void 0&&(this.mode=e.mode),this.parallax.load(e.parallax))}};var Qo=class{constructor(){this.delay=.5,this.enable=!0}load(e){e!==void 0&&(e.delay!==void 0&&(this.delay=e.delay),e.enable!==void 0&&(this.enable=e.enable))}};var Zo=class{constructor(){this.onClick=new Ko,this.onDiv=new Zt,this.onHover=new Yo,this.resize=new Qo}load(e){if(!e)return;this.onClick.load(e.onClick);let t=e.onDiv;t!==void 0&&(this.onDiv=D(t,n=>{let r=new Zt;return r.load(n),r})),this.onHover.load(e.onHover),this.resize.load(e.resize)}};var Jo=class{constructor(e,t){this._engine=e,this._container=t}load(e){if(!e||!this._container)return;let t=this._engine.interactors.get(this._container);if(t)for(let n of t)n.loadModeOptions&&n.loadModeOptions(this,e)}};var ht=class{constructor(e,t){this.detectsOn=Ye.window,this.events=new Zo,this.modes=new Jo(e,t)}load(e){if(!e)return;let t=e.detectsOn;t!==void 0&&(this.detectsOn=t),this.events.load(e.events),this.modes.load(e.modes)}};var Hs=50,en=class{load(e){e&&(e.position&&(this.position={x:e.position.x??Hs,y:e.position.y??Hs,mode:e.position.mode??te.percent}),e.options&&(this.options=B({},e.options)))}};var je;(function(o){o.screen="screen",o.canvas="canvas"})(je||(je={}));var tn=class{constructor(){this.maxWidth=1/0,this.options={},this.mode=je.canvas}load(e){e&&(e.maxWidth!==void 0&&(this.maxWidth=e.maxWidth),e.mode!==void 0&&(e.mode===je.screen?this.mode=je.screen:this.mode=je.canvas),e.options!==void 0&&(this.options=B({},e.options)))}};var _e;(function(o){o.any="any",o.dark="dark",o.light="light"})(_e||(_e={}));var on=class{constructor(){this.auto=!1,this.mode=_e.any,this.value=!1}load(e){e&&(e.auto!==void 0&&(this.auto=e.auto),e.mode!==void 0&&(this.mode=e.mode),e.value!==void 0&&(this.value=e.value))}};var nn=class{constructor(){this.name="",this.default=new on}load(e){e&&(e.name!==void 0&&(this.name=e.name),this.default.load(e.default),e.options!==void 0&&(this.options=B({},e.options)))}};var nt=class{constructor(){this.count=0,this.enable=!1,this.speed=1,this.decay=0,this.delay=0,this.sync=!1}load(e){e&&(e.count!==void 0&&(this.count=g(e.count)),e.enable!==void 0&&(this.enable=e.enable),e.speed!==void 0&&(this.speed=g(e.speed)),e.decay!==void 0&&(this.decay=g(e.decay)),e.delay!==void 0&&(this.delay=g(e.delay)),e.sync!==void 0&&(this.sync=e.sync))}},Qe=class extends nt{constructor(){super(),this.mode=Le.auto,this.startValue=We.random}load(e){super.load(e),e&&(e.mode!==void 0&&(this.mode=e.mode),e.startValue!==void 0&&(this.startValue=e.startValue))}};var gt=class extends nt{constructor(){super(),this.offset=0,this.sync=!0}load(e){super.load(e),e&&e.offset!==void 0&&(this.offset=g(e.offset))}};var rn=class{constructor(){this.h=new gt,this.s=new gt,this.l=new gt}load(e){e&&(this.h.load(e.h),this.s.load(e.s),this.l.load(e.l))}};var qe=class o extends _{constructor(){super(),this.animation=new rn}static create(e,t){let n=new o;return n.load(e),t!==void 0&&(Fe(t)||V(t)?n.load({value:t}):n.load(t)),n}load(e){if(super.load(e),!e)return;let t=e.animation;t!==void 0&&(t.enable!==void 0?this.animation.h.load(t):this.animation.load(e.animation))}};var Ze;(function(o){o.absorb="absorb",o.bounce="bounce",o.destroy="destroy"})(Ze||(Ze={}));var an=class{constructor(){this.speed=2}load(e){e&&e.speed!==void 0&&(this.speed=e.speed)}};var sn=class{constructor(){this.enable=!0,this.retries=0}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.retries!==void 0&&(this.retries=e.retries))}};var W=class{constructor(){this.value=0}load(e){e&&e.value!==void 0&&(this.value=g(e.value))}},za=class extends W{constructor(){super(),this.animation=new nt}load(e){if(super.load(e),!e)return;let t=e.animation;t!==void 0&&this.animation.load(t)}},Ft=class extends za{constructor(){super(),this.animation=new Qe}load(e){super.load(e)}};var Jt=class extends W{constructor(){super(),this.value=1}};var vt=class{constructor(){this.horizontal=new Jt,this.vertical=new Jt}load(e){e&&(this.horizontal.load(e.horizontal),this.vertical.load(e.vertical))}};var cn=class{constructor(){this.absorb=new an,this.bounce=new vt,this.enable=!1,this.maxSpeed=50,this.mode=Ze.bounce,this.overlap=new sn}load(e){e&&(this.absorb.load(e.absorb),this.bounce.load(e.bounce),e.enable!==void 0&&(this.enable=e.enable),e.maxSpeed!==void 0&&(this.maxSpeed=g(e.maxSpeed)),e.mode!==void 0&&(this.mode=e.mode),this.overlap.load(e.overlap))}};var dn=class{constructor(){this.close=!0,this.fill=!0,this.options={},this.type=[]}load(e){if(!e)return;let t=e.options;if(t!==void 0)for(let n in t){let r=t[n];r&&(this.options[n]=B(this.options[n]??{},r))}e.close!==void 0&&(this.close=e.close),e.fill!==void 0&&(this.fill=e.fill),e.type!==void 0&&(this.type=e.type)}};var ln=class{constructor(){this.offset=0,this.value=90}load(e){e&&(e.offset!==void 0&&(this.offset=g(e.offset)),e.value!==void 0&&(this.value=g(e.value)))}};var mn=class{constructor(){this.distance=200,this.enable=!1,this.rotate={x:3e3,y:3e3}}load(e){if(e&&(e.distance!==void 0&&(this.distance=g(e.distance)),e.enable!==void 0&&(this.enable=e.enable),e.rotate)){let t=e.rotate.x;t!==void 0&&(this.rotate.x=t);let n=e.rotate.y;n!==void 0&&(this.rotate.y=n)}}};var fn=class{constructor(){this.x=50,this.y=50,this.mode=te.percent,this.radius=0}load(e){e&&(e.x!==void 0&&(this.x=e.x),e.y!==void 0&&(this.y=e.y),e.mode!==void 0&&(this.mode=e.mode),e.radius!==void 0&&(this.radius=e.radius))}};var bn=class{constructor(){this.acceleration=9.81,this.enable=!1,this.inverse=!1,this.maxSpeed=50}load(e){e&&(e.acceleration!==void 0&&(this.acceleration=g(e.acceleration)),e.enable!==void 0&&(this.enable=e.enable),e.inverse!==void 0&&(this.inverse=e.inverse),e.maxSpeed!==void 0&&(this.maxSpeed=g(e.maxSpeed)))}};var pn=class{constructor(){this.clamp=!0,this.delay=new W,this.enable=!1,this.options={}}load(e){e&&(e.clamp!==void 0&&(this.clamp=e.clamp),this.delay.load(e.delay),e.enable!==void 0&&(this.enable=e.enable),this.generator=e.generator,e.options&&(this.options=B(this.options,e.options)))}};var un=class{load(e){e&&(e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.image!==void 0&&(this.image=e.image))}};var hn=class{constructor(){this.enable=!1,this.length=10,this.fill=new un}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.fill!==void 0&&this.fill.load(e.fill),e.length!==void 0&&(this.length=e.length))}};var T;(function(o){o.bounce="bounce",o.none="none",o.out="out",o.destroy="destroy",o.split="split"})(T||(T={}));var gn=class{constructor(){this.default=T.out}load(e){e&&(e.default!==void 0&&(this.default=e.default),this.bottom=e.bottom??e.default,this.left=e.left??e.default,this.right=e.right??e.default,this.top=e.top??e.default)}};var Fn=class{constructor(){this.acceleration=0,this.enable=!1}load(e){e&&(e.acceleration!==void 0&&(this.acceleration=g(e.acceleration)),e.enable!==void 0&&(this.enable=e.enable),e.position&&(this.position=B({},e.position)))}};var vn=class{constructor(){this.angle=new ln,this.attract=new mn,this.center=new fn,this.decay=0,this.distance={},this.direction=Z.none,this.drift=0,this.enable=!1,this.gravity=new bn,this.path=new pn,this.outModes=new gn,this.random=!1,this.size=!1,this.speed=2,this.spin=new Fn,this.straight=!1,this.trail=new hn,this.vibrate=!1,this.warp=!1}load(e){if(!e)return;this.angle.load(X(e.angle)?{value:e.angle}:e.angle),this.attract.load(e.attract),this.center.load(e.center),e.decay!==void 0&&(this.decay=g(e.decay)),e.direction!==void 0&&(this.direction=e.direction),e.distance!==void 0&&(this.distance=X(e.distance)?{horizontal:e.distance,vertical:e.distance}:{...e.distance}),e.drift!==void 0&&(this.drift=g(e.drift)),e.enable!==void 0&&(this.enable=e.enable),this.gravity.load(e.gravity);let t=e.outModes;t!==void 0&&(Ie(t)?this.outModes.load(t):this.outModes.load({default:t})),this.path.load(e.path),e.random!==void 0&&(this.random=e.random),e.size!==void 0&&(this.size=e.size),e.speed!==void 0&&(this.speed=g(e.speed)),this.spin.load(e.spin),e.straight!==void 0&&(this.straight=e.straight),this.trail.load(e.trail),e.vibrate!==void 0&&(this.vibrate=e.vibrate),e.warp!==void 0&&(this.warp=e.warp)}};var xn=class extends Qe{constructor(){super(),this.destroy=he.none,this.speed=2}load(e){super.load(e),e&&e.destroy!==void 0&&(this.destroy=e.destroy)}};var wn=class extends Ft{constructor(){super(),this.animation=new xn,this.value=1}load(e){if(!e)return;super.load(e);let t=e.animation;t!==void 0&&this.animation.load(t)}};var yn=class{constructor(){this.enable=!1,this.width=1920,this.height=1080}load(e){if(!e)return;e.enable!==void 0&&(this.enable=e.enable);let t=e.width;t!==void 0&&(this.width=t);let n=e.height;n!==void 0&&(this.height=n)}};var rt;(function(o){o.delete="delete",o.wait="wait"})(rt||(rt={}));var kn=class{constructor(){this.mode=rt.delete,this.value=0}load(e){e&&(e.mode!==void 0&&(this.mode=e.mode),e.value!==void 0&&(this.value=e.value))}};var Cn=class{constructor(){this.density=new yn,this.limit=new kn,this.value=0}load(e){e&&(this.density.load(e.density),this.limit.load(e.limit),e.value!==void 0&&(this.value=e.value))}};var An=class{constructor(){this.blur=0,this.color=new _,this.enable=!1,this.offset={x:0,y:0},this.color.value="#000"}load(e){e&&(e.blur!==void 0&&(this.blur=e.blur),this.color=_.create(this.color,e.color),e.enable!==void 0&&(this.enable=e.enable),e.offset!==void 0&&(e.offset.x!==void 0&&(this.offset.x=e.offset.x),e.offset.y!==void 0&&(this.offset.y=e.offset.y)))}};var Bn=class{constructor(){this.close=!0,this.fill=!0,this.options={},this.type="circle"}load(e){if(!e)return;let t=e.options;if(t!==void 0)for(let n in t){let r=t[n];r&&(this.options[n]=B(this.options[n]??{},r))}e.close!==void 0&&(this.close=e.close),e.fill!==void 0&&(this.fill=e.fill),e.type!==void 0&&(this.type=e.type)}};var En=class extends Qe{constructor(){super(),this.destroy=he.none,this.speed=5}load(e){super.load(e),e&&e.destroy!==void 0&&(this.destroy=e.destroy)}};var Dn=class extends Ft{constructor(){super(),this.animation=new En,this.value=3}load(e){if(super.load(e),!e)return;let t=e.animation;t!==void 0&&this.animation.load(t)}};var eo=class{constructor(){this.width=0}load(e){e&&(e.color!==void 0&&(this.color=qe.create(this.color,e.color)),e.width!==void 0&&(this.width=g(e.width)),e.opacity!==void 0&&(this.opacity=g(e.opacity)))}};var zn=class extends W{constructor(){super(),this.opacityRate=1,this.sizeRate=1,this.velocityRate=1}load(e){super.load(e),e&&(e.opacityRate!==void 0&&(this.opacityRate=e.opacityRate),e.sizeRate!==void 0&&(this.sizeRate=e.sizeRate),e.velocityRate!==void 0&&(this.velocityRate=e.velocityRate))}};var On=class{constructor(e,t){this._engine=e,this._container=t,this.bounce=new vt,this.collisions=new cn,this.color=new qe,this.color.value="#fff",this.effect=new dn,this.groups={},this.move=new vn,this.number=new Cn,this.opacity=new wn,this.reduceDuplicates=!1,this.shadow=new An,this.shape=new Bn,this.size=new Dn,this.stroke=new eo,this.zIndex=new zn}load(e){if(!e)return;if(e.groups!==void 0)for(let n of Object.keys(e.groups)){if(!Object.hasOwn(e.groups,n))continue;let r=e.groups[n];r!==void 0&&(this.groups[n]=B(this.groups[n]??{},r))}e.reduceDuplicates!==void 0&&(this.reduceDuplicates=e.reduceDuplicates),this.bounce.load(e.bounce),this.color.load(qe.create(this.color,e.color)),this.effect.load(e.effect),this.move.load(e.move),this.number.load(e.number),this.opacity.load(e.opacity),this.shape.load(e.shape),this.size.load(e.size),this.shadow.load(e.shadow),this.zIndex.load(e.zIndex),this.collisions.load(e.collisions),e.interactivity!==void 0&&(this.interactivity=B({},e.interactivity));let t=e.stroke;if(t&&(this.stroke=D(t,n=>{let r=new eo;return r.load(n),r})),this._container){let n=this._engine.updaters.get(this._container);if(n)for(let i of n)i.loadOptions&&i.loadOptions(this,e);let r=this._engine.interactors.get(this._container);if(r)for(let i of r)i.loadParticlesOptions&&i.loadParticlesOptions(this,e)}}};function Oa(o,...e){for(let t of e)o.load(t)}function xt(o,e,...t){let n=new On(o,e);return Oa(n,...t),n}var _n=class{constructor(e,t){this._findDefaultTheme=n=>this.themes.find(r=>r.default.value&&r.default.mode===n)??this.themes.find(r=>r.default.value&&r.default.mode===_e.any),this._importPreset=n=>{this.load(this._engine.getPreset(n))},this._engine=e,this._container=t,this.autoPlay=!0,this.background=new Ho,this.backgroundMask=new Uo,this.clear=!0,this.defaultThemes={},this.delay=0,this.fullScreen=new Go,this.detectRetina=!0,this.duration=0,this.fpsLimit=120,this.interactivity=new ht(e,t),this.manualParticles=[],this.particles=xt(this._engine,this._container),this.pauseOnBlur=!0,this.pauseOnOutsideViewport=!0,this.responsive=[],this.smooth=!1,this.style={},this.themes=[],this.zLayers=100}load(e){if(!e)return;e.preset!==void 0&&D(e.preset,a=>this._importPreset(a)),e.autoPlay!==void 0&&(this.autoPlay=e.autoPlay),e.clear!==void 0&&(this.clear=e.clear),e.key!==void 0&&(this.key=e.key),e.name!==void 0&&(this.name=e.name),e.delay!==void 0&&(this.delay=g(e.delay));let t=e.detectRetina;t!==void 0&&(this.detectRetina=t),e.duration!==void 0&&(this.duration=g(e.duration));let n=e.fpsLimit;n!==void 0&&(this.fpsLimit=n),e.pauseOnBlur!==void 0&&(this.pauseOnBlur=e.pauseOnBlur),e.pauseOnOutsideViewport!==void 0&&(this.pauseOnOutsideViewport=e.pauseOnOutsideViewport),e.zLayers!==void 0&&(this.zLayers=e.zLayers),this.background.load(e.background);let r=e.fullScreen;ko(r)?this.fullScreen.enable=r:this.fullScreen.load(r),this.backgroundMask.load(e.backgroundMask),this.interactivity.load(e.interactivity),e.manualParticles&&(this.manualParticles=e.manualParticles.map(a=>{let s=new en;return s.load(a),s})),this.particles.load(e.particles),this.style=B(this.style,e.style),this._engine.loadOptions(this,e),e.smooth!==void 0&&(this.smooth=e.smooth);let i=this._engine.interactors.get(this._container);if(i)for(let a of i)a.loadOptions&&a.loadOptions(this,e);if(e.responsive!==void 0)for(let a of e.responsive){let s=new tn;s.load(a),this.responsive.push(s)}if(this.responsive.sort((a,s)=>a.maxWidth-s.maxWidth),e.themes!==void 0)for(let a of e.themes){let s=this.themes.find(c=>c.name===a.name);if(s)s.load(a);else{let c=new nn;c.load(a),this.themes.push(c)}}this.defaultThemes.dark=this._findDefaultTheme(_e.dark)?.name,this.defaultThemes.light=this._findDefaultTheme(_e.light)?.name}setResponsive(e,t,n){this.load(n);let r=this.responsive.find(i=>i.mode===je.screen&&screen?i.maxWidth>screen.availWidth:i.maxWidth*t>e);return this.load(r?.options),r?.maxWidth}setTheme(e){if(e){let t=this.themes.find(n=>n.name===e);t&&this.load(t.options)}else{let t=zo("(prefers-color-scheme: dark)"),n=t?.matches,r=this._findDefaultTheme(n?_e.dark:_e.light);r&&this.load(r.options)}}};var Ve;(function(o){o.external="external",o.particles="particles"})(Ve||(Ve={}));var Mn=class{constructor(e,t){this.container=t,this._engine=e,this._interactors=[],this._externalInteractors=[],this._particleInteractors=[]}externalInteract(e){for(let t of this._externalInteractors)t.isEnabled()&&t.interact(e)}handleClickMode(e){for(let t of this._externalInteractors)t.handleClickMode?.(e)}async init(){this._interactors=await this._engine.getInteractors(this.container,!0),this._externalInteractors=[],this._particleInteractors=[];for(let e of this._interactors){switch(e.type){case Ve.external:this._externalInteractors.push(e);break;case Ve.particles:this._particleInteractors.push(e);break}e.init()}}particlesInteract(e,t){for(let n of this._externalInteractors)n.clear(e,t);for(let n of this._particleInteractors)n.isEnabled(e)&&n.interact(e,t)}reset(e){for(let t of this._externalInteractors)t.isEnabled()&&t.reset(e);for(let t of this._particleInteractors)t.isEnabled(e)&&t.reset(e)}};var me;(function(o){o.normal="normal",o.inside="inside",o.outside="outside"})(me||(me={}));var Ws=0,_a=2,Rn=.5,Sm=2,Us="random";function Tm(o,e,t,n){let r=e.options[o];if(r)return B({close:e.close,fill:e.fill},P(r,t,n))}function Pm(o,e,t,n){let r=e.options[o];if(r)return B({close:e.close,fill:e.fill},P(r,t,n))}function Gs(o){if(!A(o.outMode,o.checkModes))return;let e=o.radius*_a;o.coord>o.maxCoord-e?o.setCb(-o.radius):o.coord<e&&o.setCb(o.radius)}var Sn=class{constructor(e,t){this.container=t,this._calcPosition=(n,r,i,a=Ws)=>{for(let[,p]of n.plugins){let u=p.particlePosition!==void 0?p.particlePosition(r,this):void 0;if(u)return mt.create(u.x,u.y,i)}let s=n.canvas.size,c=Bs({size:s,position:r}),d=mt.create(c.x,c.y,i),l=this.getRadius(),m=this.options.move.outModes,f=p=>{Gs({outMode:p,checkModes:[T.bounce],coord:d.x,maxCoord:n.canvas.size.width,setCb:u=>d.x+=u,radius:l})},b=p=>{Gs({outMode:p,checkModes:[T.bounce],coord:d.y,maxCoord:n.canvas.size.height,setCb:u=>d.y+=u,radius:l})};return f(m.left??m.default),f(m.right??m.default),b(m.top??m.default),b(m.bottom??m.default),this._checkOverlap(d,a)?this._calcPosition(n,void 0,i,a+1):d},this._calculateVelocity=()=>{let n=As(this.direction),r=n.copy(),i=this.options.move;if(i.direction===Z.inside||i.direction===Z.outside)return r;let a=le(h(i.angle.value)),s=le(h(i.angle.offset)),c={left:s-a*Rn,right:s+a*Rn};return i.straight||(r.angle+=N(g(c.left,c.right))),i.random&&typeof i.speed=="number"&&(r.length*=y()),r},this._checkOverlap=(n,r=Ws)=>{let i=this.options.collisions,a=this.getRadius();if(!i.enable)return!1;let s=i.overlap;if(s.enable)return!1;let c=s.retries;if(c>=0&&r>c)throw new Error(`${Q} particle is overlapping and can't be placed`);return!!this.container.particles.find(l=>L(n,l.position)<a+l.getRadius())},this._getRollColor=n=>{if(!n||!this.roll||!this.backColor&&!this.roll.alter)return n;let r=1,i=0,a=this.roll.horizontal&&this.roll.vertical?_a*r:r,s=this.roll.horizontal?Math.PI*Rn:i;return Math.floor(((this.roll.angle??i)+s)/(Math.PI/a))%_a?this.backColor?this.backColor:this.roll.alter?Vs(n,this.roll.alter.type,this.roll.alter.value):n:n},this._initPosition=n=>{let r=this.container,i=h(this.options.zIndex.value),a=0;this.position=this._calcPosition(r,n,Y(i,a,r.zLayers)),this.initialPosition=this.position.copy();let s=r.canvas.size,c=0;switch(this.moveCenter={...Ro(this.options.move.center,s),radius:this.options.move.center.radius??c,mode:this.options.move.center.mode??te.percent},this.direction=Cs(this.options.move.direction,this.position,this.moveCenter),this.options.move.direction){case Z.inside:this.outType=me.inside;break;case Z.outside:this.outType=me.outside;break}this.offset=z.origin},this._engine=e}destroy(e){if(this.unbreakable||this.destroyed)return;this.destroyed=!0,this.bubble.inRange=!1,this.slow.inRange=!1;let t=this.container,n=this.pathGenerator;t.shapeDrawers.get(this.shape)?.particleDestroy?.(this);for(let[,i]of t.plugins)i.particleDestroyed?.(this,e);for(let i of t.particles.updaters)i.particleDestroyed?.(this,e);n?.reset(this),this._engine.dispatchEvent(ee.particleDestroyed,{container:this.container,data:{particle:this}})}draw(e){let t=this.container,n=t.canvas;for(let[,r]of t.plugins)n.drawParticlePlugin(r,this,e);n.drawParticle(this,e)}getFillColor(){return this._getRollColor(this.bubble.color??Da(this.color))}getMass(){return this.getRadius()**Sm*Math.PI*Rn}getPosition(){return{x:this.position.x+this.offset.x,y:this.position.y+this.offset.y,z:this.position.z}}getRadius(){return this.bubble.radius??this.size.value}getStrokeColor(){return this._getRollColor(this.bubble.color??Da(this.strokeColor))}init(e,t,n,r){let i=this.container,a=this._engine;this.id=e,this.group=r,this.effectClose=!0,this.effectFill=!0,this.shapeClose=!0,this.shapeFill=!0,this.pathRotation=!1,this.lastPathTime=0,this.destroyed=!1,this.unbreakable=!1,this.isRotating=!1,this.rotation=0,this.misplaced=!1,this.retina={maxDistance:{}},this.outType=me.normal,this.ignoresResizeRatio=!0;let s=i.retina.pixelRatio,c=i.actualOptions,d=xt(this._engine,i,c.particles),{reduceDuplicates:l}=d,m=d.effect.type,f=d.shape.type;this.effect=P(m,this.id,l),this.shape=P(f,this.id,l);let b=d.effect,p=d.shape;if(n){if(n.effect?.type){let S=n.effect.type,G=P(S,this.id,l);G&&(this.effect=G,b.load(n.effect))}if(n.shape?.type){let S=n.shape.type,G=P(S,this.id,l);G&&(this.shape=G,p.load(n.shape))}}if(this.effect===Us){let S=[...this.container.effectDrawers.keys()];this.effect=S[Math.floor(Math.random()*S.length)]}if(this.shape===Us){let S=[...this.container.shapeDrawers.keys()];this.shape=S[Math.floor(Math.random()*S.length)]}this.effectData=Tm(this.effect,b,this.id,l),this.shapeData=Pm(this.shape,p,this.id,l),d.load(n);let u=this.effectData;u&&d.load(u.particles);let v=this.shapeData;v&&d.load(v.particles);let F=new ht(a,i);F.load(i.actualOptions.interactivity),F.load(d.interactivity),this.interactivity=F,this.effectFill=u?.fill??d.effect.fill,this.effectClose=u?.close??d.effect.close,this.shapeFill=v?.fill??d.shape.fill,this.shapeClose=v?.close??d.shape.close,this.options=d;let w=this.options.move.path;this.pathDelay=h(w.delay.value)*1e3,w.generator&&(this.pathGenerator=this._engine.getPathGenerator(w.generator),this.pathGenerator&&i.addPath(w.generator,this.pathGenerator)&&this.pathGenerator.init(i)),i.retina.initParticle(this),this.size=Mo(this.options.size,s),this.bubble={inRange:!1},this.slow={inRange:!1,factor:1},this._initPosition(t),this.initialVelocity=this._calculateVelocity(),this.velocity=this.initialVelocity.copy();let k=1;this.moveDecay=k-h(this.options.move.decay);let x=i.particles;x.setLastZIndex(this.position.z),this.zIndexFactor=this.position.z/i.zLayers,this.sides=24;let M=i.effectDrawers.get(this.effect);M||(M=this._engine.getEffectDrawer(this.effect),M&&i.effectDrawers.set(this.effect,M)),M?.loadEffect&&M.loadEffect(this);let E=i.shapeDrawers.get(this.shape);E||(E=this._engine.getShapeDrawer(this.shape),E&&i.shapeDrawers.set(this.shape,E)),E?.loadShape&&E.loadShape(this);let ce=E?.getSidesCount;ce&&(this.sides=ce(this)),this.spawning=!1,this.shadowColor=oe(this.options.shadow.color);for(let S of x.updaters)S.init(this);for(let S of x.movers)S.init?.(this);M?.particleInit?.(i,this),E?.particleInit?.(i,this);for(let[,S]of i.plugins)S.particleCreated?.(this)}isInsideCanvas(){let e=this.getRadius(),t=this.container.canvas.size,n=this.position;return n.x>=-e&&n.y>=-e&&n.y<=t.height+e&&n.x<=t.width+e}isVisible(){return!this.destroyed&&!this.spawning&&this.isInsideCanvas()}reset(){for(let e of this.container.particles.updaters)e.reset?.(this)}};var Tn=class{constructor(e,t){this.position=e,this.particle=t}};var it;(function(o){o.circle="circle",o.rectangle="rectangle"})(it||(it={}));var to=2,Pn=class{constructor(e,t,n){this.position={x:e,y:t},this.type=n}},U=class o extends Pn{constructor(e,t,n){super(e,t,it.circle),this.radius=n}contains(e){return L(e,this.position)<=this.radius}intersects(e){let t=this.position,n=e.position,r={x:Math.abs(n.x-t.x),y:Math.abs(n.y-t.y)},i=this.radius;if(e instanceof o||e.type===it.circle){let a=e,s=i+a.radius,c=Math.sqrt(r.x**to+r.y**to);return s>c}else if(e instanceof ne||e.type===it.rectangle){let a=e,{width:s,height:c}=a.size;return Math.pow(r.x-s,to)+Math.pow(r.y-c,to)<=i**to||r.x<=i+s&&r.y<=i+c||r.x<=s||r.y<=c}return!1}},ne=class o extends Pn{constructor(e,t,n,r){super(e,t,it.rectangle),this.size={height:r,width:n}}contains(e){let t=this.size.width,n=this.size.height,r=this.position;return e.x>=r.x&&e.x<=r.x+t&&e.y>=r.y&&e.y<=r.y+n}intersects(e){if(e instanceof U)return e.intersects(this);let t=this.size.width,n=this.size.height,r=this.position,i=e.position,a=e instanceof o?e.size:{width:0,height:0},s=a.width,c=a.height;return i.x<r.x+t&&i.x+s>r.x&&i.y<r.y+n&&i.y+c>r.y}};var oo=.5,Im=2,Lm=4,no=class o{constructor(e,t){this.rectangle=e,this.capacity=t,this._subdivide=()=>{let{x:n,y:r}=this.rectangle.position,{width:i,height:a}=this.rectangle.size,{capacity:s}=this;for(let c=0;c<Lm;c++){let d=c%Im;this._subs.push(new o(new ne(n+i*oo*d,r+a*oo*(Math.round(c*oo)-d),i*oo,a*oo),s))}this._divided=!0},this._points=[],this._divided=!1,this._subs=[]}insert(e){return this.rectangle.contains(e.position)?this._points.length<this.capacity?(this._points.push(e),!0):(this._divided||this._subdivide(),this._subs.some(t=>t.insert(e))):!1}query(e,t){let n=[];if(!e.intersects(this.rectangle))return[];for(let r of this._points)!e.contains(r.position)&&L(e.position,r.position)>r.particle.getRadius()&&(!t||t(r.particle))||n.push(r.particle);if(this._divided)for(let r of this._subs)n.push(...r.query(e,t));return n}queryCircle(e,t,n){return this.query(new U(e.x,e.y,t),n)}queryRectangle(e,t,n){return this.query(new ne(e.x,e.y,t.width,t.height),n)}};var Ks=4,jm=2,qm=1,Xs=o=>{let{height:e,width:t}=o,n=-.25,r=1.5;return new ne(n*t,n*e,r*t,r*e)},In=class{constructor(e,t){this._addToPool=(...r)=>{this._pool.push(...r)},this._applyDensity=(r,i,a)=>{let s=r.number;if(!r.number.density?.enable){a===void 0?this._limit=s.limit.value:s.limit&&this._groupLimits.set(a,s.limit.value);return}let c=this._initDensityFactor(s.density),d=s.value,l=0,m=s.limit.value>l?s.limit.value:d,f=Math.min(d,m)*c+i,b=Math.min(this.count,this.filter(p=>p.group===a).length);a===void 0?this._limit=s.limit.value*c:this._groupLimits.set(a,s.limit.value*c),b<f?this.push(Math.abs(f-b),void 0,r,a):b>f&&this.removeQuantity(b-f,a)},this._initDensityFactor=r=>{let i=this._container,a=1;if(!i.canvas.element||!r.enable)return a;let s=i.canvas.element,c=i.retina.pixelRatio;return s.width*s.height/(r.height*r.width*c**jm)},this._pushParticle=(r,i,a,s)=>{try{let c=this._pool.pop();c||(c=new Sn(this._engine,this._container)),c.init(this._nextId,r,i,a);let d=!0;return s&&(d=s(c)),d?(this._array.push(c),this._zArray.push(c),this._nextId++,this._engine.dispatchEvent(ee.particleAdded,{container:this._container,data:{particle:c}}),c):void 0}catch(c){ve().warning(`${Q} adding particle: ${c}`)}},this._removeParticle=(r,i,a)=>{let s=this._array[r];if(!s||s.group!==i)return!1;let c=this._zArray.indexOf(s),d=1;return this._array.splice(r,d),this._zArray.splice(c,d),s.destroy(a),this._engine.dispatchEvent(ee.particleRemoved,{container:this._container,data:{particle:s}}),this._addToPool(s),!0},this._engine=e,this._container=t,this._nextId=0,this._array=[],this._zArray=[],this._pool=[],this._limit=0,this._groupLimits=new Map,this._needsSort=!1,this._lastZIndex=0,this._interactionManager=new Mn(e,t),this._pluginsInitialized=!1;let n=t.canvas.size;this.quadTree=new no(Xs(n),Ks),this.movers=[],this.updaters=[]}get count(){return this._array.length}addManualParticles(){let e=this._container;e.actualOptions.manualParticles.forEach(n=>this.addParticle(n.position?Ro(n.position,e.canvas.size):void 0,n.options))}addParticle(e,t,n,r){let i=this._container.actualOptions.particles.number.limit.mode,a=n===void 0?this._limit:this._groupLimits.get(n)??this._limit,s=this.count;if(a>0)switch(i){case rt.delete:{let m=s+1-a;m>0&&this.removeQuantity(m);break}case rt.wait:if(s>=a)return;break}return this._pushParticle(e,t,n,r)}clear(){this._array=[],this._zArray=[],this._pluginsInitialized=!1}destroy(){this._array=[],this._zArray=[],this.movers=[],this.updaters=[]}draw(e){let t=this._container,n=t.canvas;n.clear(),this.update(e);for(let[,r]of t.plugins)n.drawPlugin(r,e);for(let r of this._zArray)r.draw(e)}filter(e){return this._array.filter(e)}find(e){return this._array.find(e)}get(e){return this._array[e]}handleClickMode(e){this._interactionManager.handleClickMode(e)}async init(){let e=this._container,t=e.actualOptions;this._lastZIndex=0,this._needsSort=!1,await this.initPlugins();let n=!1;for(let[,r]of e.plugins)if(n=r.particlesInitialization?.()??n,n)break;if(this.addManualParticles(),!n){let r=t.particles,i=r.groups;for(let a in i){let s=i[a];for(let c=this.count,d=0;d<s.number?.value&&c<r.number.value;c++,d++)this.addParticle(void 0,s,a)}for(let a=this.count;a<r.number.value;a++)this.addParticle()}}async initPlugins(){if(this._pluginsInitialized)return;let e=this._container;this.movers=await this._engine.getMovers(e,!0),this.updaters=await this._engine.getUpdaters(e,!0),await this._interactionManager.init();for(let[,t]of e.pathGenerators)t.init(e)}push(e,t,n,r){for(let i=0;i<e;i++)this.addParticle(t?.position,n,r)}async redraw(){this.clear(),await this.init(),this.draw({value:0,factor:0})}remove(e,t,n){this.removeAt(this._array.indexOf(e),void 0,t,n)}removeAt(e,t=qm,n,r){if(e<0||e>this.count)return;let a=0;for(let s=e;a<t&&s<this.count;s++)this._removeParticle(s--,n,r)&&a++}removeQuantity(e,t){this.removeAt(0,e,t)}setDensity(){let e=this._container.actualOptions,t=e.particles.groups,n=0;for(let r in t)this._applyDensity(t[r],n,r);this._applyDensity(e.particles,e.manualParticles.length)}setLastZIndex(e){this._lastZIndex=e,this._needsSort=this._needsSort||this._lastZIndex<e}setResizeFactor(e){this._resizeFactor=e}update(e){let t=this._container,n=new Set;this.quadTree=new no(Xs(t.canvas.size),Ks);for(let[,i]of t.pathGenerators)i.update();for(let[,i]of t.plugins)i.update?.(e);let r=this._resizeFactor;for(let i of this._array){r&&!i.ignoresResizeRatio&&(i.position.x*=r.width,i.position.y*=r.height,i.initialPosition.x*=r.width,i.initialPosition.y*=r.height),i.ignoresResizeRatio=!1,this._interactionManager.reset(i);for(let[,a]of this._container.plugins){if(i.destroyed)break;a.particleUpdate?.(i,e)}for(let a of this.movers)a.isEnabled(i)&&a.move(i,e);if(i.destroyed){n.add(i);continue}this.quadTree.insert(new Tn(i.getPosition(),i))}if(n.size){let i=a=>!n.has(a);this._array=this.filter(i),this._zArray=this._zArray.filter(i);for(let a of n)this._engine.dispatchEvent(ee.particleRemoved,{container:this._container,data:{particle:a}});this._addToPool(...n)}this._interactionManager.externalInteract(e);for(let i of this._array){for(let a of this.updaters)a.update(i,e);!i.destroyed&&!i.spawning&&this._interactionManager.particlesInteract(i,e)}if(delete this._resizeFactor,this._needsSort){let i=this._zArray;i.sort((s,c)=>c.position.z-s.position.z||s.id-c.id);let a=1;this._lastZIndex=i[i.length-a].position.z,this._needsSort=!1}}};var Ys=1,Qs=1,Ln=class{constructor(e){this.container=e,this.pixelRatio=Ys,this.reduceFactor=Qs}init(){let e=this.container,t=e.actualOptions;this.pixelRatio=!t.detectRetina||Be()?Ys:window.devicePixelRatio,this.reduceFactor=Qs;let n=this.pixelRatio,r=e.canvas;if(r.element){let s=r.element;r.size.width=s.offsetWidth*n,r.size.height=s.offsetHeight*n}let i=t.particles,a=i.move;this.maxSpeed=h(a.gravity.maxSpeed)*n,this.sizeAnimationSpeed=h(i.size.animation.speed)*n}initParticle(e){let t=e.options,n=this.pixelRatio,r=t.move,i=r.distance,a=e.retina;a.moveDrift=h(r.drift)*n,a.moveSpeed=h(r.speed)*n,a.sizeAnimationSpeed=h(t.size.animation.speed)*n;let s=a.maxDistance;s.horizontal=i.horizontal!==void 0?i.horizontal*n:void 0,s.vertical=i.vertical!==void 0?i.vertical*n:void 0,a.maxSpeed=h(r.gravity.maxSpeed)*n}};function K(o){return o&&!o.destroyed}var Ma=60;function Vm(o,e=Ma,t=!1){return{value:o,factor:t?Ma/e:Ma*o/1e3}}function wt(o,e,...t){let n=new _n(o,e);return Oa(n,...t),n}var jn=class{constructor(e,t,n){this._intersectionManager=r=>{if(!(!K(this)||!this.actualOptions.pauseOnOutsideViewport))for(let i of r)i.target===this.interactivity.element&&(i.isIntersecting?this.play():this.pause())},this._nextFrame=r=>{try{if(!this._smooth&&this._lastFrameTime!==void 0&&r<this._lastFrameTime+1e3/this.fpsLimit){this.draw(!1);return}this._lastFrameTime??(this._lastFrameTime=r);let i=Vm(r-this._lastFrameTime,this.fpsLimit,this._smooth);if(this.addLifeTime(i.value),this._lastFrameTime=r,i.value>1e3){this.draw(!1);return}if(this.particles.draw(i),!this.alive()){this.destroy();return}this.animationStatus&&this.draw(!1)}catch(i){ve().error(`${Q} in animation loop`,i)}},this._engine=e,this.id=Symbol(t),this.fpsLimit=120,this._smooth=!1,this._delay=0,this._duration=0,this._lifeTime=0,this._firstStart=!0,this.started=!1,this.destroyed=!1,this._paused=!0,this._lastFrameTime=0,this.zLayers=100,this.pageHidden=!1,this._clickHandlers=new Map,this._sourceOptions=n,this._initialSourceOptions=n,this.retina=new Ln(this),this.canvas=new No(this),this.particles=new In(this._engine,this),this.pathGenerators=new Map,this.interactivity={mouse:{clicking:!1,inside:!1}},this.plugins=new Map,this.effectDrawers=new Map,this.shapeDrawers=new Map,this._options=wt(this._engine,this),this.actualOptions=wt(this._engine,this),this._eventListeners=new $o(this),this._intersectionObserver=Ds(r=>this._intersectionManager(r)),this._engine.dispatchEvent(ee.containerBuilt,{container:this})}get animationStatus(){return!this._paused&&!this.pageHidden&&K(this)}get options(){return this._options}get sourceOptions(){return this._sourceOptions}addClickHandler(e){if(!K(this))return;let t=this.interactivity.element;if(!t)return;let n=(m,f,b)=>{if(!K(this))return;let p=this.retina.pixelRatio,u={x:f.x*p,y:f.y*p},v=this.particles.quadTree.queryCircle(u,b*p);e(m,v)},r=m=>{if(!K(this))return;let f=m,b={x:f.offsetX||f.clientX,y:f.offsetY||f.clientY};n(m,b,1)},i=()=>{K(this)&&(d=!0,l=!1)},a=()=>{K(this)&&(l=!0)},s=m=>{if(K(this)){if(d&&!l){let f=m,b=1,p=f.touches[f.touches.length-b];if(!p&&(p=f.changedTouches[f.changedTouches.length-b],!p))return;let u=this.canvas.element,v=u?u.getBoundingClientRect():void 0,F=0,w={x:p.clientX-(v?v.left:F),y:p.clientY-(v?v.top:F)};n(m,w,Math.max(p.radiusX,p.radiusY))}d=!1,l=!1}},c=()=>{K(this)&&(d=!1,l=!1)},d=!1,l=!1;this._clickHandlers.set("click",r),this._clickHandlers.set("touchstart",i),this._clickHandlers.set("touchmove",a),this._clickHandlers.set("touchend",s),this._clickHandlers.set("touchcancel",c);for(let[m,f]of this._clickHandlers)t.addEventListener(m,f)}addLifeTime(e){this._lifeTime+=e}addPath(e,t,n=!1){return!K(this)||!n&&this.pathGenerators.has(e)?!1:(this.pathGenerators.set(e,t),!0)}alive(){return!this._duration||this._lifeTime<=this._duration}clearClickHandlers(){if(K(this)){for(let[e,t]of this._clickHandlers)this.interactivity.element?.removeEventListener(e,t);this._clickHandlers.clear()}}destroy(e=!0){if(K(this)){this.stop(),this.clearClickHandlers(),this.particles.destroy(),this.canvas.destroy();for(let[,t]of this.effectDrawers)t.destroy?.(this);for(let[,t]of this.shapeDrawers)t.destroy?.(this);for(let t of this.effectDrawers.keys())this.effectDrawers.delete(t);for(let t of this.shapeDrawers.keys())this.shapeDrawers.delete(t);if(this._engine.clearPlugins(this),this.destroyed=!0,e){let t=this._engine.items,n=t.findIndex(i=>i===this);n>=0&&t.splice(n,1)}this._engine.dispatchEvent(ee.containerDestroyed,{container:this})}}draw(e){if(!K(this))return;let t=e,n=r=>{t&&(this._lastFrameTime=void 0,t=!1),this._nextFrame(r)};this._drawAnimationFrame=ys(r=>n(r))}async export(e,t={}){for(let[,n]of this.plugins){if(!n.export)continue;let r=await n.export(e,t);if(r.supported)return r.blob}ve().error(`${Q} - Export plugin with type ${e} not found`)}handleClickMode(e){if(K(this)){this.particles.handleClickMode(e);for(let[,t]of this.plugins)t.handleClickMode?.(e)}}async init(){if(!K(this))return;let e=this._engine.getSupportedEffects();for(let m of e){let f=this._engine.getEffectDrawer(m);f&&this.effectDrawers.set(m,f)}let t=this._engine.getSupportedShapes();for(let m of t){let f=this._engine.getShapeDrawer(m);f&&this.shapeDrawers.set(m,f)}await this.particles.initPlugins(),this._options=wt(this._engine,this,this._initialSourceOptions,this.sourceOptions),this.actualOptions=wt(this._engine,this,this._options);let n=await this._engine.getAvailablePlugins(this);for(let[m,f]of n)this.plugins.set(m,f);this.retina.init(),await this.canvas.init(),this.updateActualOptions(),this.canvas.initBackground(),this.canvas.resize();let{zLayers:r,duration:i,delay:a,fpsLimit:s,smooth:c}=this.actualOptions;this.zLayers=r,this._duration=h(i)*1e3,this._delay=h(a)*1e3,this._lifeTime=0;let d=120,l=0;this.fpsLimit=s>l?s:d,this._smooth=c;for(let[,m]of this.effectDrawers)await m.init?.(this);for(let[,m]of this.shapeDrawers)await m.init?.(this);for(let[,m]of this.plugins)await m.init?.();this._engine.dispatchEvent(ee.containerInit,{container:this}),await this.particles.init(),this.particles.setDensity();for(let[,m]of this.plugins)m.particlesSetup?.();this._engine.dispatchEvent(ee.particlesSetup,{container:this})}async loadTheme(e){K(this)&&(this._currentTheme=e,await this.refresh())}pause(){if(K(this)&&(this._drawAnimationFrame!==void 0&&(ks(this._drawAnimationFrame),delete this._drawAnimationFrame),!this._paused)){for(let[,e]of this.plugins)e.pause?.();this.pageHidden||(this._paused=!0),this._engine.dispatchEvent(ee.containerPaused,{container:this})}}play(e){if(!K(this))return;let t=this._paused||e;if(this._firstStart&&!this.actualOptions.autoPlay){this._firstStart=!1;return}if(this._paused&&(this._paused=!1),t)for(let[,n]of this.plugins)n.play&&n.play();this._engine.dispatchEvent(ee.containerPlay,{container:this}),this.draw(t??!1)}async refresh(){if(K(this))return this.stop(),this.start()}async reset(e){if(K(this))return this._initialSourceOptions=e,this._sourceOptions=e,this._options=wt(this._engine,this,this._initialSourceOptions,this.sourceOptions),this.actualOptions=wt(this._engine,this,this._options),this.refresh()}async start(){!K(this)||this.started||(await this.init(),this.started=!0,await new Promise(e=>{let t=async()=>{this._eventListeners.addListeners(),this.interactivity.element instanceof HTMLElement&&this._intersectionObserver&&this._intersectionObserver.observe(this.interactivity.element);for(let[,n]of this.plugins)await n.start?.();this._engine.dispatchEvent(ee.containerStarted,{container:this}),this.play(),e()};this._delayTimeout=setTimeout(()=>void t(),this._delay)}))}stop(){if(!(!K(this)||!this.started)){this._delayTimeout&&(clearTimeout(this._delayTimeout),delete this._delayTimeout),this._firstStart=!0,this.started=!1,this._eventListeners.removeListeners(),this.pause(),this.particles.clear(),this.canvas.stop(),this.interactivity.element instanceof HTMLElement&&this._intersectionObserver&&this._intersectionObserver.unobserve(this.interactivity.element);for(let[,e]of this.plugins)e.stop?.();for(let e of this.plugins.keys())this.plugins.delete(e);this._sourceOptions=this._options,this._engine.dispatchEvent(ee.containerStopped,{container:this})}}updateActualOptions(){this.actualOptions.responsive=[];let e=this.actualOptions.setResponsive(this.canvas.size.width,this.retina.pixelRatio,this._options);return this.actualOptions.setTheme(this._currentTheme),this._responsiveMaxWidth===e?!1:(this._responsiveMaxWidth=e,!0)}};var qn=class{constructor(){this._listeners=new Map}addEventListener(e,t){this.removeEventListener(e,t);let n=this._listeners.get(e);n||(n=[],this._listeners.set(e,n)),n.push(t)}dispatchEvent(e,t){this._listeners.get(e)?.forEach(r=>r(t))}hasEventListener(e){return!!this._listeners.get(e)}removeAllEventListeners(e){e?this._listeners.delete(e):this._listeners=new Map}removeEventListener(e,t){let n=this._listeners.get(e);if(!n)return;let r=n.length,i=n.indexOf(t);if(i<0)return;let s=1;r===s?this._listeners.delete(e):n.splice(i,s)}};async function Ra(o,e,t,n=!1){let r=e.get(o);return(!r||n)&&(r=await Promise.all([...t.values()].map(i=>i(o))),e.set(o,r)),r}async function Nm(o){let e=P(o.url,o.index);if(!e)return o.fallback;let t=await fetch(e);return t.ok?await t.json():(ve().error(`${Q} ${t.status} while retrieving config file`),o.fallback)}var Js="true",Zs="false",Sa="canvas",$m=o=>{let e;if(o instanceof HTMLCanvasElement||o.tagName.toLowerCase()===Sa)e=o,e.dataset[Pe]||(e.dataset[Pe]=Zs);else{let n=o.getElementsByTagName(Sa);n.length?(e=n[0],e.dataset[Pe]=Zs):(e=document.createElement(Sa),e.dataset[Pe]=Js,o.appendChild(e))}let t="100%";return e.style.width||(e.style.width=t),e.style.height||(e.style.height=t),e},Hm=(o,e)=>{let t=e??document.getElementById(o);return t||(t=document.createElement("div"),t.id=o,t.dataset[Pe]=Js,document.body.append(t),t)},Vn=class{constructor(){this._configs=new Map,this._domArray=[],this._eventDispatcher=new qn,this._initialized=!1,this.plugins=[],this._initializers={interactors:new Map,movers:new Map,updaters:new Map},this.interactors=new Map,this.movers=new Map,this.updaters=new Map,this.presets=new Map,this.effectDrawers=new Map,this.shapeDrawers=new Map,this.pathGenerators=new Map}get configs(){let e={};for(let[t,n]of this._configs)e[t]=n;return e}get items(){return this._domArray}get version(){return"3.5.0"}addConfig(e){let t=e.key??e.name??"default";this._configs.set(t,e),this._eventDispatcher.dispatchEvent(ee.configAdded,{data:{name:t,config:e}})}async addEffect(e,t,n=!0){D(e,r=>{this.getEffectDrawer(r)||this.effectDrawers.set(r,t)}),await this.refresh(n)}addEventListener(e,t){this._eventDispatcher.addEventListener(e,t)}async addInteractor(e,t,n=!0){this._initializers.interactors.set(e,t),await this.refresh(n)}async addMover(e,t,n=!0){this._initializers.movers.set(e,t),await this.refresh(n)}async addParticleUpdater(e,t,n=!0){this._initializers.updaters.set(e,t),await this.refresh(n)}async addPathGenerator(e,t,n=!0){this.getPathGenerator(e)||this.pathGenerators.set(e,t),await this.refresh(n)}async addPlugin(e,t=!0){this.getPlugin(e.id)||this.plugins.push(e),await this.refresh(t)}async addPreset(e,t,n=!1,r=!0){(n||!this.getPreset(e))&&this.presets.set(e,t),await this.refresh(r)}async addShape(e,t=!0){for(let n of e.validTypes)this.getShapeDrawer(n)||this.shapeDrawers.set(n,e);await this.refresh(t)}clearPlugins(e){this.updaters.delete(e),this.movers.delete(e),this.interactors.delete(e)}dispatchEvent(e,t){this._eventDispatcher.dispatchEvent(e,t)}dom(){return this.items}domItem(e){return this.item(e)}async getAvailablePlugins(e){let t=new Map;for(let n of this.plugins)n.needsPlugin(e.actualOptions)&&t.set(n.id,await n.getPlugin(e));return t}getEffectDrawer(e){return this.effectDrawers.get(e)}async getInteractors(e,t=!1){return Ra(e,this.interactors,this._initializers.interactors,t)}async getMovers(e,t=!1){return Ra(e,this.movers,this._initializers.movers,t)}getPathGenerator(e){return this.pathGenerators.get(e)}getPlugin(e){return this.plugins.find(t=>t.id===e)}getPreset(e){return this.presets.get(e)}getShapeDrawer(e){return this.shapeDrawers.get(e)}getSupportedEffects(){return this.effectDrawers.keys()}getSupportedShapes(){return this.shapeDrawers.keys()}async getUpdaters(e,t=!1){return Ra(e,this.updaters,this._initializers.updaters,t)}init(){this._initialized||(this._initialized=!0)}item(e){let{items:t}=this,n=t[e];if(!n||n.destroyed){t.splice(e,1);return}return n}async load(e){let n=e.id??e.element?.id??`tsparticles${Math.floor(y()*1e4)}`,{index:r,url:i}=e,a=i?await Nm({fallback:e.options,url:i,index:r}):e.options,s=P(a,r),{items:c}=this,d=c.findIndex(p=>p.id.description===n),l=0,m=new jn(this,n,s);if(d>=l){let p=this.item(d),u=1,v=0,F=p?u:v;p&&!p.destroyed&&p.destroy(!1),c.splice(d,F,m)}else c.push(m);let f=Hm(n,e.element),b=$m(f);return m.canvas.loadCanvas(b),await m.start(),m}loadOptions(e,t){this.plugins.forEach(n=>n.loadOptions?.(e,t))}loadParticlesOptions(e,t,...n){let r=this.updaters.get(e);r&&r.forEach(i=>i.loadOptions?.(t,...n))}async refresh(e=!0){e&&await Promise.all(this.items.map(t=>t.refresh()))}removeEventListener(e,t){this._eventDispatcher.removeEventListener(e,t)}setOnClickHandler(e){let{items:t}=this;if(!t.length)throw new Error(`${Q} can only set click handlers after calling tsParticles.load()`);t.forEach(n=>n.addClickHandler(e))}};var yt;(function(o){o[o.h=1]="h",o[o.s=2]="s",o[o.l=3]="l",o[o.a=5]="a"})(yt||(yt={}));var Nn=class{constructor(){this.key="hsl",this.stringPrefix="hsl"}handleColor(e){let t=e.value,n=t.hsl??e.value;if(n.h!==void 0&&n.s!==void 0&&n.l!==void 0)return ot(n)}handleRangeColor(e){let t=e.value,n=t.hsl??e.value;if(n.h!==void 0&&n.l!==void 0)return ot({h:h(n.h),l:h(n.l),s:h(n.s)})}parseString(e){if(!e.startsWith("hsl"))return;let t=/hsla?\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*(,\s*([\d.%]+)\s*)?\)/i,n=t.exec(e),r=4,i=1,a=10;return n?Ss({a:n.length>r?Do(n[yt.a]):i,h:parseInt(n[yt.h],a),l:parseInt(n[yt.l],a),s:parseInt(n[yt.s],a)}):void 0}};var kt;(function(o){o[o.r=1]="r",o[o.g=2]="g",o[o.b=3]="b",o[o.a=5]="a"})(kt||(kt={}));var $n=class{constructor(){this.key="rgb",this.stringPrefix="rgb"}handleColor(e){let t=e.value,n=t.rgb??e.value;if(n.r!==void 0)return n}handleRangeColor(e){let t=e.value,n=t.rgb??e.value;if(n.r!==void 0)return{r:h(n.r),g:h(n.g),b:h(n.b)}}parseString(e){if(!e.startsWith(this.stringPrefix))return;let t=/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(,\s*([\d.%]+)\s*)?\)/i,n=t.exec(e),r=10;return n?{a:n.length>4?Do(n[kt.a]):1,b:parseInt(n[kt.b],r),g:parseInt(n[kt.g],r),r:parseInt(n[kt.r],r)}:void 0}};function ec(){let o=new $n,e=new Nn;Ba(o),Ba(e);let t=new Vn;return t.init(),t}var $=class{constructor(e){this.type=Ve.external,this.container=e}};var Je=class{constructor(e){this.type=Ve.particles,this.container=e}};var J;(function(o){o.clockwise="clockwise",o.counterClockwise="counter-clockwise",o.random="random"})(J||(J={}));var tc;(function(o){o.linear="linear",o.radial="radial",o.random="random"})(tc||(tc={}));var Me;(function(o){o.easeInBack="ease-in-back",o.easeInCirc="ease-in-circ",o.easeInCubic="ease-in-cubic",o.easeInLinear="ease-in-linear",o.easeInQuad="ease-in-quad",o.easeInQuart="ease-in-quart",o.easeInQuint="ease-in-quint",o.easeInExpo="ease-in-expo",o.easeInSine="ease-in-sine",o.easeOutBack="ease-out-back",o.easeOutCirc="ease-out-circ",o.easeOutCubic="ease-out-cubic",o.easeOutLinear="ease-out-linear",o.easeOutQuad="ease-out-quad",o.easeOutQuart="ease-out-quart",o.easeOutQuint="ease-out-quint",o.easeOutExpo="ease-out-expo",o.easeOutSine="ease-out-sine",o.easeInOutBack="ease-in-out-back",o.easeInOutCirc="ease-in-out-circ",o.easeInOutCubic="ease-in-out-cubic",o.easeInOutLinear="ease-in-out-linear",o.easeInOutQuad="ease-in-out-quad",o.easeInOutQuart="ease-in-out-quart",o.easeInOutQuint="ease-in-out-quint",o.easeInOutExpo="ease-in-out-expo",o.easeInOutSine="ease-in-out-sine"})(Me||(Me={}));var ro=ec();Be()||(window.tsParticles=ro);var Ne=class{constructor(){R(this,"config",{autoPlay:!0,background:{opacity:0},clear:!0,defaultThemes:{},delay:0,fullScreen:{enable:!1,zIndex:0},duration:0,fpsLimit:60,interactivity:{detectsOn:"window",events:{onClick:{enable:!1},onDiv:{enable:!1},onHover:{enable:!1},resize:{enable:!1}}},manualParticles:[],particles:{bounce:{horizontal:{value:1},vertical:{value:1}},color:{value:"#FFA5A5",animation:{h:{count:0,enable:!1,speed:20,decay:0,delay:0,sync:!0,offset:0},s:{count:0,enable:!1,speed:1,decay:0,delay:0,sync:!0,offset:0},l:{count:0,enable:!1,speed:1,decay:0,delay:0,sync:!0,offset:0}}},effect:{close:!0,fill:!0,options:{},type:{}},groups:[],move:{angle:{offset:0,value:90},center:{x:50,y:50,mode:"percent",radius:0},decay:0,distance:{},direction:"none",drift:0,enable:!0,outModes:{default:"out",bottom:"out",left:"out",right:"out",top:"out"},random:!1,size:!1,speed:3,straight:!1,vibrate:!1,warp:!1},number:{density:{enable:!0,width:854,height:480},limit:{mode:"delete",value:0},value:80},opacity:{value:.5,animation:{count:0,enable:!1,speed:2,decay:0,delay:0,sync:!1,mode:"auto",startValue:"random",destroy:"none"}},reduceDuplicates:!1,shape:{close:!0,fill:!0,options:{},type:"circle"},size:{value:{min:1,max:3},animation:{count:0,enable:!1,speed:5,decay:0,delay:0,sync:!1,mode:"auto",startValue:"random",destroy:"none"}},stroke:{width:0},zIndex:{value:0,opacityRate:1,sizeRate:1,velocityRate:1},destroy:{bounds:{},mode:"none",split:{count:1,factor:{value:3},rate:{value:{min:4,max:9}},sizeOffset:!0,particles:{}}},life:{count:0,delay:{value:0,sync:!1},duration:{value:0,sync:!1}},rotate:{value:0,animation:{enable:!1,speed:0,decay:0,sync:!1},direction:"clockwise",path:!1},links:{blink:!1,color:{value:"#FFA5A5"},consent:!1,distance:170,enable:!0,frequency:1,opacity:.3,shadow:{blur:5,color:{value:"#000"},enable:!1},triangles:{enable:!1,frequency:1},width:1,warp:!1}},smooth:!0,zLayers:100,name:"Basic",motion:{disable:!1,reduce:{factor:4,value:!0}}});R(this,"container");R(this,"element")}async loadParticle(e){e&&(e.hasAttribute("data-disable-particles")||(this.destroyParticle(),this.element=e,this.container=await ro.load({element:e,options:this.config})))}destroyParticle(){this.container&&this.container.destroy(!0)}async loadThemeColor(e){this.config.particles.color.value=e,this.config.particles.links.color.value=e,await this.loadParticle(this.element)}};var Ct=class extends ae{constructor(){super(...arguments);R(this,"ads");R(this,"adInterval");R(this,"adIndex",0);R(this,"particle")}async postConnect(){this.websocket.send("get_ads",{}),this.particle=new Ne,await this.particle.loadParticle(this.element)}loadBadgeContent(){this.websocket.send("get_ads",{}),this.logoTarget.style.backgroundImage=null,this.updateTitle(this.ads[this.adIndex])}async handleShield(){if(await de(250),this.shieldActive){await de(250),this.logoTarget.style.backgroundImage='url("/shieldIcon.png")',await this.updateTitle({type:"text",content:"eliteSCHW31N"});for(let t of this.subtitleTargets)t.style.display=null,t.innerHTML="Shield active!"}else this.loadBadgeContent()}async updateTitle(t){for(let n of this.titleTargets)n.style.display="none";if(await de(50),t.type==="text"){this.titleImageTarget.src="",this.titleImageTarget.style.display="none";for(let n of this.titleTargets)n.style.display=null,n.innerHTML=t.content;for(let n of this.subtitleTargets)n.style.display=null,n.innerHTML="mehr als ein SCHW31N";return}this.titleImageTarget.src=t.url,await de(50),this.titleImageTarget.style.display=null}createInterval(){clearInterval(this.adInterval),this.adIndex=0,this.adInterval=setInterval(()=>{this.shieldActive||(this.adIndex===this.ads.length&&(this.adIndex=0),this.loadBadgeContent(),this.adIndex++)},5*1e3)}async handleMessage(t,n,r){switch(n){case"ad_result":if(JSON.stringify(this.ads)===JSON.stringify(r))return;this.ads=r,this.createInterval();break;case"expand_badge":if(this.element.classList.contains("expand"))break;this.element.classList.add("expand");break;case"collapse_badge":this.element.classList.remove("expand");break}}async handleTheme(t,n){await this.particle.loadThemeColor(n.color),this.element.style.boxShadow=`0 0 7px 0 ${n.color}`}};R(Ct,"targets",["title","subtitle","titleImage","logo"]);var nc="dynamic-scene",rc="1.0.0";var Hn=class{constructor(){this.radius=0,this.mass=0}load(e){e&&(e.mass!==void 0&&(this.mass=e.mass),e.radius!==void 0&&(this.radius=e.radius))}};var Wn=class extends W{constructor(){super(),this.density=5,this.value=50,this.limit=new Hn}load(e){e&&(super.load(e),e.density!==void 0&&(this.density=e.density),X(e.limit)?this.limit.radius=e.limit:this.limit.load(e.limit))}};var et=class{constructor(){this.color=new _,this.color.value="#000000",this.draggable=!1,this.opacity=1,this.destroy=!0,this.orbits=!1,this.size=new Wn}load(e){e!==void 0&&(e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.draggable!==void 0&&(this.draggable=e.draggable),this.name=e.name,e.opacity!==void 0&&(this.opacity=e.opacity),e.position!==void 0&&(this.position={},e.position.x!==void 0&&(this.position.x=g(e.position.x)),e.position.y!==void 0&&(this.position.y=g(e.position.y))),e.size!==void 0&&this.size.load(e.size),e.destroy!==void 0&&(this.destroy=e.destroy),e.orbits!==void 0&&(this.orbits=e.orbits))}};var At;(function(o){o.absorber="absorber"})(At||(At={}));var Um=2,Gm=.033,Km=0,Xm=0,Ym=0,ic={x:0,y:0},Qm=0,Zm=2,ac=Math.PI*Zm,sc=0,Un=class{constructor(e,t,n,r){this.absorbers=e,this.container=t,this._calcPosition=()=>{let a=Eo({size:this.container.canvas.size,position:this.options.position});return z.create(a.x,a.y)},this._updateParticlePosition=(a,s)=>{if(a.destroyed)return;let c=this.container,d=c.canvas.size;if(a.needsNewPosition){let l=wa({size:d});a.position.setTo(l),a.velocity.setTo(a.initialVelocity),a.absorberOrbit=void 0,a.needsNewPosition=!1}if(this.options.orbits){if(a.absorberOrbit===void 0&&(a.absorberOrbit=z.origin,a.absorberOrbit.length=L(a.getPosition(),this.position),a.absorberOrbit.angle=y()*ac),a.absorberOrbit.length<=this.size&&!this.options.destroy){let p=Math.min(d.width,d.height),u=1,v=.1,F=.2;a.absorberOrbit.length=p*(u+(y()*F-v))}a.absorberOrbitDirection===void 0&&(a.absorberOrbitDirection=a.velocity.x>=sc?J.clockwise:J.counterClockwise);let l=a.absorberOrbit.length,m=a.absorberOrbit.angle,f=a.absorberOrbitDirection;a.velocity.setTo(z.origin);let b={x:f===J.clockwise?Math.cos:Math.sin,y:f===J.clockwise?Math.sin:Math.cos};a.position.x=this.position.x+l*b.x(m),a.position.y=this.position.y+l*b.y(m),a.absorberOrbit.length-=s.length,a.absorberOrbit.angle+=(a.retina.moveSpeed??sc)*c.retina.pixelRatio/100*c.retina.reduceFactor}else{let l=z.origin;l.length=s.length,l.angle=s.angle,a.velocity.addTo(l)}},this.initialPosition=r?z.create(r.x,r.y):void 0,n instanceof et?this.options=n:(this.options=new et,this.options.load(n)),this.dragging=!1,this.name=this.options.name,this.opacity=this.options.opacity,this.size=h(this.options.size.value)*t.retina.pixelRatio,this.mass=this.size*this.options.size.density*t.retina.reduceFactor;let i=this.options.size.limit;this.limit={radius:i.radius*t.retina.pixelRatio*t.retina.reduceFactor,mass:i.mass},this.color=oe(this.options.color)??{b:0,g:0,r:0},this.position=this.initialPosition?.copy()??this._calcPosition()}attract(e){let t=this.container,n=this.options;if(n.draggable){let d=t.interactivity.mouse;d.clicking&&d.downPosition?L(this.position,d.downPosition)<=this.size&&(this.dragging=!0):this.dragging=!1,this.dragging&&d.position&&(this.position.x=d.position.x,this.position.y=d.position.y)}let r=e.getPosition(),{dx:i,dy:a,distance:s}=I(this.position,r),c=z.create(i,a);if(c.length=this.mass/Math.pow(s,Um)*t.retina.reduceFactor,s<this.size+e.getRadius()){let d=e.getRadius()*Gm*t.retina.pixelRatio;this.size>e.getRadius()&&s<this.size-e.getRadius()||e.absorberOrbit!==void 0&&e.absorberOrbit.length<Km?n.destroy?e.destroy():(e.needsNewPosition=!0,this._updateParticlePosition(e,c)):(n.destroy&&(e.size.value-=d),this._updateParticlePosition(e,c)),(this.limit.radius<=Xm||this.size<this.limit.radius)&&(this.size+=d),(this.limit.mass<=Ym||this.mass<this.limit.mass)&&(this.mass+=d*this.options.size.density*t.retina.reduceFactor)}else this._updateParticlePosition(e,c)}draw(e){e.translate(this.position.x,this.position.y),e.beginPath(),e.arc(ic.x,ic.y,this.size,Qm,ac,!1),e.closePath(),e.fillStyle=ie(this.color,this.opacity),e.fill()}resize(){let e=this.initialPosition;this.position=e&&Ee(e,this.container.canvas.size,z.origin)?e:this._calcPosition()}};var cc=0,Gn=class{constructor(e){this.container=e,this.array=[],this.absorbers=[],this.interactivityAbsorbers=[],e.getAbsorber=t=>t===void 0||X(t)?this.array[t??cc]:this.array.find(n=>n.name===t),e.addAbsorber=async(t,n)=>this.addAbsorber(t,n)}async addAbsorber(e,t){let n=new Un(this,this.container,e,t);return this.array.push(n),Promise.resolve(n)}draw(e){for(let t of this.array)t.draw(e)}handleClickMode(e){let t=this.absorbers,n=this.interactivityAbsorbers;if(e===At.absorber){let r=P(n),i=r??P(t),a=this.container.interactivity.mouse.clickPosition;this.addAbsorber(i,a)}}async init(){this.absorbers=this.container.actualOptions.absorbers,this.interactivityAbsorbers=this.container.actualOptions.interactivity.modes.absorbers;let e=D(this.absorbers,async t=>{await this.addAbsorber(t)});e instanceof Array?await Promise.all(e):await e}particleUpdate(e){for(let t of this.array)if(t.attract(e),e.destroyed)break}removeAbsorber(e){let t=this.array.indexOf(e);t>=cc&&this.array.splice(t,1)}resize(){for(let e of this.array)e.resize()}stop(){this.array=[]}};var Kn=class{constructor(){this.id="absorbers"}async getPlugin(e){return Promise.resolve(new Gn(e))}loadOptions(e,t){!this.needsPlugin(e)&&!this.needsPlugin(t)||(t?.absorbers&&(e.absorbers=D(t.absorbers,n=>{let r=new et;return r.load(n),r})),e.interactivity.modes.absorbers=D(t?.interactivity?.modes?.absorbers,n=>{let r=new et;return r.load(n),r}))}needsPlugin(e){if(!e)return!1;let t=e.absorbers;return V(t)?!!t.length:t?!0:!!(e.interactivity?.events?.onClick?.mode&&A(At.absorber,e.interactivity.events.onClick.mode))}};async function dc(o,e=!0){await o.addPlugin(new Kn,e)}var Xn=class{load(e){e&&(e.bottom!==void 0&&(this.bottom=g(e.bottom)),e.left!==void 0&&(this.left=g(e.left)),e.right!==void 0&&(this.right=g(e.right)),e.top!==void 0&&(this.top=g(e.top)))}};var Bt;(function(o){o.none="none",o.split="split"})(Bt||(Bt={}));var Yn=class extends W{constructor(){super(),this.value=3}};var Qn=class extends W{constructor(){super(),this.value={min:4,max:9}}};var Zn=class{constructor(){this.count=1,this.factor=new Yn,this.rate=new Qn,this.sizeOffset=!0}load(e){e&&(e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.count!==void 0&&(this.count=e.count),this.factor.load(e.factor),this.rate.load(e.rate),this.particles=D(e.particles,t=>B({},t)),e.sizeOffset!==void 0&&(this.sizeOffset=e.sizeOffset),e.colorOffset&&(this.colorOffset=this.colorOffset??{},e.colorOffset.h!==void 0&&(this.colorOffset.h=e.colorOffset.h),e.colorOffset.s!==void 0&&(this.colorOffset.s=e.colorOffset.s),e.colorOffset.l!==void 0&&(this.colorOffset.l=e.colorOffset.l)))}};var Jn=class{constructor(){this.bounds=new Xn,this.mode=Bt.none,this.split=new Zn}load(e){e&&(e.mode&&(this.mode=e.mode),e.bounds&&this.bounds.load(e.bounds),this.split.load(e.split))}};var er=0,Jm=.5,ef=0,tf=1,of=500,nf=0;function rf(o,e,t,n){let r=t.options.destroy;if(!r)return;let i=r.split,a=xt(o,e,t.options),s=h(i.factor.value),c=t.getFillColor();i.color?a.color.load(i.color):i.colorOffset&&c?a.color.load({value:{hsl:{h:c.h+h(i.colorOffset.h??er),s:c.s+h(i.colorOffset.s??er),l:c.l+h(i.colorOffset.l??er)}}}):a.color.load({value:{hsl:t.getFillColor()}}),a.move.load({center:{x:t.position.x,y:t.position.y,mode:te.precise}}),X(a.size.value)?a.size.value/=s:(a.size.value.min/=s,a.size.value.max/=s),a.load(n);let d=i.sizeOffset?g(-t.size.value,t.size.value):er,l={x:t.position.x+N(d),y:t.position.y+N(d)};return e.particles.addParticle(l,a,t.group,m=>m.size.value<Jm?!1:(m.velocity.length=N(g(t.velocity.length,m.velocity.length)),m.splitCount=(t.splitCount??ef)+tf,m.unbreakable=!0,setTimeout(()=>{m.unbreakable=!1},of),!0))}function lc(o,e,t){let n=t.options.destroy;if(!n)return;let r=n.split;if(r.count>=nf&&(t.splitCount===void 0||t.splitCount++>r.count))return;let i=h(r.rate.value),a=P(r.particles);for(let s=0;s<i;s++)rf(o,e,t,a)}var tr=class{constructor(e,t){this.container=t,this.engine=e}init(e){let t=this.container,n=e.options,r=n.destroy;if(!r)return;e.splitCount=0;let i=r.bounds;e.destroyBounds||(e.destroyBounds={});let{bottom:a,left:s,right:c,top:d}=i,{destroyBounds:l}=e,m=t.canvas.size;a&&(l.bottom=h(a)*m.height/100),s&&(l.left=h(s)*m.width/100),c&&(l.right=h(c)*m.width/100),d&&(l.top=h(d)*m.height/100)}isEnabled(e){return!e.destroyed}loadOptions(e,...t){e.destroy||(e.destroy=new Jn);for(let n of t)e.destroy.load(n?.destroy)}particleDestroyed(e,t){if(t)return;let n=e.options.destroy;n&&n.mode===Bt.split&&lc(this.engine,this.container,e)}update(e){if(!this.isEnabled(e))return;let t=e.getPosition(),n=e.destroyBounds;n&&(n.bottom!==void 0&&t.y>=n.bottom||n.left!==void 0&&t.x<=n.left||n.right!==void 0&&t.x>=n.right||n.top!==void 0&&t.y<=n.top)&&e.destroy()}};async function mc(o,e=!0){await o.addParticleUpdater("destroy",t=>Promise.resolve(new tr(o,t)),e)}var or=class{constructor(){this.wait=!1}load(e){e&&(e.count!==void 0&&(this.count=e.count),e.delay!==void 0&&(this.delay=g(e.delay)),e.duration!==void 0&&(this.duration=g(e.duration)),e.wait!==void 0&&(this.wait=e.wait))}};var nr=class{constructor(){this.quantity=1,this.delay=.1}load(e){e!==void 0&&(e.quantity!==void 0&&(this.quantity=g(e.quantity)),e.delay!==void 0&&(this.delay=g(e.delay)))}};var rr=class{constructor(){this.color=!1,this.opacity=!1}load(e){e&&(e.color!==void 0&&(this.color=e.color),e.opacity!==void 0&&(this.opacity=e.opacity))}};var ir=class{constructor(){this.options={},this.replace=new rr,this.type="square"}load(e){e&&(e.options!==void 0&&(this.options=B({},e.options??{})),this.replace.load(e.replace),e.type!==void 0&&(this.type=e.type))}};var Et=class{constructor(){this.mode=te.percent,this.height=0,this.width=0}load(e){e!==void 0&&(e.mode!==void 0&&(this.mode=e.mode),e.height!==void 0&&(this.height=e.height),e.width!==void 0&&(this.width=e.width))}};var ge=class{constructor(){this.autoPlay=!0,this.fill=!0,this.life=new or,this.rate=new nr,this.shape=new ir,this.startCount=0}load(e){e&&(e.autoPlay!==void 0&&(this.autoPlay=e.autoPlay),e.size!==void 0&&(this.size||(this.size=new Et),this.size.load(e.size)),e.direction!==void 0&&(this.direction=e.direction),this.domId=e.domId,e.fill!==void 0&&(this.fill=e.fill),this.life.load(e.life),this.name=e.name,this.particles=D(e.particles,t=>B({},t)),this.rate.load(e.rate),this.shape.load(e.shape),e.position!==void 0&&(this.position={},e.position.x!==void 0&&(this.position.x=g(e.position.x)),e.position.y!==void 0&&(this.position.y=g(e.position.y))),e.spawnColor!==void 0&&(this.spawnColor===void 0&&(this.spawnColor=new qe),this.spawnColor.load(e.spawnColor)),e.startCount!==void 0&&(this.startCount=e.startCount))}};var Dt;(function(o){o.emitter="emitter"})(Dt||(Dt={}));var fc=.5,bc=0,ar=0,pc=0,af=0,sf=-1,cf=1;function uc(o,e){o.color?o.color.value=e:o.color={value:e}}var sr=class{constructor(e,t,n,r,i){var d;this.emitters=t,this.container=n,this._destroy=()=>{this._mutationObserver?.disconnect(),this._mutationObserver=void 0,this._resizeObserver?.disconnect(),this._resizeObserver=void 0,this.emitters.removeEmitter(this),this._engine.dispatchEvent("emitterDestroyed",{container:this.container,data:{emitter:this}})},this._prepareToDie=()=>{if(this._paused)return;let l=this.options.life?.duration!==void 0?h(this.options.life.duration):void 0;this.container.retina.reduceFactor&&(this._lifeCount>0||this._immortal)&&l!==void 0&&l>0&&(this._duration=l*1e3)},this._setColorAnimation=(l,m,f,b=cf)=>{let p=this.container;if(!l.enable)return m;let u=N(l.offset),v=h(this.options.rate.delay),F=v*1e3/p.retina.reduceFactor,w=0,k=h(l.speed??w);return(m+k*p.fpsLimit/F+u*b)%f},this._engine=e,this._currentDuration=0,this._currentEmitDelay=0,this._currentSpawnDelay=0,this._initialPosition=i,r instanceof ge?this.options=r:(this.options=new ge,this.options.load(r)),this._spawnDelay=h(this.options.life.delay??bc)*1e3/this.container.retina.reduceFactor,this.position=this._initialPosition??this._calcPosition(),this.name=this.options.name,this.fill=this.options.fill,this._firstSpawn=!this.options.life.wait,this._startParticlesAdded=!1;let a=B({},this.options.particles);if(a??(a={}),a.move??(a.move={}),(d=a.move).direction??(d.direction=this.options.direction),this.options.spawnColor&&(this.spawnColor=se(this.options.spawnColor)),this._paused=!this.options.autoPlay,this._particlesOptions=a,this._size=this._calcSize(),this.size=ka(this._size,this.container.canvas.size),this._lifeCount=this.options.life.count??sf,this._immortal=this._lifeCount<=ar,this.options.domId){let l=document.getElementById(this.options.domId);l&&(this._mutationObserver=new MutationObserver(()=>{this.resize()}),this._resizeObserver=new ResizeObserver(()=>{this.resize()}),this._mutationObserver.observe(l,{attributes:!0,attributeFilter:["style","width","height"]}),this._resizeObserver.observe(l))}let s=this.options.shape,c=this._engine.emitterShapeManager?.getShapeGenerator(s.type);c&&(this._shape=c.generate(this.position,this.size,this.fill,s.options)),this._engine.dispatchEvent("emitterCreated",{container:n,data:{emitter:this}}),this.play()}externalPause(){this._paused=!0,this.pause()}externalPlay(){this._paused=!1,this.play()}async init(){await this._shape?.init()}pause(){this._paused||delete this._emitDelay}play(){if(!this._paused&&this.container.retina.reduceFactor&&(this._lifeCount>ar||this._immortal||!this.options.life.count)&&(this._firstSpawn||this._currentSpawnDelay>=(this._spawnDelay??pc))){if(this._emitDelay===void 0){let e=h(this.options.rate.delay);this._emitDelay=e*1e3/this.container.retina.reduceFactor}(this._lifeCount>ar||this._immortal)&&this._prepareToDie()}}resize(){let e=this._initialPosition;this.position=e&&Ee(e,this.container.canvas.size,z.origin)?e:this._calcPosition(),this._size=this._calcSize(),this.size=ka(this._size,this.container.canvas.size),this._shape?.resize(this.position,this.size)}update(e){this._paused||(this._firstSpawn&&(this._firstSpawn=!1,this._currentSpawnDelay=this._spawnDelay??pc,this._currentEmitDelay=this._emitDelay??af),this._startParticlesAdded||(this._startParticlesAdded=!0,this._emitParticles(this.options.startCount)),this._duration!==void 0&&(this._currentDuration+=e.value,this._currentDuration>=this._duration&&(this.pause(),this._spawnDelay!==void 0&&delete this._spawnDelay,this._immortal||this._lifeCount--,this._lifeCount>ar||this._immortal?(this.position=this._calcPosition(),this._shape?.resize(this.position,this.size),this._spawnDelay=h(this.options.life.delay??bc)*1e3/this.container.retina.reduceFactor):this._destroy(),this._currentDuration-=this._duration,delete this._duration)),this._spawnDelay!==void 0&&(this._currentSpawnDelay+=e.value,this._currentSpawnDelay>=this._spawnDelay&&(this._engine.dispatchEvent("emitterPlay",{container:this.container}),this.play(),this._currentSpawnDelay-=this._currentSpawnDelay,delete this._spawnDelay)),this._emitDelay!==void 0&&(this._currentEmitDelay+=e.value,this._currentEmitDelay>=this._emitDelay&&(this._emit(),this._currentEmitDelay-=this._emitDelay)))}_calcPosition(){if(this.options.domId){let e=document.getElementById(this.options.domId);if(e){let t=e.getBoundingClientRect(),n=this.container.retina.pixelRatio;return{x:(t.x+t.width*fc)*n,y:(t.y+t.height*fc)*n}}}return Eo({size:this.container.canvas.size,position:this.options.position})}_calcSize(){let e=this.container;if(this.options.domId){let t=document.getElementById(this.options.domId);if(t){let n=t.getBoundingClientRect();return{width:n.width*e.retina.pixelRatio,height:n.height*e.retina.pixelRatio,mode:te.precise}}}return this.options.size??(()=>{let t=new Et;return t.load({height:0,mode:te.percent,width:0}),t})()}_emit(){if(this._paused)return;let e=h(this.options.rate.quantity);this._emitParticles(e)}_emitParticles(e){let t=P(this._particlesOptions);for(let n=0;n<e;n++){let r=B({},t);if(this.spawnColor){let s=this.options.spawnColor?.animation;if(s){let c={h:360,s:100,l:100},d=3.6;this.spawnColor.h=this._setColorAnimation(s.h,this.spawnColor.h,c.h,d),this.spawnColor.s=this._setColorAnimation(s.s,this.spawnColor.s,c.s),this.spawnColor.l=this._setColorAnimation(s.l,this.spawnColor.l,c.l)}uc(r,this.spawnColor)}let i=this.options.shape,a=this.position;if(this._shape){let s=this._shape.randomPosition();if(s){a=s.position;let c=i.replace;c.color&&s.color&&uc(r,s.color),c.opacity&&(r.opacity?r.opacity.value=s.opacity:r.opacity={value:s.opacity})}else a=null}a&&this.container.particles.addParticle(a,r)}}};var cr=class{constructor(e,t){this.container=t,this._engine=e,this.array=[],this.emitters=[],this.interactivityEmitters={random:{count:1,enable:!1},value:[]};let n=0;t.getEmitter=r=>r===void 0||X(r)?this.array[r??n]:this.array.find(i=>i.name===r),t.addEmitter=async(r,i)=>this.addEmitter(r,i),t.removeEmitter=r=>{let i=t.getEmitter(r);i&&this.removeEmitter(i)},t.playEmitter=r=>{let i=t.getEmitter(r);i&&i.externalPlay()},t.pauseEmitter=r=>{let i=t.getEmitter(r);i&&i.externalPause()}}async addEmitter(e,t){let n=new ge;n.load(e);let r=new sr(this._engine,this,this.container,n,t);return await r.init(),this.array.push(r),r}handleClickMode(e){let t=this.emitters,n=this.interactivityEmitters;if(e!==Dt.emitter)return;let r;if(n&&V(n.value))if(n.value.length>0&&n.random.enable){r=[];let c=[];for(let d=0;d<n.random.count;d++){let l=ya(n.value);if(c.includes(l)&&c.length<n.value.length){d--;continue}c.push(l),r.push(Ue(n.value,l))}}else r=n.value;else r=n?.value;let i=r??t,a=this.container.interactivity.mouse.clickPosition;D(i,async s=>{await this.addEmitter(s,a)})}async init(){if(this.emitters=this.container.actualOptions.emitters,this.interactivityEmitters=this.container.actualOptions.interactivity.modes.emitters,!!this.emitters)if(V(this.emitters))for(let e of this.emitters)await this.addEmitter(e);else await this.addEmitter(this.emitters)}pause(){for(let e of this.array)e.pause()}play(){for(let e of this.array)e.play()}removeEmitter(e){let t=this.array.indexOf(e);t>=0&&this.array.splice(t,1)}resize(){for(let e of this.array)e.resize()}stop(){this.array=[]}update(e){for(let t of this.array)t.update(e)}};var dr=class{constructor(e){this._engine=e,this.id="emitters"}getPlugin(e){return Promise.resolve(new cr(this._engine,e))}loadOptions(e,t){if(!this.needsPlugin(e)&&!this.needsPlugin(t))return;t?.emitters&&(e.emitters=D(t.emitters,r=>{let i=new ge;return i.load(r),i}));let n=t?.interactivity?.modes?.emitters;if(n)if(V(n))e.interactivity.modes.emitters={random:{count:1,enable:!0},value:n.map(r=>{let i=new ge;return i.load(r),i})};else{let r=n;if(r.value!==void 0)if(V(r.value))e.interactivity.modes.emitters={random:{count:r.random.count??1,enable:r.random.enable??!1},value:r.value.map(a=>{let s=new ge;return s.load(a),s})};else{let a=new ge;a.load(r.value),e.interactivity.modes.emitters={random:{count:r.random.count??1,enable:r.random.enable??!1},value:a}}else(e.interactivity.modes.emitters={random:{count:1,enable:!1},value:new ge}).value.load(n)}}needsPlugin(e){if(!e)return!1;let t=e.emitters;return V(t)&&!!t.length||t!==void 0||!!e.interactivity?.events?.onClick?.mode&&A(Dt.emitter,e.interactivity.events.onClick.mode)}};var Ta=new Map,lr=class{constructor(e){this._engine=e}addShapeGenerator(e,t){this.getShapeGenerator(e)||Ta.set(e,t)}getShapeGenerator(e){return Ta.get(e)}getSupportedShapeGenerators(){return Ta.keys()}};var zt=class{constructor(e,t,n,r){this.position=e,this.size=t,this.fill=n,this.options=r}resize(e,t){this.position=e,this.size=t}};async function hc(o,e=!0){o.emitterShapeManager||(o.emitterShapeManager=new lr(o)),o.addEmitterShapeGenerator||(o.addEmitterShapeGenerator=(n,r)=>{o.emitterShapeManager?.addShapeGenerator(n,r)});let t=new dr(o);await o.addPlugin(t,e)}var io=.25,Pa=2,df=Math.PI*Pa,gc=2,Fc=.5,mr=class extends zt{constructor(e,t,n,r){super(e,t,n,r)}async init(){}randomPosition(){let e=this.size,t=this.fill,n=this.position,r=(m,f)=>{let b=y()*io,p=Math.atan(f/m*Math.tan(df*b)),u=y();return u<io?p:u<Pa*io?Math.PI-p:u<Pa*io+io?Math.PI+p:-p},i=(m,f,b)=>m*f/Math.sqrt((f*Math.cos(b))**gc+(m*Math.sin(b))**gc),[a,s]=[e.width*Fc,e.height*Fc],c=r(a,s),d=i(a,s,c),l=t?d*Math.sqrt(y()):d;return{position:{x:n.x+l*Math.cos(c),y:n.y+l*Math.sin(c)}}}};var fr=class{generate(e,t,n,r){return new mr(e,t,n,r)}};async function vc(o,e=!0){let t=o;t.addEmitterShapeGenerator?.("circle",new fr),await t.refresh(e)}var xc=.5,lf=4,mf=2,Ot;(function(o){o[o.TopLeft=0]="TopLeft",o[o.TopRight=1]="TopRight",o[o.BottomRight=2]="BottomRight",o[o.BottomLeft=3]="BottomLeft"})(Ot||(Ot={}));function wc(o,e){return o+e*(y()-.5)}var br=class extends zt{constructor(e,t,n,r){super(e,t,n,r)}async init(){}randomPosition(){let e=this.fill,t=this.position,n=this.size;if(e)return{position:{x:wc(t.x,n.width),y:wc(t.y,n.height)}};{let r=n.width*xc,i=n.height*xc,a=Math.floor(y()*lf),s=(y()-.5)*mf;switch(a){case Ot.TopLeft:return{position:{x:t.x+s*r,y:t.y-i}};case Ot.TopRight:return{position:{x:t.x-r,y:t.y+s*i}};case Ot.BottomRight:return{position:{x:t.x+s*r,y:t.y+i}};case Ot.BottomLeft:default:return{position:{x:t.x+r,y:t.y+s*i}}}}}};var pr=class{generate(e,t,n,r){return new br(e,t,n,r)}};async function yc(o,e=!0){let t=o;t.addEmitterShapeGenerator?.("square",new pr),await t.refresh(e)}var ur=class{constructor(){this.delay=1,this.pauseOnStop=!1,this.quantity=1}load(e){e&&(e.delay!==void 0&&(this.delay=e.delay),e.quantity!==void 0&&(this.quantity=e.quantity),e.particles!==void 0&&(this.particles=B({},e.particles)),e.pauseOnStop!==void 0&&(this.pauseOnStop=e.pauseOnStop))}};var kc="trail",hr=class extends ${constructor(e){super(e),this._delay=0}clear(){}init(){}interact(e){let t=this.container,{interactivity:n}=t;if(!t.retina.reduceFactor)return;let r=t.actualOptions,i=r.interactivity.modes.trail;if(!i)return;let a=i.delay*1e3/this.container.retina.reduceFactor;if(this._delay<a&&(this._delay+=e.value),this._delay<a)return;let s=!(i.pauseOnStop&&(n.mouse.position===this._lastPosition||n.mouse.position?.x===this._lastPosition?.x&&n.mouse.position?.y===this._lastPosition?.y)),c=t.interactivity.mouse.position;c?this._lastPosition={...c}:delete this._lastPosition,s&&t.particles.push(i.quantity,t.interactivity.mouse,i.particles),this._delay-=a}isEnabled(e){let t=this.container,n=t.actualOptions,r=t.interactivity.mouse,i=(e?.interactivity??n.interactivity).events;return r.clicking&&r.inside&&!!r.position&&A(kc,i.onClick.mode)||r.inside&&!!r.position&&A(kc,i.onHover.mode)}loadModeOptions(e,...t){e.trail||(e.trail=new ur);for(let n of t)e.trail.load(n?.trail)}reset(){}};async function Cc(o,e=!0){await o.addInteractor("externalTrail",t=>Promise.resolve(new hr(t)),e)}var $e;(function(o){o.both="both",o.horizontal="horizontal",o.vertical="vertical"})($e||($e={}));var ff=2,Ac=Math.PI*ff,bf=360;function Bc(o){let e=o.options.roll;if(!e?.enable){o.roll={enable:!1,horizontal:!1,vertical:!1,angle:0,speed:0};return}if(o.roll={enable:e.enable,horizontal:e.mode===$e.horizontal||e.mode===$e.both,vertical:e.mode===$e.vertical||e.mode===$e.both,angle:y()*Ac,speed:h(e.speed)/bf},e.backColor)o.backColor=se(e.backColor);else if(e.darken.enable&&e.enlighten.enable){let t=y()>=.5?De.darken:De.enlighten;o.roll.alter={type:t,value:h(t===De.darken?e.darken.value:e.enlighten.value)}}else e.darken.enable?o.roll.alter={type:De.darken,value:h(e.darken.value)}:e.enlighten.enable&&(o.roll.alter={type:De.enlighten,value:h(e.enlighten.value)})}function Ec(o,e){let t=o.options.roll,n=o.roll;if(!n||!t?.enable)return;let r=n.speed*e.factor,i=Ac;n.angle+=r,n.angle>i&&(n.angle-=i)}var ao=class{constructor(){this.enable=!1,this.value=0}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.value!==void 0&&(this.value=g(e.value)))}};var gr=class{constructor(){this.darken=new ao,this.enable=!1,this.enlighten=new ao,this.mode=$e.vertical,this.speed=25}load(e){e&&(e.backColor!==void 0&&(this.backColor=_.create(this.backColor,e.backColor)),this.darken.load(e.darken),e.enable!==void 0&&(this.enable=e.enable),this.enlighten.load(e.enlighten),e.mode!==void 0&&(this.mode=e.mode),e.speed!==void 0&&(this.speed=g(e.speed)))}};var Fr=class{getTransformValues(e){let t=e.roll?.enable&&e.roll,n=t&&t.horizontal,r=t&&t.vertical;return{a:n?Math.cos(t.angle):void 0,d:r?Math.sin(t.angle):void 0}}init(e){Bc(e)}isEnabled(e){let t=e.options.roll;return!e.destroyed&&!e.spawning&&!!t?.enable}loadOptions(e,...t){e.roll||(e.roll=new gr);for(let n of t)e.roll.load(n?.roll)}update(e,t){this.isEnabled(e)&&Ec(e,t)}};async function Dc(o,e=!0){await o.addParticleUpdater("roll",()=>Promise.resolve(new Fr),e)}var Ia=.5,at=0,ye=1,zc=60,Oc=0,pf=.01;function _c(o){let e=o.initialPosition,{dx:t,dy:n}=I(e,o.position),r=Math.abs(t),i=Math.abs(n),{maxDistance:a}=o.retina,s=a.horizontal,c=a.vertical;if(!s&&!c)return;let d=(s&&r>=s)??!1,l=(c&&i>=c)??!1;if((d||l)&&!o.misplaced)o.misplaced=!!s&&r>s||!!c&&i>c,s&&(o.velocity.x=o.velocity.y*Ia-o.velocity.x),c&&(o.velocity.y=o.velocity.x*Ia-o.velocity.y);else if((!s||r<s)&&(!c||i<c)&&o.misplaced)o.misplaced=!1;else if(o.misplaced){let m=o.position,f=o.velocity;s&&(m.x<e.x&&f.x<at||m.x>e.x&&f.x>at)&&(f.x*=-y()),c&&(m.y<e.y&&f.y<at||m.y>e.y&&f.y>at)&&(f.y*=-y())}}function Mc(o,e,t,n,r,i){uf(o,i);let a=o.gravity,s=a?.enable&&a.inverse?-ye:ye;r&&t&&(o.velocity.x+=r*i.factor/(zc*t)),a?.enable&&t&&(o.velocity.y+=s*(a.acceleration*i.factor)/(zc*t));let c=o.moveDecay;o.velocity.multTo(c);let d=o.velocity.mult(t);a?.enable&&n>at&&(!a.inverse&&d.y>=at&&d.y>=n||a.inverse&&d.y<=at&&d.y<=-n)&&(d.y=s*n,t&&(o.velocity.y=d.y/t));let l=o.options.zIndex,m=(ye-o.zIndexFactor)**l.velocityRate;d.multTo(m);let{position:f}=o;f.addTo(d),e.vibrate&&(f.x+=Math.sin(f.x*Math.cos(f.y)),f.y+=Math.cos(f.y*Math.sin(f.x)))}function Rc(o,e){let t=o.container;if(!o.spin)return;let n={x:o.spin.direction===J.clockwise?Math.cos:Math.sin,y:o.spin.direction===J.clockwise?Math.sin:Math.cos};o.position.x=o.spin.center.x+o.spin.radius*n.x(o.spin.angle),o.position.y=o.spin.center.y+o.spin.radius*n.y(o.spin.angle),o.spin.radius+=o.spin.acceleration;let r=Math.max(t.canvas.size.width,t.canvas.size.height),i=r*Ia;o.spin.radius>i?(o.spin.radius=i,o.spin.acceleration*=-ye):o.spin.radius<Oc&&(o.spin.radius=Oc,o.spin.acceleration*=-ye),o.spin.angle+=e*pf*(ye-o.spin.radius/r)}function uf(o,e){let t=o.options,n=t.move.path;if(!n.enable)return;if(o.lastPathTime<=o.pathDelay){o.lastPathTime+=e.value;return}let i=o.pathGenerator?.generate(o,e);i&&o.velocity.addTo(i),n.clamp&&(o.velocity.x=Y(o.velocity.x,-ye,ye),o.velocity.y=Y(o.velocity.y,-ye,ye)),o.lastPathTime-=o.pathDelay}function Sc(o){return o.slow.inRange?o.slow.factor:ye}function Tc(o){let e=o.container,t=o.options,n=t.move.spin;if(!n.enable)return;let r=n.position??{x:50,y:50},i=.01,a={x:r.x*i*e.canvas.size.width,y:r.y*i*e.canvas.size.height},s=o.getPosition(),c=L(s,a),d=h(n.acceleration);o.retina.spinAcceleration=d*e.retina.pixelRatio;let l=0;o.spin={center:a,direction:o.velocity.x>=l?J.clockwise:J.counterClockwise,angle:o.velocity.angle,radius:c,acceleration:o.retina.spinAcceleration}}var hf=2,gf=1,Ff=1,vr=class{init(e){let t=e.options,n=t.move.gravity;e.gravity={enable:n.enable,acceleration:h(n.acceleration),inverse:n.inverse},Tc(e)}isEnabled(e){return!e.destroyed&&e.options.move.enable}move(e,t){var u,v;let n=e.options,r=n.move;if(!r.enable)return;let i=e.container,a=i.retina.pixelRatio;(u=e.retina).moveSpeed??(u.moveSpeed=h(r.speed)*a),(v=e.retina).moveDrift??(v.moveDrift=h(e.options.move.drift)*a);let s=Sc(e),c=e.retina.moveSpeed*i.retina.reduceFactor,d=e.retina.moveDrift,l=re(n.size.value)*a,m=r.size?e.getRadius()/l:gf,f=t.factor||Ff,b=c*m*s*f/hf,p=e.retina.maxSpeed??i.retina.maxSpeed;r.spin.enable?Rc(e,b):Mc(e,r,b,p,d,t),_c(e)}};async function Pc(o,e=!0){await o.addMover("base",()=>Promise.resolve(new vr),e)}var vf=Math.PI*2,xf=0,Ic={x:0,y:0};function Lc(o){let{context:e,particle:t,radius:n}=o;t.circleRange||(t.circleRange={min:xf,max:vf});let r=t.circleRange;e.arc(Ic.x,Ic.y,n,r.min,r.max,!1)}var wf=12,yf=360,jc=0,xr=class{constructor(){this.validTypes=["circle"]}draw(e){Lc(e)}getSidesCount(){return wf}particleInit(e,t){let n=t.shapeData,r=n?.angle??{max:yf,min:jc};t.circleRange=Ie(r)?{min:le(r.min),max:le(r.max)}:{min:jc,max:le(r)}}};async function qc(o,e=!0){await o.addShape(new xr,e)}var wr=class{constructor(e){this.container=e}init(e){let t=se(e.options.color,e.id,e.options.reduceDuplicates);t&&(e.color=Lo(t,e.options.color.animation,this.container.retina.reduceFactor))}isEnabled(e){let{h:t,s:n,l:r}=e.options.color.animation,{color:i}=e;return!e.destroyed&&!e.spawning&&(i?.h.value!==void 0&&t.enable||i?.s.value!==void 0&&n.enable||i?.l.value!==void 0&&r.enable)}update(e,t){jo(e.color,t)}};async function Vc(o,e=!0){await o.addParticleUpdater("color",t=>Promise.resolve(new wr(t)),e)}var yr=class{constructor(e){this.container=e}init(e){let t=e.options.opacity,n=1;e.opacity=Mo(t,n);let r=t.animation;r.enable&&(e.opacity.velocity=h(r.speed)/100*this.container.retina.reduceFactor,r.sync||(e.opacity.velocity*=y()))}isEnabled(e){return!e.destroyed&&!e.spawning&&!!e.opacity&&e.opacity.enable&&((e.opacity.maxLoops??0)<=0||(e.opacity.maxLoops??0)>0&&(e.opacity.loops??0)<(e.opacity.maxLoops??0))}reset(e){e.opacity&&(e.opacity.time=0,e.opacity.loops=0)}update(e,t){!this.isEnabled(e)||!e.opacity||Ke(e,e.opacity,!0,e.options.opacity.animation.destroy,t)}};async function Nc(o,e=!0){await o.addParticleUpdater("opacity",t=>Promise.resolve(new yr(t)),e)}var kr=0,_t=0;function $c(o){if(o.outMode!==T.bounce&&o.outMode!==T.split||o.direction!==C.left&&o.direction!==C.right)return;o.bounds.right<_t&&o.direction===C.left?o.particle.position.x=o.size+o.offset.x:o.bounds.left>o.canvasSize.width&&o.direction===C.right&&(o.particle.position.x=o.canvasSize.width-o.size-o.offset.x);let e=o.particle.velocity.x,t=!1;if(o.direction===C.right&&o.bounds.right>=o.canvasSize.width&&e>kr||o.direction===C.left&&o.bounds.left<=_t&&e<kr){let r=h(o.particle.options.bounce.horizontal.value);o.particle.velocity.x*=-r,t=!0}if(!t)return;let n=o.offset.x+o.size;o.bounds.right>=o.canvasSize.width&&o.direction===C.right?o.particle.position.x=o.canvasSize.width-n:o.bounds.left<=_t&&o.direction===C.left&&(o.particle.position.x=n),o.outMode===T.split&&o.particle.destroy()}function Hc(o){if(o.outMode!==T.bounce&&o.outMode!==T.split||o.direction!==C.bottom&&o.direction!==C.top)return;o.bounds.bottom<_t&&o.direction===C.top?o.particle.position.y=o.size+o.offset.y:o.bounds.top>o.canvasSize.height&&o.direction===C.bottom&&(o.particle.position.y=o.canvasSize.height-o.size-o.offset.y);let e=o.particle.velocity.y,t=!1;if(o.direction===C.bottom&&o.bounds.bottom>=o.canvasSize.height&&e>kr||o.direction===C.top&&o.bounds.top<=_t&&e<kr){let r=h(o.particle.options.bounce.vertical.value);o.particle.velocity.y*=-r,t=!0}if(!t)return;let n=o.offset.y+o.size;o.bounds.bottom>=o.canvasSize.height&&o.direction===C.bottom?o.particle.position.y=o.canvasSize.height-n:o.bounds.top<=_t&&o.direction===C.top&&(o.particle.position.y=n),o.outMode===T.split&&o.particle.destroy()}var Cr=class{constructor(e){this.container=e,this.modes=[T.bounce,T.split]}update(e,t,n,r){if(!this.modes.includes(r))return;let i=this.container,a=!1;for(let[,f]of i.plugins)if(f.particleBounce!==void 0&&(a=f.particleBounce(e,n,t)),a)break;if(a)return;let s=e.getPosition(),c=e.offset,d=e.getRadius(),l=Ge(s,d),m=i.canvas.size;$c({particle:e,outMode:r,direction:t,bounds:l,canvasSize:m,offset:c,size:d}),Hc({particle:e,outMode:r,direction:t,bounds:l,canvasSize:m,offset:c,size:d})}};var Ar=0,Br=class{constructor(e){this.container=e,this.modes=[T.destroy]}update(e,t,n,r){if(!this.modes.includes(r))return;let i=this.container;switch(e.outType){case me.normal:case me.outside:if(Ee(e.position,i.canvas.size,z.origin,e.getRadius(),t))return;break;case me.inside:{let{dx:a,dy:s}=I(e.position,e.moveCenter),{x:c,y:d}=e.velocity;if(c<Ar&&a>e.moveCenter.radius||d<Ar&&s>e.moveCenter.radius||c>=Ar&&a<-e.moveCenter.radius||d>=Ar&&s<-e.moveCenter.radius)return;break}}i.particles.remove(e,void 0,!0)}};var Er=0,Dr=class{constructor(e){this.container=e,this.modes=[T.none]}update(e,t,n,r){if(!this.modes.includes(r)||((e.options.move.distance.horizontal&&(t===C.left||t===C.right))??(e.options.move.distance.vertical&&(t===C.top||t===C.bottom))))return;let i=e.options.move.gravity,a=this.container,s=a.canvas.size,c=e.getRadius();if(i.enable){let d=e.position;(!i.inverse&&d.y>s.height+c&&t===C.bottom||i.inverse&&d.y<-c&&t===C.top)&&a.particles.remove(e)}else{if(e.velocity.y>Er&&e.position.y<=s.height+c||e.velocity.y<Er&&e.position.y>=-c||e.velocity.x>Er&&e.position.x<=s.width+c||e.velocity.x<Er&&e.position.x>=-c)return;Ee(e.position,a.canvas.size,z.origin,c,t)||a.particles.remove(e)}}};var zr=0,Or=0,_r=class{constructor(e){this.container=e,this.modes=[T.out]}update(e,t,n,r){if(!this.modes.includes(r))return;let i=this.container;switch(e.outType){case me.inside:{let{x:a,y:s}=e.velocity,c=z.origin;c.length=e.moveCenter.radius,c.angle=e.velocity.angle+Math.PI,c.addTo(z.create(e.moveCenter));let{dx:d,dy:l}=I(e.position,c);if(a<=zr&&d>=Or||s<=zr&&l>=Or||a>=zr&&d<=Or||s>=zr&&l<=Or)return;e.position.x=Math.floor(N({min:0,max:i.canvas.size.width})),e.position.y=Math.floor(N({min:0,max:i.canvas.size.height}));let{dx:m,dy:f}=I(e.position,e.moveCenter);e.direction=Math.atan2(-f,-m),e.velocity.angle=e.direction;break}default:{if(Ee(e.position,i.canvas.size,z.origin,e.getRadius(),t))return;switch(e.outType){case me.outside:{e.position.x=Math.floor(N({min:-e.moveCenter.radius,max:e.moveCenter.radius}))+e.moveCenter.x,e.position.y=Math.floor(N({min:-e.moveCenter.radius,max:e.moveCenter.radius}))+e.moveCenter.y;let{dx:a,dy:s}=I(e.position,e.moveCenter);e.moveCenter.radius&&(e.direction=Math.atan2(s,a),e.velocity.angle=e.direction);break}case me.normal:{let a=e.options.move.warp,s=i.canvas.size,c={bottom:s.height+e.getRadius()+e.offset.y,left:-e.getRadius()-e.offset.x,right:s.width+e.getRadius()+e.offset.x,top:-e.getRadius()-e.offset.y},d=e.getRadius(),l=Ge(e.position,d);t===C.right&&l.left>s.width+e.offset.x?(e.position.x=c.left,e.initialPosition.x=e.position.x,a||(e.position.y=y()*s.height,e.initialPosition.y=e.position.y)):t===C.left&&l.right<-e.offset.x&&(e.position.x=c.right,e.initialPosition.x=e.position.x,a||(e.position.y=y()*s.height,e.initialPosition.y=e.position.y)),t===C.bottom&&l.top>s.height+e.offset.y?(a||(e.position.x=y()*s.width,e.initialPosition.x=e.position.x),e.position.y=c.top,e.initialPosition.y=e.position.y):t===C.top&&l.bottom<-e.offset.y&&(a||(e.position.x=y()*s.width,e.initialPosition.x=e.position.x),e.position.y=c.bottom,e.initialPosition.y=e.position.y);break}}break}}}};var Mr=(o,e)=>o.default===e||o.bottom===e||o.left===e||o.right===e||o.top===e,Rr=class{constructor(e){this._updateOutMode=(t,n,r,i)=>{for(let a of this.updaters)a.update(t,i,n,r)},this.container=e,this.updaters=[]}init(e){this.updaters=[];let t=e.options.move.outModes;Mr(t,T.bounce)?this.updaters.push(new Cr(this.container)):Mr(t,T.out)?this.updaters.push(new _r(this.container)):Mr(t,T.destroy)?this.updaters.push(new Br(this.container)):Mr(t,T.none)&&this.updaters.push(new Dr(this.container))}isEnabled(e){return!e.destroyed&&!e.spawning}update(e,t){let n=e.options.move.outModes;this._updateOutMode(e,t,n.bottom??n.default,C.bottom),this._updateOutMode(e,t,n.left??n.default,C.left),this._updateOutMode(e,t,n.right??n.default,C.right),this._updateOutMode(e,t,n.top??n.default,C.top)}};async function Wc(o,e=!0){await o.addParticleUpdater("outModes",t=>Promise.resolve(new Rr(t)),e)}var st=0,Sr=class{init(e){let t=e.container,n=e.options.size,r=n.animation;r.enable&&(e.size.velocity=(e.retina.sizeAnimationSpeed??t.retina.sizeAnimationSpeed)/100*t.retina.reduceFactor,r.sync||(e.size.velocity*=y()))}isEnabled(e){return!e.destroyed&&!e.spawning&&e.size.enable&&((e.size.maxLoops??st)<=st||(e.size.maxLoops??st)>st&&(e.size.loops??st)<(e.size.maxLoops??st))}reset(e){e.size.loops=st}update(e,t){this.isEnabled(e)&&Ke(e,e.size,!0,e.options.size.animation.destroy,t)}};async function Uc(o,e=!0){await o.addParticleUpdater("size",()=>Promise.resolve(new Sr),e)}async function Gc(o,e=!0){await Pc(o,!1),await qc(o,!1),await Vc(o,!1),await Nc(o,!1),await Wc(o,!1),await Uc(o,!1),await o.refresh(e)}async function Kc(){Co(Me.easeInQuad,o=>o**2),Co(Me.easeOutQuad,o=>1-(1-o)**2),Co(Me.easeInOutQuad,o=>o<.5?2*o**2:1-(-2*o+2)**2/2),await Promise.resolve()}function Xc(o){let{context:e,particle:t,radius:n,opacity:r}=o,i=t.emojiData,a=2,s=n*a,c=e.globalAlpha;i&&(e.globalAlpha=r,e.drawImage(i,-n,-n,s,s),e.globalAlpha=c)}var Yc='"Twemoji Mozilla", Apple Color Emoji, "Segoe UI Emoji", "Noto Color Emoji", "EmojiOne Color"',Tr=class{constructor(){this.validTypes=["emoji"],this._emojiShapeDict=new Map}destroy(){for(let[e,t]of this._emojiShapeDict)t instanceof ImageBitmap&&(t?.close(),this._emojiShapeDict.delete(e))}draw(e){Xc(e)}async init(e){let t=e.actualOptions,{validTypes:n}=this;if(!n.find(a=>A(a,t.particles.shape.type)))return;let r=[Kt(Yc)],i=n.map(a=>t.particles.shape.options[a]).find(a=>!!a);i&&D(i,a=>{a.font&&r.push(Kt(a.font))}),await Promise.all(r)}particleDestroy(e){delete e.emojiData}particleInit(e,t){let r=t.shapeData;if(!r?.value)return;let i=P(r.value,t.randomIndexData),a=r.font??Yc;if(!i)return;let s=`${i}_${a}`,c=this._emojiShapeDict.get(s);if(c){t.emojiData=c;return}let d=re(t.size.value)*2,l,m=re(t.size.value);if(typeof OffscreenCanvas<"u"){let f=new OffscreenCanvas(d,d),b=f.getContext("2d");if(!b)return;b.font=`400 ${m*2}px ${a}`,b.textBaseline="middle",b.textAlign="center",b.fillText(i,m,m),l=f.transferToImageBitmap()}else{let f=document.createElement("canvas");f.width=d,f.height=d;let b=f.getContext("2d");if(!b)return;b.font=`400 ${m*2}px ${a}`,b.textBaseline="middle",b.textAlign="center",b.fillText(i,m,m),l=f}this._emojiShapeDict.set(s,l),t.emojiData=l}};async function Qc(o,e=!0){await o.addShape(new Tr,e)}var kf=1,Cf=1,Zc=0;function Jc(o,e,t,n,r){let i=o.actualOptions.interactivity.modes.attract;if(!i)return;let a=o.particles.quadTree.query(n,r);for(let s of a){let{dx:c,dy:d,distance:l}=I(s.position,e),m=i.speed*i.factor,f=Y(Ao(i.easing)(Cf-l/t)*m,kf,i.maxSpeed),b=z.create(l?c/l*f:m,l?d/l*f:m);s.position.subFrom(b)}}function ed(o,e){o.attract||(o.attract={particles:[]});let{attract:t}=o;if(t.finish||(t.count||(t.count=0),t.count++,t.count===o.particles.count&&(t.finish=!0)),t.clicking){let n=o.interactivity.mouse.clickPosition,r=o.retina.attractModeDistance;if(!r||r<Zc||!n)return;Jc(o,n,r,new U(n.x,n.y,r),i=>e(i))}else t.clicking===!1&&(t.particles=[])}function td(o,e){let t=o.interactivity.mouse.position,n=o.retina.attractModeDistance;!n||n<Zc||!t||Jc(o,t,n,new U(t.x,t.y,n),r=>e(r))}var Pr=class{constructor(){this.distance=200,this.duration=.4,this.easing=Me.easeOutQuad,this.factor=1,this.maxSpeed=50,this.speed=1}load(e){e&&(e.distance!==void 0&&(this.distance=e.distance),e.duration!==void 0&&(this.duration=e.duration),e.easing!==void 0&&(this.easing=e.easing),e.factor!==void 0&&(this.factor=e.factor),e.maxSpeed!==void 0&&(this.maxSpeed=e.maxSpeed),e.speed!==void 0&&(this.speed=e.speed))}};var so="attract",Ir=class extends ${constructor(e,t){super(t),this._engine=e,t.attract||(t.attract={particles:[]}),this.handleClickMode=n=>{let r=this.container.actualOptions,i=r.interactivity.modes.attract;if(!(!i||n!==so)){t.attract||(t.attract={particles:[]}),t.attract.clicking=!0,t.attract.count=0;for(let a of t.attract.particles)this.isEnabled(a)&&a.velocity.setTo(a.initialVelocity);t.attract.particles=[],t.attract.finish=!1,setTimeout(()=>{t.destroyed||(t.attract||(t.attract={particles:[]}),t.attract.clicking=!1)},i.duration*1e3)}}}clear(){}init(){let e=this.container,t=e.actualOptions.interactivity.modes.attract;t&&(e.retina.attractModeDistance=t.distance*e.retina.pixelRatio)}interact(){let e=this.container,t=e.actualOptions,n=e.interactivity.status===ue,r=t.interactivity.events,{enable:i,mode:a}=r.onHover,{enable:s,mode:c}=r.onClick;n&&i&&A(so,a)?td(this.container,d=>this.isEnabled(d)):s&&A(so,c)&&ed(this.container,d=>this.isEnabled(d))}isEnabled(e){let t=this.container,n=t.actualOptions,r=t.interactivity.mouse,i=(e?.interactivity??n.interactivity).events;if((!r.position||!i.onHover.enable)&&(!r.clickPosition||!i.onClick.enable))return!1;let a=i.onHover.mode,s=i.onClick.mode;return A(so,a)||A(so,s)}loadModeOptions(e,...t){e.attract||(e.attract=new Pr);for(let n of t)e.attract.load(n?.attract)}reset(){}};async function od(o,e=!0){await o.addInteractor("externalAttract",t=>Promise.resolve(new Ir(o,t)),e)}var Af=2,Lr=.5,Bf=Math.PI*Lr,nd=2,rd=10,Ef=0;function id(o,e,t,n,r){let i=o.particles.quadTree.query(n,r);for(let a of i)n instanceof U?_o(Xt(a),{position:e,radius:t,mass:t**Af*Bf,velocity:z.origin,factor:z.origin}):n instanceof ne&&Os(a,Ge(e,t))}function Df(o,e,t,n){let r=document.querySelectorAll(e);r.length&&r.forEach(i=>{let a=i,s=o.retina.pixelRatio,c={x:(a.offsetLeft+a.offsetWidth*Lr)*s,y:(a.offsetTop+a.offsetHeight*Lr)*s},d=a.offsetWidth*Lr*s,l=rd*s,m=t.type===Oe.circle?new U(c.x,c.y,d+l):new ne(a.offsetLeft*s-l,a.offsetTop*s-l,a.offsetWidth*s+l*nd,a.offsetHeight*s+l*nd);n(c,d,m)})}function ad(o,e,t,n){pt(t,e,(r,i)=>Df(o,r,i,(a,s,c)=>id(o,a,s,c,n)))}function sd(o,e){let t=o.retina.pixelRatio,n=rd*t,r=o.interactivity.mouse.position,i=o.retina.bounceModeDistance;!i||i<Ef||!r||id(o,r,i,new U(r.x,r.y,i+n),e)}var jr=class{constructor(){this.distance=200}load(e){e&&e.distance!==void 0&&(this.distance=e.distance)}};var qr="bounce",Vr=class extends ${constructor(e){super(e)}clear(){}init(){let e=this.container,t=e.actualOptions.interactivity.modes.bounce;t&&(e.retina.bounceModeDistance=t.distance*e.retina.pixelRatio)}interact(){let e=this.container,t=e.actualOptions,n=t.interactivity.events,r=e.interactivity.status===ue,i=n.onHover.enable,a=n.onHover.mode,s=n.onDiv;r&&i&&A(qr,a)?sd(this.container,c=>this.isEnabled(c)):ad(this.container,s,qr,c=>this.isEnabled(c))}isEnabled(e){let t=this.container,n=t.actualOptions,r=t.interactivity.mouse,i=(e?.interactivity??n.interactivity).events,a=i.onDiv;return!!r.position&&i.onHover.enable&&A(qr,i.onHover.mode)||bt(qr,a)}loadModeOptions(e,...t){e.bounce||(e.bounce=new jr);for(let n of t)e.bounce.load(n?.bounce)}reset(){}};async function cd(o,e=!0){await o.addInteractor("externalBounce",t=>Promise.resolve(new Vr(t)),e)}var Mt=class{constructor(){this.distance=200,this.duration=.4,this.mix=!1}load(e){if(e){if(e.distance!==void 0&&(this.distance=e.distance),e.duration!==void 0&&(this.duration=e.duration),e.mix!==void 0&&(this.mix=e.mix),e.opacity!==void 0&&(this.opacity=e.opacity),e.color!==void 0){let t=V(this.color)?void 0:this.color;this.color=D(e.color,n=>_.create(t,n))}e.size!==void 0&&(this.size=e.size)}}};var Nr=class extends Mt{constructor(){super(),this.selectors=[]}load(e){super.load(e),e&&e.selectors!==void 0&&(this.selectors=e.selectors)}};var $r=class extends Mt{load(e){super.load(e),e&&(this.divs=D(e.divs,t=>{let n=new Nr;return n.load(t),n}))}};var ke;(function(o){o.color="color",o.opacity="opacity",o.size="size"})(ke||(ke={}));function La(o,e,t,n){if(e>=t){let r=o+(e-t)*n;return Y(r,o,e)}else if(e<t){let r=o-(t-e)*n;return Y(r,e,o)}}var ct="bubble",ja=0,zf=0,Of=2,dd=1,ld=1,_f=0,Mf=0,qa=.5,Va=1,Hr=class extends ${constructor(e){super(e),this._clickBubble=()=>{let t=this.container,n=t.actualOptions,r=t.interactivity.mouse.clickPosition,i=n.interactivity.modes.bubble;if(!i||!r)return;t.bubble||(t.bubble={});let a=t.retina.bubbleModeDistance;if(!a||a<ja)return;let s=t.particles.quadTree.queryCircle(r,a,d=>this.isEnabled(d)),{bubble:c}=t;for(let d of s){if(!c.clicking)continue;d.bubble.inRange=!c.durationEnd;let l=d.getPosition(),m=L(l,r),f=(new Date().getTime()-(t.interactivity.mouse.clickTime??zf))/1e3;f>i.duration&&(c.durationEnd=!0),f>i.duration*Of&&(c.clicking=!1,c.durationEnd=!1);let b={bubbleObj:{optValue:t.retina.bubbleModeSize,value:d.bubble.radius},particlesObj:{optValue:re(d.options.size.value)*t.retina.pixelRatio,value:d.size.value},type:ke.size};this._process(d,m,f,b);let p={bubbleObj:{optValue:i.opacity,value:d.bubble.opacity},particlesObj:{optValue:re(d.options.opacity.value),value:d.opacity?.value??dd},type:ke.opacity};this._process(d,m,f,p),!c.durationEnd&&m<=a?this._hoverBubbleColor(d,m):delete d.bubble.color}},this._hoverBubble=()=>{let t=this.container,n=t.interactivity.mouse.position,r=t.retina.bubbleModeDistance;if(!r||r<ja||!n)return;let i=t.particles.quadTree.queryCircle(n,r,a=>this.isEnabled(a));for(let a of i){a.bubble.inRange=!0;let s=a.getPosition(),c=L(s,n),d=ld-c/r;c<=r?d>=Mf&&t.interactivity.status===ue&&(this._hoverBubbleSize(a,d),this._hoverBubbleOpacity(a,d),this._hoverBubbleColor(a,d)):this.reset(a),t.interactivity.status===Gt&&this.reset(a)}},this._hoverBubbleColor=(t,n,r)=>{let i=this.container.actualOptions,a=r??i.interactivity.modes.bubble;if(a){if(!t.bubble.finalColor){let s=a.color;if(!s)return;let c=P(s);t.bubble.finalColor=se(c)}if(t.bubble.finalColor)if(a.mix){t.bubble.color=void 0;let s=t.getFillColor();t.bubble.color=s?Ea(Yt(s,t.bubble.finalColor,ld-n,n)):t.bubble.finalColor}else t.bubble.color=t.bubble.finalColor}},this._hoverBubbleOpacity=(t,n,r)=>{let i=this.container,a=i.actualOptions,s=r?.opacity??a.interactivity.modes.bubble?.opacity;if(!s)return;let c=t.options.opacity.value,d=t.opacity?.value??dd,l=La(d,s,re(c),n);l!==void 0&&(t.bubble.opacity=l)},this._hoverBubbleSize=(t,n,r)=>{let i=this.container,a=r?.size?r.size*i.retina.pixelRatio:i.retina.bubbleModeSize;if(a===void 0)return;let s=re(t.options.size.value)*i.retina.pixelRatio,c=t.size.value,d=La(c,a,s,n);d!==void 0&&(t.bubble.radius=d)},this._process=(t,n,r,i)=>{let a=this.container,s=i.bubbleObj.optValue,c=a.actualOptions,d=c.interactivity.modes.bubble;if(!d||s===void 0)return;let l=d.duration,m=a.retina.bubbleModeDistance,f=i.particlesObj.optValue,b=i.bubbleObj.value,p=i.particlesObj.value??_f,u=i.type;if(!(!m||m<ja||s===f))if(a.bubble||(a.bubble={}),a.bubble.durationEnd)b&&(u===ke.size&&delete t.bubble.radius,u===ke.opacity&&delete t.bubble.opacity);else if(n<=m){if((b??p)!==s){let F=p-r*(p-s)/l;u===ke.size&&(t.bubble.radius=F),u===ke.opacity&&(t.bubble.opacity=F)}}else u===ke.size&&delete t.bubble.radius,u===ke.opacity&&delete t.bubble.opacity},this._singleSelectorHover=(t,n,r)=>{let i=this.container,a=document.querySelectorAll(n),s=i.actualOptions.interactivity.modes.bubble;!s||!a.length||a.forEach(c=>{let d=c,l=i.retina.pixelRatio,m={x:(d.offsetLeft+d.offsetWidth*qa)*l,y:(d.offsetTop+d.offsetHeight*qa)*l},f=d.offsetWidth*qa*l,b=r.type===Oe.circle?new U(m.x,m.y,f):new ne(d.offsetLeft*l,d.offsetTop*l,d.offsetWidth*l,d.offsetHeight*l),p=i.particles.quadTree.query(b,u=>this.isEnabled(u));for(let u of p){if(!b.contains(u.getPosition()))continue;u.bubble.inRange=!0;let v=s.divs,F=Oo(v,d);(!u.bubble.div||u.bubble.div!==d)&&(this.clear(u,t,!0),u.bubble.div=d),this._hoverBubbleSize(u,Va,F),this._hoverBubbleOpacity(u,Va,F),this._hoverBubbleColor(u,Va,F)}})},e.bubble||(e.bubble={}),this.handleClickMode=t=>{t===ct&&(e.bubble||(e.bubble={}),e.bubble.clicking=!0)}}clear(e,t,n){e.bubble.inRange&&!n||(delete e.bubble.div,delete e.bubble.opacity,delete e.bubble.radius,delete e.bubble.color)}init(){let e=this.container,t=e.actualOptions.interactivity.modes.bubble;t&&(e.retina.bubbleModeDistance=t.distance*e.retina.pixelRatio,t.size!==void 0&&(e.retina.bubbleModeSize=t.size*e.retina.pixelRatio))}interact(e){let t=this.container.actualOptions,n=t.interactivity.events,r=n.onHover,i=n.onClick,a=r.enable,s=r.mode,c=i.enable,d=i.mode,l=n.onDiv;a&&A(ct,s)?this._hoverBubble():c&&A(ct,d)?this._clickBubble():pt(ct,l,(m,f)=>this._singleSelectorHover(e,m,f))}isEnabled(e){let t=this.container,n=t.actualOptions,r=t.interactivity.mouse,i=(e?.interactivity??n.interactivity).events,{onClick:a,onDiv:s,onHover:c}=i,d=bt(ct,s);return d||c.enable&&r.position||a.enable&&r.clickPosition?A(ct,c.mode)||A(ct,a.mode)||d:!1}loadModeOptions(e,...t){e.bubble||(e.bubble=new $r);for(let n of t)e.bubble.load(n?.bubble)}reset(e){e.bubble.inRange=!1}};async function md(o,e=!0){await o.addInteractor("externalBubble",t=>Promise.resolve(new Hr(t)),e)}var Wr=class{constructor(){this.opacity=.5}load(e){e&&e.opacity!==void 0&&(this.opacity=e.opacity)}};var Ur=class{constructor(){this.distance=80,this.links=new Wr,this.radius=60}load(e){e&&(e.distance!==void 0&&(this.distance=e.distance),this.links.load(e.links),e.radius!==void 0&&(this.radius=e.radius))}};var fd=0,bd=1,Rf=0;function Sf(o,e,t,n){let r=Math.floor(t.getRadius()/e.getRadius()),i=e.getFillColor(),a=t.getFillColor();if(!i||!a)return;let s=e.getPosition(),c=t.getPosition(),d=Yt(i,a,e.getRadius(),t.getRadius()),l=o.createLinearGradient(s.x,s.y,c.x,c.y);return l.addColorStop(fd,ze(i,n)),l.addColorStop(Y(r,fd,bd),ie(d,n)),l.addColorStop(bd,ze(a,n)),l}function Tf(o,e,t,n,r){Xe(o,n,r),o.lineWidth=e,o.strokeStyle=t,o.stroke()}function Pf(o,e,t,n){let r=o.actualOptions,i=r.interactivity.modes.connect;if(i)return Sf(e,t,n,i.links.opacity)}function pd(o,e,t){o.canvas.draw(n=>{let r=Pf(o,n,e,t);if(!r)return;let i=e.getPosition(),a=t.getPosition();Tf(n,e.retina.linksWidth??Rf,r,i,a)})}var If="connect",ud=0,Gr=class extends ${constructor(e){super(e)}clear(){}init(){let e=this.container,t=e.actualOptions.interactivity.modes.connect;t&&(e.retina.connectModeDistance=t.distance*e.retina.pixelRatio,e.retina.connectModeRadius=t.radius*e.retina.pixelRatio)}interact(){let e=this.container;if(e.actualOptions.interactivity.events.onHover.enable&&e.interactivity.status==="pointermove"){let n=e.interactivity.mouse.position,{connectModeDistance:r,connectModeRadius:i}=e.retina;if(!r||r<ud||!i||i<ud||!n)return;let a=Math.abs(i),s=e.particles.quadTree.queryCircle(n,a,c=>this.isEnabled(c));s.forEach((c,d)=>{let l=c.getPosition(),m=1;for(let f of s.slice(d+m)){let b=f.getPosition(),p=Math.abs(r),u=Math.abs(l.x-b.x),v=Math.abs(l.y-b.y);u<p&&v<p&&pd(e,c,f)}})}}isEnabled(e){let t=this.container,n=t.interactivity.mouse,r=(e?.interactivity??t.actualOptions.interactivity).events;return r.onHover.enable&&n.position?A(If,r.onHover.mode):!1}loadModeOptions(e,...t){e.connect||(e.connect=new Ur);for(let n of t)e.connect.load(n?.connect)}reset(){}};async function hd(o,e=!0){await o.addInteractor("externalConnect",t=>Promise.resolve(new Gr(t)),e)}var Kr=class{constructor(){this.blink=!1,this.consent=!1,this.opacity=1}load(e){e&&(e.blink!==void 0&&(this.blink=e.blink),e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.consent!==void 0&&(this.consent=e.consent),e.opacity!==void 0&&(this.opacity=e.opacity))}};var Xr=class{constructor(){this.distance=100,this.links=new Kr}load(e){e&&(e.distance!==void 0&&(this.distance=e.distance),this.links.load(e.links))}};var Lf=0;function jf(o,e,t,n,r,i){Xe(o,t,n),o.strokeStyle=ie(r,i),o.lineWidth=e,o.stroke()}function gd(o,e,t,n,r){o.canvas.draw(i=>{let a=e.getPosition();jf(i,e.retina.linksWidth??Lf,a,r,t,n)})}var qf="grab",Vf=0,Nf=0,Yr=class extends ${constructor(e){super(e)}clear(){}init(){let e=this.container,t=e.actualOptions.interactivity.modes.grab;t&&(e.retina.grabModeDistance=t.distance*e.retina.pixelRatio)}interact(){let e=this.container,t=e.actualOptions,n=t.interactivity;if(!n.modes.grab||!n.events.onHover.enable||e.interactivity.status!==ue)return;let r=e.interactivity.mouse.position;if(!r)return;let i=e.retina.grabModeDistance;if(!i||i<Vf)return;let a=e.particles.quadTree.queryCircle(r,i,s=>this.isEnabled(s));for(let s of a){let c=s.getPosition(),d=L(c,r);if(d>i)continue;let l=n.modes.grab.links,m=l.opacity,f=m-d*m/i;if(f<=Nf)continue;let b=l.color??s.options.links?.color;if(!e.particles.grabLineColor&&b){let u=n.modes.grab.links;e.particles.grabLineColor=Io(b,u.blink,u.consent)}let p=Qt(s,void 0,e.particles.grabLineColor);p&&gd(e,s,p,f,r)}}isEnabled(e){let t=this.container,n=t.interactivity.mouse,r=(e?.interactivity??t.actualOptions.interactivity).events;return r.onHover.enable&&!!n.position&&A(qf,r.onHover.mode)}loadModeOptions(e,...t){e.grab||(e.grab=new Xr);for(let n of t)e.grab.load(n?.grab)}reset(){}};async function Fd(o,e=!0){await o.addInteractor("externalGrab",t=>Promise.resolve(new Yr(t)),e)}var $f="pause",Qr=class extends ${constructor(e){super(e),this.handleClickMode=t=>{if(t!==$f)return;let n=this.container;n.animationStatus?n.pause():n.play()}}clear(){}init(){}interact(){}isEnabled(){return!0}reset(){}};async function vd(o,e=!0){await o.addInteractor("externalPause",t=>Promise.resolve(new Qr(t)),e)}var Zr=class{constructor(){this.default=!0,this.groups=[],this.quantity=4}load(e){if(!e)return;e.default!==void 0&&(this.default=e.default),e.groups!==void 0&&(this.groups=e.groups.map(n=>n)),this.groups.length||(this.default=!0);let t=e.quantity;t!==void 0&&(this.quantity=g(t))}};var Hf="push",Wf=0,Jr=class extends ${constructor(e){super(e),this.handleClickMode=t=>{if(t!==Hf)return;let n=this.container,r=n.actualOptions,i=r.interactivity.modes.push;if(!i)return;let a=h(i.quantity);if(a<=Wf)return;let s=Ue([void 0,...i.groups]),c=s!==void 0?n.actualOptions.particles.groups[s]:void 0;n.particles.push(a,n.interactivity.mouse,c,s)}}clear(){}init(){}interact(){}isEnabled(){return!0}loadModeOptions(e,...t){e.push||(e.push=new Zr);for(let n of t)e.push.load(n?.push)}reset(){}};async function xd(o,e=!0){await o.addInteractor("externalPush",t=>Promise.resolve(new Jr(t)),e)}var ei=class{constructor(){this.quantity=2}load(e){if(!e)return;let t=e.quantity;t!==void 0&&(this.quantity=g(t))}};var Uf="remove",ti=class extends ${constructor(e){super(e),this.handleClickMode=t=>{let n=this.container,r=n.actualOptions;if(!r.interactivity.modes.remove||t!==Uf)return;let i=h(r.interactivity.modes.remove.quantity);n.particles.removeQuantity(i)}}clear(){}init(){}interact(){}isEnabled(){return!0}loadModeOptions(e,...t){e.remove||(e.remove=new ei);for(let n of t)e.remove.load(n?.remove)}reset(){}};async function wd(o,e=!0){await o.addInteractor("externalRemove",t=>Promise.resolve(new ti(t)),e)}var Rt=class{constructor(){this.distance=200,this.duration=.4,this.factor=100,this.speed=1,this.maxSpeed=50,this.easing=Me.easeOutQuad}load(e){e&&(e.distance!==void 0&&(this.distance=e.distance),e.duration!==void 0&&(this.duration=e.duration),e.easing!==void 0&&(this.easing=e.easing),e.factor!==void 0&&(this.factor=e.factor),e.speed!==void 0&&(this.speed=e.speed),e.maxSpeed!==void 0&&(this.maxSpeed=e.maxSpeed))}};var oi=class extends Rt{constructor(){super(),this.selectors=[]}load(e){super.load(e),e&&e.selectors!==void 0&&(this.selectors=e.selectors)}};var ni=class extends Rt{load(e){super.load(e),e&&(this.divs=D(e.divs,t=>{let n=new oi;return n.load(t),n}))}};var dt="repulse",Gf=0,Kf=6,Xf=3,Yf=2,Qf=0,Zf=0,Jf=1,Na=.5,ri=class extends ${constructor(e,t){super(t),this._clickRepulse=()=>{let n=this.container,r=n.actualOptions.interactivity.modes.repulse;if(!r)return;let i=n.repulse??{particles:[]};if(i.finish||(i.count||(i.count=0),i.count++,i.count===n.particles.count&&(i.finish=!0)),i.clicking){let a=n.retina.repulseModeDistance;if(!a||a<Gf)return;let s=Math.pow(a/Kf,Xf),c=n.interactivity.mouse.clickPosition;if(c===void 0)return;let d=new U(c.x,c.y,s),l=n.particles.quadTree.query(d,m=>this.isEnabled(m));for(let m of l){let{dx:f,dy:b,distance:p}=I(c,m.position),u=p**Yf,v=r.speed,F=-s*v/u;if(u<=s){i.particles.push(m);let w=z.create(f,b);w.length=F,m.velocity.setTo(w)}}}else if(i.clicking===!1){for(let a of i.particles)a.velocity.setTo(a.initialVelocity);i.particles=[]}},this._hoverRepulse=()=>{let n=this.container,r=n.interactivity.mouse.position,i=n.retina.repulseModeDistance;!i||i<Qf||!r||this._processRepulse(r,i,new U(r.x,r.y,i))},this._processRepulse=(n,r,i,a)=>{let s=this.container,c=s.particles.quadTree.query(i,v=>this.isEnabled(v)),d=s.actualOptions.interactivity.modes.repulse;if(!d)return;let{easing:l,speed:m,factor:f,maxSpeed:b}=d,p=Ao(l),u=(a?.speed??m)*f;for(let v of c){let{dx:F,dy:w,distance:k}=I(v.position,n),x=Y(p(Jf-k/r)*u,Zf,b),M=z.create(k?F/k*x:u,k?w/k*x:u);v.position.addTo(M)}},this._singleSelectorRepulse=(n,r)=>{let i=this.container,a=i.actualOptions.interactivity.modes.repulse;if(!a)return;let s=document.querySelectorAll(n);s.length&&s.forEach(c=>{let d=c,l=i.retina.pixelRatio,m={x:(d.offsetLeft+d.offsetWidth*Na)*l,y:(d.offsetTop+d.offsetHeight*Na)*l},f=d.offsetWidth*Na*l,b=r.type===Oe.circle?new U(m.x,m.y,f):new ne(d.offsetLeft*l,d.offsetTop*l,d.offsetWidth*l,d.offsetHeight*l),p=a.divs,u=Oo(p,d);this._processRepulse(m,f,b,u)})},this._engine=e,t.repulse||(t.repulse={particles:[]}),this.handleClickMode=n=>{let r=this.container.actualOptions,i=r.interactivity.modes.repulse;if(!i||n!==dt)return;t.repulse||(t.repulse={particles:[]});let a=t.repulse;a.clicking=!0,a.count=0;for(let s of t.repulse.particles)this.isEnabled(s)&&s.velocity.setTo(s.initialVelocity);a.particles=[],a.finish=!1,setTimeout(()=>{t.destroyed||(a.clicking=!1)},i.duration*1e3)}}clear(){}init(){let e=this.container,t=e.actualOptions.interactivity.modes.repulse;t&&(e.retina.repulseModeDistance=t.distance*e.retina.pixelRatio)}interact(){let e=this.container,t=e.actualOptions,n=e.interactivity.status===ue,r=t.interactivity.events,i=r.onHover,a=i.enable,s=i.mode,c=r.onClick,d=c.enable,l=c.mode,m=r.onDiv;n&&a&&A(dt,s)?this._hoverRepulse():d&&A(dt,l)?this._clickRepulse():pt(dt,m,(f,b)=>this._singleSelectorRepulse(f,b))}isEnabled(e){let t=this.container,n=t.actualOptions,r=t.interactivity.mouse,i=(e?.interactivity??n.interactivity).events,a=i.onDiv,s=i.onHover,c=i.onClick,d=bt(dt,a);if(!(d||s.enable&&r.position||c.enable&&r.clickPosition))return!1;let l=s.mode,m=c.mode;return A(dt,l)||A(dt,m)||d}loadModeOptions(e,...t){e.repulse||(e.repulse=new ni);for(let n of t)e.repulse.load(n?.repulse)}reset(){}};async function yd(o,e=!0){await o.addInteractor("externalRepulse",t=>Promise.resolve(new ri(o,t)),e)}var ii=class{constructor(){this.factor=3,this.radius=200}load(e){e&&(e.factor!==void 0&&(this.factor=e.factor),e.radius!==void 0&&(this.radius=e.radius))}};var eb="slow",tb=0,ai=class extends ${constructor(e){super(e)}clear(e,t,n){e.slow.inRange&&!n||(e.slow.factor=1)}init(){let e=this.container,t=e.actualOptions.interactivity.modes.slow;t&&(e.retina.slowModeRadius=t.radius*e.retina.pixelRatio)}interact(){}isEnabled(e){let t=this.container,n=t.interactivity.mouse,r=(e?.interactivity??t.actualOptions.interactivity).events;return r.onHover.enable&&!!n.position&&A(eb,r.onHover.mode)}loadModeOptions(e,...t){e.slow||(e.slow=new ii);for(let n of t)e.slow.load(n?.slow)}reset(e){e.slow.inRange=!1;let t=this.container,n=t.actualOptions,r=t.interactivity.mouse.position,i=t.retina.slowModeRadius,a=n.interactivity.modes.slow;if(!a||!i||i<tb||!r)return;let s=e.getPosition(),c=L(r,s),d=c/i,l=a.factor,{slow:m}=e;c>i||(m.inRange=!0,m.factor=d/l)}};async function kd(o,e=!0){await o.addInteractor("externalSlow",t=>Promise.resolve(new ai(t)),e)}var ob=0,nb=1,rb=/(#(?:[0-9a-f]{2}){2,4}|(#[0-9a-f]{3})|(rgb|hsl)a?\((-?\d+%?[,\s]+){2,3}\s*[\d.]+%?\))|currentcolor/gi;function ib(o,e,t){let{svgData:n}=o;if(!n)return"";let r=ze(e,t);if(n.includes("fill"))return n.replace(rb,()=>r);let i=n.indexOf(">");return`${n.substring(ob,i)} fill="${r}"${n.substring(i)}`}async function St(o){return new Promise(e=>{o.loading=!0;let t=new Image;o.element=t,t.addEventListener("load",()=>{o.loading=!1,e()}),t.addEventListener("error",()=>{o.element=void 0,o.error=!0,o.loading=!1,ve().error(`${Q} loading image: ${o.source}`),e()}),t.src=o.source})}async function Cd(o){if(o.type!=="svg"){await St(o);return}o.loading=!0;let e=await fetch(o.source);e.ok?o.svgData=await e.text():(ve().error(`${Q} Image not found`),o.error=!0),o.loading=!1}function Ad(o,e,t,n){let r=ib(o,t,n.opacity?.value??nb),i={color:t,gif:e.gif,data:{...o,svgData:r},loaded:!1,ratio:e.width/e.height,replaceColor:e.replaceColor,source:e.src};return new Promise(a=>{let s=new Blob([r],{type:"image/svg+xml"}),c=URL||window.URL||window.webkitURL||window,d=c.createObjectURL(s),l=new Image;l.addEventListener("load",()=>{i.loaded=!0,i.element=l,a(i),c.revokeObjectURL(d)});let m=async()=>{c.revokeObjectURL(d);let f={...o,error:!1,loading:!0};await St(f),i.loaded=!0,i.element=f.element,a(i)};l.addEventListener("error",()=>void m()),l.src=d})}var si=[0,4,2,1],$a=[8,8,4,2];var ci=class{constructor(e){this.pos=0,this.data=new Uint8ClampedArray(e)}getString(e){let t=this.data.slice(this.pos,this.pos+e);return this.pos+=t.length,t.reduce((n,r)=>n+String.fromCharCode(r),"")}nextByte(){return this.data[this.pos++]}nextTwoBytes(){return this.pos+=2,this.data[this.pos-2]+(this.data[this.pos-1]<<8)}readSubBlocks(){let e="",t=0,n=0,r=0;do{t=this.data[this.pos++];for(let i=t;--i>=n;e+=String.fromCharCode(this.data[this.pos++]));}while(t!==r);return e}readSubBlocksBin(){let e=this.data[this.pos],t=0,n=0,r=1;for(let a=0;e!==n;a+=e+r,e=this.data[this.pos+a])t+=e;let i=new Uint8Array(t);e=this.data[this.pos++];for(let a=0;e!==n;e=this.data[this.pos++])for(let s=e;--s>=n;i[a++]=this.data[this.pos++]);return i}skipSubBlocks(){for(let e=1,t=0;this.data[this.pos]!==t;this.pos+=this.data[this.pos]+e);this.pos++}};var we;(function(o){o[o.Replace=0]="Replace",o[o.Combine=1]="Combine",o[o.RestoreBackground=2]="RestoreBackground",o[o.RestorePrevious=3]="RestorePrevious",o[o.UndefinedA=4]="UndefinedA",o[o.UndefinedB=5]="UndefinedB",o[o.UndefinedC=6]="UndefinedC",o[o.UndefinedD=7]="UndefinedD"})(we||(we={}));var Re;(function(o){o[o.Extension=33]="Extension",o[o.ApplicationExtension=255]="ApplicationExtension",o[o.GraphicsControlExtension=249]="GraphicsControlExtension",o[o.PlainTextExtension=1]="PlainTextExtension",o[o.CommentExtension=254]="CommentExtension",o[o.Image=44]="Image",o[o.EndOfFile=59]="EndOfFile"})(Re||(Re={}));var fe={x:0,y:0},ab=0,Bd=.5,sb=0,Ed=0,Ha=0;function Dd(o,e){let t=[];for(let n=0;n<e;n++)t.push({r:o.data[o.pos],g:o.data[o.pos+1],b:o.data[o.pos+2]}),o.pos+=3;return t}function cb(o,e,t,n){switch(o.nextByte()){case Re.GraphicsControlExtension:{let r=e.frames[t(!1)];o.pos++;let i=o.nextByte();r.GCreserved=(i&224)>>>5,r.disposalMethod=(i&28)>>>2,r.userInputDelayFlag=(i&2)===2;let a=(i&1)===1;r.delayTime=o.nextTwoBytes()*10;let s=o.nextByte();a&&n(s),o.pos++;break}case Re.ApplicationExtension:{o.pos++;let r={identifier:o.getString(8),authenticationCode:o.getString(3),data:o.readSubBlocksBin()};e.applicationExtensions.push(r);break}case Re.CommentExtension:{e.comments.push([t(!1),o.readSubBlocks()]);break}case Re.PlainTextExtension:{if(e.globalColorTable.length===0)throw new EvalError("plain text extension without global color table");o.pos++,e.frames[t(!1)].plainTextData={left:o.nextTwoBytes(),top:o.nextTwoBytes(),width:o.nextTwoBytes(),height:o.nextTwoBytes(),charSize:{width:o.nextTwoBytes(),height:o.nextTwoBytes()},foregroundColor:o.nextByte(),backgroundColor:o.nextByte(),text:o.readSubBlocks()};break}default:o.skipSubBlocks();break}}async function db(o,e,t,n,r,i){let a=e.frames[n(!0)];a.left=o.nextTwoBytes(),a.top=o.nextTwoBytes(),a.width=o.nextTwoBytes(),a.height=o.nextTwoBytes();let s=o.nextByte(),c=(s&128)===128,d=(s&64)===64;a.sortFlag=(s&32)===32,a.reserved=(s&24)>>>3;let l=1<<(s&7)+1;c&&(a.localColorTable=Dd(o,l));let m=F=>{let{r:w,g:k,b:x}=(c?a.localColorTable:e.globalColorTable)[F];return F!==r(null)?{r:w,g:k,b:x,a:255}:{r:w,g:k,b:x,a:t?~~((w+k+x)/3):0}},f=(()=>{try{return new ImageData(a.width,a.height,{colorSpace:"srgb"})}catch(F){if(F instanceof DOMException&&F.name==="IndexSizeError")return null;throw F}})();if(f==null)throw new EvalError("GIF frame size is to large");let b=o.nextByte(),p=o.readSubBlocksBin(),u=1<<b,v=(F,w)=>{let k=F>>>3,x=F&7;return(p[k]+(p[k+1]<<8)+(p[k+2]<<16)&(1<<w)-1<<x)>>>x};if(d){for(let F=0,w=b+1,k=0,x=[[0]],M=0;M<4;M++){if(si[M]<a.height){let E=0,ce=0,S=!1;for(;!S;){let G=F;if(F=v(k,w),k+=w+1,F===u){w=b+1,x.length=u+2;for(let be=0;be<x.length;be++)x[be]=be<u?[be]:[]}else{F>=x.length?x.push(x[G].concat(x[G][0])):G!==u&&x.push(x[G].concat(x[F][0]));for(let be of x[F]){let{r:pe,g:uo,b:Xa,a:Ya}=m(be);f.data.set([pe,uo,Xa,Ya],si[M]*a.width+$a[M]*ce+E%(a.width*4)),E+=4}x.length===1<<w&&w<12&&w++}E===a.width*4*(ce+1)&&(ce++,si[M]+$a[M]*ce>=a.height&&(S=!0))}}i?.(o.pos/(o.data.length-1),n(!1)+1,f,{x:a.left,y:a.top},{width:e.width,height:e.height})}a.image=f,a.bitmap=await createImageBitmap(f)}else{let F=0,w=b+1,k=0,x=-4,M=!1,E=[[0]];for(;!M;){let ce=F;if(F=v(k,w),k+=w,F===u){w=b+1,E.length=u+2;for(let S=0;S<E.length;S++)E[S]=S<u?[S]:[]}else{if(F===u+1){M=!0;break}F>=E.length?E.push(E[ce].concat(E[ce][0])):ce!==u&&E.push(E[ce].concat(E[F][0]));for(let S of E[F]){let{r:G,g:be,b:pe,a:uo}=m(S);f.data.set([G,be,pe,uo],x+=4)}E.length>=1<<w&&w<12&&w++}}a.image=f,a.bitmap=await createImageBitmap(f),i?.((o.pos+1)/o.data.length,n(!1)+1,a.image,{x:a.left,y:a.top},{width:e.width,height:e.height})}}async function lb(o,e,t,n,r,i){switch(o.nextByte()){case Re.EndOfFile:return!0;case Re.Image:await db(o,e,t,n,r,i);break;case Re.Extension:cb(o,e,n,r);break;default:throw new EvalError("undefined block found")}return!1}function mb(o){for(let e of o.applicationExtensions)if(e.identifier+e.authenticationCode==="NETSCAPE2.0")return e.data[1]+(e.data[2]<<8);return NaN}async function fb(o,e,t){t||(t=!1);let n=await fetch(o);if(!n.ok&&n.status===404)throw new EvalError("file not found");let r=await n.arrayBuffer(),i={width:0,height:0,totalTime:0,colorRes:0,pixelAspectRatio:0,frames:[],sortFlag:!1,globalColorTable:[],backgroundImage:new ImageData(1,1,{colorSpace:"srgb"}),comments:[],applicationExtensions:[]},a=new ci(new Uint8ClampedArray(r));if(a.getString(6)!=="GIF89a")throw new Error("not a supported GIF file");i.width=a.nextTwoBytes(),i.height=a.nextTwoBytes();let s=a.nextByte(),c=(s&128)===128;i.colorRes=(s&112)>>>4,i.sortFlag=(s&8)===8;let d=1<<(s&7)+1,l=a.nextByte();i.pixelAspectRatio=a.nextByte(),i.pixelAspectRatio!==0&&(i.pixelAspectRatio=(i.pixelAspectRatio+15)/64),c&&(i.globalColorTable=Dd(a,d));let m=(()=>{try{return new ImageData(i.width,i.height,{colorSpace:"srgb"})}catch(x){if(x instanceof DOMException&&x.name==="IndexSizeError")return null;throw x}})();if(m==null)throw new Error("GIF frame size is to large");let{r:f,g:b,b:p}=i.globalColorTable[l];m.data.set(c?[f,b,p,255]:[0,0,0,0]);for(let x=4;x<m.data.length;x*=2)m.data.copyWithin(x,0,x);i.backgroundImage=m;let u=-1,v=!0,F=-1,w=x=>(x&&(v=!0),u),k=x=>(x!=null&&(F=x),F);try{do v&&(i.frames.push({left:0,top:0,width:0,height:0,disposalMethod:we.Replace,image:new ImageData(1,1,{colorSpace:"srgb"}),plainTextData:null,userInputDelayFlag:!1,delayTime:0,sortFlag:!1,localColorTable:[],reserved:0,GCreserved:0}),u++,F=-1,v=!1);while(!await lb(a,i,t,w,k,e));i.frames.length--;for(let x of i.frames){if(x.userInputDelayFlag&&x.delayTime===0){i.totalTime=1/0;break}i.totalTime+=x.delayTime}return i}catch(x){throw x instanceof EvalError?new Error(`error while parsing frame ${u} "${x.message}"`):x}}function zd(o){let{context:e,radius:t,particle:n,delta:r}=o,i=n.image;if(!i?.gifData||!i.gif)return;let a=new OffscreenCanvas(i.gifData.width,i.gifData.height),s=a.getContext("2d");if(!s)throw new Error("could not create offscreen canvas context");s.imageSmoothingQuality="low",s.imageSmoothingEnabled=!1,s.clearRect(fe.x,fe.y,a.width,a.height),n.gifLoopCount===void 0&&(n.gifLoopCount=i.gifLoopCount??Ha);let c=n.gifFrame??ab,d={x:-i.gifData.width*Bd,y:-i.gifData.height*Bd},l=i.gifData.frames[c];if(n.gifTime===void 0&&(n.gifTime=sb),!!l.bitmap){switch(e.scale(t/i.gifData.width,t/i.gifData.height),l.disposalMethod){case we.UndefinedA:case we.UndefinedB:case we.UndefinedC:case we.UndefinedD:case we.Replace:s.drawImage(l.bitmap,l.left,l.top),e.drawImage(a,d.x,d.y),s.clearRect(fe.x,fe.y,a.width,a.height);break;case we.Combine:s.drawImage(l.bitmap,l.left,l.top),e.drawImage(a,d.x,d.y);break;case we.RestoreBackground:s.drawImage(l.bitmap,l.left,l.top),e.drawImage(a,d.x,d.y),s.clearRect(fe.x,fe.y,a.width,a.height),i.gifData.globalColorTable.length?s.putImageData(i.gifData.backgroundImage,d.x,d.y):s.putImageData(i.gifData.frames[Ed].image,d.x+l.left,d.y+l.top);break;case we.RestorePrevious:{let m=s.getImageData(fe.x,fe.y,a.width,a.height);s.drawImage(l.bitmap,l.left,l.top),e.drawImage(a,d.x,d.y),s.clearRect(fe.x,fe.y,a.width,a.height),s.putImageData(m,fe.x,fe.y)}break}if(n.gifTime+=r.value,n.gifTime>l.delayTime){if(n.gifTime-=l.delayTime,++c>=i.gifData.frames.length){if(--n.gifLoopCount<=Ha)return;c=Ed,s.clearRect(fe.x,fe.y,a.width,a.height)}n.gifFrame=c}e.scale(i.gifData.width/t,i.gifData.height/t)}}async function Od(o){if(o.type!=="gif"){await St(o);return}o.loading=!0;try{o.gifData=await fb(o.source),o.gifLoopCount=mb(o.gifData)??Ha,o.gifLoopCount||(o.gifLoopCount=1/0)}catch{o.error=!0}o.loading=!1}var bb=2,pb=1,ub=12,hb=1,di=class{constructor(e){this.validTypes=["image","images"],this.loadImageShape=async t=>{if(!this._engine.loadImage)throw new Error(`${Q} image shape not initialized`);await this._engine.loadImage({gif:t.gif,name:t.name,replaceColor:t.replaceColor??!1,src:t.src})},this._engine=e}addImage(e){this._engine.images||(this._engine.images=[]),this._engine.images.push(e)}draw(e){let{context:t,radius:n,particle:r,opacity:i}=e,a=r.image,s=a?.element;if(a){if(t.globalAlpha=i,a.gif&&a.gifData)zd(e);else if(s){let c=a.ratio,d={x:-n,y:-n},l=n*bb;t.drawImage(s,d.x,d.y,l,l/c)}t.globalAlpha=pb}}getSidesCount(){return ub}async init(e){let t=e.actualOptions;if(!(!t.preload||!this._engine.loadImage))for(let n of t.preload)await this._engine.loadImage(n)}loadShape(e){if(e.shape!=="image"&&e.shape!=="images")return;this._engine.images||(this._engine.images=[]);let t=e.shapeData;if(!t)return;this._engine.images.find(r=>r.name===t.name||r.source===t.src)||this.loadImageShape(t).then(()=>{this.loadShape(e)})}particleInit(e,t){if(t.shape!=="image"&&t.shape!=="images")return;this._engine.images||(this._engine.images=[]);let n=this._engine.images,r=t.shapeData;if(!r)return;let i=t.getFillColor(),a=n.find(c=>c.name===r.name||c.source===r.src);if(!a)return;let s=r.replaceColor??a.replaceColor;if(a.loading){setTimeout(()=>{this.particleInit(e,t)});return}(async()=>{let c;a.svgData&&i?c=await Ad(a,r,i,t):c={color:i,data:a,element:a.element,gif:a.gif,gifData:a.gifData,gifLoopCount:a.gifLoopCount,loaded:!0,ratio:r.width&&r.height?r.width/r.height:a.ratio??hb,replaceColor:s,source:r.src},c.ratio||(c.ratio=1);let d=r.fill??t.shapeFill,l=r.close??t.shapeClose,m={image:c,fill:d,close:l};t.image=m.image,t.shapeFill=m.fill,t.shapeClose=m.close})()}};var li=class{constructor(){this.src="",this.gif=!1}load(e){e&&(e.gif!==void 0&&(this.gif=e.gif),e.height!==void 0&&(this.height=e.height),e.name!==void 0&&(this.name=e.name),e.replaceColor!==void 0&&(this.replaceColor=e.replaceColor),e.src!==void 0&&(this.src=e.src),e.width!==void 0&&(this.width=e.width))}};var mi=class{constructor(e){this.id="imagePreloader",this._engine=e}async getPlugin(){return await Promise.resolve(),{}}loadOptions(e,t){if(!t?.preload)return;e.preload||(e.preload=[]);let n=e.preload;for(let r of t.preload){let i=n.find(a=>a.name===r.name||a.src===r.src);if(i)i.load(r);else{let a=new li;a.load(r),n.push(a)}}}needsPlugin(){return!0}};var gb=3;function Fb(o){o.loadImage||(o.loadImage=async e=>{if(!e.name&&!e.src)throw new Error(`${Q} no image source provided`);if(o.images||(o.images=[]),!o.images.find(t=>t.name===e.name||t.source===e.src))try{let t={gif:e.gif??!1,name:e.name??e.src,source:e.src,type:e.src.substring(e.src.length-gb),error:!1,loading:!0,replaceColor:e.replaceColor,ratio:e.width&&e.height?e.width/e.height:void 0};o.images.push(t);let n;e.gif?n=Od:n=e.replaceColor?Cd:St,await n(t)}catch{throw new Error(`${Q} ${e.name??e.src} not found`)}})}async function _d(o,e=!0){Fb(o);let t=new mi(o);await o.addPlugin(t,e),await o.addShape(new di(o),e)}var fi=class extends W{constructor(){super(),this.sync=!1}load(e){e&&(super.load(e),e.sync!==void 0&&(this.sync=e.sync))}};var bi=class extends W{constructor(){super(),this.sync=!1}load(e){e&&(super.load(e),e.sync!==void 0&&(this.sync=e.sync))}};var pi=class{constructor(){this.count=0,this.delay=new fi,this.duration=new bi}load(e){e&&(e.count!==void 0&&(this.count=e.count),this.delay.load(e.delay),this.duration.load(e.duration))}};var Tt=0,vb=-1,Md=0,Rd=0;function Sd(o,e,t){if(!o.life)return;let n=o.life,r=!1;if(o.spawning)if(n.delayTime+=e.value,n.delayTime>=o.life.delay)r=!0,o.spawning=!1,n.delayTime=Tt,n.time=Tt;else return;if(n.duration===vb||o.spawning||(r?n.time=Tt:n.time+=e.value,n.time<n.duration))return;if(n.time=Tt,o.life.count>Md&&o.life.count--,o.life.count===Md){o.destroy();return}let i=g(Rd,t.width),a=g(Rd,t.width);o.position.x=N(i),o.position.y=N(a),o.spawning=!0,n.delayTime=Tt,n.time=Tt,o.reset();let s=o.options.life;s&&(n.delay=h(s.delay.value)*1e3,n.duration=h(s.duration.value)*1e3)}var lt=0,Td=1,Pd=-1,ui=class{constructor(e){this.container=e}init(e){let t=this.container,n=e.options,r=n.life;r&&(e.life={delay:t.retina.reduceFactor?h(r.delay.value)*(r.delay.sync?Td:y())/t.retina.reduceFactor*1e3:lt,delayTime:lt,duration:t.retina.reduceFactor?h(r.duration.value)*(r.duration.sync?Td:y())/t.retina.reduceFactor*1e3:lt,time:lt,count:r.count},e.life.duration<=lt&&(e.life.duration=Pd),e.life.count<=lt&&(e.life.count=Pd),e.life&&(e.spawning=e.life.delay>lt))}isEnabled(e){return!e.destroyed}loadOptions(e,...t){e.life||(e.life=new pi);for(let n of t)e.life.load(n?.life)}update(e,t){!this.isEnabled(e)||!e.life||Sd(e,t,this.container.canvas.size)}};async function Id(o,e=!0){await o.addParticleUpdater("life",async t=>Promise.resolve(new ui(t)),e)}function Ld(o){let{context:e,particle:t,radius:n}=o,r=t.shapeData,i=0;e.moveTo(-n,i),e.lineTo(n,i),e.lineCap=r?.cap??"butt"}var xb=1,hi=class{constructor(){this.validTypes=["line"]}draw(e){Ld(e)}getSidesCount(){return xb}};async function jd(o,e=!0){await o.addShape(new hi,e)}var qd=.5,gi=class{init(){}isEnabled(e){return!Be()&&!e.destroyed&&e.container.actualOptions.interactivity.events.onHover.parallax.enable}move(e){let t=e.container,n=t.actualOptions,r=n.interactivity.events.onHover.parallax;if(Be()||!r.enable)return;let i=r.force,a=t.interactivity.mouse.position;if(!a)return;let s=t.canvas.size,c={x:s.width*qd,y:s.height*qd},d=r.smooth,l=e.getRadius()/i,m={x:(a.x-c.x)*l,y:(a.y-c.y)*l},{offset:f}=e;f.x+=(m.x-f.x)/d,f.y+=(m.y-f.y)/d}};async function Vd(o,e=!0){await o.addMover("parallax",()=>Promise.resolve(new gi),e)}var Nd=1e3,wb=1,Fi=class extends Je{constructor(e){super(e)}clear(){}init(){}interact(e){let t=this.container;e.attractDistance===void 0&&(e.attractDistance=h(e.options.move.attract.distance)*t.retina.pixelRatio);let n=e.attractDistance,r=e.getPosition(),i=t.particles.quadTree.queryCircle(r,n);for(let a of i){if(e===a||!a.options.move.attract.enable||a.destroyed||a.spawning)continue;let s=a.getPosition(),{dx:c,dy:d}=I(r,s),l=e.options.move.attract.rotate,m=c/(l.x*Nd),f=d/(l.y*Nd),b=a.size.value/e.size.value,p=wb/b;e.velocity.x-=m*b,e.velocity.y-=f*b,a.velocity.x+=m*p,a.velocity.y+=f*p}}isEnabled(e){return e.options.move.attract.enable}reset(){}};async function $d(o,e=!0){await o.addInteractor("particlesAttract",t=>Promise.resolve(new Fi(t)),e)}var yb=.5,kb=10,Cb=0;function Hd(o,e,t,n,r,i){let a=Y(o.options.collisions.absorb.speed*r.factor/kb,Cb,n);o.size.value+=a*yb,t.size.value-=a,n<=i&&(t.size.value=0,t.destroy())}function Wd(o,e,t,n){let r=o.getRadius(),i=e.getRadius();r===void 0&&i!==void 0?o.destroy():r!==void 0&&i===void 0?e.destroy():r!==void 0&&i!==void 0&&(r>=i?Hd(o,r,e,i,t,n):Hd(e,i,o,r,t,n))}var Ud=o=>{o.collisionMaxSpeed===void 0&&(o.collisionMaxSpeed=h(o.options.collisions.maxSpeed)),o.velocity.length>o.collisionMaxSpeed&&(o.velocity.length=o.collisionMaxSpeed)};function vi(o,e){_o(Xt(o),Xt(e)),Ud(o),Ud(e)}function Gd(o,e){!o.unbreakable&&!e.unbreakable&&vi(o,e),o.getRadius()===void 0&&e.getRadius()!==void 0?o.destroy():o.getRadius()!==void 0&&e.getRadius()===void 0?e.destroy():o.getRadius()!==void 0&&e.getRadius()!==void 0&&(o.getRadius()>=e.getRadius()?e:o).destroy()}function Kd(o,e,t,n){switch(o.options.collisions.mode){case Ze.absorb:{Wd(o,e,t,n);break}case Ze.bounce:{vi(o,e);break}case Ze.destroy:{Gd(o,e);break}}}var Ab=2,xi=class extends Je{constructor(e){super(e)}clear(){}init(){}interact(e,t){if(e.destroyed||e.spawning)return;let n=this.container,r=e.getPosition(),i=e.getRadius(),a=n.particles.quadTree.queryCircle(r,i*Ab);for(let s of a){if(e===s||!s.options.collisions.enable||e.options.collisions.mode!==s.options.collisions.mode||s.destroyed||s.spawning)continue;let c=s.getPosition(),d=s.getRadius();if(Math.abs(Math.round(r.z)-Math.round(c.z))>i+d)continue;let l=L(r,c),m=i+d;l>m||Kd(e,s,t,n.retina.pixelRatio)}}isEnabled(e){return e.options.collisions.enable}reset(){}};async function Xd(o,e=!0){await o.addInteractor("particlesCollisions",t=>Promise.resolve(new xi(t)),e)}var Wa=2,wi=class extends U{constructor(e,t,n,r){super(e,t,n),this.canvasSize=r,this.canvasSize={...r}}contains(e){let{width:t,height:n}=this.canvasSize,{x:r,y:i}=e;return super.contains(e)||super.contains({x:r-t,y:i})||super.contains({x:r-t,y:i-n})||super.contains({x:r,y:i-n})}intersects(e){if(super.intersects(e))return!0;let t=e,n=e,r={x:e.position.x-this.canvasSize.width,y:e.position.y-this.canvasSize.height};if(n.radius!==void 0){let i=new U(r.x,r.y,n.radius*Wa);return super.intersects(i)}else if(t.size!==void 0){let i=new ne(r.x,r.y,t.size.width*Wa,t.size.height*Wa);return super.intersects(i)}return!1}};var yi=class{constructor(){this.blur=5,this.color=new _,this.color.value="#000",this.enable=!1}load(e){e&&(e.blur!==void 0&&(this.blur=e.blur),this.color=_.create(this.color,e.color),e.enable!==void 0&&(this.enable=e.enable))}};var ki=class{constructor(){this.enable=!1,this.frequency=1}load(e){e&&(e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.enable!==void 0&&(this.enable=e.enable),e.frequency!==void 0&&(this.frequency=e.frequency),e.opacity!==void 0&&(this.opacity=e.opacity))}};var Ci=class{constructor(){this.blink=!1,this.color=new _,this.color.value="#fff",this.consent=!1,this.distance=100,this.enable=!1,this.frequency=1,this.opacity=1,this.shadow=new yi,this.triangles=new ki,this.width=1,this.warp=!1}load(e){e&&(e.id!==void 0&&(this.id=e.id),e.blink!==void 0&&(this.blink=e.blink),this.color=_.create(this.color,e.color),e.consent!==void 0&&(this.consent=e.consent),e.distance!==void 0&&(this.distance=e.distance),e.enable!==void 0&&(this.enable=e.enable),e.frequency!==void 0&&(this.frequency=e.frequency),e.opacity!==void 0&&(this.opacity=e.opacity),this.shadow.load(e.shadow),this.triangles.load(e.triangles),e.width!==void 0&&(this.width=e.width),e.warp!==void 0&&(this.warp=e.warp))}};var Yd=2,Bb=1,Ai={x:0,y:0},Eb=0;function Db(o,e,t,n,r){let{dx:i,dy:a,distance:s}=I(o,e);if(!r||s<=t)return s;let c={x:Math.abs(i),y:Math.abs(a)},d={x:Math.min(c.x,n.width-c.x),y:Math.min(c.y,n.height-c.y)};return Math.sqrt(d.x**Yd+d.y**Yd)}var Bi=class extends Je{constructor(e){super(e),this._setColor=t=>{if(!t.options.links)return;let n=this.linkContainer,r=t.options.links,i=r.id===void 0?n.particles.linksColor:n.particles.linksColors.get(r.id);if(i)return;let a=r.color;i=Io(a,r.blink,r.consent),r.id===void 0?n.particles.linksColor=i:n.particles.linksColors.set(r.id,i)},this.linkContainer=e}clear(){}init(){this.linkContainer.particles.linksColor=void 0,this.linkContainer.particles.linksColors=new Map}interact(e){if(!e.options.links)return;e.links=[];let t=e.getPosition(),n=this.container,r=n.canvas.size;if(t.x<Ai.x||t.y<Ai.y||t.x>r.width||t.y>r.height)return;let i=e.options.links,a=i.opacity,s=e.retina.linksDistance??Eb,c=i.warp,d;c?d=new wi(t.x,t.y,s,r):d=new U(t.x,t.y,s);let l=n.particles.quadTree.query(d);for(let m of l){let f=m.options.links;if(e===m||!f?.enable||i.id!==f.id||m.spawning||m.destroyed||!m.links||e.links.some(v=>v.destination===m)||m.links.some(v=>v.destination===e))continue;let b=m.getPosition();if(b.x<Ai.x||b.y<Ai.y||b.x>r.width||b.y>r.height)continue;let p=Db(t,b,s,r,c&&f.warp);if(p>s)continue;let u=(Bb-p/s)*a;this._setColor(e),e.links.push({destination:m,opacity:u})}}isEnabled(e){return!!e.options.links?.enable}loadParticlesOptions(e,...t){e.links||(e.links=new Ci);for(let n of t)e.links.load(n?.links)}reset(){}};async function Qd(o,e=!0){await o.addInteractor("particlesLinks",async t=>Promise.resolve(new Bi(t)),e)}function zb(o,e,t,n){o.beginPath(),o.moveTo(e.x,e.y),o.lineTo(t.x,t.y),o.lineTo(n.x,n.y),o.closePath()}function Zd(o){let e=!1,{begin:t,end:n,maxDistance:r,context:i,canvasSize:a,width:s,backgroundMask:c,colorLine:d,opacity:l,links:m}=o;if(L(t,n)<=r)Xe(i,t,n),e=!0;else if(m.warp){let b,p,u={x:n.x-a.width,y:n.y},v=I(t,u);if(v.distance<=r){let F=t.y-v.dy/v.dx*t.x;b={x:0,y:F},p={x:a.width,y:F}}else{let F={x:n.x,y:n.y-a.height},w=I(t,F);if(w.distance<=r){let x=-(t.y-w.dy/w.dx*t.x)/(w.dy/w.dx);b={x,y:0},p={x,y:a.height}}else{let k={x:n.x-a.width,y:n.y-a.height},x=I(t,k);if(x.distance<=r){let M=t.y-x.dy/x.dx*t.x;b={x:-M/(x.dy/x.dx),y:M},p={x:b.x+a.width,y:b.y+a.height}}}}b&&p&&(Xe(i,t,b),Xe(i,n,p),e=!0)}if(!e)return;i.lineWidth=s,c.enable&&(i.globalCompositeOperation=c.composite),i.strokeStyle=ie(d,l);let{shadow:f}=m;if(f.enable){let b=oe(f.color);b&&(i.shadowBlur=f.blur,i.shadowColor=ie(b))}i.stroke()}function Jd(o){let{context:e,pos1:t,pos2:n,pos3:r,backgroundMask:i,colorTriangle:a,opacityTriangle:s}=o;zb(e,t,n,r),i.enable&&(e.globalCompositeOperation=i.composite),e.fillStyle=ie(a,s),e.fill()}function Ob(o){return o.sort((e,t)=>e-t),o.join("_")}function Ua(o,e){let t=Ob(o.map(r=>r.id)),n=e.get(t);return n===void 0&&(n=y(),e.set(t,n)),n}var el=0,Ga=0,tl=0,_b=.5,Mb=1,Ei=class{constructor(e){this.container=e,this._drawLinkLine=(t,n)=>{let r=t.options.links;if(!r?.enable)return;let i=this.container,a=i.actualOptions,s=n.destination,c=t.getPosition(),d=s.getPosition(),l=n.opacity;i.canvas.draw(m=>{let f,b=t.options.twinkle?.lines;if(b?.enable){let F=b.frequency,w=oe(b.color);y()<F&&w&&(f=w,l=h(b.opacity))}if(!f){let F=r.id!==void 0?i.particles.linksColors.get(r.id):i.particles.linksColor;f=Qt(t,s,F)}if(!f)return;let p=t.retina.linksWidth??Ga,u=t.retina.linksDistance??tl,{backgroundMask:v}=a;Zd({context:m,width:p,begin:c,end:d,maxDistance:u,canvasSize:i.canvas.size,links:r,backgroundMask:v,colorLine:f,opacity:l})})},this._drawLinkTriangle=(t,n,r)=>{let i=t.options.links;if(!i?.enable)return;let a=i.triangles;if(!a.enable)return;let s=this.container,c=s.actualOptions,d=n.destination,l=r.destination,m=a.opacity??(n.opacity+r.opacity)*_b;m<=el||s.canvas.draw(f=>{let b=t.getPosition(),p=d.getPosition(),u=l.getPosition(),v=t.retina.linksDistance??tl;if(L(b,p)>v||L(u,p)>v||L(u,b)>v)return;let F=oe(a.color);if(!F){let w=i.id!==void 0?s.particles.linksColors.get(i.id):s.particles.linksColor;F=Qt(t,d,w)}F&&Jd({context:f,pos1:b,pos2:p,pos3:u,backgroundMask:c.backgroundMask,colorTriangle:F,opacityTriangle:m})})},this._drawTriangles=(t,n,r,i)=>{let a=r.destination;if(!(t.links?.triangles.enable&&a.options.links?.triangles.enable))return;let s=a.links?.filter(c=>{let d=this._getLinkFrequency(a,c.destination);return a.options.links&&d<=a.options.links.frequency&&i.findIndex(m=>m.destination===c.destination)>=0});if(s?.length)for(let c of s){let d=c.destination;this._getTriangleFrequency(n,a,d)>t.links.triangles.frequency||this._drawLinkTriangle(n,r,c)}},this._getLinkFrequency=(t,n)=>Ua([t,n],this._freqs.links),this._getTriangleFrequency=(t,n,r)=>Ua([t,n,r],this._freqs.triangles),this._freqs={links:new Map,triangles:new Map}}drawParticle(e,t){let{links:n,options:r}=t;if(!n?.length)return;let i=n.filter(a=>r.links&&(r.links.frequency>=Mb||this._getLinkFrequency(t,a.destination)<=r.links.frequency));for(let a of i)this._drawTriangles(r,t,a,i),a.opacity>el&&(t.retina.linksWidth??Ga)>Ga&&this._drawLinkLine(t,a)}async init(){this._freqs.links=new Map,this._freqs.triangles=new Map,await Promise.resolve()}particleCreated(e){if(e.links=[],!e.options.links)return;let t=this.container.retina.pixelRatio,{retina:n}=e,{distance:r,width:i}=e.options.links;n.linksDistance=r*t,n.linksWidth=i*t}particleDestroyed(e){e.links=[]}};var Di=class{constructor(){this.id="links"}getPlugin(e){return Promise.resolve(new Ei(e))}loadOptions(){}needsPlugin(){return!0}};async function ol(o,e=!0){let t=new Di;await o.addPlugin(t,e)}async function nl(o,e=!0){await Qd(o,e),await ol(o,e)}var Rb=180,zi={x:0,y:0},Sb=2;function rl(o,e,t){let{context:n}=o,r=t.count.numerator*t.count.denominator,i=t.count.numerator/t.count.denominator,a=Rb*(i-Sb)/i,s=Math.PI-le(a);if(n){n.beginPath(),n.translate(e.x,e.y),n.moveTo(zi.x,zi.y);for(let c=0;c<r;c++)n.lineTo(t.length,zi.y),n.translate(t.length,zi.y),n.rotate(s)}}var Tb=5,Pt=class{draw(e){let{particle:t,radius:n}=e,r=this.getCenter(t,n),i=this.getSidesData(t,n);rl(e,r,i)}getSidesCount(e){let t=e.shapeData;return Math.round(h(t?.sides??Tb))}};var il=3.5,al=2.66,Pb=3,Oi=class extends Pt{constructor(){super(...arguments),this.validTypes=["polygon"]}getCenter(e,t){return{x:-t/(e.sides/il),y:-t/(al/il)}}getSidesData(e,t){let n=e.sides;return{count:{denominator:1,numerator:n},length:t*al/(n/Pb)}}};var Ib=1.66,Lb=3,jb=2,_i=class extends Pt{constructor(){super(...arguments),this.validTypes=["triangle"]}getCenter(e,t){return{x:-t,y:t/Ib}}getSidesCount(){return Lb}getSidesData(e,t){let n=t*jb;return{count:{denominator:2,numerator:3},length:n}}};async function qb(o,e=!0){await o.addShape(new Oi,e)}async function Vb(o,e=!0){await o.addShape(new _i,e)}async function sl(o,e=!0){await qb(o,e),await Vb(o,e)}var Mi=class{constructor(){this.enable=!1,this.speed=0,this.decay=0,this.sync=!1}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.speed!==void 0&&(this.speed=g(e.speed)),e.decay!==void 0&&(this.decay=g(e.decay)),e.sync!==void 0&&(this.sync=e.sync))}};var Ri=class extends W{constructor(){super(),this.animation=new Mi,this.direction=J.clockwise,this.path=!1,this.value=0}load(e){e&&(super.load(e),e.direction!==void 0&&(this.direction=e.direction),this.animation.load(e.animation),e.path!==void 0&&(this.path=e.path))}};var cl=2,Nb=Math.PI*cl,$b=1,Hb=360,Si=class{constructor(e){this.container=e}init(e){let t=e.options.rotate;if(!t)return;e.rotate={enable:t.animation.enable,value:le(h(t.value)),min:0,max:Nb},e.pathRotation=t.path;let n=t.direction;switch(n===J.random&&(n=Math.floor(y()*cl)>0?J.counterClockwise:J.clockwise),n){case J.counterClockwise:case"counterClockwise":e.rotate.status=j.decreasing;break;case J.clockwise:e.rotate.status=j.increasing;break}let r=t.animation;r.enable&&(e.rotate.decay=$b-h(r.decay),e.rotate.velocity=h(r.speed)/Hb*this.container.retina.reduceFactor,r.sync||(e.rotate.velocity*=y())),e.rotation=e.rotate.value}isEnabled(e){let t=e.options.rotate;return t?!e.destroyed&&!e.spawning&&(!!t.value||t.animation.enable||t.path):!1}loadOptions(e,...t){e.rotate||(e.rotate=new Ri);for(let n of t)e.rotate.load(n?.rotate)}update(e,t){this.isEnabled(e)&&(e.isRotating=!!e.rotate,e.rotate&&(Ke(e,e.rotate,!1,he.none,t),e.rotation=e.rotate.value))}};async function dl(o,e=!0){await o.addParticleUpdater("rotate",t=>Promise.resolve(new Si(t)),e)}var Wb=Math.sqrt(2),Ub=2;function ll(o){let{context:e,radius:t}=o,n=t/Wb,r=n*Ub;e.rect(-n,-n,r,r)}var Gb=4,Ti=class{constructor(){this.validTypes=["edge","square"]}draw(e){ll(e)}getSidesCount(){return Gb}};async function ml(o,e=!0){await o.addShape(new Ti,e)}var It={x:0,y:0};function fl(o){let{context:e,particle:t,radius:n}=o,r=t.sides,i=t.starInset??2;e.moveTo(It.x,It.y-n);for(let a=0;a<r;a++)e.rotate(Math.PI/r),e.lineTo(It.x,It.y-n*i),e.rotate(Math.PI/r),e.lineTo(It.x,It.y-n)}var Kb=2,Xb=5,Pi=class{constructor(){this.validTypes=["star"]}draw(e){fl(e)}getSidesCount(e){let t=e.shapeData;return Math.round(h(t?.sides??Xb))}particleInit(e,t){let n=t.shapeData;t.starInset=h(n?.inset??Kb)}};async function bl(o,e=!0){await o.addShape(new Pi,e)}var Yb=1,Ii=class{constructor(e){this.container=e}init(e){let t=this.container,n=e.options,r=P(n.stroke,e.id,n.reduceDuplicates);e.strokeWidth=h(r.width)*t.retina.pixelRatio,e.strokeOpacity=h(r.opacity??Yb),e.strokeAnimation=r.color?.animation;let i=se(r.color)??e.getFillColor();i&&(e.strokeColor=Lo(i,e.strokeAnimation,t.retina.reduceFactor))}isEnabled(e){let t=e.strokeAnimation,{strokeColor:n}=e;return!e.destroyed&&!e.spawning&&!!t&&(n?.h.value!==void 0&&n.h.enable||n?.s.value!==void 0&&n.s.enable||n?.l.value!==void 0&&n.l.enable)}update(e,t){this.isEnabled(e)&&jo(e.strokeColor,t)}};async function pl(o,e=!0){await o.addParticleUpdater("strokeColor",t=>Promise.resolve(new Ii(t)),e)}async function ul(o,e=!0){await Vd(o,!1),await od(o,!1),await cd(o,!1),await md(o,!1),await hd(o,!1),await Fd(o,!1),await vd(o,!1),await xd(o,!1),await wd(o,!1),await yd(o,!1),await kd(o,!1),await $d(o,!1),await Xd(o,!1),await nl(o,!1),await Kc(),await Qc(o,!1),await _d(o,!1),await jd(o,!1),await sl(o,!1),await ml(o,!1),await bl(o,!1),await Id(o,!1),await dl(o,!1),await pl(o,!1),await Gc(o,e)}var gl=2,hl=.5;function Fl(o){let{context:e,particle:t,radius:n,opacity:r}=o,i=t.shapeData;if(!i)return;let a=i.value;if(a===void 0)return;t.text===void 0&&(t.text=P(a,t.randomIndexData));let s=t.text,c=i.style??"",d=i.weight??"400",l=Math.round(n)*gl,m=i.font??"Verdana",f=t.shapeFill,b=s?.split(`
-`);if(b){e.font=`${c} ${d} ${l}px "${m}"`,e.globalAlpha=r;for(let p=0;p<b.length;p++)Qb(e,b[p],n,r,p,f);e.globalAlpha=1}}function Qb(o,e,t,n,r,i){let a=e.length*t*hl,s={x:-a,y:t*hl},c=t*gl;i?o.fillText(e,s.x,s.y+c*r):o.strokeText(e,s.x,s.y+c*r)}var Li=class{constructor(){this.validTypes=["text","character","char","multiline-text"]}draw(e){Fl(e)}async init(e){let t=e.actualOptions,{validTypes:n}=this;if(n.find(r=>A(r,t.particles.shape.type))){let r=n.map(a=>t.particles.shape.options[a]).find(a=>!!a),i=[];D(r,a=>{i.push(Kt(a.font,a.weight))}),await Promise.all(i)}}particleInit(e,t){if(!t.shape||!this.validTypes.includes(t.shape))return;let n=t.shapeData;if(n===void 0)return;let r=n.value;r!==void 0&&(t.text=P(r,t.randomIndexData))}};async function vl(o,e=!0){await o.addShape(new Li,e)}var Se;(function(o){o.clockwise="clockwise",o.counterClockwise="counter-clockwise",o.random="random"})(Se||(Se={}));var ji=class{constructor(){this.enable=!1,this.speed=0,this.decay=0,this.sync=!1}load(e){e&&(e.enable!==void 0&&(this.enable=e.enable),e.speed!==void 0&&(this.speed=g(e.speed)),e.decay!==void 0&&(this.decay=g(e.decay)),e.sync!==void 0&&(this.sync=e.sync))}};var qi=class extends W{constructor(){super(),this.animation=new ji,this.direction=Se.clockwise,this.enable=!1,this.value=0}load(e){super.load(e),e&&(this.animation.load(e.animation),e.direction!==void 0&&(this.direction=e.direction),e.enable!==void 0&&(this.enable=e.enable))}};var co=1,xl=2,Zb=Math.PI*xl,Jb=360,Vi=class{constructor(e){this.container=e}getTransformValues(e){let t=e.tilt?.enable&&e.tilt;return{b:t?Math.cos(t.value)*t.cosDirection:void 0,c:t?Math.sin(t.value)*t.sinDirection:void 0}}init(e){let t=e.options.tilt;if(!t)return;e.tilt={enable:t.enable,value:le(h(t.value)),sinDirection:y()>=.5?co:-co,cosDirection:y()>=.5?co:-co,min:0,max:Zb};let n=t.direction;switch(n===Se.random&&(n=Math.floor(y()*xl)>0?Se.counterClockwise:Se.clockwise),n){case Se.counterClockwise:case"counterClockwise":e.tilt.status=j.decreasing;break;case Se.clockwise:e.tilt.status=j.increasing;break}let r=e.options.tilt?.animation;r?.enable&&(e.tilt.decay=co-h(r.decay),e.tilt.velocity=h(r.speed)/Jb*this.container.retina.reduceFactor,r.sync||(e.tilt.velocity*=y()))}isEnabled(e){let t=e.options.tilt?.animation;return!e.destroyed&&!e.spawning&&!!t?.enable}loadOptions(e,...t){e.tilt||(e.tilt=new qi);for(let n of t)e.tilt.load(n?.tilt)}async update(e,t){!this.isEnabled(e)||!e.tilt||(Ke(e,e.tilt,!1,he.none,t),await Promise.resolve())}};async function wl(o,e=!0){await o.addParticleUpdater("tilt",t=>Promise.resolve(new Vi(t)),e)}var lo=class{constructor(){this.enable=!1,this.frequency=.05,this.opacity=1}load(e){e&&(e.color!==void 0&&(this.color=_.create(this.color,e.color)),e.enable!==void 0&&(this.enable=e.enable),e.frequency!==void 0&&(this.frequency=e.frequency),e.opacity!==void 0&&(this.opacity=g(e.opacity)))}};var Ni=class{constructor(){this.lines=new lo,this.particles=new lo}load(e){e&&(this.lines.load(e.lines),this.particles.load(e.particles))}};var $i=class{getColorStyles(e,t,n,r){let i=e.options,a=i.twinkle;if(!a)return{};let s=a.particles,c=s.enable&&y()<s.frequency,d=e.options.zIndex,l=1,m=(l-e.zIndexFactor)**d.opacityRate,f=c?h(s.opacity)*m:r,b=se(s.color),p=b?ze(b,f):void 0,u={},v=c&&p;return u.fill=v?p:void 0,u.stroke=v?p:void 0,u}async init(){await Promise.resolve()}isEnabled(e){let t=e.options,n=t.twinkle;return n?n.particles.enable:!1}loadOptions(e,...t){e.twinkle||(e.twinkle=new Ni);for(let n of t)e.twinkle.load(n?.twinkle)}async update(){await Promise.resolve()}};async function yl(o,e=!0){await o.addParticleUpdater("twinkle",()=>Promise.resolve(new $i),e)}var Hi=class{constructor(){this.angle=50,this.move=10}load(e){e&&(e.angle!==void 0&&(this.angle=g(e.angle)),e.move!==void 0&&(this.move=g(e.move)))}};var Wi=class{constructor(){this.distance=5,this.enable=!1,this.speed=new Hi}load(e){if(e&&(e.distance!==void 0&&(this.distance=g(e.distance)),e.enable!==void 0&&(this.enable=e.enable),e.speed!==void 0))if(X(e.speed))this.speed.load({angle:e.speed});else{let t=e.speed;t.min!==void 0?this.speed.load({angle:t}):this.speed.load(e.speed)}}};var ep=0,tp=2,op=Math.PI*tp,np=60;function kl(o,e){let{wobble:t}=o.options,{wobble:n}=o;if(!t?.enable||!n)return;let r=n.angleSpeed*e.factor,i=n.moveSpeed*e.factor,a=i*((o.retina.wobbleDistance??ep)*e.factor)/(1e3/np),s=op,{position:c}=o;n.angle+=r,n.angle>s&&(n.angle-=s),c.x+=a*Math.cos(n.angle),c.y+=a*Math.abs(Math.sin(n.angle))}var rp=2,ip=Math.PI*rp,ap=360,sp=10,cp=0,Ui=class{constructor(e){this.container=e}init(e){let t=e.options.wobble;t?.enable?e.wobble={angle:y()*ip,angleSpeed:h(t.speed.angle)/ap,moveSpeed:h(t.speed.move)/sp}:e.wobble={angle:0,angleSpeed:0,moveSpeed:0},e.retina.wobbleDistance=h(t?.distance??cp)*this.container.retina.pixelRatio}isEnabled(e){return!e.destroyed&&!e.spawning&&!!e.options.wobble?.enable}loadOptions(e,...t){e.wobble||(e.wobble=new Wi);for(let n of t)e.wobble.load(n?.wobble)}update(e,t){this.isEnabled(e)&&kl(e,t)}};async function Cl(o,e=!0){await o.addParticleUpdater("wobble",t=>Promise.resolve(new Ui(t)),e)}async function Al(o,e=!0){await mc(o,!1),await Dc(o,!1),await wl(o,!1),await yl(o,!1),await Cl(o,!1),await vl(o,!1),await Cc(o,!1),await dc(o,!1),await hc(o,!1),await vc(o,!1),await yc(o,!1),await ul(o,e)}var Lt=class extends ae{constructor(){super(...arguments);R(this,"particle");R(this,"channel")}async postConnect(){this.particle=new Ne,await this.particle.loadParticle(this.element),this.videoTarget.addEventListener("ended",t=>this.videoEnd(t)),this.channel=this.element.getAttribute("data-alert-channel")}videoEnd(t){this.videoTarget.style.opacity="0",this.element.querySelector("canvas").style.opacity="1"}async handleMessage(t,n,r){if(!(!r.channel||r.channel!==this.channel))switch(n){case"show_alert":{if(this.element.style.opacity==="1")return;if(this.element.style.opacity="1",this.element.style.height=null,this.videoTarget.style.opacity="0",r.video){this.videoTarget.style.display=null,this.element.querySelector("canvas").style.opacity="0",this.element.style.padding="0 !important",this.element.classList.contains("expand")||this.element.classList.add("expand");try{this.videoTarget.querySelector("source").src=r.video,this.videoTarget.load(),await de(50),this.element.style.height=`${this.videoTarget.getBoundingClientRect().height}px`,await de(50),this.videoTarget.style.opacity="1",await this.videoTarget.play()}catch(i){console.error(i)}}if(r.sound){this.videoTarget.style.display="none",this.element.style.padding=null,this.element.classList.remove("expand");try{this.soundTarget.querySelector("source").src=r.sound,this.soundTarget.load(),await this.soundTarget.play()}catch(i){console.error(i)}}r.iframe&&(this.element.classList.add("aspect"),this.iframeTarget.src=r.iframe,setTimeout(()=>{this.iframeTarget.classList.remove("d-none")},2e3)),r.logo&&(this.logoTarget.classList.remove("d-none"),this.logoTarget.src=r.logo);for(let i of this.contentTargets)i.innerHTML=r.message;setTimeout(()=>{for(let i of this.delayedTargets)i.style.display=null},250),this.iconTarget.setAttribute("class",`alert-logo mdi mdi-${r.icon}`);return}case"hide_alert":{try{this.soundTarget.pause(),this.videoTarget.pause()}catch(i){console.error(i)}this.iframeTarget.src="",this.logoTarget.src="",this.iframeTarget.classList.contains("d-none")||this.iframeTarget.classList.add("d-none"),this.logoTarget.classList.contains("d-none")||this.logoTarget.classList.add("d-none"),this.element.classList.remove("expand"),this.element.classList.remove("aspect"),this.element.style.height=null,this.element.style.opacity="0",this.element.style.width=null,this.element.style.padding=null,await de(500);for(let i of this.contentTargets)i.innerHTML="";for(let i of this.delayedTargets)i.style.display="none";this.iconTarget.setAttribute("class","alert-logo mdi");return}}}async handleTheme(t,n){this.element.hasAttribute("data-disable-theme")||(await this.particle.loadThemeColor(n.color),this.element.style.boxShadow=`0 0 7px 0 ${n.color}`,this.iconTarget.style.color=n.color)}};R(Lt,"targets",["icon","content","sound","video","contentContainer","logo","iframe","delayed"]);var jt=class extends ae{constructor(){super(...arguments);R(this,"name");R(this,"particle")}async postConnect(){this.name=this.element.getAttribute("data-timer-name"),this.particle=new Ne,await this.particle.loadParticle(this.element)}async handleTheme(t,n){await this.particle.loadThemeColor(n.color),this.element.style.boxShadow=`0 0 7px 0 ${n.color}`}async handleMessage(t,n,r){if(!(n!=="timer_update"&&n!=="timer_finished")&&r.name===this.name)switch(n){case"timer_update":this.element.classList.remove("blink"),this.handleTimerUpdate(r);return;case"timer_finished":this.handleTimerUpdate(r),this.handleTimerFinish(r);return}}async handleTimerFinish(t){switch(t.end){case"fate":await de(1e3*2),this.element.parentElement.style.opacity="0";return;case"blink":this.element.classList.add("blink");return}}handleTimerUpdate(t){this.element.parentElement.style.opacity=null;let n=new Date(t.time*1e3),r=n.getUTCHours(),i=n.getUTCMinutes(),a=n.getSeconds();r<10&&(r="0"+r),i<10&&(i="0"+i),a<10&&(a="0"+a),r=`${r}`,i=`${i}`,a=`${a}`;let s=i.substring(0,1),c=i.substring(1),d=a.substring(0,1),l=a.substring(1);this.leadingMinuteTargets[0].innerHTML!==s&&this.updateContent("leadingMinute",s),this.lastMinuteTargets[0].innerHTML!==c&&this.updateContent("lastMinute",c),this.leadingSecondTargets[0].innerHTML!==d&&this.updateContent("leadingSecond",d),this.lastSecondTargets[0].innerHTML!==l&&this.updateContent("lastSecond",l)}async updateContent(t,n){for(let r of this[`${t}Targets`])r.style.display="none";for(let r of this[`${t}Targets`])r.innerHTML=n;await de(25);for(let r of this[`${t}Targets`])r.style.display=null}};R(jt,"targets",["leadingMinute","lastMinute","leadingSecond","lastSecond"]);var mo=class extends ae{};var fo=class{constructor(){R(this,"content")}async handle(){}getContent(){return this.content}};var bo=class extends fo{constructor(){super(...arguments);R(this,"content",`
+%o`, message, error2, detail);
+      (_a = window.onerror) === null || _a === void 0 ? void 0 : _a.call(window, message, "", 0, 0, error2);
+    }
+    logFormattedMessage(identifier, functionName, detail = {}) {
+      detail = Object.assign({ application: this }, detail);
+      this.logger.groupCollapsed(`${identifier} #${functionName}`);
+      this.logger.log("details:", Object.assign({}, detail));
+      this.logger.groupEnd();
+    }
+  };
+  function domReady() {
+    return new Promise((resolve) => {
+      if (document.readyState == "loading") {
+        document.addEventListener("DOMContentLoaded", () => resolve());
+      } else {
+        resolve();
+      }
+    });
+  }
+  function ClassPropertiesBlessing(constructor) {
+    const classes = readInheritableStaticArrayValues(constructor, "classes");
+    return classes.reduce((properties, classDefinition) => {
+      return Object.assign(properties, propertiesForClassDefinition(classDefinition));
+    }, {});
+  }
+  function propertiesForClassDefinition(key) {
+    return {
+      [`${key}Class`]: {
+        get() {
+          const { classes } = this;
+          if (classes.has(key)) {
+            return classes.get(key);
+          } else {
+            const attribute = classes.getAttributeName(key);
+            throw new Error(`Missing attribute "${attribute}"`);
+          }
+        }
+      },
+      [`${key}Classes`]: {
+        get() {
+          return this.classes.getAll(key);
+        }
+      },
+      [`has${capitalize(key)}Class`]: {
+        get() {
+          return this.classes.has(key);
+        }
+      }
+    };
+  }
+  function OutletPropertiesBlessing(constructor) {
+    const outlets = readInheritableStaticArrayValues(constructor, "outlets");
+    return outlets.reduce((properties, outletDefinition) => {
+      return Object.assign(properties, propertiesForOutletDefinition(outletDefinition));
+    }, {});
+  }
+  function getOutletController(controller, element, identifier) {
+    return controller.application.getControllerForElementAndIdentifier(element, identifier);
+  }
+  function getControllerAndEnsureConnectedScope(controller, element, outletName) {
+    let outletController = getOutletController(controller, element, outletName);
+    if (outletController)
+      return outletController;
+    controller.application.router.proposeToConnectScopeForElementAndIdentifier(element, outletName);
+    outletController = getOutletController(controller, element, outletName);
+    if (outletController)
+      return outletController;
+  }
+  function propertiesForOutletDefinition(name2) {
+    const camelizedName = namespaceCamelize(name2);
+    return {
+      [`${camelizedName}Outlet`]: {
+        get() {
+          const outletElement = this.outlets.find(name2);
+          const selector = this.outlets.getSelectorForOutletName(name2);
+          if (outletElement) {
+            const outletController = getControllerAndEnsureConnectedScope(this, outletElement, name2);
+            if (outletController)
+              return outletController;
+            throw new Error(`The provided outlet element is missing an outlet controller "${name2}" instance for host controller "${this.identifier}"`);
+          }
+          throw new Error(`Missing outlet element "${name2}" for host controller "${this.identifier}". Stimulus couldn't find a matching outlet element using selector "${selector}".`);
+        }
+      },
+      [`${camelizedName}Outlets`]: {
+        get() {
+          const outlets = this.outlets.findAll(name2);
+          if (outlets.length > 0) {
+            return outlets.map((outletElement) => {
+              const outletController = getControllerAndEnsureConnectedScope(this, outletElement, name2);
+              if (outletController)
+                return outletController;
+              console.warn(`The provided outlet element is missing an outlet controller "${name2}" instance for host controller "${this.identifier}"`, outletElement);
+            }).filter((controller) => controller);
+          }
+          return [];
+        }
+      },
+      [`${camelizedName}OutletElement`]: {
+        get() {
+          const outletElement = this.outlets.find(name2);
+          const selector = this.outlets.getSelectorForOutletName(name2);
+          if (outletElement) {
+            return outletElement;
+          } else {
+            throw new Error(`Missing outlet element "${name2}" for host controller "${this.identifier}". Stimulus couldn't find a matching outlet element using selector "${selector}".`);
+          }
+        }
+      },
+      [`${camelizedName}OutletElements`]: {
+        get() {
+          return this.outlets.findAll(name2);
+        }
+      },
+      [`has${capitalize(camelizedName)}Outlet`]: {
+        get() {
+          return this.outlets.has(name2);
+        }
+      }
+    };
+  }
+  function TargetPropertiesBlessing(constructor) {
+    const targets = readInheritableStaticArrayValues(constructor, "targets");
+    return targets.reduce((properties, targetDefinition) => {
+      return Object.assign(properties, propertiesForTargetDefinition(targetDefinition));
+    }, {});
+  }
+  function propertiesForTargetDefinition(name2) {
+    return {
+      [`${name2}Target`]: {
+        get() {
+          const target = this.targets.find(name2);
+          if (target) {
+            return target;
+          } else {
+            throw new Error(`Missing target element "${name2}" for "${this.identifier}" controller`);
+          }
+        }
+      },
+      [`${name2}Targets`]: {
+        get() {
+          return this.targets.findAll(name2);
+        }
+      },
+      [`has${capitalize(name2)}Target`]: {
+        get() {
+          return this.targets.has(name2);
+        }
+      }
+    };
+  }
+  function ValuePropertiesBlessing(constructor) {
+    const valueDefinitionPairs = readInheritableStaticObjectPairs(constructor, "values");
+    const propertyDescriptorMap = {
+      valueDescriptorMap: {
+        get() {
+          return valueDefinitionPairs.reduce((result, valueDefinitionPair) => {
+            const valueDescriptor = parseValueDefinitionPair(valueDefinitionPair, this.identifier);
+            const attributeName = this.data.getAttributeNameForKey(valueDescriptor.key);
+            return Object.assign(result, { [attributeName]: valueDescriptor });
+          }, {});
+        }
+      }
+    };
+    return valueDefinitionPairs.reduce((properties, valueDefinitionPair) => {
+      return Object.assign(properties, propertiesForValueDefinitionPair(valueDefinitionPair));
+    }, propertyDescriptorMap);
+  }
+  function propertiesForValueDefinitionPair(valueDefinitionPair, controller) {
+    const definition = parseValueDefinitionPair(valueDefinitionPair, controller);
+    const { key, name: name2, reader: read, writer: write } = definition;
+    return {
+      [name2]: {
+        get() {
+          const value = this.data.get(key);
+          if (value !== null) {
+            return read(value);
+          } else {
+            return definition.defaultValue;
+          }
+        },
+        set(value) {
+          if (value === void 0) {
+            this.data.delete(key);
+          } else {
+            this.data.set(key, write(value));
+          }
+        }
+      },
+      [`has${capitalize(name2)}`]: {
+        get() {
+          return this.data.has(key) || definition.hasCustomDefaultValue;
+        }
+      }
+    };
+  }
+  function parseValueDefinitionPair([token, typeDefinition], controller) {
+    return valueDescriptorForTokenAndTypeDefinition({
+      controller,
+      token,
+      typeDefinition
+    });
+  }
+  function parseValueTypeConstant(constant) {
+    switch (constant) {
+      case Array:
+        return "array";
+      case Boolean:
+        return "boolean";
+      case Number:
+        return "number";
+      case Object:
+        return "object";
+      case String:
+        return "string";
+    }
+  }
+  function parseValueTypeDefault(defaultValue) {
+    switch (typeof defaultValue) {
+      case "boolean":
+        return "boolean";
+      case "number":
+        return "number";
+      case "string":
+        return "string";
+    }
+    if (Array.isArray(defaultValue))
+      return "array";
+    if (Object.prototype.toString.call(defaultValue) === "[object Object]")
+      return "object";
+  }
+  function parseValueTypeObject(payload) {
+    const { controller, token, typeObject } = payload;
+    const hasType = isSomething(typeObject.type);
+    const hasDefault = isSomething(typeObject.default);
+    const fullObject = hasType && hasDefault;
+    const onlyType = hasType && !hasDefault;
+    const onlyDefault = !hasType && hasDefault;
+    const typeFromObject = parseValueTypeConstant(typeObject.type);
+    const typeFromDefaultValue = parseValueTypeDefault(payload.typeObject.default);
+    if (onlyType)
+      return typeFromObject;
+    if (onlyDefault)
+      return typeFromDefaultValue;
+    if (typeFromObject !== typeFromDefaultValue) {
+      const propertyPath = controller ? `${controller}.${token}` : token;
+      throw new Error(`The specified default value for the Stimulus Value "${propertyPath}" must match the defined type "${typeFromObject}". The provided default value of "${typeObject.default}" is of type "${typeFromDefaultValue}".`);
+    }
+    if (fullObject)
+      return typeFromObject;
+  }
+  function parseValueTypeDefinition(payload) {
+    const { controller, token, typeDefinition } = payload;
+    const typeObject = { controller, token, typeObject: typeDefinition };
+    const typeFromObject = parseValueTypeObject(typeObject);
+    const typeFromDefaultValue = parseValueTypeDefault(typeDefinition);
+    const typeFromConstant = parseValueTypeConstant(typeDefinition);
+    const type = typeFromObject || typeFromDefaultValue || typeFromConstant;
+    if (type)
+      return type;
+    const propertyPath = controller ? `${controller}.${typeDefinition}` : token;
+    throw new Error(`Unknown value type "${propertyPath}" for "${token}" value`);
+  }
+  function defaultValueForDefinition(typeDefinition) {
+    const constant = parseValueTypeConstant(typeDefinition);
+    if (constant)
+      return defaultValuesByType[constant];
+    const hasDefault = hasProperty(typeDefinition, "default");
+    const hasType = hasProperty(typeDefinition, "type");
+    const typeObject = typeDefinition;
+    if (hasDefault)
+      return typeObject.default;
+    if (hasType) {
+      const { type } = typeObject;
+      const constantFromType = parseValueTypeConstant(type);
+      if (constantFromType)
+        return defaultValuesByType[constantFromType];
+    }
+    return typeDefinition;
+  }
+  function valueDescriptorForTokenAndTypeDefinition(payload) {
+    const { token, typeDefinition } = payload;
+    const key = `${dasherize(token)}-value`;
+    const type = parseValueTypeDefinition(payload);
+    return {
+      type,
+      key,
+      name: camelize(key),
+      get defaultValue() {
+        return defaultValueForDefinition(typeDefinition);
+      },
+      get hasCustomDefaultValue() {
+        return parseValueTypeDefault(typeDefinition) !== void 0;
+      },
+      reader: readers[type],
+      writer: writers[type] || writers.default
+    };
+  }
+  var defaultValuesByType = {
+    get array() {
+      return [];
+    },
+    boolean: false,
+    number: 0,
+    get object() {
+      return {};
+    },
+    string: ""
+  };
+  var readers = {
+    array(value) {
+      const array = JSON.parse(value);
+      if (!Array.isArray(array)) {
+        throw new TypeError(`expected value of type "array" but instead got value "${value}" of type "${parseValueTypeDefault(array)}"`);
+      }
+      return array;
+    },
+    boolean(value) {
+      return !(value == "0" || String(value).toLowerCase() == "false");
+    },
+    number(value) {
+      return Number(value.replace(/_/g, ""));
+    },
+    object(value) {
+      const object = JSON.parse(value);
+      if (object === null || typeof object != "object" || Array.isArray(object)) {
+        throw new TypeError(`expected value of type "object" but instead got value "${value}" of type "${parseValueTypeDefault(object)}"`);
+      }
+      return object;
+    },
+    string(value) {
+      return value;
+    }
+  };
+  var writers = {
+    default: writeString,
+    array: writeJSON,
+    object: writeJSON
+  };
+  function writeJSON(value) {
+    return JSON.stringify(value);
+  }
+  function writeString(value) {
+    return `${value}`;
+  }
+  var Controller = class {
+    constructor(context) {
+      this.context = context;
+    }
+    static get shouldLoad() {
+      return true;
+    }
+    static afterLoad(_identifier, _application) {
+      return;
+    }
+    get application() {
+      return this.context.application;
+    }
+    get scope() {
+      return this.context.scope;
+    }
+    get element() {
+      return this.scope.element;
+    }
+    get identifier() {
+      return this.scope.identifier;
+    }
+    get targets() {
+      return this.scope.targets;
+    }
+    get outlets() {
+      return this.scope.outlets;
+    }
+    get classes() {
+      return this.scope.classes;
+    }
+    get data() {
+      return this.scope.data;
+    }
+    initialize() {
+    }
+    connect() {
+    }
+    disconnect() {
+    }
+    dispatch(eventName, { target = this.element, detail = {}, prefix = this.identifier, bubbles = true, cancelable = true } = {}) {
+      const type = prefix ? `${prefix}:${eventName}` : eventName;
+      const event = new CustomEvent(type, { detail, bubbles, cancelable });
+      target.dispatchEvent(event);
+      return event;
+    }
+  };
+  Controller.blessings = [
+    ClassPropertiesBlessing,
+    TargetPropertiesBlessing,
+    ValuePropertiesBlessing,
+    OutletPropertiesBlessing
+  ];
+  Controller.targets = [];
+  Controller.outlets = [];
+  Controller.values = {};
+
+  // frontend/src/js/controller/BaseController.ts
+  var BaseController = class extends Controller {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "websocket");
+      __publicField(this, "shieldActive", false);
+    }
+    async register() {
+      this.websocket = getWebsocketClient();
+      this.websocket.getWebsocket().addEventListener(WebsocketEvent.message, (websocket, event) => this.handleWebsocket(websocket, event));
+    }
+    async connect() {
+      await this.preConnect();
+      await this.register();
+      await this.postConnect();
+    }
+    async preConnect() {
+    }
+    async postConnect() {
+    }
+    async handleWebsocket(websocket, event) {
+      const data = JSON.parse(event.data);
+      if (data.method === "theme_update") {
+        const themeData = data.data.data;
+        await this.handleTheme(websocket, themeData);
+        const themeStyle = document.createElement("style");
+        themeStyle.innerHTML = `:root {--theme-color: ${themeData.color}}`;
+        document.head.appendChild(themeStyle);
+        return;
+      }
+      if (data.method === "shield_mode") {
+        this.shieldActive = data.data.status;
+        await this.handleShield();
+      }
+      await this.handleMessage(websocket, data.method, data.data);
+    }
+    async handleShield() {
+    }
+    async handleTheme(websocket, data) {
+    }
+    async handleMessage(websocket, method, data) {
+    }
+  };
+
+  // frontend/src/js/controller/BackgroundController.ts
+  var BackgroundController = class extends BaseController {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "videoExtensions", ["mp4", "webm"]);
+      __publicField(this, "imageExtensions", ["gif", "png", "jpg", "webp"]);
+    }
+    async handleTheme(websocket, data) {
+      const background = data.animated_background;
+      this.element.innerHTML = "";
+      let extension = background.split(".").pop();
+      extension = extension.toLowerCase();
+      if (this.imageExtensions.includes(extension)) {
+        this.element.innerHTML = `<img src="${background}">`;
+      }
+      if (this.videoExtensions.includes(extension)) {
+        this.element.innerHTML = `<video loop muted autoplay><source src="${background}"></video>`;
+      }
+    }
+  };
+
+  // frontend/src/js/controller/BadgeController.ts
+  var BadgeController = class extends BaseController {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "ads");
+      __publicField(this, "adInterval");
+      __publicField(this, "adIndex", 0);
+      __publicField(this, "particle");
+    }
+    async postConnect() {
+      this.websocket.send("get_ads", {});
+    }
+    loadBadgeContent() {
+      this.websocket.send("get_ads", {});
+      this.logoTarget.style.backgroundImage = null;
+      void this.updateTitle(this.ads[this.adIndex]);
+    }
+    async handleShield() {
+      await sleep(250);
+      if (this.shieldActive) {
+        await sleep(250);
+        this.logoTarget.style.backgroundImage = 'url("/shieldIcon.png")';
+        await this.updateTitle({ type: "text", content: "eliteSCHW31N" });
+        for (const subtitleElement of this.subtitleTargets) {
+          subtitleElement.style.display = null;
+          subtitleElement.innerHTML = "Shield active!";
+        }
+      } else {
+        this.loadBadgeContent();
+      }
+    }
+    async updateTitle(data) {
+      for (const titleElement of this.titleTargets) {
+        titleElement.style.display = "none";
+      }
+      await sleep(50);
+      if (data.type === "text") {
+        this.titleImageTarget.src = "";
+        this.titleImageTarget.style.display = "none";
+        for (const titleElement of this.titleTargets) {
+          titleElement.style.display = null;
+          titleElement.innerHTML = data.content;
+        }
+        for (const subtitleElement of this.subtitleTargets) {
+          subtitleElement.style.display = null;
+          subtitleElement.innerHTML = "mehr als ein SCHW31N";
+        }
+        return;
+      }
+      this.titleImageTarget.src = data.url;
+      await sleep(50);
+      this.titleImageTarget.style.display = null;
+    }
+    createInterval() {
+      clearInterval(this.adInterval);
+      this.adIndex = 0;
+      this.adInterval = setInterval(() => {
+        if (this.shieldActive) {
+          return;
+        }
+        if (this.adIndex === this.ads.length) {
+          this.adIndex = 0;
+        }
+        this.loadBadgeContent();
+        this.adIndex++;
+      }, 5 * 1e3);
+    }
+    async handleMessage(websocket, method, data) {
+      switch (method) {
+        case "ad_result":
+          if (JSON.stringify(this.ads) === JSON.stringify(data)) return;
+          this.ads = data;
+          this.createInterval();
+          break;
+      }
+    }
+    async handleTheme(websocket, data) {
+    }
+  };
+  __publicField(BadgeController, "targets", ["title", "subtitle", "titleImage", "logo"]);
+
+  // package.json
+  var name = "dynamic-scene";
+  var version = "1.0.0";
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/Constants.js
+  var generatedAttribute = "generated";
+  var mouseDownEvent = "pointerdown";
+  var mouseUpEvent = "pointerup";
+  var mouseLeaveEvent = "pointerleave";
+  var mouseOutEvent = "pointerout";
+  var mouseMoveEvent = "pointermove";
+  var touchStartEvent = "touchstart";
+  var touchEndEvent = "touchend";
+  var touchMoveEvent = "touchmove";
+  var touchCancelEvent = "touchcancel";
+  var resizeEvent = "resize";
+  var visibilityChangeEvent = "visibilitychange";
+  var errorPrefix = "tsParticles - Error";
+  var percentDenominator = 100;
+  var halfRandom = 0.5;
+  var millisecondsToSeconds = 1e3;
+
+  // node_modules/@tsparticles/engine/browser/Enums/Directions/MoveDirection.js
+  var MoveDirection;
+  (function(MoveDirection2) {
+    MoveDirection2["bottom"] = "bottom";
+    MoveDirection2["bottomLeft"] = "bottom-left";
+    MoveDirection2["bottomRight"] = "bottom-right";
+    MoveDirection2["left"] = "left";
+    MoveDirection2["none"] = "none";
+    MoveDirection2["right"] = "right";
+    MoveDirection2["top"] = "top";
+    MoveDirection2["topLeft"] = "top-left";
+    MoveDirection2["topRight"] = "top-right";
+    MoveDirection2["outside"] = "outside";
+    MoveDirection2["inside"] = "inside";
+  })(MoveDirection || (MoveDirection = {}));
+
+  // node_modules/@tsparticles/engine/browser/Utils/TypeUtils.js
+  function isBoolean(arg) {
+    return typeof arg === "boolean";
+  }
+  function isString(arg) {
+    return typeof arg === "string";
+  }
+  function isNumber(arg) {
+    return typeof arg === "number";
+  }
+  function isObject(arg) {
+    return typeof arg === "object" && arg !== null;
+  }
+  function isArray(arg) {
+    return Array.isArray(arg);
+  }
+  function isNull(arg) {
+    return arg === null || arg === void 0;
+  }
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/Vectors.js
+  var origin = {
+    x: 0,
+    y: 0,
+    z: 0
+  };
+  var squareExp = 2;
+  var inverseFactorNumerator = 1;
+  var Vector3d = class _Vector3d {
+    constructor(xOrCoords, y, z) {
+      this._updateFromAngle = (angle, length) => {
+        this.x = Math.cos(angle) * length;
+        this.y = Math.sin(angle) * length;
+      };
+      if (!isNumber(xOrCoords) && xOrCoords) {
+        this.x = xOrCoords.x;
+        this.y = xOrCoords.y;
+        const coords3d = xOrCoords;
+        this.z = coords3d.z ? coords3d.z : origin.z;
+      } else if (xOrCoords !== void 0 && y !== void 0) {
+        this.x = xOrCoords;
+        this.y = y;
+        this.z = z ?? origin.z;
+      } else {
+        throw new Error(`${errorPrefix} Vector3d not initialized correctly`);
+      }
+    }
+    static get origin() {
+      return _Vector3d.create(origin.x, origin.y, origin.z);
+    }
+    get angle() {
+      return Math.atan2(this.y, this.x);
+    }
+    set angle(angle) {
+      this._updateFromAngle(angle, this.length);
+    }
+    get length() {
+      return Math.sqrt(this.getLengthSq());
+    }
+    set length(length) {
+      this._updateFromAngle(this.angle, length);
+    }
+    static clone(source) {
+      return _Vector3d.create(source.x, source.y, source.z);
+    }
+    static create(x, y, z) {
+      return new _Vector3d(x, y, z);
+    }
+    add(v) {
+      return _Vector3d.create(this.x + v.x, this.y + v.y, this.z + v.z);
+    }
+    addTo(v) {
+      this.x += v.x;
+      this.y += v.y;
+      this.z += v.z;
+    }
+    copy() {
+      return _Vector3d.clone(this);
+    }
+    distanceTo(v) {
+      return this.sub(v).length;
+    }
+    distanceToSq(v) {
+      return this.sub(v).getLengthSq();
+    }
+    div(n) {
+      return _Vector3d.create(this.x / n, this.y / n, this.z / n);
+    }
+    divTo(n) {
+      this.x /= n;
+      this.y /= n;
+      this.z /= n;
+    }
+    getLengthSq() {
+      return this.x ** squareExp + this.y ** squareExp;
+    }
+    mult(n) {
+      return _Vector3d.create(this.x * n, this.y * n, this.z * n);
+    }
+    multTo(n) {
+      this.x *= n;
+      this.y *= n;
+      this.z *= n;
+    }
+    normalize() {
+      const length = this.length, noLength = 0;
+      if (length != noLength) {
+        this.multTo(inverseFactorNumerator / length);
+      }
+    }
+    rotate(angle) {
+      return _Vector3d.create(this.x * Math.cos(angle) - this.y * Math.sin(angle), this.x * Math.sin(angle) + this.y * Math.cos(angle), origin.z);
+    }
+    setTo(c) {
+      this.x = c.x;
+      this.y = c.y;
+      const v3d = c;
+      this.z = v3d.z ? v3d.z : origin.z;
+    }
+    sub(v) {
+      return _Vector3d.create(this.x - v.x, this.y - v.y, this.z - v.z);
+    }
+    subFrom(v) {
+      this.x -= v.x;
+      this.y -= v.y;
+      this.z -= v.z;
+    }
+  };
+  var Vector = class _Vector extends Vector3d {
+    constructor(xOrCoords, y) {
+      super(xOrCoords, y, origin.z);
+    }
+    static get origin() {
+      return _Vector.create(origin.x, origin.y);
+    }
+    static clone(source) {
+      return _Vector.create(source.x, source.y);
+    }
+    static create(x, y) {
+      return new _Vector(x, y);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Utils/NumberUtils.js
+  var _random = Math.random;
+  var _animationLoop = {
+    nextFrame: (cb) => requestAnimationFrame(cb),
+    cancel: (idx) => cancelAnimationFrame(idx)
+  };
+  var double = 2;
+  var doublePI = Math.PI * double;
+  function getRandom() {
+    const min = 0, max = 1;
+    return clamp(_random(), min, max - Number.EPSILON);
+  }
+  function animate(fn) {
+    return _animationLoop.nextFrame(fn);
+  }
+  function cancelAnimation(handle) {
+    _animationLoop.cancel(handle);
+  }
+  function clamp(num, min, max) {
+    return Math.min(Math.max(num, min), max);
+  }
+  function mix(comp1, comp2, weight1, weight2) {
+    return Math.floor((comp1 * weight1 + comp2 * weight2) / (weight1 + weight2));
+  }
+  function randomInRange(r) {
+    const max = getRangeMax(r), minOffset = 0;
+    let min = getRangeMin(r);
+    if (max === min) {
+      min = minOffset;
+    }
+    return getRandom() * (max - min) + min;
+  }
+  function getRangeValue(value) {
+    return isNumber(value) ? value : randomInRange(value);
+  }
+  function getRangeMin(value) {
+    return isNumber(value) ? value : value.min;
+  }
+  function getRangeMax(value) {
+    return isNumber(value) ? value : value.max;
+  }
+  function setRangeValue(source, value) {
+    if (source === value || value === void 0 && isNumber(source)) {
+      return source;
+    }
+    const min = getRangeMin(source), max = getRangeMax(source);
+    return value !== void 0 ? {
+      min: Math.min(min, value),
+      max: Math.max(max, value)
+    } : setRangeValue(min, max);
+  }
+  function getDistances(pointA, pointB) {
+    const dx = pointA.x - pointB.x, dy = pointA.y - pointB.y, squareExp8 = 2;
+    return { dx, dy, distance: Math.sqrt(dx ** squareExp8 + dy ** squareExp8) };
+  }
+  function getDistance(pointA, pointB) {
+    return getDistances(pointA, pointB).distance;
+  }
+  function degToRad(degrees) {
+    const PIDeg = 180;
+    return degrees * Math.PI / PIDeg;
+  }
+  function getParticleDirectionAngle(direction, position, center) {
+    if (isNumber(direction)) {
+      return degToRad(direction);
+    }
+    const empty = 0, half15 = 0.5, quarter2 = 0.25, threeQuarter = half15 + quarter2;
+    switch (direction) {
+      case MoveDirection.top:
+        return -Math.PI * half15;
+      case MoveDirection.topRight:
+        return -Math.PI * quarter2;
+      case MoveDirection.right:
+        return empty;
+      case MoveDirection.bottomRight:
+        return Math.PI * quarter2;
+      case MoveDirection.bottom:
+        return Math.PI * half15;
+      case MoveDirection.bottomLeft:
+        return Math.PI * threeQuarter;
+      case MoveDirection.left:
+        return Math.PI;
+      case MoveDirection.topLeft:
+        return -Math.PI * threeQuarter;
+      case MoveDirection.inside:
+        return Math.atan2(center.y - position.y, center.x - position.x);
+      case MoveDirection.outside:
+        return Math.atan2(position.y - center.y, position.x - center.x);
+      default:
+        return getRandom() * doublePI;
+    }
+  }
+  function getParticleBaseVelocity(direction) {
+    const baseVelocity = Vector.origin;
+    baseVelocity.length = 1;
+    baseVelocity.angle = direction;
+    return baseVelocity;
+  }
+  function collisionVelocity(v1, v2, m1, m2) {
+    const double22 = 2;
+    return Vector.create(v1.x * (m1 - m2) / (m1 + m2) + v2.x * double22 * m2 / (m1 + m2), v1.y);
+  }
+  function calcPositionOrRandomFromSize(data) {
+    return {
+      x: (data.position?.x ?? getRandom() * percentDenominator) * data.size.width / percentDenominator,
+      y: (data.position?.y ?? getRandom() * percentDenominator) * data.size.height / percentDenominator
+    };
+  }
+  function calcPositionOrRandomFromSizeRanged(data) {
+    const position = {
+      x: data.position?.x !== void 0 ? getRangeValue(data.position.x) : void 0,
+      y: data.position?.y !== void 0 ? getRangeValue(data.position.y) : void 0
+    };
+    return calcPositionOrRandomFromSize({ size: data.size, position });
+  }
+  function calcExactPositionOrRandomFromSize(data) {
+    return {
+      x: data.position?.x ?? getRandom() * data.size.width,
+      y: data.position?.y ?? getRandom() * data.size.height
+    };
+  }
+  function parseAlpha(input) {
+    const defaultAlpha3 = 1;
+    if (!input) {
+      return defaultAlpha3;
+    }
+    return input.endsWith("%") ? parseFloat(input) / percentDenominator : parseFloat(input);
+  }
+
+  // node_modules/@tsparticles/engine/browser/Enums/Modes/AnimationMode.js
+  var AnimationMode;
+  (function(AnimationMode2) {
+    AnimationMode2["auto"] = "auto";
+    AnimationMode2["increase"] = "increase";
+    AnimationMode2["decrease"] = "decrease";
+    AnimationMode2["random"] = "random";
+  })(AnimationMode || (AnimationMode = {}));
+
+  // node_modules/@tsparticles/engine/browser/Enums/AnimationStatus.js
+  var AnimationStatus;
+  (function(AnimationStatus2) {
+    AnimationStatus2["increasing"] = "increasing";
+    AnimationStatus2["decreasing"] = "decreasing";
+  })(AnimationStatus || (AnimationStatus = {}));
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/DestroyType.js
+  var DestroyType;
+  (function(DestroyType2) {
+    DestroyType2["none"] = "none";
+    DestroyType2["max"] = "max";
+    DestroyType2["min"] = "min";
+  })(DestroyType || (DestroyType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Enums/Directions/OutModeDirection.js
+  var OutModeDirection;
+  (function(OutModeDirection2) {
+    OutModeDirection2["bottom"] = "bottom";
+    OutModeDirection2["left"] = "left";
+    OutModeDirection2["right"] = "right";
+    OutModeDirection2["top"] = "top";
+  })(OutModeDirection || (OutModeDirection = {}));
+
+  // node_modules/@tsparticles/engine/browser/Enums/Modes/PixelMode.js
+  var PixelMode;
+  (function(PixelMode2) {
+    PixelMode2["precise"] = "precise";
+    PixelMode2["percent"] = "percent";
+  })(PixelMode || (PixelMode = {}));
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/StartValueType.js
+  var StartValueType;
+  (function(StartValueType2) {
+    StartValueType2["max"] = "max";
+    StartValueType2["min"] = "min";
+    StartValueType2["random"] = "random";
+  })(StartValueType || (StartValueType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Utils/Utils.js
+  var _logger = {
+    debug: console.debug,
+    error: console.error,
+    info: console.info,
+    log: console.log,
+    verbose: console.log,
+    warning: console.warn
+  };
+  function getLogger() {
+    return _logger;
+  }
+  function rectSideBounce(data) {
+    const res = { bounced: false }, { pSide, pOtherSide, rectSide, rectOtherSide, velocity, factor } = data, half15 = 0.5, minVelocity7 = 0;
+    if (pOtherSide.min < rectOtherSide.min || pOtherSide.min > rectOtherSide.max || pOtherSide.max < rectOtherSide.min || pOtherSide.max > rectOtherSide.max) {
+      return res;
+    }
+    if (pSide.max >= rectSide.min && pSide.max <= (rectSide.max + rectSide.min) * half15 && velocity > minVelocity7 || pSide.min <= rectSide.max && pSide.min > (rectSide.max + rectSide.min) * half15 && velocity < minVelocity7) {
+      res.velocity = velocity * -factor;
+      res.bounced = true;
+    }
+    return res;
+  }
+  function checkSelector(element, selectors) {
+    const res = executeOnSingleOrMultiple(selectors, (selector) => {
+      return element.matches(selector);
+    });
+    return isArray(res) ? res.some((t) => t) : res;
+  }
+  function isSsr() {
+    return typeof window === "undefined" || !window || typeof window.document === "undefined" || !window.document;
+  }
+  function hasMatchMedia() {
+    return !isSsr() && typeof matchMedia !== "undefined";
+  }
+  function safeMatchMedia(query) {
+    if (!hasMatchMedia()) {
+      return;
+    }
+    return matchMedia(query);
+  }
+  function safeIntersectionObserver(callback) {
+    if (isSsr() || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    return new IntersectionObserver(callback);
+  }
+  function safeMutationObserver(callback) {
+    if (isSsr() || typeof MutationObserver === "undefined") {
+      return;
+    }
+    return new MutationObserver(callback);
+  }
+  function isInArray(value, array) {
+    const invalidIndex = -1;
+    return value === array || isArray(array) && array.indexOf(value) > invalidIndex;
+  }
+  async function loadFont(font, weight) {
+    try {
+      await document.fonts.load(`${weight ?? "400"} 36px '${font ?? "Verdana"}'`);
+    } catch {
+    }
+  }
+  function arrayRandomIndex(array) {
+    return Math.floor(getRandom() * array.length);
+  }
+  function itemFromArray(array, index, useIndex = true) {
+    return array[index !== void 0 && useIndex ? index % array.length : arrayRandomIndex(array)];
+  }
+  function isPointInside(point, size, offset, radius, direction) {
+    const minRadius6 = 0;
+    return areBoundsInside(calculateBounds(point, radius ?? minRadius6), size, offset, direction);
+  }
+  function areBoundsInside(bounds, size, offset, direction) {
+    let inside = true;
+    if (!direction || direction === OutModeDirection.bottom) {
+      inside = bounds.top < size.height + offset.x;
+    }
+    if (inside && (!direction || direction === OutModeDirection.left)) {
+      inside = bounds.right > offset.x;
+    }
+    if (inside && (!direction || direction === OutModeDirection.right)) {
+      inside = bounds.left < size.width + offset.y;
+    }
+    if (inside && (!direction || direction === OutModeDirection.top)) {
+      inside = bounds.bottom > offset.y;
+    }
+    return inside;
+  }
+  function calculateBounds(point, radius) {
+    return {
+      bottom: point.y + radius,
+      left: point.x - radius,
+      right: point.x + radius,
+      top: point.y - radius
+    };
+  }
+  function deepExtend(destination, ...sources) {
+    for (const source of sources) {
+      if (source === void 0 || source === null) {
+        continue;
+      }
+      if (!isObject(source)) {
+        destination = source;
+        continue;
+      }
+      const sourceIsArray = Array.isArray(source);
+      if (sourceIsArray && (isObject(destination) || !destination || !Array.isArray(destination))) {
+        destination = [];
+      } else if (!sourceIsArray && (isObject(destination) || !destination || Array.isArray(destination))) {
+        destination = {};
+      }
+      for (const key in source) {
+        if (key === "__proto__") {
+          continue;
+        }
+        const sourceDict = source, value = sourceDict[key], destDict = destination;
+        destDict[key] = isObject(value) && Array.isArray(value) ? value.map((v) => deepExtend(destDict[key], v)) : deepExtend(destDict[key], value);
+      }
+    }
+    return destination;
+  }
+  function isDivModeEnabled(mode, divs) {
+    return !!findItemFromSingleOrMultiple(divs, (t) => t.enable && isInArray(mode, t.mode));
+  }
+  function divModeExecute(mode, divs, callback) {
+    executeOnSingleOrMultiple(divs, (div) => {
+      const divMode2 = div.mode, divEnabled = div.enable;
+      if (divEnabled && isInArray(mode, divMode2)) {
+        singleDivModeExecute(div, callback);
+      }
+    });
+  }
+  function singleDivModeExecute(div, callback) {
+    const selectors = div.selectors;
+    executeOnSingleOrMultiple(selectors, (selector) => {
+      callback(selector, div);
+    });
+  }
+  function divMode(divs, element) {
+    if (!element || !divs) {
+      return;
+    }
+    return findItemFromSingleOrMultiple(divs, (div) => {
+      return checkSelector(element, div.selectors);
+    });
+  }
+  function circleBounceDataFromParticle(p) {
+    return {
+      position: p.getPosition(),
+      radius: p.getRadius(),
+      mass: p.getMass(),
+      velocity: p.velocity,
+      factor: Vector.create(getRangeValue(p.options.bounce.horizontal.value), getRangeValue(p.options.bounce.vertical.value))
+    };
+  }
+  function circleBounce(p1, p2) {
+    const { x: xVelocityDiff, y: yVelocityDiff } = p1.velocity.sub(p2.velocity), [pos1, pos2] = [p1.position, p2.position], { dx: xDist, dy: yDist } = getDistances(pos2, pos1), minimumDistance = 0;
+    if (xVelocityDiff * xDist + yVelocityDiff * yDist < minimumDistance) {
+      return;
+    }
+    const angle = -Math.atan2(yDist, xDist), m1 = p1.mass, m2 = p2.mass, u1 = p1.velocity.rotate(angle), u2 = p2.velocity.rotate(angle), v1 = collisionVelocity(u1, u2, m1, m2), v2 = collisionVelocity(u2, u1, m1, m2), vFinal1 = v1.rotate(-angle), vFinal2 = v2.rotate(-angle);
+    p1.velocity.x = vFinal1.x * p1.factor.x;
+    p1.velocity.y = vFinal1.y * p1.factor.y;
+    p2.velocity.x = vFinal2.x * p2.factor.x;
+    p2.velocity.y = vFinal2.y * p2.factor.y;
+  }
+  function rectBounce(particle, divBounds) {
+    const pPos = particle.getPosition(), size = particle.getRadius(), bounds = calculateBounds(pPos, size), bounceOptions = particle.options.bounce, resH = rectSideBounce({
+      pSide: {
+        min: bounds.left,
+        max: bounds.right
+      },
+      pOtherSide: {
+        min: bounds.top,
+        max: bounds.bottom
+      },
+      rectSide: {
+        min: divBounds.left,
+        max: divBounds.right
+      },
+      rectOtherSide: {
+        min: divBounds.top,
+        max: divBounds.bottom
+      },
+      velocity: particle.velocity.x,
+      factor: getRangeValue(bounceOptions.horizontal.value)
+    });
+    if (resH.bounced) {
+      if (resH.velocity !== void 0) {
+        particle.velocity.x = resH.velocity;
+      }
+      if (resH.position !== void 0) {
+        particle.position.x = resH.position;
+      }
+    }
+    const resV = rectSideBounce({
+      pSide: {
+        min: bounds.top,
+        max: bounds.bottom
+      },
+      pOtherSide: {
+        min: bounds.left,
+        max: bounds.right
+      },
+      rectSide: {
+        min: divBounds.top,
+        max: divBounds.bottom
+      },
+      rectOtherSide: {
+        min: divBounds.left,
+        max: divBounds.right
+      },
+      velocity: particle.velocity.y,
+      factor: getRangeValue(bounceOptions.vertical.value)
+    });
+    if (resV.bounced) {
+      if (resV.velocity !== void 0) {
+        particle.velocity.y = resV.velocity;
+      }
+      if (resV.position !== void 0) {
+        particle.position.y = resV.position;
+      }
+    }
+  }
+  function executeOnSingleOrMultiple(obj, callback) {
+    const defaultIndex2 = 0;
+    return isArray(obj) ? obj.map((item, index) => callback(item, index)) : callback(obj, defaultIndex2);
+  }
+  function itemFromSingleOrMultiple(obj, index, useIndex) {
+    return isArray(obj) ? itemFromArray(obj, index, useIndex) : obj;
+  }
+  function findItemFromSingleOrMultiple(obj, callback) {
+    if (isArray(obj)) {
+      return obj.find((t, index) => callback(t, index));
+    }
+    const defaultIndex2 = 0;
+    return callback(obj, defaultIndex2) ? obj : void 0;
+  }
+  function initParticleNumericAnimationValue(options, pxRatio) {
+    const valueRange = options.value, animationOptions = options.animation, res = {
+      delayTime: getRangeValue(animationOptions.delay) * millisecondsToSeconds,
+      enable: animationOptions.enable,
+      value: getRangeValue(options.value) * pxRatio,
+      max: getRangeMax(valueRange) * pxRatio,
+      min: getRangeMin(valueRange) * pxRatio,
+      loops: 0,
+      maxLoops: getRangeValue(animationOptions.count),
+      time: 0
+    }, decayOffset = 1;
+    if (animationOptions.enable) {
+      res.decay = decayOffset - getRangeValue(animationOptions.decay);
+      switch (animationOptions.mode) {
+        case AnimationMode.increase:
+          res.status = AnimationStatus.increasing;
+          break;
+        case AnimationMode.decrease:
+          res.status = AnimationStatus.decreasing;
+          break;
+        case AnimationMode.random:
+          res.status = getRandom() >= halfRandom ? AnimationStatus.increasing : AnimationStatus.decreasing;
+          break;
+      }
+      const autoStatus = animationOptions.mode === AnimationMode.auto;
+      switch (animationOptions.startValue) {
+        case StartValueType.min:
+          res.value = res.min;
+          if (autoStatus) {
+            res.status = AnimationStatus.increasing;
+          }
+          break;
+        case StartValueType.max:
+          res.value = res.max;
+          if (autoStatus) {
+            res.status = AnimationStatus.decreasing;
+          }
+          break;
+        case StartValueType.random:
+        default:
+          res.value = randomInRange(res);
+          if (autoStatus) {
+            res.status = getRandom() >= halfRandom ? AnimationStatus.increasing : AnimationStatus.decreasing;
+          }
+          break;
+      }
+    }
+    res.initialValue = res.value;
+    return res;
+  }
+  function getPositionOrSize(positionOrSize, canvasSize) {
+    const isPercent = positionOrSize.mode === PixelMode.percent;
+    if (!isPercent) {
+      const { mode: _, ...rest } = positionOrSize;
+      return rest;
+    }
+    const isPosition = "x" in positionOrSize;
+    if (isPosition) {
+      return {
+        x: positionOrSize.x / percentDenominator * canvasSize.width,
+        y: positionOrSize.y / percentDenominator * canvasSize.height
+      };
+    } else {
+      return {
+        width: positionOrSize.width / percentDenominator * canvasSize.width,
+        height: positionOrSize.height / percentDenominator * canvasSize.height
+      };
+    }
+  }
+  function getPosition(position, canvasSize) {
+    return getPositionOrSize(position, canvasSize);
+  }
+  function getSize(size, canvasSize) {
+    return getPositionOrSize(size, canvasSize);
+  }
+  function checkDestroy(particle, destroyType, value, minValue, maxValue) {
+    switch (destroyType) {
+      case DestroyType.max:
+        if (value >= maxValue) {
+          particle.destroy();
+        }
+        break;
+      case DestroyType.min:
+        if (value <= minValue) {
+          particle.destroy();
+        }
+        break;
+    }
+  }
+  function updateAnimation(particle, data, changeDirection, destroyType, delta) {
+    const minLoops2 = 0, minDelay = 0, identity7 = 1, minVelocity7 = 0, minDecay = 1;
+    if (particle.destroyed || !data || !data.enable || (data.maxLoops ?? minLoops2) > minLoops2 && (data.loops ?? minLoops2) > (data.maxLoops ?? minLoops2)) {
+      return;
+    }
+    const velocity = (data.velocity ?? minVelocity7) * delta.factor, minValue = data.min, maxValue = data.max, decay = data.decay ?? minDecay;
+    if (!data.time) {
+      data.time = 0;
+    }
+    if ((data.delayTime ?? minDelay) > minDelay && data.time < (data.delayTime ?? minDelay)) {
+      data.time += delta.value;
+    }
+    if ((data.delayTime ?? minDelay) > minDelay && data.time < (data.delayTime ?? minDelay)) {
+      return;
+    }
+    switch (data.status) {
+      case AnimationStatus.increasing:
+        if (data.value >= maxValue) {
+          if (changeDirection) {
+            data.status = AnimationStatus.decreasing;
+          } else {
+            data.value -= maxValue;
+          }
+          if (!data.loops) {
+            data.loops = minLoops2;
+          }
+          data.loops++;
+        } else {
+          data.value += velocity;
+        }
+        break;
+      case AnimationStatus.decreasing:
+        if (data.value <= minValue) {
+          if (changeDirection) {
+            data.status = AnimationStatus.increasing;
+          } else {
+            data.value += maxValue;
+          }
+          if (!data.loops) {
+            data.loops = minLoops2;
+          }
+          data.loops++;
+        } else {
+          data.value -= velocity;
+        }
+    }
+    if (data.velocity && decay !== identity7) {
+      data.velocity *= decay;
+    }
+    checkDestroy(particle, destroyType, data.value, minValue, maxValue);
+    if (!particle.destroyed) {
+      data.value = clamp(data.value, minValue, maxValue);
+    }
+  }
+  function assertValidVersion(engine, pluginVersion) {
+    if (engine.version === pluginVersion) {
+      return;
+    }
+    throw new Error(`The tsParticles version is different from the loaded plugins version. Engine version: ${engine.version}. Plugins version: ${pluginVersion}`);
+  }
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/AlterType.js
+  var AlterType;
+  (function(AlterType2) {
+    AlterType2["darken"] = "darken";
+    AlterType2["enlighten"] = "enlighten";
+  })(AlterType || (AlterType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Utils/ColorUtils.js
+  var randomColorValue = "random";
+  var midColorValue = "mid";
+  function stringToRgba(engine, input) {
+    if (!input) {
+      return;
+    }
+    for (const manager of engine.colorManagers.values()) {
+      if (input.startsWith(manager.stringPrefix)) {
+        return manager.parseString(input);
+      }
+    }
+  }
+  function rangeColorToRgb(engine, input, index, useIndex = true) {
+    if (!input) {
+      return;
+    }
+    const color = isString(input) ? { value: input } : input;
+    if (isString(color.value)) {
+      return colorToRgb(engine, color.value, index, useIndex);
+    }
+    if (isArray(color.value)) {
+      return rangeColorToRgb(engine, {
+        value: itemFromArray(color.value, index, useIndex)
+      });
+    }
+    for (const manager of engine.colorManagers.values()) {
+      const res = manager.handleRangeColor(color);
+      if (res) {
+        return res;
+      }
+    }
+  }
+  function colorToRgb(engine, input, index, useIndex = true) {
+    if (!input) {
+      return;
+    }
+    const color = isString(input) ? { value: input } : input;
+    if (isString(color.value)) {
+      return color.value === randomColorValue ? getRandomRgbColor() : stringToRgb(engine, color.value);
+    }
+    if (isArray(color.value)) {
+      return colorToRgb(engine, {
+        value: itemFromArray(color.value, index, useIndex)
+      });
+    }
+    for (const manager of engine.colorManagers.values()) {
+      const res = manager.handleColor(color);
+      if (res) {
+        return res;
+      }
+    }
+  }
+  function rangeColorToHsl(engine, color, index, useIndex = true) {
+    const rgb = rangeColorToRgb(engine, color, index, useIndex);
+    return rgb ? rgbToHsl(rgb) : void 0;
+  }
+  function rgbToHsl(color) {
+    const rgbMax = 255, hMax = 360, sMax = 100, lMax = 100, hMin = 0, sMin = 0, hPhase = 60, half15 = 0.5, double22 = 2, r1 = color.r / rgbMax, g1 = color.g / rgbMax, b1 = color.b / rgbMax, max = Math.max(r1, g1, b1), min = Math.min(r1, g1, b1), res = {
+      h: hMin,
+      l: (max + min) * half15,
+      s: sMin
+    };
+    if (max !== min) {
+      res.s = res.l < half15 ? (max - min) / (max + min) : (max - min) / (double22 - max - min);
+      res.h = r1 === max ? (g1 - b1) / (max - min) : res.h = g1 === max ? double22 + (b1 - r1) / (max - min) : double22 * double22 + (r1 - g1) / (max - min);
+    }
+    res.l *= lMax;
+    res.s *= sMax;
+    res.h *= hPhase;
+    if (res.h < hMin) {
+      res.h += hMax;
+    }
+    if (res.h >= hMax) {
+      res.h -= hMax;
+    }
+    return res;
+  }
+  function stringToRgb(engine, input) {
+    return stringToRgba(engine, input);
+  }
+  function hslToRgb(hsl) {
+    const hMax = 360, sMax = 100, lMax = 100, sMin = 0, lMin = 0, h = (hsl.h % hMax + hMax) % hMax, s = Math.max(sMin, Math.min(sMax, hsl.s)), l = Math.max(lMin, Math.min(lMax, hsl.l)), hNormalized = h / hMax, sNormalized = s / sMax, lNormalized = l / lMax, rgbFactor = 255, triple = 3;
+    if (s === sMin) {
+      const grayscaleValue = Math.round(lNormalized * rgbFactor);
+      return { r: grayscaleValue, g: grayscaleValue, b: grayscaleValue };
+    }
+    const half15 = 0.5, double22 = 2, channel = (temp12, temp22, temp3) => {
+      const temp3Min = 0, temp3Max = 1, sextuple = 6;
+      if (temp3 < temp3Min) {
+        temp3++;
+      }
+      if (temp3 > temp3Max) {
+        temp3--;
+      }
+      if (temp3 * sextuple < temp3Max) {
+        return temp12 + (temp22 - temp12) * sextuple * temp3;
+      }
+      if (temp3 * double22 < temp3Max) {
+        return temp22;
+      }
+      if (temp3 * triple < temp3Max * double22) {
+        const temp3Offset = double22 / triple;
+        return temp12 + (temp22 - temp12) * (temp3Offset - temp3) * sextuple;
+      }
+      return temp12;
+    }, sNormalizedOffset = 1, temp1 = lNormalized < half15 ? lNormalized * (sNormalizedOffset + sNormalized) : lNormalized + sNormalized - lNormalized * sNormalized, temp2 = double22 * lNormalized - temp1, phaseNumerator = 1, phaseThird = phaseNumerator / triple, red = Math.min(rgbFactor, rgbFactor * channel(temp2, temp1, hNormalized + phaseThird)), green = Math.min(rgbFactor, rgbFactor * channel(temp2, temp1, hNormalized)), blue = Math.min(rgbFactor, rgbFactor * channel(temp2, temp1, hNormalized - phaseThird));
+    return { r: Math.round(red), g: Math.round(green), b: Math.round(blue) };
+  }
+  function hslaToRgba(hsla) {
+    const rgbResult = hslToRgb(hsla);
+    return {
+      a: hsla.a,
+      b: rgbResult.b,
+      g: rgbResult.g,
+      r: rgbResult.r
+    };
+  }
+  function getRandomRgbColor(min) {
+    const defaultMin = 0, fixedMin = min ?? defaultMin, rgbMax = 256;
+    return {
+      b: Math.floor(randomInRange(setRangeValue(fixedMin, rgbMax))),
+      g: Math.floor(randomInRange(setRangeValue(fixedMin, rgbMax))),
+      r: Math.floor(randomInRange(setRangeValue(fixedMin, rgbMax)))
+    };
+  }
+  function getStyleFromRgb(color, opacity) {
+    const defaultOpacity4 = 1;
+    return `rgba(${color.r}, ${color.g}, ${color.b}, ${opacity ?? defaultOpacity4})`;
+  }
+  function getStyleFromHsl(color, opacity) {
+    const defaultOpacity4 = 1;
+    return `hsla(${color.h}, ${color.s}%, ${color.l}%, ${opacity ?? defaultOpacity4})`;
+  }
+  function colorMix(color1, color2, size1, size2) {
+    let rgb1 = color1, rgb2 = color2;
+    if (rgb1.r === void 0) {
+      rgb1 = hslToRgb(color1);
+    }
+    if (rgb2.r === void 0) {
+      rgb2 = hslToRgb(color2);
+    }
+    return {
+      b: mix(rgb1.b, rgb2.b, size1, size2),
+      g: mix(rgb1.g, rgb2.g, size1, size2),
+      r: mix(rgb1.r, rgb2.r, size1, size2)
+    };
+  }
+  function getLinkColor(p1, p2, linkColor) {
+    if (linkColor === randomColorValue) {
+      return getRandomRgbColor();
+    } else if (linkColor === midColorValue) {
+      const sourceColor = p1.getFillColor() ?? p1.getStrokeColor(), destColor = p2?.getFillColor() ?? p2?.getStrokeColor();
+      if (sourceColor && destColor && p2) {
+        return colorMix(sourceColor, destColor, p1.getRadius(), p2.getRadius());
+      } else {
+        const hslColor = sourceColor ?? destColor;
+        if (hslColor) {
+          return hslToRgb(hslColor);
+        }
+      }
+    } else {
+      return linkColor;
+    }
+  }
+  function getLinkRandomColor(engine, optColor, blink, consent) {
+    const color = isString(optColor) ? optColor : optColor.value;
+    if (color === randomColorValue) {
+      if (consent) {
+        return rangeColorToRgb(engine, {
+          value: color
+        });
+      }
+      if (blink) {
+        return randomColorValue;
+      }
+      return midColorValue;
+    } else if (color === midColorValue) {
+      return midColorValue;
+    } else {
+      return rangeColorToRgb(engine, {
+        value: color
+      });
+    }
+  }
+  function getHslFromAnimation(animation) {
+    return animation !== void 0 ? {
+      h: animation.h.value,
+      s: animation.s.value,
+      l: animation.l.value
+    } : void 0;
+  }
+  function getHslAnimationFromHsl(hsl, animationOptions, reduceFactor) {
+    const resColor = {
+      h: {
+        enable: false,
+        value: hsl.h
+      },
+      s: {
+        enable: false,
+        value: hsl.s
+      },
+      l: {
+        enable: false,
+        value: hsl.l
+      }
+    };
+    if (animationOptions) {
+      setColorAnimation(resColor.h, animationOptions.h, reduceFactor);
+      setColorAnimation(resColor.s, animationOptions.s, reduceFactor);
+      setColorAnimation(resColor.l, animationOptions.l, reduceFactor);
+    }
+    return resColor;
+  }
+  function setColorAnimation(colorValue, colorAnimation, reduceFactor) {
+    colorValue.enable = colorAnimation.enable;
+    const defaultVelocity = 0, decayOffset = 1, defaultLoops = 0, defaultTime = 0;
+    if (colorValue.enable) {
+      colorValue.velocity = getRangeValue(colorAnimation.speed) / percentDenominator * reduceFactor;
+      colorValue.decay = decayOffset - getRangeValue(colorAnimation.decay);
+      colorValue.status = AnimationStatus.increasing;
+      colorValue.loops = defaultLoops;
+      colorValue.maxLoops = getRangeValue(colorAnimation.count);
+      colorValue.time = defaultTime;
+      colorValue.delayTime = getRangeValue(colorAnimation.delay) * millisecondsToSeconds;
+      if (!colorAnimation.sync) {
+        colorValue.velocity *= getRandom();
+        colorValue.value *= getRandom();
+      }
+      colorValue.initialValue = colorValue.value;
+      colorValue.offset = setRangeValue(colorAnimation.offset);
+    } else {
+      colorValue.velocity = defaultVelocity;
+    }
+  }
+  function updateColorValue(data, range, decrease, delta) {
+    const minLoops2 = 0, minDelay = 0, identity7 = 1, minVelocity7 = 0, minOffset = 0, velocityFactor = 3.6;
+    if (!data || !data.enable || (data.maxLoops ?? minLoops2) > minLoops2 && (data.loops ?? minLoops2) > (data.maxLoops ?? minLoops2)) {
+      return;
+    }
+    if (!data.time) {
+      data.time = 0;
+    }
+    if ((data.delayTime ?? minDelay) > minDelay && data.time < (data.delayTime ?? minDelay)) {
+      data.time += delta.value;
+    }
+    if ((data.delayTime ?? minDelay) > minDelay && data.time < (data.delayTime ?? minDelay)) {
+      return;
+    }
+    const offset = data.offset ? randomInRange(data.offset) : minOffset, velocity = (data.velocity ?? minVelocity7) * delta.factor + offset * velocityFactor, decay = data.decay ?? identity7, max = getRangeMax(range), min = getRangeMin(range);
+    if (!decrease || data.status === AnimationStatus.increasing) {
+      data.value += velocity;
+      if (data.value > max) {
+        if (!data.loops) {
+          data.loops = 0;
+        }
+        data.loops++;
+        if (decrease) {
+          data.status = AnimationStatus.decreasing;
+        } else {
+          data.value -= max;
+        }
+      }
+    } else {
+      data.value -= velocity;
+      const minValue = 0;
+      if (data.value < minValue) {
+        if (!data.loops) {
+          data.loops = 0;
+        }
+        data.loops++;
+        data.status = AnimationStatus.increasing;
+      }
+    }
+    if (data.velocity && decay !== identity7) {
+      data.velocity *= decay;
+    }
+    data.value = clamp(data.value, min, max);
+  }
+  function updateColor(color, delta) {
+    if (!color) {
+      return;
+    }
+    const { h, s, l } = color;
+    const ranges = {
+      h: { min: 0, max: 360 },
+      s: { min: 0, max: 100 },
+      l: { min: 0, max: 100 }
+    };
+    if (h) {
+      updateColorValue(h, ranges.h, false, delta);
+    }
+    if (s) {
+      updateColorValue(s, ranges.s, true, delta);
+    }
+    if (l) {
+      updateColorValue(l, ranges.l, true, delta);
+    }
+  }
+
+  // node_modules/@tsparticles/engine/browser/Utils/CanvasUtils.js
+  var origin2 = { x: 0, y: 0 };
+  var defaultTransform = {
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1
+  };
+  function drawLine(context, begin, end) {
+    context.beginPath();
+    context.moveTo(begin.x, begin.y);
+    context.lineTo(end.x, end.y);
+    context.closePath();
+  }
+  function paintBase(context, dimension, baseColor) {
+    context.fillStyle = baseColor ?? "rgba(0,0,0,0)";
+    context.fillRect(origin2.x, origin2.y, dimension.width, dimension.height);
+  }
+  function paintImage(context, dimension, image, opacity) {
+    if (!image) {
+      return;
+    }
+    context.globalAlpha = opacity;
+    context.drawImage(image, origin2.x, origin2.y, dimension.width, dimension.height);
+    context.globalAlpha = 1;
+  }
+  function clear(context, dimension) {
+    context.clearRect(origin2.x, origin2.y, dimension.width, dimension.height);
+  }
+  function drawParticle(data) {
+    const { container, context, particle, delta, colorStyles, backgroundMask, composite, radius, opacity, shadow: shadow2, transform } = data, pos = particle.getPosition(), defaultAngle = 0, angle = particle.rotation + (particle.pathRotation ? particle.velocity.angle : defaultAngle), rotateData = {
+      sin: Math.sin(angle),
+      cos: Math.cos(angle)
+    }, rotating = !!angle, identity7 = 1, transformData = {
+      a: rotateData.cos * (transform.a ?? defaultTransform.a),
+      b: rotating ? rotateData.sin * (transform.b ?? identity7) : transform.b ?? defaultTransform.b,
+      c: rotating ? -rotateData.sin * (transform.c ?? identity7) : transform.c ?? defaultTransform.c,
+      d: rotateData.cos * (transform.d ?? defaultTransform.d)
+    };
+    context.setTransform(transformData.a, transformData.b, transformData.c, transformData.d, pos.x, pos.y);
+    if (backgroundMask) {
+      context.globalCompositeOperation = composite;
+    }
+    const shadowColor = particle.shadowColor;
+    if (shadow2.enable && shadowColor) {
+      context.shadowBlur = shadow2.blur;
+      context.shadowColor = getStyleFromRgb(shadowColor);
+      context.shadowOffsetX = shadow2.offset.x;
+      context.shadowOffsetY = shadow2.offset.y;
+    }
+    if (colorStyles.fill) {
+      context.fillStyle = colorStyles.fill;
+    }
+    const minStrokeWidth = 0, strokeWidth = particle.strokeWidth ?? minStrokeWidth;
+    context.lineWidth = strokeWidth;
+    if (colorStyles.stroke) {
+      context.strokeStyle = colorStyles.stroke;
+    }
+    const drawData = {
+      container,
+      context,
+      particle,
+      radius,
+      opacity,
+      delta,
+      transformData,
+      strokeWidth
+    };
+    drawShape(drawData);
+    drawShapeAfterDraw(drawData);
+    drawEffect(drawData);
+    context.globalCompositeOperation = "source-over";
+    context.resetTransform();
+  }
+  function drawEffect(data) {
+    const { container, context, particle, radius, opacity, delta, transformData } = data;
+    if (!particle.effect) {
+      return;
+    }
+    const drawer = container.effectDrawers.get(particle.effect);
+    if (!drawer) {
+      return;
+    }
+    drawer.draw({
+      context,
+      particle,
+      radius,
+      opacity,
+      delta,
+      pixelRatio: container.retina.pixelRatio,
+      transformData: { ...transformData }
+    });
+  }
+  function drawShape(data) {
+    const { container, context, particle, radius, opacity, delta, strokeWidth, transformData } = data, minStrokeWidth = 0;
+    if (!particle.shape) {
+      return;
+    }
+    const drawer = container.shapeDrawers.get(particle.shape);
+    if (!drawer) {
+      return;
+    }
+    context.beginPath();
+    drawer.draw({
+      context,
+      particle,
+      radius,
+      opacity,
+      delta,
+      pixelRatio: container.retina.pixelRatio,
+      transformData: { ...transformData }
+    });
+    if (particle.shapeClose) {
+      context.closePath();
+    }
+    if (strokeWidth > minStrokeWidth) {
+      context.stroke();
+    }
+    if (particle.shapeFill) {
+      context.fill();
+    }
+  }
+  function drawShapeAfterDraw(data) {
+    const { container, context, particle, radius, opacity, delta, transformData } = data;
+    if (!particle.shape) {
+      return;
+    }
+    const drawer = container.shapeDrawers.get(particle.shape);
+    if (!drawer?.afterDraw) {
+      return;
+    }
+    drawer.afterDraw({
+      context,
+      particle,
+      radius,
+      opacity,
+      delta,
+      pixelRatio: container.retina.pixelRatio,
+      transformData: { ...transformData }
+    });
+  }
+  function drawPlugin(context, plugin, delta) {
+    if (!plugin.draw) {
+      return;
+    }
+    plugin.draw(context, delta);
+  }
+  function drawParticlePlugin(context, plugin, particle, delta) {
+    if (!plugin.drawParticle) {
+      return;
+    }
+    plugin.drawParticle(context, particle, delta);
+  }
+  function alterHsl(color, type, value) {
+    const lFactor = 1;
+    return {
+      h: color.h,
+      s: color.s,
+      l: color.l + (type === AlterType.darken ? -lFactor : lFactor) * value
+    };
+  }
+
+  // node_modules/@tsparticles/engine/browser/Core/Canvas.js
+  function setTransformValue(factor, newFactor, key) {
+    const newValue = newFactor[key], defaultValue = 1;
+    if (newValue !== void 0) {
+      factor[key] = (factor[key] ?? defaultValue) * newValue;
+    }
+  }
+  function setStyle(canvas, style, important = false) {
+    if (!style) {
+      return;
+    }
+    const element = canvas;
+    if (!element) {
+      return;
+    }
+    const elementStyle = element.style;
+    if (!elementStyle) {
+      return;
+    }
+    for (const key in style) {
+      const value = style[key];
+      elementStyle.setProperty(key, value, important ? "important" : "");
+    }
+  }
+  var Canvas = class {
+    constructor(container, engine) {
+      this.container = container;
+      this._applyPostDrawUpdaters = (particle) => {
+        for (const updater of this._postDrawUpdaters) {
+          updater.afterDraw?.(particle);
+        }
+      };
+      this._applyPreDrawUpdaters = (ctx, particle, radius, zOpacity, colorStyles, transform) => {
+        for (const updater of this._preDrawUpdaters) {
+          if (updater.getColorStyles) {
+            const { fill, stroke } = updater.getColorStyles(particle, ctx, radius, zOpacity);
+            if (fill) {
+              colorStyles.fill = fill;
+            }
+            if (stroke) {
+              colorStyles.stroke = stroke;
+            }
+          }
+          if (updater.getTransformValues) {
+            const updaterTransform = updater.getTransformValues(particle);
+            for (const key in updaterTransform) {
+              setTransformValue(transform, updaterTransform, key);
+            }
+          }
+          updater.beforeDraw?.(particle);
+        }
+      };
+      this._applyResizePlugins = () => {
+        for (const plugin of this._resizePlugins) {
+          plugin.resize?.();
+        }
+      };
+      this._getPluginParticleColors = (particle) => {
+        let fColor, sColor;
+        for (const plugin of this._colorPlugins) {
+          if (!fColor && plugin.particleFillColor) {
+            fColor = rangeColorToHsl(this._engine, plugin.particleFillColor(particle));
+          }
+          if (!sColor && plugin.particleStrokeColor) {
+            sColor = rangeColorToHsl(this._engine, plugin.particleStrokeColor(particle));
+          }
+          if (fColor && sColor) {
+            break;
+          }
+        }
+        return [fColor, sColor];
+      };
+      this._initCover = async () => {
+        const options = this.container.actualOptions, cover = options.backgroundMask.cover, color = cover.color;
+        if (color) {
+          const coverRgb = rangeColorToRgb(this._engine, color);
+          if (coverRgb) {
+            const coverColor = {
+              ...coverRgb,
+              a: cover.opacity
+            };
+            this._coverColorStyle = getStyleFromRgb(coverColor, coverColor.a);
+          }
+        } else {
+          await new Promise((resolve, reject) => {
+            if (!cover.image) {
+              return;
+            }
+            const img = document.createElement("img");
+            img.addEventListener("load", () => {
+              this._coverImage = {
+                image: img,
+                opacity: cover.opacity
+              };
+              resolve();
+            });
+            img.addEventListener("error", (evt) => {
+              reject(evt.error);
+            });
+            img.src = cover.image;
+          });
+        }
+      };
+      this._initStyle = () => {
+        const element = this.element, options = this.container.actualOptions;
+        if (!element) {
+          return;
+        }
+        if (this._fullScreen) {
+          this._originalStyle = deepExtend({}, element.style);
+          this._setFullScreenStyle();
+        } else {
+          this._resetOriginalStyle();
+        }
+        for (const key in options.style) {
+          if (!key || !options.style) {
+            continue;
+          }
+          const value = options.style[key];
+          if (!value) {
+            continue;
+          }
+          element.style.setProperty(key, value, "important");
+        }
+      };
+      this._initTrail = async () => {
+        const options = this.container.actualOptions, trail = options.particles.move.trail, trailFill = trail.fill;
+        if (!trail.enable) {
+          return;
+        }
+        const factorNumerator = 1, opacity = factorNumerator / trail.length;
+        if (trailFill.color) {
+          const fillColor = rangeColorToRgb(this._engine, trailFill.color);
+          if (!fillColor) {
+            return;
+          }
+          this._trailFill = {
+            color: {
+              ...fillColor
+            },
+            opacity
+          };
+        } else {
+          await new Promise((resolve, reject) => {
+            if (!trailFill.image) {
+              return;
+            }
+            const img = document.createElement("img");
+            img.addEventListener("load", () => {
+              this._trailFill = {
+                image: img,
+                opacity
+              };
+              resolve();
+            });
+            img.addEventListener("error", (evt) => {
+              reject(evt.error);
+            });
+            img.src = trailFill.image;
+          });
+        }
+      };
+      this._paintBase = (baseColor) => {
+        this.draw((ctx) => paintBase(ctx, this.size, baseColor));
+      };
+      this._paintImage = (image, opacity) => {
+        this.draw((ctx) => paintImage(ctx, this.size, image, opacity));
+      };
+      this._repairStyle = () => {
+        const element = this.element;
+        if (!element) {
+          return;
+        }
+        this._safeMutationObserver((observer) => observer.disconnect());
+        this._initStyle();
+        this.initBackground();
+        this._safeMutationObserver((observer) => {
+          if (!element || !(element instanceof Node)) {
+            return;
+          }
+          observer.observe(element, { attributes: true });
+        });
+      };
+      this._resetOriginalStyle = () => {
+        const element = this.element, originalStyle = this._originalStyle;
+        if (!(element && originalStyle)) {
+          return;
+        }
+        setStyle(element, originalStyle);
+      };
+      this._safeMutationObserver = (callback) => {
+        if (!this._mutationObserver) {
+          return;
+        }
+        callback(this._mutationObserver);
+      };
+      this._setFullScreenStyle = () => {
+        const element = this.element;
+        if (!element) {
+          return;
+        }
+        const radix = 10, zIndex = this.container.actualOptions.fullScreen.zIndex.toString(radix);
+        setStyle(element, {
+          position: "fixed",
+          "z-index": zIndex,
+          zIndex,
+          top: "0",
+          left: "0",
+          width: "100%",
+          height: "100%"
+        }, true);
+      };
+      this._engine = engine;
+      this._standardSize = {
+        height: 0,
+        width: 0
+      };
+      const pxRatio = container.retina.pixelRatio, stdSize = this._standardSize;
+      this.size = {
+        height: stdSize.height * pxRatio,
+        width: stdSize.width * pxRatio
+      };
+      this._context = null;
+      this._generated = false;
+      this._preDrawUpdaters = [];
+      this._postDrawUpdaters = [];
+      this._resizePlugins = [];
+      this._colorPlugins = [];
+    }
+    get _fullScreen() {
+      return this.container.actualOptions.fullScreen.enable;
+    }
+    clear() {
+      const options = this.container.actualOptions, trail = options.particles.move.trail, trailFill = this._trailFill, minimumLength = 0;
+      if (options.backgroundMask.enable) {
+        this.paint();
+      } else if (trail.enable && trail.length > minimumLength && trailFill) {
+        if (trailFill.color) {
+          this._paintBase(getStyleFromRgb(trailFill.color, trailFill.opacity));
+        } else if (trailFill.image) {
+          this._paintImage(trailFill.image, trailFill.opacity);
+        }
+      } else if (options.clear) {
+        this.draw((ctx) => {
+          clear(ctx, this.size);
+        });
+      }
+    }
+    destroy() {
+      this.stop();
+      if (this._generated) {
+        const element = this.element;
+        element?.remove();
+      } else {
+        this._resetOriginalStyle();
+      }
+      this._preDrawUpdaters = [];
+      this._postDrawUpdaters = [];
+      this._resizePlugins = [];
+      this._colorPlugins = [];
+    }
+    draw(cb) {
+      const ctx = this._context;
+      if (!ctx) {
+        return;
+      }
+      return cb(ctx);
+    }
+    drawAsync(cb) {
+      const ctx = this._context;
+      if (!ctx) {
+        return void 0;
+      }
+      return cb(ctx);
+    }
+    drawParticle(particle, delta) {
+      if (particle.spawning || particle.destroyed) {
+        return;
+      }
+      const radius = particle.getRadius(), minimumSize = 0;
+      if (radius <= minimumSize) {
+        return;
+      }
+      const pfColor = particle.getFillColor(), psColor = particle.getStrokeColor() ?? pfColor;
+      let [fColor, sColor] = this._getPluginParticleColors(particle);
+      if (!fColor) {
+        fColor = pfColor;
+      }
+      if (!sColor) {
+        sColor = psColor;
+      }
+      if (!fColor && !sColor) {
+        return;
+      }
+      this.draw((ctx) => {
+        const container = this.container, options = container.actualOptions, zIndexOptions = particle.options.zIndex, zIndexFactorOffset = 1, zIndexFactor = zIndexFactorOffset - particle.zIndexFactor, zOpacityFactor = zIndexFactor ** zIndexOptions.opacityRate, defaultOpacity4 = 1, opacity = particle.bubble.opacity ?? particle.opacity?.value ?? defaultOpacity4, strokeOpacity = particle.strokeOpacity ?? opacity, zOpacity = opacity * zOpacityFactor, zStrokeOpacity = strokeOpacity * zOpacityFactor, transform = {}, colorStyles = {
+          fill: fColor ? getStyleFromHsl(fColor, zOpacity) : void 0
+        };
+        colorStyles.stroke = sColor ? getStyleFromHsl(sColor, zStrokeOpacity) : colorStyles.fill;
+        this._applyPreDrawUpdaters(ctx, particle, radius, zOpacity, colorStyles, transform);
+        drawParticle({
+          container,
+          context: ctx,
+          particle,
+          delta,
+          colorStyles,
+          backgroundMask: options.backgroundMask.enable,
+          composite: options.backgroundMask.composite,
+          radius: radius * zIndexFactor ** zIndexOptions.sizeRate,
+          opacity: zOpacity,
+          shadow: particle.options.shadow,
+          transform
+        });
+        this._applyPostDrawUpdaters(particle);
+      });
+    }
+    drawParticlePlugin(plugin, particle, delta) {
+      this.draw((ctx) => drawParticlePlugin(ctx, plugin, particle, delta));
+    }
+    drawPlugin(plugin, delta) {
+      this.draw((ctx) => drawPlugin(ctx, plugin, delta));
+    }
+    async init() {
+      this._safeMutationObserver((obs) => obs.disconnect());
+      this._mutationObserver = safeMutationObserver((records) => {
+        for (const record of records) {
+          if (record.type === "attributes" && record.attributeName === "style") {
+            this._repairStyle();
+          }
+        }
+      });
+      this.resize();
+      this._initStyle();
+      await this._initCover();
+      try {
+        await this._initTrail();
+      } catch (e) {
+        getLogger().error(e);
+      }
+      this.initBackground();
+      this._safeMutationObserver((obs) => {
+        if (!this.element || !(this.element instanceof Node)) {
+          return;
+        }
+        obs.observe(this.element, { attributes: true });
+      });
+      this.initUpdaters();
+      this.initPlugins();
+      this.paint();
+    }
+    initBackground() {
+      const options = this.container.actualOptions, background = options.background, element = this.element;
+      if (!element) {
+        return;
+      }
+      const elementStyle = element.style;
+      if (!elementStyle) {
+        return;
+      }
+      if (background.color) {
+        const color = rangeColorToRgb(this._engine, background.color);
+        elementStyle.backgroundColor = color ? getStyleFromRgb(color, background.opacity) : "";
+      } else {
+        elementStyle.backgroundColor = "";
+      }
+      elementStyle.backgroundImage = background.image || "";
+      elementStyle.backgroundPosition = background.position || "";
+      elementStyle.backgroundRepeat = background.repeat || "";
+      elementStyle.backgroundSize = background.size || "";
+    }
+    initPlugins() {
+      this._resizePlugins = [];
+      for (const plugin of this.container.plugins.values()) {
+        if (plugin.resize) {
+          this._resizePlugins.push(plugin);
+        }
+        if (plugin.particleFillColor ?? plugin.particleStrokeColor) {
+          this._colorPlugins.push(plugin);
+        }
+      }
+    }
+    initUpdaters() {
+      this._preDrawUpdaters = [];
+      this._postDrawUpdaters = [];
+      for (const updater of this.container.particles.updaters) {
+        if (updater.afterDraw) {
+          this._postDrawUpdaters.push(updater);
+        }
+        if (updater.getColorStyles ?? updater.getTransformValues ?? updater.beforeDraw) {
+          this._preDrawUpdaters.push(updater);
+        }
+      }
+    }
+    loadCanvas(canvas) {
+      if (this._generated && this.element) {
+        this.element.remove();
+      }
+      this._generated = canvas.dataset && generatedAttribute in canvas.dataset ? canvas.dataset[generatedAttribute] === "true" : this._generated;
+      this.element = canvas;
+      this.element.ariaHidden = "true";
+      this._originalStyle = deepExtend({}, this.element.style);
+      const standardSize = this._standardSize;
+      standardSize.height = canvas.offsetHeight;
+      standardSize.width = canvas.offsetWidth;
+      const pxRatio = this.container.retina.pixelRatio, retinaSize = this.size;
+      canvas.height = retinaSize.height = standardSize.height * pxRatio;
+      canvas.width = retinaSize.width = standardSize.width * pxRatio;
+      this._context = this.element.getContext("2d");
+      this._safeMutationObserver((obs) => {
+        if (!this.element || !(this.element instanceof Node)) {
+          return;
+        }
+        obs.observe(this.element, { attributes: true });
+      });
+      this.container.retina.init();
+      this.initBackground();
+    }
+    paint() {
+      const options = this.container.actualOptions;
+      this.draw((ctx) => {
+        if (options.backgroundMask.enable && options.backgroundMask.cover) {
+          clear(ctx, this.size);
+          if (this._coverImage) {
+            this._paintImage(this._coverImage.image, this._coverImage.opacity);
+          } else if (this._coverColorStyle) {
+            this._paintBase(this._coverColorStyle);
+          } else {
+            this._paintBase();
+          }
+        } else {
+          this._paintBase();
+        }
+      });
+    }
+    resize() {
+      if (!this.element) {
+        return false;
+      }
+      const container = this.container, currentSize = container.canvas._standardSize, newSize = {
+        width: this.element.offsetWidth,
+        height: this.element.offsetHeight
+      }, pxRatio = container.retina.pixelRatio, retinaSize = {
+        width: newSize.width * pxRatio,
+        height: newSize.height * pxRatio
+      };
+      if (newSize.height === currentSize.height && newSize.width === currentSize.width && retinaSize.height === this.element.height && retinaSize.width === this.element.width) {
+        return false;
+      }
+      const oldSize = { ...currentSize };
+      currentSize.height = newSize.height;
+      currentSize.width = newSize.width;
+      const canvasSize = this.size;
+      this.element.width = canvasSize.width = retinaSize.width;
+      this.element.height = canvasSize.height = retinaSize.height;
+      if (this.container.started) {
+        container.particles.setResizeFactor({
+          width: currentSize.width / oldSize.width,
+          height: currentSize.height / oldSize.height
+        });
+      }
+      return true;
+    }
+    stop() {
+      this._safeMutationObserver((obs) => obs.disconnect());
+      this._mutationObserver = void 0;
+      this.draw((ctx) => clear(ctx, this.size));
+    }
+    async windowResize() {
+      if (!this.element || !this.resize()) {
+        return;
+      }
+      const container = this.container, needsRefresh = container.updateActualOptions();
+      container.particles.setDensity();
+      this._applyResizePlugins();
+      if (needsRefresh) {
+        await container.refresh();
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/InteractivityDetect.js
+  var InteractivityDetect;
+  (function(InteractivityDetect2) {
+    InteractivityDetect2["canvas"] = "canvas";
+    InteractivityDetect2["parent"] = "parent";
+    InteractivityDetect2["window"] = "window";
+  })(InteractivityDetect || (InteractivityDetect = {}));
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/EventListeners.js
+  var double2 = 2;
+  function manageListener(element, event, handler, add2, options) {
+    if (add2) {
+      let addOptions = { passive: true };
+      if (isBoolean(options)) {
+        addOptions.capture = options;
+      } else if (options !== void 0) {
+        addOptions = options;
+      }
+      element.addEventListener(event, handler, addOptions);
+    } else {
+      const removeOptions = options;
+      element.removeEventListener(event, handler, removeOptions);
+    }
+  }
+  var EventListeners = class {
+    constructor(container) {
+      this.container = container;
+      this._doMouseTouchClick = (e) => {
+        const container2 = this.container, options = container2.actualOptions;
+        if (this._canPush) {
+          const mouseInteractivity = container2.interactivity.mouse, mousePos = mouseInteractivity.position;
+          if (!mousePos) {
+            return;
+          }
+          mouseInteractivity.clickPosition = { ...mousePos };
+          mouseInteractivity.clickTime = (/* @__PURE__ */ new Date()).getTime();
+          const onClick = options.interactivity.events.onClick;
+          executeOnSingleOrMultiple(onClick.mode, (mode) => this.container.handleClickMode(mode));
+        }
+        if (e.type === "touchend") {
+          const touchDelay = 500;
+          setTimeout(() => this._mouseTouchFinish(), touchDelay);
+        }
+      };
+      this._handleThemeChange = (e) => {
+        const mediaEvent = e, container2 = this.container, options = container2.options, defaultThemes = options.defaultThemes, themeName = mediaEvent.matches ? defaultThemes.dark : defaultThemes.light, theme = options.themes.find((theme2) => theme2.name === themeName);
+        if (theme?.default.auto) {
+          void container2.loadTheme(themeName);
+        }
+      };
+      this._handleVisibilityChange = () => {
+        const container2 = this.container, options = container2.actualOptions;
+        this._mouseTouchFinish();
+        if (!options.pauseOnBlur) {
+          return;
+        }
+        if (document?.hidden) {
+          container2.pageHidden = true;
+          container2.pause();
+        } else {
+          container2.pageHidden = false;
+          if (container2.animationStatus) {
+            void container2.play(true);
+          } else {
+            void container2.draw(true);
+          }
+        }
+      };
+      this._handleWindowResize = () => {
+        if (this._resizeTimeout) {
+          clearTimeout(this._resizeTimeout);
+          delete this._resizeTimeout;
+        }
+        const handleResize = async () => {
+          const canvas = this.container.canvas;
+          await canvas?.windowResize();
+        };
+        this._resizeTimeout = setTimeout(() => void handleResize(), this.container.actualOptions.interactivity.events.resize.delay * millisecondsToSeconds);
+      };
+      this._manageInteractivityListeners = (mouseLeaveTmpEvent, add2) => {
+        const handlers = this._handlers, container2 = this.container, options = container2.actualOptions;
+        const interactivityEl = container2.interactivity.element;
+        if (!interactivityEl) {
+          return;
+        }
+        const html = interactivityEl, canvasEl = container2.canvas.element;
+        if (canvasEl) {
+          canvasEl.style.pointerEvents = html === canvasEl ? "initial" : "none";
+        }
+        if (!(options.interactivity.events.onHover.enable || options.interactivity.events.onClick.enable)) {
+          return;
+        }
+        manageListener(interactivityEl, mouseMoveEvent, handlers.mouseMove, add2);
+        manageListener(interactivityEl, touchStartEvent, handlers.touchStart, add2);
+        manageListener(interactivityEl, touchMoveEvent, handlers.touchMove, add2);
+        if (!options.interactivity.events.onClick.enable) {
+          manageListener(interactivityEl, touchEndEvent, handlers.touchEnd, add2);
+        } else {
+          manageListener(interactivityEl, touchEndEvent, handlers.touchEndClick, add2);
+          manageListener(interactivityEl, mouseUpEvent, handlers.mouseUp, add2);
+          manageListener(interactivityEl, mouseDownEvent, handlers.mouseDown, add2);
+        }
+        manageListener(interactivityEl, mouseLeaveTmpEvent, handlers.mouseLeave, add2);
+        manageListener(interactivityEl, touchCancelEvent, handlers.touchCancel, add2);
+      };
+      this._manageListeners = (add2) => {
+        const handlers = this._handlers, container2 = this.container, options = container2.actualOptions, detectType = options.interactivity.detectsOn, canvasEl = container2.canvas.element;
+        let mouseLeaveTmpEvent = mouseLeaveEvent;
+        if (detectType === InteractivityDetect.window) {
+          container2.interactivity.element = window;
+          mouseLeaveTmpEvent = mouseOutEvent;
+        } else if (detectType === InteractivityDetect.parent && canvasEl) {
+          container2.interactivity.element = canvasEl.parentElement ?? canvasEl.parentNode;
+        } else {
+          container2.interactivity.element = canvasEl;
+        }
+        this._manageMediaMatch(add2);
+        this._manageResize(add2);
+        this._manageInteractivityListeners(mouseLeaveTmpEvent, add2);
+        if (document) {
+          manageListener(document, visibilityChangeEvent, handlers.visibilityChange, add2, false);
+        }
+      };
+      this._manageMediaMatch = (add2) => {
+        const handlers = this._handlers, mediaMatch = safeMatchMedia("(prefers-color-scheme: dark)");
+        if (!mediaMatch) {
+          return;
+        }
+        if (mediaMatch.addEventListener !== void 0) {
+          manageListener(mediaMatch, "change", handlers.themeChange, add2);
+          return;
+        }
+        if (mediaMatch.addListener === void 0) {
+          return;
+        }
+        if (add2) {
+          mediaMatch.addListener(handlers.oldThemeChange);
+        } else {
+          mediaMatch.removeListener(handlers.oldThemeChange);
+        }
+      };
+      this._manageResize = (add2) => {
+        const handlers = this._handlers, container2 = this.container, options = container2.actualOptions;
+        if (!options.interactivity.events.resize) {
+          return;
+        }
+        if (typeof ResizeObserver === "undefined") {
+          manageListener(window, resizeEvent, handlers.resize, add2);
+          return;
+        }
+        const canvasEl = container2.canvas.element;
+        if (this._resizeObserver && !add2) {
+          if (canvasEl) {
+            this._resizeObserver.unobserve(canvasEl);
+          }
+          this._resizeObserver.disconnect();
+          delete this._resizeObserver;
+        } else if (!this._resizeObserver && add2 && canvasEl) {
+          this._resizeObserver = new ResizeObserver((entries) => {
+            const entry = entries.find((e) => e.target === canvasEl);
+            if (!entry) {
+              return;
+            }
+            this._handleWindowResize();
+          });
+          this._resizeObserver.observe(canvasEl);
+        }
+      };
+      this._mouseDown = () => {
+        const { interactivity } = this.container;
+        if (!interactivity) {
+          return;
+        }
+        const { mouse } = interactivity;
+        mouse.clicking = true;
+        mouse.downPosition = mouse.position;
+      };
+      this._mouseTouchClick = (e) => {
+        const container2 = this.container, options = container2.actualOptions, { mouse } = container2.interactivity;
+        mouse.inside = true;
+        let handled = false;
+        const mousePosition = mouse.position;
+        if (!mousePosition || !options.interactivity.events.onClick.enable) {
+          return;
+        }
+        for (const plugin of container2.plugins.values()) {
+          if (!plugin.clickPositionValid) {
+            continue;
+          }
+          handled = plugin.clickPositionValid(mousePosition);
+          if (handled) {
+            break;
+          }
+        }
+        if (!handled) {
+          this._doMouseTouchClick(e);
+        }
+        mouse.clicking = false;
+      };
+      this._mouseTouchFinish = () => {
+        const interactivity = this.container.interactivity;
+        if (!interactivity) {
+          return;
+        }
+        const mouse = interactivity.mouse;
+        delete mouse.position;
+        delete mouse.clickPosition;
+        delete mouse.downPosition;
+        interactivity.status = mouseLeaveEvent;
+        mouse.inside = false;
+        mouse.clicking = false;
+      };
+      this._mouseTouchMove = (e) => {
+        const container2 = this.container, options = container2.actualOptions, interactivity = container2.interactivity, canvasEl = container2.canvas.element;
+        if (!interactivity?.element) {
+          return;
+        }
+        interactivity.mouse.inside = true;
+        let pos;
+        if (e.type.startsWith("pointer")) {
+          this._canPush = true;
+          const mouseEvent = e;
+          if (interactivity.element === window) {
+            if (canvasEl) {
+              const clientRect = canvasEl.getBoundingClientRect();
+              pos = {
+                x: mouseEvent.clientX - clientRect.left,
+                y: mouseEvent.clientY - clientRect.top
+              };
+            }
+          } else if (options.interactivity.detectsOn === InteractivityDetect.parent) {
+            const source = mouseEvent.target, target = mouseEvent.currentTarget;
+            if (source && target && canvasEl) {
+              const sourceRect = source.getBoundingClientRect(), targetRect = target.getBoundingClientRect(), canvasRect = canvasEl.getBoundingClientRect();
+              pos = {
+                x: mouseEvent.offsetX + double2 * sourceRect.left - (targetRect.left + canvasRect.left),
+                y: mouseEvent.offsetY + double2 * sourceRect.top - (targetRect.top + canvasRect.top)
+              };
+            } else {
+              pos = {
+                x: mouseEvent.offsetX ?? mouseEvent.clientX,
+                y: mouseEvent.offsetY ?? mouseEvent.clientY
+              };
+            }
+          } else if (mouseEvent.target === canvasEl) {
+            pos = {
+              x: mouseEvent.offsetX ?? mouseEvent.clientX,
+              y: mouseEvent.offsetY ?? mouseEvent.clientY
+            };
+          }
+        } else {
+          this._canPush = e.type !== "touchmove";
+          if (canvasEl) {
+            const touchEvent = e, lengthOffset = 1, lastTouch = touchEvent.touches[touchEvent.touches.length - lengthOffset], canvasRect = canvasEl.getBoundingClientRect(), defaultCoordinate = 0;
+            pos = {
+              x: lastTouch.clientX - (canvasRect.left ?? defaultCoordinate),
+              y: lastTouch.clientY - (canvasRect.top ?? defaultCoordinate)
+            };
+          }
+        }
+        const pxRatio = container2.retina.pixelRatio;
+        if (pos) {
+          pos.x *= pxRatio;
+          pos.y *= pxRatio;
+        }
+        interactivity.mouse.position = pos;
+        interactivity.status = mouseMoveEvent;
+      };
+      this._touchEnd = (e) => {
+        const evt = e, touches = Array.from(evt.changedTouches);
+        for (const touch of touches) {
+          this._touches.delete(touch.identifier);
+        }
+        this._mouseTouchFinish();
+      };
+      this._touchEndClick = (e) => {
+        const evt = e, touches = Array.from(evt.changedTouches);
+        for (const touch of touches) {
+          this._touches.delete(touch.identifier);
+        }
+        this._mouseTouchClick(e);
+      };
+      this._touchStart = (e) => {
+        const evt = e, touches = Array.from(evt.changedTouches);
+        for (const touch of touches) {
+          this._touches.set(touch.identifier, performance.now());
+        }
+        this._mouseTouchMove(e);
+      };
+      this._canPush = true;
+      this._touches = /* @__PURE__ */ new Map();
+      this._handlers = {
+        mouseDown: () => this._mouseDown(),
+        mouseLeave: () => this._mouseTouchFinish(),
+        mouseMove: (e) => this._mouseTouchMove(e),
+        mouseUp: (e) => this._mouseTouchClick(e),
+        touchStart: (e) => this._touchStart(e),
+        touchMove: (e) => this._mouseTouchMove(e),
+        touchEnd: (e) => this._touchEnd(e),
+        touchCancel: (e) => this._touchEnd(e),
+        touchEndClick: (e) => this._touchEndClick(e),
+        visibilityChange: () => this._handleVisibilityChange(),
+        themeChange: (e) => this._handleThemeChange(e),
+        oldThemeChange: (e) => this._handleThemeChange(e),
+        resize: () => {
+          this._handleWindowResize();
+        }
+      };
+    }
+    addListeners() {
+      this._manageListeners(true);
+    }
+    removeListeners() {
+      this._manageListeners(false);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/EventType.js
+  var EventType;
+  (function(EventType2) {
+    EventType2["configAdded"] = "configAdded";
+    EventType2["containerInit"] = "containerInit";
+    EventType2["particlesSetup"] = "particlesSetup";
+    EventType2["containerStarted"] = "containerStarted";
+    EventType2["containerStopped"] = "containerStopped";
+    EventType2["containerDestroyed"] = "containerDestroyed";
+    EventType2["containerPaused"] = "containerPaused";
+    EventType2["containerPlay"] = "containerPlay";
+    EventType2["containerBuilt"] = "containerBuilt";
+    EventType2["particleAdded"] = "particleAdded";
+    EventType2["particleDestroyed"] = "particleDestroyed";
+    EventType2["particleRemoved"] = "particleRemoved";
+  })(EventType || (EventType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/OptionsColor.js
+  var OptionsColor = class _OptionsColor {
+    constructor() {
+      this.value = "";
+    }
+    static create(source, data) {
+      const color = new _OptionsColor();
+      color.load(source);
+      if (data !== void 0) {
+        if (isString(data) || isArray(data)) {
+          color.load({ value: data });
+        } else {
+          color.load(data);
+        }
+      }
+      return color;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (!isNull(data.value)) {
+        this.value = data.value;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Background/Background.js
+  var Background = class {
+    constructor() {
+      this.color = new OptionsColor();
+      this.color.value = "";
+      this.image = "";
+      this.position = "";
+      this.repeat = "";
+      this.size = "";
+      this.opacity = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.image !== void 0) {
+        this.image = data.image;
+      }
+      if (data.position !== void 0) {
+        this.position = data.position;
+      }
+      if (data.repeat !== void 0) {
+        this.repeat = data.repeat;
+      }
+      if (data.size !== void 0) {
+        this.size = data.size;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/BackgroundMask/BackgroundMaskCover.js
+  var BackgroundMaskCover = class {
+    constructor() {
+      this.opacity = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.image !== void 0) {
+        this.image = data.image;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/BackgroundMask/BackgroundMask.js
+  var BackgroundMask = class {
+    constructor() {
+      this.composite = "destination-out";
+      this.cover = new BackgroundMaskCover();
+      this.enable = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.composite !== void 0) {
+        this.composite = data.composite;
+      }
+      if (data.cover !== void 0) {
+        const cover = data.cover, color = isString(data.cover) ? { color: data.cover } : data.cover;
+        this.cover.load(cover.color !== void 0 || cover.image !== void 0 ? cover : { color });
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/FullScreen/FullScreen.js
+  var FullScreen = class {
+    constructor() {
+      this.enable = true;
+      this.zIndex = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.zIndex !== void 0) {
+        this.zIndex = data.zIndex;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Events/ClickEvent.js
+  var ClickEvent = class {
+    constructor() {
+      this.enable = false;
+      this.mode = [];
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/DivType.js
+  var DivType;
+  (function(DivType2) {
+    DivType2["circle"] = "circle";
+    DivType2["rectangle"] = "rectangle";
+  })(DivType || (DivType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Events/DivEvent.js
+  var DivEvent = class {
+    constructor() {
+      this.selectors = [];
+      this.enable = false;
+      this.mode = [];
+      this.type = DivType.circle;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.selectors !== void 0) {
+        this.selectors = data.selectors;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      if (data.type !== void 0) {
+        this.type = data.type;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Events/Parallax.js
+  var Parallax = class {
+    constructor() {
+      this.enable = false;
+      this.force = 2;
+      this.smooth = 10;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.force !== void 0) {
+        this.force = data.force;
+      }
+      if (data.smooth !== void 0) {
+        this.smooth = data.smooth;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Events/HoverEvent.js
+  var HoverEvent = class {
+    constructor() {
+      this.enable = false;
+      this.mode = [];
+      this.parallax = new Parallax();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      this.parallax.load(data.parallax);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Events/ResizeEvent.js
+  var ResizeEvent = class {
+    constructor() {
+      this.delay = 0.5;
+      this.enable = true;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.delay !== void 0) {
+        this.delay = data.delay;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Events/Events.js
+  var Events = class {
+    constructor() {
+      this.onClick = new ClickEvent();
+      this.onDiv = new DivEvent();
+      this.onHover = new HoverEvent();
+      this.resize = new ResizeEvent();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      this.onClick.load(data.onClick);
+      const onDiv = data.onDiv;
+      if (onDiv !== void 0) {
+        this.onDiv = executeOnSingleOrMultiple(onDiv, (t) => {
+          const tmp = new DivEvent();
+          tmp.load(t);
+          return tmp;
+        });
+      }
+      this.onHover.load(data.onHover);
+      this.resize.load(data.resize);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Modes/Modes.js
+  var Modes = class {
+    constructor(engine, container) {
+      this._engine = engine;
+      this._container = container;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (!this._container) {
+        return;
+      }
+      const interactors = this._engine.interactors.get(this._container);
+      if (!interactors) {
+        return;
+      }
+      for (const interactor of interactors) {
+        if (!interactor.loadModeOptions) {
+          continue;
+        }
+        interactor.loadModeOptions(this, data);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Interactivity/Interactivity.js
+  var Interactivity = class {
+    constructor(engine, container) {
+      this.detectsOn = InteractivityDetect.window;
+      this.events = new Events();
+      this.modes = new Modes(engine, container);
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      const detectsOn = data.detectsOn;
+      if (detectsOn !== void 0) {
+        this.detectsOn = detectsOn;
+      }
+      this.events.load(data.events);
+      this.modes.load(data.modes);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/ManualParticle.js
+  var defaultPosition = 50;
+  var ManualParticle = class {
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.position) {
+        this.position = {
+          x: data.position.x ?? defaultPosition,
+          y: data.position.y ?? defaultPosition,
+          mode: data.position.mode ?? PixelMode.percent
+        };
+      }
+      if (data.options) {
+        this.options = deepExtend({}, data.options);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Modes/ResponsiveMode.js
+  var ResponsiveMode;
+  (function(ResponsiveMode2) {
+    ResponsiveMode2["screen"] = "screen";
+    ResponsiveMode2["canvas"] = "canvas";
+  })(ResponsiveMode || (ResponsiveMode = {}));
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Responsive.js
+  var Responsive = class {
+    constructor() {
+      this.maxWidth = Infinity;
+      this.options = {};
+      this.mode = ResponsiveMode.canvas;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (!isNull(data.maxWidth)) {
+        this.maxWidth = data.maxWidth;
+      }
+      if (!isNull(data.mode)) {
+        if (data.mode === ResponsiveMode.screen) {
+          this.mode = ResponsiveMode.screen;
+        } else {
+          this.mode = ResponsiveMode.canvas;
+        }
+      }
+      if (!isNull(data.options)) {
+        this.options = deepExtend({}, data.options);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Modes/ThemeMode.js
+  var ThemeMode;
+  (function(ThemeMode2) {
+    ThemeMode2["any"] = "any";
+    ThemeMode2["dark"] = "dark";
+    ThemeMode2["light"] = "light";
+  })(ThemeMode || (ThemeMode = {}));
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Theme/ThemeDefault.js
+  var ThemeDefault = class {
+    constructor() {
+      this.auto = false;
+      this.mode = ThemeMode.any;
+      this.value = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.auto !== void 0) {
+        this.auto = data.auto;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      if (data.value !== void 0) {
+        this.value = data.value;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Theme/Theme.js
+  var Theme = class {
+    constructor() {
+      this.name = "";
+      this.default = new ThemeDefault();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.name !== void 0) {
+        this.name = data.name;
+      }
+      this.default.load(data.default);
+      if (data.options !== void 0) {
+        this.options = deepExtend({}, data.options);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/AnimationOptions.js
+  var AnimationOptions = class {
+    constructor() {
+      this.count = 0;
+      this.enable = false;
+      this.speed = 1;
+      this.decay = 0;
+      this.delay = 0;
+      this.sync = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.count !== void 0) {
+        this.count = setRangeValue(data.count);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.speed !== void 0) {
+        this.speed = setRangeValue(data.speed);
+      }
+      if (data.decay !== void 0) {
+        this.decay = setRangeValue(data.decay);
+      }
+      if (data.delay !== void 0) {
+        this.delay = setRangeValue(data.delay);
+      }
+      if (data.sync !== void 0) {
+        this.sync = data.sync;
+      }
+    }
+  };
+  var RangedAnimationOptions = class extends AnimationOptions {
+    constructor() {
+      super();
+      this.mode = AnimationMode.auto;
+      this.startValue = StartValueType.random;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      if (data.startValue !== void 0) {
+        this.startValue = data.startValue;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/ColorAnimation.js
+  var ColorAnimation = class extends AnimationOptions {
+    constructor() {
+      super();
+      this.offset = 0;
+      this.sync = true;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      if (data.offset !== void 0) {
+        this.offset = setRangeValue(data.offset);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/HslAnimation.js
+  var HslAnimation = class {
+    constructor() {
+      this.h = new ColorAnimation();
+      this.s = new ColorAnimation();
+      this.l = new ColorAnimation();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      this.h.load(data.h);
+      this.s.load(data.s);
+      this.l.load(data.l);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/AnimatableColor.js
+  var AnimatableColor = class _AnimatableColor extends OptionsColor {
+    constructor() {
+      super();
+      this.animation = new HslAnimation();
+    }
+    static create(source, data) {
+      const color = new _AnimatableColor();
+      color.load(source);
+      if (data !== void 0) {
+        if (isString(data) || isArray(data)) {
+          color.load({ value: data });
+        } else {
+          color.load(data);
+        }
+      }
+      return color;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      const colorAnimation = data.animation;
+      if (colorAnimation !== void 0) {
+        if (colorAnimation.enable !== void 0) {
+          this.animation.h.load(colorAnimation);
+        } else {
+          this.animation.load(data.animation);
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Modes/CollisionMode.js
+  var CollisionMode;
+  (function(CollisionMode2) {
+    CollisionMode2["absorb"] = "absorb";
+    CollisionMode2["bounce"] = "bounce";
+    CollisionMode2["destroy"] = "destroy";
+  })(CollisionMode || (CollisionMode = {}));
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Collisions/CollisionsAbsorb.js
+  var CollisionsAbsorb = class {
+    constructor() {
+      this.speed = 2;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.speed !== void 0) {
+        this.speed = data.speed;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Collisions/CollisionsOverlap.js
+  var CollisionsOverlap = class {
+    constructor() {
+      this.enable = true;
+      this.retries = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.retries !== void 0) {
+        this.retries = data.retries;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/ValueWithRandom.js
+  var ValueWithRandom = class {
+    constructor() {
+      this.value = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (!isNull(data.value)) {
+        this.value = setRangeValue(data.value);
+      }
+    }
+  };
+  var AnimationValueWithRandom = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.animation = new AnimationOptions();
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      const animation = data.animation;
+      if (animation !== void 0) {
+        this.animation.load(animation);
+      }
+    }
+  };
+  var RangedAnimationValueWithRandom = class extends AnimationValueWithRandom {
+    constructor() {
+      super();
+      this.animation = new RangedAnimationOptions();
+    }
+    load(data) {
+      super.load(data);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Bounce/ParticlesBounceFactor.js
+  var ParticlesBounceFactor = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.value = 1;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Bounce/ParticlesBounce.js
+  var ParticlesBounce = class {
+    constructor() {
+      this.horizontal = new ParticlesBounceFactor();
+      this.vertical = new ParticlesBounceFactor();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      this.horizontal.load(data.horizontal);
+      this.vertical.load(data.vertical);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Collisions/Collisions.js
+  var Collisions = class {
+    constructor() {
+      this.absorb = new CollisionsAbsorb();
+      this.bounce = new ParticlesBounce();
+      this.enable = false;
+      this.maxSpeed = 50;
+      this.mode = CollisionMode.bounce;
+      this.overlap = new CollisionsOverlap();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      this.absorb.load(data.absorb);
+      this.bounce.load(data.bounce);
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.maxSpeed !== void 0) {
+        this.maxSpeed = setRangeValue(data.maxSpeed);
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      this.overlap.load(data.overlap);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Effect/Effect.js
+  var Effect = class {
+    constructor() {
+      this.close = true;
+      this.fill = true;
+      this.options = {};
+      this.type = [];
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      const options = data.options;
+      if (options !== void 0) {
+        for (const effect in options) {
+          const item = options[effect];
+          if (item) {
+            this.options[effect] = deepExtend(this.options[effect] ?? {}, item);
+          }
+        }
+      }
+      if (data.close !== void 0) {
+        this.close = data.close;
+      }
+      if (data.fill !== void 0) {
+        this.fill = data.fill;
+      }
+      if (data.type !== void 0) {
+        this.type = data.type;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/MoveAngle.js
+  var MoveAngle = class {
+    constructor() {
+      this.offset = 0;
+      this.value = 90;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.offset !== void 0) {
+        this.offset = setRangeValue(data.offset);
+      }
+      if (data.value !== void 0) {
+        this.value = setRangeValue(data.value);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/MoveAttract.js
+  var MoveAttract = class {
+    constructor() {
+      this.distance = 200;
+      this.enable = false;
+      this.rotate = {
+        x: 3e3,
+        y: 3e3
+      };
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = setRangeValue(data.distance);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.rotate) {
+        const rotateX = data.rotate.x;
+        if (rotateX !== void 0) {
+          this.rotate.x = rotateX;
+        }
+        const rotateY = data.rotate.y;
+        if (rotateY !== void 0) {
+          this.rotate.y = rotateY;
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/MoveCenter.js
+  var MoveCenter = class {
+    constructor() {
+      this.x = 50;
+      this.y = 50;
+      this.mode = PixelMode.percent;
+      this.radius = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.x !== void 0) {
+        this.x = data.x;
+      }
+      if (data.y !== void 0) {
+        this.y = data.y;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      if (data.radius !== void 0) {
+        this.radius = data.radius;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/MoveGravity.js
+  var MoveGravity = class {
+    constructor() {
+      this.acceleration = 9.81;
+      this.enable = false;
+      this.inverse = false;
+      this.maxSpeed = 50;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.acceleration !== void 0) {
+        this.acceleration = setRangeValue(data.acceleration);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.inverse !== void 0) {
+        this.inverse = data.inverse;
+      }
+      if (data.maxSpeed !== void 0) {
+        this.maxSpeed = setRangeValue(data.maxSpeed);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/Path/MovePath.js
+  var MovePath = class {
+    constructor() {
+      this.clamp = true;
+      this.delay = new ValueWithRandom();
+      this.enable = false;
+      this.options = {};
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.clamp !== void 0) {
+        this.clamp = data.clamp;
+      }
+      this.delay.load(data.delay);
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      this.generator = data.generator;
+      if (data.options) {
+        this.options = deepExtend(this.options, data.options);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/MoveTrailFill.js
+  var MoveTrailFill = class {
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.image !== void 0) {
+        this.image = data.image;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/MoveTrail.js
+  var MoveTrail = class {
+    constructor() {
+      this.enable = false;
+      this.length = 10;
+      this.fill = new MoveTrailFill();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.fill !== void 0) {
+        this.fill.load(data.fill);
+      }
+      if (data.length !== void 0) {
+        this.length = data.length;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Modes/OutMode.js
+  var OutMode;
+  (function(OutMode2) {
+    OutMode2["bounce"] = "bounce";
+    OutMode2["none"] = "none";
+    OutMode2["out"] = "out";
+    OutMode2["destroy"] = "destroy";
+    OutMode2["split"] = "split";
+  })(OutMode || (OutMode = {}));
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/OutModes.js
+  var OutModes = class {
+    constructor() {
+      this.default = OutMode.out;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.default !== void 0) {
+        this.default = data.default;
+      }
+      this.bottom = data.bottom ?? data.default;
+      this.left = data.left ?? data.default;
+      this.right = data.right ?? data.default;
+      this.top = data.top ?? data.default;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/Spin.js
+  var Spin = class {
+    constructor() {
+      this.acceleration = 0;
+      this.enable = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.acceleration !== void 0) {
+        this.acceleration = setRangeValue(data.acceleration);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.position) {
+        this.position = deepExtend({}, data.position);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Move/Move.js
+  var Move = class {
+    constructor() {
+      this.angle = new MoveAngle();
+      this.attract = new MoveAttract();
+      this.center = new MoveCenter();
+      this.decay = 0;
+      this.distance = {};
+      this.direction = MoveDirection.none;
+      this.drift = 0;
+      this.enable = false;
+      this.gravity = new MoveGravity();
+      this.path = new MovePath();
+      this.outModes = new OutModes();
+      this.random = false;
+      this.size = false;
+      this.speed = 2;
+      this.spin = new Spin();
+      this.straight = false;
+      this.trail = new MoveTrail();
+      this.vibrate = false;
+      this.warp = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      this.angle.load(isNumber(data.angle) ? { value: data.angle } : data.angle);
+      this.attract.load(data.attract);
+      this.center.load(data.center);
+      if (data.decay !== void 0) {
+        this.decay = setRangeValue(data.decay);
+      }
+      if (data.direction !== void 0) {
+        this.direction = data.direction;
+      }
+      if (data.distance !== void 0) {
+        this.distance = isNumber(data.distance) ? {
+          horizontal: data.distance,
+          vertical: data.distance
+        } : { ...data.distance };
+      }
+      if (data.drift !== void 0) {
+        this.drift = setRangeValue(data.drift);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      this.gravity.load(data.gravity);
+      const outModes = data.outModes;
+      if (outModes !== void 0) {
+        if (isObject(outModes)) {
+          this.outModes.load(outModes);
+        } else {
+          this.outModes.load({
+            default: outModes
+          });
+        }
+      }
+      this.path.load(data.path);
+      if (data.random !== void 0) {
+        this.random = data.random;
+      }
+      if (data.size !== void 0) {
+        this.size = data.size;
+      }
+      if (data.speed !== void 0) {
+        this.speed = setRangeValue(data.speed);
+      }
+      this.spin.load(data.spin);
+      if (data.straight !== void 0) {
+        this.straight = data.straight;
+      }
+      this.trail.load(data.trail);
+      if (data.vibrate !== void 0) {
+        this.vibrate = data.vibrate;
+      }
+      if (data.warp !== void 0) {
+        this.warp = data.warp;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Opacity/OpacityAnimation.js
+  var OpacityAnimation = class extends RangedAnimationOptions {
+    constructor() {
+      super();
+      this.destroy = DestroyType.none;
+      this.speed = 2;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      if (data.destroy !== void 0) {
+        this.destroy = data.destroy;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Opacity/Opacity.js
+  var Opacity = class extends RangedAnimationValueWithRandom {
+    constructor() {
+      super();
+      this.animation = new OpacityAnimation();
+      this.value = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      super.load(data);
+      const animation = data.animation;
+      if (animation !== void 0) {
+        this.animation.load(animation);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Number/ParticlesDensity.js
+  var ParticlesDensity = class {
+    constructor() {
+      this.enable = false;
+      this.width = 1920;
+      this.height = 1080;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      const width = data.width;
+      if (width !== void 0) {
+        this.width = width;
+      }
+      const height = data.height;
+      if (height !== void 0) {
+        this.height = height;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Modes/LimitMode.js
+  var LimitMode;
+  (function(LimitMode2) {
+    LimitMode2["delete"] = "delete";
+    LimitMode2["wait"] = "wait";
+  })(LimitMode || (LimitMode = {}));
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Number/ParticlesNumberLimit.js
+  var ParticlesNumberLimit = class {
+    constructor() {
+      this.mode = LimitMode.delete;
+      this.value = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      if (data.value !== void 0) {
+        this.value = data.value;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Number/ParticlesNumber.js
+  var ParticlesNumber = class {
+    constructor() {
+      this.density = new ParticlesDensity();
+      this.limit = new ParticlesNumberLimit();
+      this.value = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      this.density.load(data.density);
+      this.limit.load(data.limit);
+      if (data.value !== void 0) {
+        this.value = data.value;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Shadow.js
+  var Shadow = class {
+    constructor() {
+      this.blur = 0;
+      this.color = new OptionsColor();
+      this.enable = false;
+      this.offset = {
+        x: 0,
+        y: 0
+      };
+      this.color.value = "#000";
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.blur !== void 0) {
+        this.blur = data.blur;
+      }
+      this.color = OptionsColor.create(this.color, data.color);
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.offset === void 0) {
+        return;
+      }
+      if (data.offset.x !== void 0) {
+        this.offset.x = data.offset.x;
+      }
+      if (data.offset.y !== void 0) {
+        this.offset.y = data.offset.y;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Shape/Shape.js
+  var Shape = class {
+    constructor() {
+      this.close = true;
+      this.fill = true;
+      this.options = {};
+      this.type = "circle";
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      const options = data.options;
+      if (options !== void 0) {
+        for (const shape in options) {
+          const item = options[shape];
+          if (item) {
+            this.options[shape] = deepExtend(this.options[shape] ?? {}, item);
+          }
+        }
+      }
+      if (data.close !== void 0) {
+        this.close = data.close;
+      }
+      if (data.fill !== void 0) {
+        this.fill = data.fill;
+      }
+      if (data.type !== void 0) {
+        this.type = data.type;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Size/SizeAnimation.js
+  var SizeAnimation = class extends RangedAnimationOptions {
+    constructor() {
+      super();
+      this.destroy = DestroyType.none;
+      this.speed = 5;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      if (data.destroy !== void 0) {
+        this.destroy = data.destroy;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Size/Size.js
+  var Size = class extends RangedAnimationValueWithRandom {
+    constructor() {
+      super();
+      this.animation = new SizeAnimation();
+      this.value = 3;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      const animation = data.animation;
+      if (animation !== void 0) {
+        this.animation.load(animation);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/Stroke.js
+  var Stroke = class {
+    constructor() {
+      this.width = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = AnimatableColor.create(this.color, data.color);
+      }
+      if (data.width !== void 0) {
+        this.width = setRangeValue(data.width);
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = setRangeValue(data.opacity);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/ZIndex/ZIndex.js
+  var ZIndex = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.opacityRate = 1;
+      this.sizeRate = 1;
+      this.velocityRate = 1;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      if (data.opacityRate !== void 0) {
+        this.opacityRate = data.opacityRate;
+      }
+      if (data.sizeRate !== void 0) {
+        this.sizeRate = data.sizeRate;
+      }
+      if (data.velocityRate !== void 0) {
+        this.velocityRate = data.velocityRate;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Particles/ParticlesOptions.js
+  var ParticlesOptions = class {
+    constructor(engine, container) {
+      this._engine = engine;
+      this._container = container;
+      this.bounce = new ParticlesBounce();
+      this.collisions = new Collisions();
+      this.color = new AnimatableColor();
+      this.color.value = "#fff";
+      this.effect = new Effect();
+      this.groups = {};
+      this.move = new Move();
+      this.number = new ParticlesNumber();
+      this.opacity = new Opacity();
+      this.reduceDuplicates = false;
+      this.shadow = new Shadow();
+      this.shape = new Shape();
+      this.size = new Size();
+      this.stroke = new Stroke();
+      this.zIndex = new ZIndex();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.groups !== void 0) {
+        for (const group of Object.keys(data.groups)) {
+          if (!Object.hasOwn(data.groups, group)) {
+            continue;
+          }
+          const item = data.groups[group];
+          if (item !== void 0) {
+            this.groups[group] = deepExtend(this.groups[group] ?? {}, item);
+          }
+        }
+      }
+      if (data.reduceDuplicates !== void 0) {
+        this.reduceDuplicates = data.reduceDuplicates;
+      }
+      this.bounce.load(data.bounce);
+      this.color.load(AnimatableColor.create(this.color, data.color));
+      this.effect.load(data.effect);
+      this.move.load(data.move);
+      this.number.load(data.number);
+      this.opacity.load(data.opacity);
+      this.shape.load(data.shape);
+      this.size.load(data.size);
+      this.shadow.load(data.shadow);
+      this.zIndex.load(data.zIndex);
+      this.collisions.load(data.collisions);
+      if (data.interactivity !== void 0) {
+        this.interactivity = deepExtend({}, data.interactivity);
+      }
+      const strokeToLoad = data.stroke;
+      if (strokeToLoad) {
+        this.stroke = executeOnSingleOrMultiple(strokeToLoad, (t) => {
+          const tmp = new Stroke();
+          tmp.load(t);
+          return tmp;
+        });
+      }
+      if (this._container) {
+        const updaters = this._engine.updaters.get(this._container);
+        if (updaters) {
+          for (const updater of updaters) {
+            if (updater.loadOptions) {
+              updater.loadOptions(this, data);
+            }
+          }
+        }
+        const interactors = this._engine.interactors.get(this._container);
+        if (interactors) {
+          for (const interactor of interactors) {
+            if (interactor.loadParticlesOptions) {
+              interactor.loadParticlesOptions(this, data);
+            }
+          }
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Utils/OptionsUtils.js
+  function loadOptions(options, ...sourceOptionsArr) {
+    for (const sourceOptions of sourceOptionsArr) {
+      options.load(sourceOptions);
+    }
+  }
+  function loadParticlesOptions(engine, container, ...sourceOptionsArr) {
+    const options = new ParticlesOptions(engine, container);
+    loadOptions(options, ...sourceOptionsArr);
+    return options;
+  }
+
+  // node_modules/@tsparticles/engine/browser/Options/Classes/Options.js
+  var Options = class {
+    constructor(engine, container) {
+      this._findDefaultTheme = (mode) => {
+        return this.themes.find((theme) => theme.default.value && theme.default.mode === mode) ?? this.themes.find((theme) => theme.default.value && theme.default.mode === ThemeMode.any);
+      };
+      this._importPreset = (preset) => {
+        this.load(this._engine.getPreset(preset));
+      };
+      this._engine = engine;
+      this._container = container;
+      this.autoPlay = true;
+      this.background = new Background();
+      this.backgroundMask = new BackgroundMask();
+      this.clear = true;
+      this.defaultThemes = {};
+      this.delay = 0;
+      this.fullScreen = new FullScreen();
+      this.detectRetina = true;
+      this.duration = 0;
+      this.fpsLimit = 120;
+      this.interactivity = new Interactivity(engine, container);
+      this.manualParticles = [];
+      this.particles = loadParticlesOptions(this._engine, this._container);
+      this.pauseOnBlur = true;
+      this.pauseOnOutsideViewport = true;
+      this.responsive = [];
+      this.smooth = false;
+      this.style = {};
+      this.themes = [];
+      this.zLayers = 100;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.preset !== void 0) {
+        executeOnSingleOrMultiple(data.preset, (preset) => this._importPreset(preset));
+      }
+      if (data.autoPlay !== void 0) {
+        this.autoPlay = data.autoPlay;
+      }
+      if (data.clear !== void 0) {
+        this.clear = data.clear;
+      }
+      if (data.key !== void 0) {
+        this.key = data.key;
+      }
+      if (data.name !== void 0) {
+        this.name = data.name;
+      }
+      if (data.delay !== void 0) {
+        this.delay = setRangeValue(data.delay);
+      }
+      const detectRetina = data.detectRetina;
+      if (detectRetina !== void 0) {
+        this.detectRetina = detectRetina;
+      }
+      if (data.duration !== void 0) {
+        this.duration = setRangeValue(data.duration);
+      }
+      const fpsLimit = data.fpsLimit;
+      if (fpsLimit !== void 0) {
+        this.fpsLimit = fpsLimit;
+      }
+      if (data.pauseOnBlur !== void 0) {
+        this.pauseOnBlur = data.pauseOnBlur;
+      }
+      if (data.pauseOnOutsideViewport !== void 0) {
+        this.pauseOnOutsideViewport = data.pauseOnOutsideViewport;
+      }
+      if (data.zLayers !== void 0) {
+        this.zLayers = data.zLayers;
+      }
+      this.background.load(data.background);
+      const fullScreen = data.fullScreen;
+      if (isBoolean(fullScreen)) {
+        this.fullScreen.enable = fullScreen;
+      } else {
+        this.fullScreen.load(fullScreen);
+      }
+      this.backgroundMask.load(data.backgroundMask);
+      this.interactivity.load(data.interactivity);
+      if (data.manualParticles) {
+        this.manualParticles = data.manualParticles.map((t) => {
+          const tmp = new ManualParticle();
+          tmp.load(t);
+          return tmp;
+        });
+      }
+      this.particles.load(data.particles);
+      this.style = deepExtend(this.style, data.style);
+      this._engine.loadOptions(this, data);
+      if (data.smooth !== void 0) {
+        this.smooth = data.smooth;
+      }
+      const interactors = this._engine.interactors.get(this._container);
+      if (interactors) {
+        for (const interactor of interactors) {
+          if (interactor.loadOptions) {
+            interactor.loadOptions(this, data);
+          }
+        }
+      }
+      if (data.responsive !== void 0) {
+        for (const responsive of data.responsive) {
+          const optResponsive = new Responsive();
+          optResponsive.load(responsive);
+          this.responsive.push(optResponsive);
+        }
+      }
+      this.responsive.sort((a, b) => a.maxWidth - b.maxWidth);
+      if (data.themes !== void 0) {
+        for (const theme of data.themes) {
+          const existingTheme = this.themes.find((t) => t.name === theme.name);
+          if (!existingTheme) {
+            const optTheme = new Theme();
+            optTheme.load(theme);
+            this.themes.push(optTheme);
+          } else {
+            existingTheme.load(theme);
+          }
+        }
+      }
+      this.defaultThemes.dark = this._findDefaultTheme(ThemeMode.dark)?.name;
+      this.defaultThemes.light = this._findDefaultTheme(ThemeMode.light)?.name;
+    }
+    setResponsive(width, pxRatio, defaultOptions) {
+      this.load(defaultOptions);
+      const responsiveOptions = this.responsive.find((t) => t.mode === ResponsiveMode.screen && screen ? t.maxWidth > screen.availWidth : t.maxWidth * pxRatio > width);
+      this.load(responsiveOptions?.options);
+      return responsiveOptions?.maxWidth;
+    }
+    setTheme(name2) {
+      if (name2) {
+        const chosenTheme = this.themes.find((theme) => theme.name === name2);
+        if (chosenTheme) {
+          this.load(chosenTheme.options);
+        }
+      } else {
+        const mediaMatch = safeMatchMedia("(prefers-color-scheme: dark)"), clientDarkMode = mediaMatch?.matches, defaultTheme = this._findDefaultTheme(clientDarkMode ? ThemeMode.dark : ThemeMode.light);
+        if (defaultTheme) {
+          this.load(defaultTheme.options);
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/InteractorType.js
+  var InteractorType;
+  (function(InteractorType2) {
+    InteractorType2["external"] = "external";
+    InteractorType2["particles"] = "particles";
+  })(InteractorType || (InteractorType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/InteractionManager.js
+  var InteractionManager = class {
+    constructor(engine, container) {
+      this.container = container;
+      this._engine = engine;
+      this._interactors = [];
+      this._externalInteractors = [];
+      this._particleInteractors = [];
+    }
+    externalInteract(delta) {
+      for (const interactor of this._externalInteractors) {
+        if (interactor.isEnabled()) {
+          interactor.interact(delta);
+        }
+      }
+    }
+    handleClickMode(mode) {
+      for (const interactor of this._externalInteractors) {
+        interactor.handleClickMode?.(mode);
+      }
+    }
+    async init() {
+      this._interactors = await this._engine.getInteractors(this.container, true);
+      this._externalInteractors = [];
+      this._particleInteractors = [];
+      for (const interactor of this._interactors) {
+        switch (interactor.type) {
+          case InteractorType.external:
+            this._externalInteractors.push(interactor);
+            break;
+          case InteractorType.particles:
+            this._particleInteractors.push(interactor);
+            break;
+        }
+        interactor.init();
+      }
+    }
+    particlesInteract(particle, delta) {
+      for (const interactor of this._externalInteractors) {
+        interactor.clear(particle, delta);
+      }
+      for (const interactor of this._particleInteractors) {
+        if (interactor.isEnabled(particle)) {
+          interactor.interact(particle, delta);
+        }
+      }
+    }
+    reset(particle) {
+      for (const interactor of this._externalInteractors) {
+        if (interactor.isEnabled()) {
+          interactor.reset(particle);
+        }
+      }
+      for (const interactor of this._particleInteractors) {
+        if (interactor.isEnabled(particle)) {
+          interactor.reset(particle);
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/ParticleOutType.js
+  var ParticleOutType;
+  (function(ParticleOutType2) {
+    ParticleOutType2["normal"] = "normal";
+    ParticleOutType2["inside"] = "inside";
+    ParticleOutType2["outside"] = "outside";
+  })(ParticleOutType || (ParticleOutType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Core/Particle.js
+  var defaultRetryCount = 0;
+  var double3 = 2;
+  var half = 0.5;
+  var squareExp2 = 2;
+  var randomString = "random";
+  function loadEffectData(effect, effectOptions, id, reduceDuplicates) {
+    const effectData = effectOptions.options[effect];
+    if (!effectData) {
+      return;
+    }
+    return deepExtend({
+      close: effectOptions.close,
+      fill: effectOptions.fill
+    }, itemFromSingleOrMultiple(effectData, id, reduceDuplicates));
+  }
+  function loadShapeData(shape, shapeOptions, id, reduceDuplicates) {
+    const shapeData = shapeOptions.options[shape];
+    if (!shapeData) {
+      return;
+    }
+    return deepExtend({
+      close: shapeOptions.close,
+      fill: shapeOptions.fill
+    }, itemFromSingleOrMultiple(shapeData, id, reduceDuplicates));
+  }
+  function fixOutMode(data) {
+    if (!isInArray(data.outMode, data.checkModes)) {
+      return;
+    }
+    const diameter = data.radius * double3;
+    if (data.coord > data.maxCoord - diameter) {
+      data.setCb(-data.radius);
+    } else if (data.coord < diameter) {
+      data.setCb(data.radius);
+    }
+  }
+  var Particle = class {
+    constructor(engine, container) {
+      this.container = container;
+      this._calcPosition = (container2, position, zIndex, tryCount = defaultRetryCount) => {
+        for (const plugin of container2.plugins.values()) {
+          const pluginPos = plugin.particlePosition !== void 0 ? plugin.particlePosition(position, this) : void 0;
+          if (pluginPos) {
+            return Vector3d.create(pluginPos.x, pluginPos.y, zIndex);
+          }
+        }
+        const canvasSize = container2.canvas.size, exactPosition = calcExactPositionOrRandomFromSize({
+          size: canvasSize,
+          position
+        }), pos = Vector3d.create(exactPosition.x, exactPosition.y, zIndex), radius = this.getRadius(), outModes = this.options.move.outModes, fixHorizontal = (outMode) => {
+          fixOutMode({
+            outMode,
+            checkModes: [OutMode.bounce],
+            coord: pos.x,
+            maxCoord: container2.canvas.size.width,
+            setCb: (value) => pos.x += value,
+            radius
+          });
+        }, fixVertical = (outMode) => {
+          fixOutMode({
+            outMode,
+            checkModes: [OutMode.bounce],
+            coord: pos.y,
+            maxCoord: container2.canvas.size.height,
+            setCb: (value) => pos.y += value,
+            radius
+          });
+        };
+        fixHorizontal(outModes.left ?? outModes.default);
+        fixHorizontal(outModes.right ?? outModes.default);
+        fixVertical(outModes.top ?? outModes.default);
+        fixVertical(outModes.bottom ?? outModes.default);
+        if (this._checkOverlap(pos, tryCount)) {
+          const increment2 = 1;
+          return this._calcPosition(container2, void 0, zIndex, tryCount + increment2);
+        }
+        return pos;
+      };
+      this._calculateVelocity = () => {
+        const baseVelocity = getParticleBaseVelocity(this.direction), res = baseVelocity.copy(), moveOptions = this.options.move;
+        if (moveOptions.direction === MoveDirection.inside || moveOptions.direction === MoveDirection.outside) {
+          return res;
+        }
+        const rad = degToRad(getRangeValue(moveOptions.angle.value)), radOffset = degToRad(getRangeValue(moveOptions.angle.offset)), range = {
+          left: radOffset - rad * half,
+          right: radOffset + rad * half
+        };
+        if (!moveOptions.straight) {
+          res.angle += randomInRange(setRangeValue(range.left, range.right));
+        }
+        if (moveOptions.random && typeof moveOptions.speed === "number") {
+          res.length *= getRandom();
+        }
+        return res;
+      };
+      this._checkOverlap = (pos, tryCount = defaultRetryCount) => {
+        const collisionsOptions = this.options.collisions, radius = this.getRadius();
+        if (!collisionsOptions.enable) {
+          return false;
+        }
+        const overlapOptions = collisionsOptions.overlap;
+        if (overlapOptions.enable) {
+          return false;
+        }
+        const retries = overlapOptions.retries, minRetries = 0;
+        if (retries >= minRetries && tryCount > retries) {
+          throw new Error(`${errorPrefix} particle is overlapping and can't be placed`);
+        }
+        return !!this.container.particles.find((particle) => getDistance(pos, particle.position) < radius + particle.getRadius());
+      };
+      this._getRollColor = (color) => {
+        if (!color || !this.roll || !this.backColor && !this.roll.alter) {
+          return color;
+        }
+        const rollFactor = 1, none = 0, backFactor = this.roll.horizontal && this.roll.vertical ? double3 * rollFactor : rollFactor, backSum = this.roll.horizontal ? Math.PI * half : none, rolled = Math.floor(((this.roll.angle ?? none) + backSum) / (Math.PI / backFactor)) % double3;
+        if (!rolled) {
+          return color;
+        }
+        if (this.backColor) {
+          return this.backColor;
+        }
+        if (this.roll.alter) {
+          return alterHsl(color, this.roll.alter.type, this.roll.alter.value);
+        }
+        return color;
+      };
+      this._initPosition = (position) => {
+        const container2 = this.container, zIndexValue = getRangeValue(this.options.zIndex.value), minZ = 0;
+        this.position = this._calcPosition(container2, position, clamp(zIndexValue, minZ, container2.zLayers));
+        this.initialPosition = this.position.copy();
+        const canvasSize = container2.canvas.size, defaultRadius = 0;
+        this.moveCenter = {
+          ...getPosition(this.options.move.center, canvasSize),
+          radius: this.options.move.center.radius ?? defaultRadius,
+          mode: this.options.move.center.mode ?? PixelMode.percent
+        };
+        this.direction = getParticleDirectionAngle(this.options.move.direction, this.position, this.moveCenter);
+        switch (this.options.move.direction) {
+          case MoveDirection.inside:
+            this.outType = ParticleOutType.inside;
+            break;
+          case MoveDirection.outside:
+            this.outType = ParticleOutType.outside;
+            break;
+        }
+        this.offset = Vector.origin;
+      };
+      this._engine = engine;
+    }
+    destroy(override) {
+      if (this.unbreakable || this.destroyed) {
+        return;
+      }
+      this.destroyed = true;
+      this.bubble.inRange = false;
+      this.slow.inRange = false;
+      const container = this.container, pathGenerator = this.pathGenerator, shapeDrawer = container.shapeDrawers.get(this.shape);
+      shapeDrawer?.particleDestroy?.(this);
+      for (const plugin of container.plugins.values()) {
+        plugin.particleDestroyed?.(this, override);
+      }
+      for (const updater of container.particles.updaters) {
+        updater.particleDestroyed?.(this, override);
+      }
+      pathGenerator?.reset(this);
+      this._engine.dispatchEvent(EventType.particleDestroyed, {
+        container: this.container,
+        data: {
+          particle: this
+        }
+      });
+    }
+    draw(delta) {
+      const container = this.container, canvas = container.canvas;
+      for (const plugin of container.plugins.values()) {
+        canvas.drawParticlePlugin(plugin, this, delta);
+      }
+      canvas.drawParticle(this, delta);
+    }
+    getFillColor() {
+      return this._getRollColor(this.bubble.color ?? getHslFromAnimation(this.color));
+    }
+    getMass() {
+      return this.getRadius() ** squareExp2 * Math.PI * half;
+    }
+    getPosition() {
+      return {
+        x: this.position.x + this.offset.x,
+        y: this.position.y + this.offset.y,
+        z: this.position.z
+      };
+    }
+    getRadius() {
+      return this.bubble.radius ?? this.size.value;
+    }
+    getStrokeColor() {
+      return this._getRollColor(this.bubble.color ?? getHslFromAnimation(this.strokeColor));
+    }
+    init(id, position, overrideOptions, group) {
+      const container = this.container, engine = this._engine;
+      this.id = id;
+      this.group = group;
+      this.effectClose = true;
+      this.effectFill = true;
+      this.shapeClose = true;
+      this.shapeFill = true;
+      this.pathRotation = false;
+      this.lastPathTime = 0;
+      this.destroyed = false;
+      this.unbreakable = false;
+      this.isRotating = false;
+      this.rotation = 0;
+      this.misplaced = false;
+      this.retina = {
+        maxDistance: {}
+      };
+      this.outType = ParticleOutType.normal;
+      this.ignoresResizeRatio = true;
+      const pxRatio = container.retina.pixelRatio, mainOptions = container.actualOptions, particlesOptions = loadParticlesOptions(this._engine, container, mainOptions.particles), { reduceDuplicates } = particlesOptions, effectType = particlesOptions.effect.type, shapeType = particlesOptions.shape.type;
+      this.effect = itemFromSingleOrMultiple(effectType, this.id, reduceDuplicates);
+      this.shape = itemFromSingleOrMultiple(shapeType, this.id, reduceDuplicates);
+      const effectOptions = particlesOptions.effect, shapeOptions = particlesOptions.shape;
+      if (overrideOptions) {
+        if (overrideOptions.effect?.type) {
+          const overrideEffectType = overrideOptions.effect.type, effect = itemFromSingleOrMultiple(overrideEffectType, this.id, reduceDuplicates);
+          if (effect) {
+            this.effect = effect;
+            effectOptions.load(overrideOptions.effect);
+          }
+        }
+        if (overrideOptions.shape?.type) {
+          const overrideShapeType = overrideOptions.shape.type, shape = itemFromSingleOrMultiple(overrideShapeType, this.id, reduceDuplicates);
+          if (shape) {
+            this.shape = shape;
+            shapeOptions.load(overrideOptions.shape);
+          }
+        }
+      }
+      if (this.effect === randomString) {
+        const availableEffects = [...this.container.effectDrawers.keys()];
+        this.effect = availableEffects[Math.floor(Math.random() * availableEffects.length)];
+      }
+      if (this.shape === randomString) {
+        const availableShapes = [...this.container.shapeDrawers.keys()];
+        this.shape = availableShapes[Math.floor(Math.random() * availableShapes.length)];
+      }
+      this.effectData = loadEffectData(this.effect, effectOptions, this.id, reduceDuplicates);
+      this.shapeData = loadShapeData(this.shape, shapeOptions, this.id, reduceDuplicates);
+      particlesOptions.load(overrideOptions);
+      const effectData = this.effectData;
+      if (effectData) {
+        particlesOptions.load(effectData.particles);
+      }
+      const shapeData = this.shapeData;
+      if (shapeData) {
+        particlesOptions.load(shapeData.particles);
+      }
+      const interactivity = new Interactivity(engine, container);
+      interactivity.load(container.actualOptions.interactivity);
+      interactivity.load(particlesOptions.interactivity);
+      this.interactivity = interactivity;
+      this.effectFill = effectData?.fill ?? particlesOptions.effect.fill;
+      this.effectClose = effectData?.close ?? particlesOptions.effect.close;
+      this.shapeFill = shapeData?.fill ?? particlesOptions.shape.fill;
+      this.shapeClose = shapeData?.close ?? particlesOptions.shape.close;
+      this.options = particlesOptions;
+      const pathOptions = this.options.move.path;
+      this.pathDelay = getRangeValue(pathOptions.delay.value) * millisecondsToSeconds;
+      if (pathOptions.generator) {
+        this.pathGenerator = this._engine.getPathGenerator(pathOptions.generator);
+        if (this.pathGenerator && container.addPath(pathOptions.generator, this.pathGenerator)) {
+          this.pathGenerator.init(container);
+        }
+      }
+      container.retina.initParticle(this);
+      this.size = initParticleNumericAnimationValue(this.options.size, pxRatio);
+      this.bubble = {
+        inRange: false
+      };
+      this.slow = {
+        inRange: false,
+        factor: 1
+      };
+      this._initPosition(position);
+      this.initialVelocity = this._calculateVelocity();
+      this.velocity = this.initialVelocity.copy();
+      const decayOffset = 1;
+      this.moveDecay = decayOffset - getRangeValue(this.options.move.decay);
+      const particles = container.particles;
+      particles.setLastZIndex(this.position.z);
+      this.zIndexFactor = this.position.z / container.zLayers;
+      this.sides = 24;
+      let effectDrawer = container.effectDrawers.get(this.effect);
+      if (!effectDrawer) {
+        effectDrawer = this._engine.getEffectDrawer(this.effect);
+        if (effectDrawer) {
+          container.effectDrawers.set(this.effect, effectDrawer);
+        }
+      }
+      if (effectDrawer?.loadEffect) {
+        effectDrawer.loadEffect(this);
+      }
+      let shapeDrawer = container.shapeDrawers.get(this.shape);
+      if (!shapeDrawer) {
+        shapeDrawer = this._engine.getShapeDrawer(this.shape);
+        if (shapeDrawer) {
+          container.shapeDrawers.set(this.shape, shapeDrawer);
+        }
+      }
+      if (shapeDrawer?.loadShape) {
+        shapeDrawer.loadShape(this);
+      }
+      const sideCountFunc = shapeDrawer?.getSidesCount;
+      if (sideCountFunc) {
+        this.sides = sideCountFunc(this);
+      }
+      this.spawning = false;
+      this.shadowColor = rangeColorToRgb(this._engine, this.options.shadow.color);
+      for (const updater of particles.updaters) {
+        updater.init(this);
+      }
+      for (const mover of particles.movers) {
+        mover.init?.(this);
+      }
+      effectDrawer?.particleInit?.(container, this);
+      shapeDrawer?.particleInit?.(container, this);
+      for (const plugin of container.plugins.values()) {
+        plugin.particleCreated?.(this);
+      }
+    }
+    isInsideCanvas() {
+      const radius = this.getRadius(), canvasSize = this.container.canvas.size, position = this.position;
+      return position.x >= -radius && position.y >= -radius && position.y <= canvasSize.height + radius && position.x <= canvasSize.width + radius;
+    }
+    isVisible() {
+      return !this.destroyed && !this.spawning && this.isInsideCanvas();
+    }
+    reset() {
+      for (const updater of this.container.particles.updaters) {
+        updater.reset?.(this);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/Point.js
+  var Point = class {
+    constructor(position, particle) {
+      this.position = position;
+      this.particle = particle;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Types/RangeType.js
+  var RangeType;
+  (function(RangeType2) {
+    RangeType2["circle"] = "circle";
+    RangeType2["rectangle"] = "rectangle";
+  })(RangeType || (RangeType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/Ranges.js
+  var squareExp3 = 2;
+  var BaseRange = class {
+    constructor(x, y, type) {
+      this.position = {
+        x,
+        y
+      };
+      this.type = type;
+    }
+  };
+  var Circle = class _Circle extends BaseRange {
+    constructor(x, y, radius) {
+      super(x, y, RangeType.circle);
+      this.radius = radius;
+    }
+    contains(point) {
+      return getDistance(point, this.position) <= this.radius;
+    }
+    intersects(range) {
+      const pos1 = this.position, pos2 = range.position, distPos = { x: Math.abs(pos2.x - pos1.x), y: Math.abs(pos2.y - pos1.y) }, r = this.radius;
+      if (range instanceof _Circle || range.type === RangeType.circle) {
+        const circleRange = range, rSum = r + circleRange.radius, dist = Math.sqrt(distPos.x ** squareExp3 + distPos.y ** squareExp3);
+        return rSum > dist;
+      } else if (range instanceof Rectangle || range.type === RangeType.rectangle) {
+        const rectRange = range, { width, height } = rectRange.size, edges = Math.pow(distPos.x - width, squareExp3) + Math.pow(distPos.y - height, squareExp3);
+        return edges <= r ** squareExp3 || distPos.x <= r + width && distPos.y <= r + height || distPos.x <= width || distPos.y <= height;
+      }
+      return false;
+    }
+  };
+  var Rectangle = class _Rectangle extends BaseRange {
+    constructor(x, y, width, height) {
+      super(x, y, RangeType.rectangle);
+      this.size = {
+        height,
+        width
+      };
+    }
+    contains(point) {
+      const w = this.size.width, h = this.size.height, pos = this.position;
+      return point.x >= pos.x && point.x <= pos.x + w && point.y >= pos.y && point.y <= pos.y + h;
+    }
+    intersects(range) {
+      if (range instanceof Circle) {
+        return range.intersects(this);
+      }
+      const w = this.size.width, h = this.size.height, pos1 = this.position, pos2 = range.position, size2 = range instanceof _Rectangle ? range.size : { width: 0, height: 0 }, w2 = size2.width, h2 = size2.height;
+      return pos2.x < pos1.x + w && pos2.x + w2 > pos1.x && pos2.y < pos1.y + h && pos2.y + h2 > pos1.y;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/QuadTree.js
+  var half2 = 0.5;
+  var double4 = 2;
+  var subdivideCount = 4;
+  var QuadTree = class _QuadTree {
+    constructor(rectangle, capacity) {
+      this.rectangle = rectangle;
+      this.capacity = capacity;
+      this._subdivide = () => {
+        const { x, y } = this.rectangle.position, { width, height } = this.rectangle.size, { capacity: capacity2 } = this;
+        for (let i = 0; i < subdivideCount; i++) {
+          const fixedIndex = i % double4;
+          this._subs.push(new _QuadTree(new Rectangle(x + width * half2 * fixedIndex, y + height * half2 * (Math.round(i * half2) - fixedIndex), width * half2, height * half2), capacity2));
+        }
+        this._divided = true;
+      };
+      this._points = [];
+      this._divided = false;
+      this._subs = [];
+    }
+    insert(point) {
+      if (!this.rectangle.contains(point.position)) {
+        return false;
+      }
+      if (this._points.length < this.capacity) {
+        this._points.push(point);
+        return true;
+      }
+      if (!this._divided) {
+        this._subdivide();
+      }
+      return this._subs.some((sub) => sub.insert(point));
+    }
+    query(range, check) {
+      const res = [];
+      if (!range.intersects(this.rectangle)) {
+        return [];
+      }
+      for (const p of this._points) {
+        if (!range.contains(p.position) && getDistance(range.position, p.position) > p.particle.getRadius() && (!check || check(p.particle))) {
+          continue;
+        }
+        res.push(p.particle);
+      }
+      if (this._divided) {
+        for (const sub of this._subs) {
+          res.push(...sub.query(range, check));
+        }
+      }
+      return res;
+    }
+    queryCircle(position, radius, check) {
+      return this.query(new Circle(position.x, position.y, radius), check);
+    }
+    queryRectangle(position, size, check) {
+      return this.query(new Rectangle(position.x, position.y, size.width, size.height), check);
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Core/Particles.js
+  var qTreeCapacity = 4;
+  var squareExp4 = 2;
+  var defaultRemoveQuantity = 1;
+  var qTreeRectangle = (canvasSize) => {
+    const { height, width } = canvasSize, posOffset = -0.25, sizeFactor = 1.5;
+    return new Rectangle(posOffset * width, posOffset * height, sizeFactor * width, sizeFactor * height);
+  };
+  var Particles = class {
+    constructor(engine, container) {
+      this._addToPool = (...particles) => {
+        this._pool.push(...particles);
+      };
+      this._applyDensity = (options, manualCount, group) => {
+        const numberOptions = options.number;
+        if (!options.number.density?.enable) {
+          if (group === void 0) {
+            this._limit = numberOptions.limit.value;
+          } else if (numberOptions.limit) {
+            this._groupLimits.set(group, numberOptions.limit.value);
+          }
+          return;
+        }
+        const densityFactor = this._initDensityFactor(numberOptions.density), optParticlesNumber = numberOptions.value, minLimit = 0, optParticlesLimit = numberOptions.limit.value > minLimit ? numberOptions.limit.value : optParticlesNumber, particlesNumber = Math.min(optParticlesNumber, optParticlesLimit) * densityFactor + manualCount, particlesCount = Math.min(this.count, this.filter((t) => t.group === group).length);
+        if (group === void 0) {
+          this._limit = numberOptions.limit.value * densityFactor;
+        } else {
+          this._groupLimits.set(group, numberOptions.limit.value * densityFactor);
+        }
+        if (particlesCount < particlesNumber) {
+          this.push(Math.abs(particlesNumber - particlesCount), void 0, options, group);
+        } else if (particlesCount > particlesNumber) {
+          this.removeQuantity(particlesCount - particlesNumber, group);
+        }
+      };
+      this._initDensityFactor = (densityOptions) => {
+        const container2 = this._container, defaultFactor = 1;
+        if (!container2.canvas.element || !densityOptions.enable) {
+          return defaultFactor;
+        }
+        const canvas = container2.canvas.element, pxRatio = container2.retina.pixelRatio;
+        return canvas.width * canvas.height / (densityOptions.height * densityOptions.width * pxRatio ** squareExp4);
+      };
+      this._pushParticle = (position, overrideOptions, group, initializer) => {
+        try {
+          let particle = this._pool.pop();
+          if (!particle) {
+            particle = new Particle(this._engine, this._container);
+          }
+          particle.init(this._nextId, position, overrideOptions, group);
+          let canAdd = true;
+          if (initializer) {
+            canAdd = initializer(particle);
+          }
+          if (!canAdd) {
+            return;
+          }
+          this._array.push(particle);
+          this._zArray.push(particle);
+          this._nextId++;
+          this._engine.dispatchEvent(EventType.particleAdded, {
+            container: this._container,
+            data: {
+              particle
+            }
+          });
+          return particle;
+        } catch (e) {
+          getLogger().warning(`${errorPrefix} adding particle: ${e}`);
+        }
+      };
+      this._removeParticle = (index, group, override) => {
+        const particle = this._array[index];
+        if (!particle || particle.group !== group) {
+          return false;
+        }
+        const zIdx = this._zArray.indexOf(particle), deleteCount = 1;
+        this._array.splice(index, deleteCount);
+        this._zArray.splice(zIdx, deleteCount);
+        particle.destroy(override);
+        this._engine.dispatchEvent(EventType.particleRemoved, {
+          container: this._container,
+          data: {
+            particle
+          }
+        });
+        this._addToPool(particle);
+        return true;
+      };
+      this._engine = engine;
+      this._container = container;
+      this._nextId = 0;
+      this._array = [];
+      this._zArray = [];
+      this._pool = [];
+      this._limit = 0;
+      this._groupLimits = /* @__PURE__ */ new Map();
+      this._needsSort = false;
+      this._lastZIndex = 0;
+      this._interactionManager = new InteractionManager(engine, container);
+      this._pluginsInitialized = false;
+      const canvasSize = container.canvas.size;
+      this.quadTree = new QuadTree(qTreeRectangle(canvasSize), qTreeCapacity);
+      this.movers = [];
+      this.updaters = [];
+    }
+    get count() {
+      return this._array.length;
+    }
+    addManualParticles() {
+      const container = this._container, options = container.actualOptions;
+      options.manualParticles.forEach((p) => this.addParticle(p.position ? getPosition(p.position, container.canvas.size) : void 0, p.options));
+    }
+    addParticle(position, overrideOptions, group, initializer) {
+      const limitMode = this._container.actualOptions.particles.number.limit.mode, limit = group === void 0 ? this._limit : this._groupLimits.get(group) ?? this._limit, currentCount = this.count, minLimit = 0;
+      if (limit > minLimit) {
+        switch (limitMode) {
+          case LimitMode.delete: {
+            const countOffset = 1, minCount = 0, countToRemove = currentCount + countOffset - limit;
+            if (countToRemove > minCount) {
+              this.removeQuantity(countToRemove);
+            }
+            break;
+          }
+          case LimitMode.wait:
+            if (currentCount >= limit) {
+              return;
+            }
+            break;
+        }
+      }
+      return this._pushParticle(position, overrideOptions, group, initializer);
+    }
+    clear() {
+      this._array = [];
+      this._zArray = [];
+      this._pluginsInitialized = false;
+    }
+    destroy() {
+      this._array = [];
+      this._zArray = [];
+      this.movers = [];
+      this.updaters = [];
+    }
+    draw(delta) {
+      const container = this._container, canvas = container.canvas;
+      canvas.clear();
+      this.update(delta);
+      for (const plugin of container.plugins.values()) {
+        canvas.drawPlugin(plugin, delta);
+      }
+      for (const p of this._zArray) {
+        p.draw(delta);
+      }
+    }
+    filter(condition) {
+      return this._array.filter(condition);
+    }
+    find(condition) {
+      return this._array.find(condition);
+    }
+    get(index) {
+      return this._array[index];
+    }
+    handleClickMode(mode) {
+      this._interactionManager.handleClickMode(mode);
+    }
+    async init() {
+      const container = this._container, options = container.actualOptions;
+      this._lastZIndex = 0;
+      this._needsSort = false;
+      await this.initPlugins();
+      let handled = false;
+      for (const plugin of container.plugins.values()) {
+        handled = plugin.particlesInitialization?.() ?? handled;
+        if (handled) {
+          break;
+        }
+      }
+      this.addManualParticles();
+      if (!handled) {
+        const particlesOptions = options.particles, groups = particlesOptions.groups;
+        for (const group in groups) {
+          const groupOptions = groups[group];
+          for (let i = this.count, j = 0; j < groupOptions.number?.value && i < particlesOptions.number.value; i++, j++) {
+            this.addParticle(void 0, groupOptions, group);
+          }
+        }
+        for (let i = this.count; i < particlesOptions.number.value; i++) {
+          this.addParticle();
+        }
+      }
+    }
+    async initPlugins() {
+      if (this._pluginsInitialized) {
+        return;
+      }
+      const container = this._container;
+      this.movers = await this._engine.getMovers(container, true);
+      this.updaters = await this._engine.getUpdaters(container, true);
+      await this._interactionManager.init();
+      for (const pathGenerator of container.pathGenerators.values()) {
+        pathGenerator.init(container);
+      }
+    }
+    push(nb, mouse, overrideOptions, group) {
+      for (let i = 0; i < nb; i++) {
+        this.addParticle(mouse?.position, overrideOptions, group);
+      }
+    }
+    async redraw() {
+      this.clear();
+      await this.init();
+      this.draw({ value: 0, factor: 0 });
+    }
+    remove(particle, group, override) {
+      this.removeAt(this._array.indexOf(particle), void 0, group, override);
+    }
+    removeAt(index, quantity = defaultRemoveQuantity, group, override) {
+      const minIndex = 0;
+      if (index < minIndex || index > this.count) {
+        return;
+      }
+      let deleted = 0;
+      for (let i = index; deleted < quantity && i < this.count; i++) {
+        if (this._removeParticle(i, group, override)) {
+          i--;
+          deleted++;
+        }
+      }
+    }
+    removeQuantity(quantity, group) {
+      const defaultIndex2 = 0;
+      this.removeAt(defaultIndex2, quantity, group);
+    }
+    setDensity() {
+      const options = this._container.actualOptions, groups = options.particles.groups, manualCount = 0;
+      for (const group in groups) {
+        this._applyDensity(groups[group], manualCount, group);
+      }
+      this._applyDensity(options.particles, options.manualParticles.length);
+    }
+    setLastZIndex(zIndex) {
+      this._lastZIndex = zIndex;
+      this._needsSort = this._needsSort || this._lastZIndex < zIndex;
+    }
+    setResizeFactor(factor) {
+      this._resizeFactor = factor;
+    }
+    update(delta) {
+      const container = this._container, particlesToDelete = /* @__PURE__ */ new Set();
+      this.quadTree = new QuadTree(qTreeRectangle(container.canvas.size), qTreeCapacity);
+      for (const pathGenerator of container.pathGenerators.values()) {
+        pathGenerator.update();
+      }
+      for (const plugin of container.plugins.values()) {
+        plugin.update?.(delta);
+      }
+      const resizeFactor = this._resizeFactor;
+      for (const particle of this._array) {
+        if (resizeFactor && !particle.ignoresResizeRatio) {
+          particle.position.x *= resizeFactor.width;
+          particle.position.y *= resizeFactor.height;
+          particle.initialPosition.x *= resizeFactor.width;
+          particle.initialPosition.y *= resizeFactor.height;
+        }
+        particle.ignoresResizeRatio = false;
+        this._interactionManager.reset(particle);
+        for (const plugin of this._container.plugins.values()) {
+          if (particle.destroyed) {
+            break;
+          }
+          plugin.particleUpdate?.(particle, delta);
+        }
+        for (const mover of this.movers) {
+          if (mover.isEnabled(particle)) {
+            mover.move(particle, delta);
+          }
+        }
+        if (particle.destroyed) {
+          particlesToDelete.add(particle);
+          continue;
+        }
+        this.quadTree.insert(new Point(particle.getPosition(), particle));
+      }
+      if (particlesToDelete.size) {
+        const checkDelete = (p) => !particlesToDelete.has(p);
+        this._array = this.filter(checkDelete);
+        this._zArray = this._zArray.filter(checkDelete);
+        for (const particle of particlesToDelete) {
+          this._engine.dispatchEvent(EventType.particleRemoved, {
+            container: this._container,
+            data: {
+              particle
+            }
+          });
+        }
+        this._addToPool(...particlesToDelete);
+      }
+      this._interactionManager.externalInteract(delta);
+      for (const particle of this._array) {
+        for (const updater of this.updaters) {
+          updater.update(particle, delta);
+        }
+        if (!particle.destroyed && !particle.spawning) {
+          this._interactionManager.particlesInteract(particle, delta);
+        }
+      }
+      delete this._resizeFactor;
+      if (this._needsSort) {
+        const zArray = this._zArray;
+        zArray.sort((a, b) => b.position.z - a.position.z || a.id - b.id);
+        const lengthOffset = 1;
+        this._lastZIndex = zArray[zArray.length - lengthOffset].position.z;
+        this._needsSort = false;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Core/Retina.js
+  var defaultRatio = 1;
+  var defaultReduceFactor = 1;
+  var Retina = class {
+    constructor(container) {
+      this.container = container;
+      this.pixelRatio = defaultRatio;
+      this.reduceFactor = defaultReduceFactor;
+    }
+    init() {
+      const container = this.container, options = container.actualOptions;
+      this.pixelRatio = !options.detectRetina || isSsr() ? defaultRatio : window.devicePixelRatio;
+      this.reduceFactor = defaultReduceFactor;
+      const ratio = this.pixelRatio, canvas = container.canvas;
+      if (canvas.element) {
+        const element = canvas.element;
+        canvas.size.width = element.offsetWidth * ratio;
+        canvas.size.height = element.offsetHeight * ratio;
+      }
+      const particles = options.particles, moveOptions = particles.move;
+      this.maxSpeed = getRangeValue(moveOptions.gravity.maxSpeed) * ratio;
+      this.sizeAnimationSpeed = getRangeValue(particles.size.animation.speed) * ratio;
+    }
+    initParticle(particle) {
+      const options = particle.options, ratio = this.pixelRatio, moveOptions = options.move, moveDistance = moveOptions.distance, props = particle.retina;
+      props.moveDrift = getRangeValue(moveOptions.drift) * ratio;
+      props.moveSpeed = getRangeValue(moveOptions.speed) * ratio;
+      props.sizeAnimationSpeed = getRangeValue(options.size.animation.speed) * ratio;
+      const maxDistance = props.maxDistance;
+      maxDistance.horizontal = moveDistance.horizontal !== void 0 ? moveDistance.horizontal * ratio : void 0;
+      maxDistance.vertical = moveDistance.vertical !== void 0 ? moveDistance.vertical * ratio : void 0;
+      props.maxSpeed = getRangeValue(moveOptions.gravity.maxSpeed) * ratio;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Core/Container.js
+  function guardCheck(container) {
+    return container && !container.destroyed;
+  }
+  var defaultFps = 60;
+  function initDelta(value, fpsLimit = defaultFps, smooth = false) {
+    return {
+      value,
+      factor: smooth ? defaultFps / fpsLimit : defaultFps * value / millisecondsToSeconds
+    };
+  }
+  function loadContainerOptions(engine, container, ...sourceOptionsArr) {
+    const options = new Options(engine, container);
+    loadOptions(options, ...sourceOptionsArr);
+    return options;
+  }
+  var Container = class {
+    constructor(engine, id, sourceOptions) {
+      this._intersectionManager = (entries) => {
+        if (!guardCheck(this) || !this.actualOptions.pauseOnOutsideViewport) {
+          return;
+        }
+        for (const entry of entries) {
+          if (entry.target !== this.interactivity.element) {
+            continue;
+          }
+          if (entry.isIntersecting) {
+            void this.play();
+          } else {
+            this.pause();
+          }
+        }
+      };
+      this._nextFrame = (timestamp) => {
+        try {
+          if (!this._smooth && this._lastFrameTime !== void 0 && timestamp < this._lastFrameTime + millisecondsToSeconds / this.fpsLimit) {
+            this.draw(false);
+            return;
+          }
+          this._lastFrameTime ?? (this._lastFrameTime = timestamp);
+          const delta = initDelta(timestamp - this._lastFrameTime, this.fpsLimit, this._smooth);
+          this.addLifeTime(delta.value);
+          this._lastFrameTime = timestamp;
+          if (delta.value > millisecondsToSeconds) {
+            this.draw(false);
+            return;
+          }
+          this.particles.draw(delta);
+          if (!this.alive()) {
+            this.destroy();
+            return;
+          }
+          if (this.animationStatus) {
+            this.draw(false);
+          }
+        } catch (e) {
+          getLogger().error(`${errorPrefix} in animation loop`, e);
+        }
+      };
+      this._engine = engine;
+      this.id = Symbol(id);
+      this.fpsLimit = 120;
+      this._smooth = false;
+      this._delay = 0;
+      this._duration = 0;
+      this._lifeTime = 0;
+      this._firstStart = true;
+      this.started = false;
+      this.destroyed = false;
+      this._paused = true;
+      this._lastFrameTime = 0;
+      this.zLayers = 100;
+      this.pageHidden = false;
+      this._clickHandlers = /* @__PURE__ */ new Map();
+      this._sourceOptions = sourceOptions;
+      this._initialSourceOptions = sourceOptions;
+      this.retina = new Retina(this);
+      this.canvas = new Canvas(this, this._engine);
+      this.particles = new Particles(this._engine, this);
+      this.pathGenerators = /* @__PURE__ */ new Map();
+      this.interactivity = {
+        mouse: {
+          clicking: false,
+          inside: false
+        }
+      };
+      this.plugins = /* @__PURE__ */ new Map();
+      this.effectDrawers = /* @__PURE__ */ new Map();
+      this.shapeDrawers = /* @__PURE__ */ new Map();
+      this._options = loadContainerOptions(this._engine, this);
+      this.actualOptions = loadContainerOptions(this._engine, this);
+      this._eventListeners = new EventListeners(this);
+      this._intersectionObserver = safeIntersectionObserver((entries) => this._intersectionManager(entries));
+      this._engine.dispatchEvent(EventType.containerBuilt, { container: this });
+    }
+    get animationStatus() {
+      return !this._paused && !this.pageHidden && guardCheck(this);
+    }
+    get options() {
+      return this._options;
+    }
+    get sourceOptions() {
+      return this._sourceOptions;
+    }
+    addClickHandler(callback) {
+      if (!guardCheck(this)) {
+        return;
+      }
+      const el = this.interactivity.element;
+      if (!el) {
+        return;
+      }
+      const clickOrTouchHandler = (e, pos, radius) => {
+        if (!guardCheck(this)) {
+          return;
+        }
+        const pxRatio = this.retina.pixelRatio, posRetina = {
+          x: pos.x * pxRatio,
+          y: pos.y * pxRatio
+        }, particles = this.particles.quadTree.queryCircle(posRetina, radius * pxRatio);
+        callback(e, particles);
+      }, clickHandler = (e) => {
+        if (!guardCheck(this)) {
+          return;
+        }
+        const mouseEvent = e, pos = {
+          x: mouseEvent.offsetX || mouseEvent.clientX,
+          y: mouseEvent.offsetY || mouseEvent.clientY
+        }, radius = 1;
+        clickOrTouchHandler(e, pos, radius);
+      }, touchStartHandler = () => {
+        if (!guardCheck(this)) {
+          return;
+        }
+        touched = true;
+        touchMoved = false;
+      }, touchMoveHandler = () => {
+        if (!guardCheck(this)) {
+          return;
+        }
+        touchMoved = true;
+      }, touchEndHandler = (e) => {
+        if (!guardCheck(this)) {
+          return;
+        }
+        if (touched && !touchMoved) {
+          const touchEvent = e, lengthOffset = 1;
+          let lastTouch = touchEvent.touches[touchEvent.touches.length - lengthOffset];
+          if (!lastTouch) {
+            lastTouch = touchEvent.changedTouches[touchEvent.changedTouches.length - lengthOffset];
+            if (!lastTouch) {
+              return;
+            }
+          }
+          const element = this.canvas.element, canvasRect = element ? element.getBoundingClientRect() : void 0, minCoordinate = 0, pos = {
+            x: lastTouch.clientX - (canvasRect ? canvasRect.left : minCoordinate),
+            y: lastTouch.clientY - (canvasRect ? canvasRect.top : minCoordinate)
+          };
+          clickOrTouchHandler(e, pos, Math.max(lastTouch.radiusX, lastTouch.radiusY));
+        }
+        touched = false;
+        touchMoved = false;
+      }, touchCancelHandler = () => {
+        if (!guardCheck(this)) {
+          return;
+        }
+        touched = false;
+        touchMoved = false;
+      };
+      let touched = false, touchMoved = false;
+      this._clickHandlers.set("click", clickHandler);
+      this._clickHandlers.set("touchstart", touchStartHandler);
+      this._clickHandlers.set("touchmove", touchMoveHandler);
+      this._clickHandlers.set("touchend", touchEndHandler);
+      this._clickHandlers.set("touchcancel", touchCancelHandler);
+      for (const [key, handler] of this._clickHandlers) {
+        el.addEventListener(key, handler);
+      }
+    }
+    addLifeTime(value) {
+      this._lifeTime += value;
+    }
+    addPath(key, generator, override = false) {
+      if (!guardCheck(this) || !override && this.pathGenerators.has(key)) {
+        return false;
+      }
+      this.pathGenerators.set(key, generator);
+      return true;
+    }
+    alive() {
+      return !this._duration || this._lifeTime <= this._duration;
+    }
+    clearClickHandlers() {
+      if (!guardCheck(this)) {
+        return;
+      }
+      for (const [key, handler] of this._clickHandlers) {
+        this.interactivity.element?.removeEventListener(key, handler);
+      }
+      this._clickHandlers.clear();
+    }
+    destroy(remove = true) {
+      if (!guardCheck(this)) {
+        return;
+      }
+      this.stop();
+      this.clearClickHandlers();
+      this.particles.destroy();
+      this.canvas.destroy();
+      for (const effectDrawer of this.effectDrawers.values()) {
+        effectDrawer.destroy?.(this);
+      }
+      for (const shapeDrawer of this.shapeDrawers.values()) {
+        shapeDrawer.destroy?.(this);
+      }
+      for (const key of this.effectDrawers.keys()) {
+        this.effectDrawers.delete(key);
+      }
+      for (const key of this.shapeDrawers.keys()) {
+        this.shapeDrawers.delete(key);
+      }
+      this._engine.clearPlugins(this);
+      this.destroyed = true;
+      if (remove) {
+        const mainArr = this._engine.items, idx = mainArr.findIndex((t) => t === this), minIndex = 0;
+        if (idx >= minIndex) {
+          const deleteCount = 1;
+          mainArr.splice(idx, deleteCount);
+        }
+      }
+      this._engine.dispatchEvent(EventType.containerDestroyed, { container: this });
+    }
+    draw(force) {
+      if (!guardCheck(this)) {
+        return;
+      }
+      let refreshTime = force;
+      const frame = (timestamp) => {
+        if (refreshTime) {
+          this._lastFrameTime = void 0;
+          refreshTime = false;
+        }
+        this._nextFrame(timestamp);
+      };
+      this._drawAnimationFrame = animate((timestamp) => frame(timestamp));
+    }
+    async export(type, options = {}) {
+      for (const plugin of this.plugins.values()) {
+        if (!plugin.export) {
+          continue;
+        }
+        const res = await plugin.export(type, options);
+        if (!res.supported) {
+          continue;
+        }
+        return res.blob;
+      }
+      getLogger().error(`${errorPrefix} - Export plugin with type ${type} not found`);
+    }
+    handleClickMode(mode) {
+      if (!guardCheck(this)) {
+        return;
+      }
+      this.particles.handleClickMode(mode);
+      for (const plugin of this.plugins.values()) {
+        plugin.handleClickMode?.(mode);
+      }
+    }
+    async init() {
+      if (!guardCheck(this)) {
+        return;
+      }
+      const effects = this._engine.getSupportedEffects();
+      for (const type of effects) {
+        const drawer = this._engine.getEffectDrawer(type);
+        if (drawer) {
+          this.effectDrawers.set(type, drawer);
+        }
+      }
+      const shapes = this._engine.getSupportedShapes();
+      for (const type of shapes) {
+        const drawer = this._engine.getShapeDrawer(type);
+        if (drawer) {
+          this.shapeDrawers.set(type, drawer);
+        }
+      }
+      await this.particles.initPlugins();
+      this._options = loadContainerOptions(this._engine, this, this._initialSourceOptions, this.sourceOptions);
+      this.actualOptions = loadContainerOptions(this._engine, this, this._options);
+      const availablePlugins = await this._engine.getAvailablePlugins(this);
+      for (const [id, plugin] of availablePlugins) {
+        this.plugins.set(id, plugin);
+      }
+      this.retina.init();
+      await this.canvas.init();
+      this.updateActualOptions();
+      this.canvas.initBackground();
+      this.canvas.resize();
+      const { zLayers, duration, delay, fpsLimit, smooth } = this.actualOptions;
+      this.zLayers = zLayers;
+      this._duration = getRangeValue(duration) * millisecondsToSeconds;
+      this._delay = getRangeValue(delay) * millisecondsToSeconds;
+      this._lifeTime = 0;
+      const defaultFpsLimit = 120, minFpsLimit = 0;
+      this.fpsLimit = fpsLimit > minFpsLimit ? fpsLimit : defaultFpsLimit;
+      this._smooth = smooth;
+      for (const drawer of this.effectDrawers.values()) {
+        await drawer.init?.(this);
+      }
+      for (const drawer of this.shapeDrawers.values()) {
+        await drawer.init?.(this);
+      }
+      for (const plugin of this.plugins.values()) {
+        await plugin.init?.();
+      }
+      this._engine.dispatchEvent(EventType.containerInit, { container: this });
+      await this.particles.init();
+      this.particles.setDensity();
+      for (const plugin of this.plugins.values()) {
+        plugin.particlesSetup?.();
+      }
+      this._engine.dispatchEvent(EventType.particlesSetup, { container: this });
+    }
+    async loadTheme(name2) {
+      if (!guardCheck(this)) {
+        return;
+      }
+      this._currentTheme = name2;
+      await this.refresh();
+    }
+    pause() {
+      if (!guardCheck(this)) {
+        return;
+      }
+      if (this._drawAnimationFrame !== void 0) {
+        cancelAnimation(this._drawAnimationFrame);
+        delete this._drawAnimationFrame;
+      }
+      if (this._paused) {
+        return;
+      }
+      for (const plugin of this.plugins.values()) {
+        plugin.pause?.();
+      }
+      if (!this.pageHidden) {
+        this._paused = true;
+      }
+      this._engine.dispatchEvent(EventType.containerPaused, { container: this });
+    }
+    play(force) {
+      if (!guardCheck(this)) {
+        return;
+      }
+      const needsUpdate = this._paused || force;
+      if (this._firstStart && !this.actualOptions.autoPlay) {
+        this._firstStart = false;
+        return;
+      }
+      if (this._paused) {
+        this._paused = false;
+      }
+      if (needsUpdate) {
+        for (const plugin of this.plugins.values()) {
+          if (plugin.play) {
+            plugin.play();
+          }
+        }
+      }
+      this._engine.dispatchEvent(EventType.containerPlay, { container: this });
+      this.draw(needsUpdate ?? false);
+    }
+    async refresh() {
+      if (!guardCheck(this)) {
+        return;
+      }
+      this.stop();
+      return this.start();
+    }
+    async reset(sourceOptions) {
+      if (!guardCheck(this)) {
+        return;
+      }
+      this._initialSourceOptions = sourceOptions;
+      this._sourceOptions = sourceOptions;
+      this._options = loadContainerOptions(this._engine, this, this._initialSourceOptions, this.sourceOptions);
+      this.actualOptions = loadContainerOptions(this._engine, this, this._options);
+      return this.refresh();
+    }
+    async start() {
+      if (!guardCheck(this) || this.started) {
+        return;
+      }
+      await this.init();
+      this.started = true;
+      await new Promise((resolve) => {
+        const start = async () => {
+          this._eventListeners.addListeners();
+          if (this.interactivity.element instanceof HTMLElement && this._intersectionObserver) {
+            this._intersectionObserver.observe(this.interactivity.element);
+          }
+          for (const plugin of this.plugins.values()) {
+            await plugin.start?.();
+          }
+          this._engine.dispatchEvent(EventType.containerStarted, { container: this });
+          this.play();
+          resolve();
+        };
+        this._delayTimeout = setTimeout(() => void start(), this._delay);
+      });
+    }
+    stop() {
+      if (!guardCheck(this) || !this.started) {
+        return;
+      }
+      if (this._delayTimeout) {
+        clearTimeout(this._delayTimeout);
+        delete this._delayTimeout;
+      }
+      this._firstStart = true;
+      this.started = false;
+      this._eventListeners.removeListeners();
+      this.pause();
+      this.particles.clear();
+      this.canvas.stop();
+      if (this.interactivity.element instanceof HTMLElement && this._intersectionObserver) {
+        this._intersectionObserver.unobserve(this.interactivity.element);
+      }
+      for (const plugin of this.plugins.values()) {
+        plugin.stop?.();
+      }
+      for (const key of this.plugins.keys()) {
+        this.plugins.delete(key);
+      }
+      this._sourceOptions = this._options;
+      this._engine.dispatchEvent(EventType.containerStopped, { container: this });
+    }
+    updateActualOptions() {
+      this.actualOptions.responsive = [];
+      const newMaxWidth = this.actualOptions.setResponsive(this.canvas.size.width, this.retina.pixelRatio, this._options);
+      this.actualOptions.setTheme(this._currentTheme);
+      if (this._responsiveMaxWidth === newMaxWidth) {
+        return false;
+      }
+      this._responsiveMaxWidth = newMaxWidth;
+      return true;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Utils/EventDispatcher.js
+  var EventDispatcher = class {
+    constructor() {
+      this._listeners = /* @__PURE__ */ new Map();
+    }
+    addEventListener(type, listener) {
+      this.removeEventListener(type, listener);
+      let arr = this._listeners.get(type);
+      if (!arr) {
+        arr = [];
+        this._listeners.set(type, arr);
+      }
+      arr.push(listener);
+    }
+    dispatchEvent(type, args) {
+      const listeners = this._listeners.get(type);
+      listeners?.forEach((handler) => handler(args));
+    }
+    hasEventListener(type) {
+      return !!this._listeners.get(type);
+    }
+    removeAllEventListeners(type) {
+      if (!type) {
+        this._listeners = /* @__PURE__ */ new Map();
+      } else {
+        this._listeners.delete(type);
+      }
+    }
+    removeEventListener(type, listener) {
+      const arr = this._listeners.get(type);
+      if (!arr) {
+        return;
+      }
+      const length = arr.length, idx = arr.indexOf(listener), minIndex = 0;
+      if (idx < minIndex) {
+        return;
+      }
+      const deleteCount = 1;
+      if (length === deleteCount) {
+        this._listeners.delete(type);
+      } else {
+        arr.splice(idx, deleteCount);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Core/Engine.js
+  async function getItemsFromInitializer(container, map, initializers, force = false) {
+    let res = map.get(container);
+    if (!res || force) {
+      res = await Promise.all([...initializers.values()].map((t) => t(container)));
+      map.set(container, res);
+    }
+    return res;
+  }
+  async function getDataFromUrl(data) {
+    const url = itemFromSingleOrMultiple(data.url, data.index);
+    if (!url) {
+      return data.fallback;
+    }
+    const response = await fetch(url);
+    if (response.ok) {
+      return await response.json();
+    }
+    getLogger().error(`${errorPrefix} ${response.status} while retrieving config file`);
+    return data.fallback;
+  }
+  var generatedTrue = "true";
+  var generatedFalse = "false";
+  var canvasTag = "canvas";
+  var getCanvasFromContainer = (domContainer) => {
+    let canvasEl;
+    if (domContainer instanceof HTMLCanvasElement || domContainer.tagName.toLowerCase() === canvasTag) {
+      canvasEl = domContainer;
+      if (!canvasEl.dataset[generatedAttribute]) {
+        canvasEl.dataset[generatedAttribute] = generatedFalse;
+      }
+    } else {
+      const existingCanvases = domContainer.getElementsByTagName(canvasTag);
+      if (existingCanvases.length) {
+        const firstIndex2 = 0;
+        canvasEl = existingCanvases[firstIndex2];
+        canvasEl.dataset[generatedAttribute] = generatedFalse;
+      } else {
+        canvasEl = document.createElement(canvasTag);
+        canvasEl.dataset[generatedAttribute] = generatedTrue;
+        domContainer.appendChild(canvasEl);
+      }
+    }
+    const fullPercent = "100%";
+    if (!canvasEl.style.width) {
+      canvasEl.style.width = fullPercent;
+    }
+    if (!canvasEl.style.height) {
+      canvasEl.style.height = fullPercent;
+    }
+    return canvasEl;
+  };
+  var getDomContainer = (id, source) => {
+    let domContainer = source ?? document.getElementById(id);
+    if (domContainer) {
+      return domContainer;
+    }
+    domContainer = document.createElement("div");
+    domContainer.id = id;
+    domContainer.dataset[generatedAttribute] = generatedTrue;
+    document.body.append(domContainer);
+    return domContainer;
+  };
+  var Engine = class {
+    constructor() {
+      this._configs = /* @__PURE__ */ new Map();
+      this._domArray = [];
+      this._eventDispatcher = new EventDispatcher();
+      this._initialized = false;
+      this.plugins = [];
+      this.colorManagers = /* @__PURE__ */ new Map();
+      this.easingFunctions = /* @__PURE__ */ new Map();
+      this._initializers = {
+        interactors: /* @__PURE__ */ new Map(),
+        movers: /* @__PURE__ */ new Map(),
+        updaters: /* @__PURE__ */ new Map()
+      };
+      this.interactors = /* @__PURE__ */ new Map();
+      this.movers = /* @__PURE__ */ new Map();
+      this.updaters = /* @__PURE__ */ new Map();
+      this.presets = /* @__PURE__ */ new Map();
+      this.effectDrawers = /* @__PURE__ */ new Map();
+      this.shapeDrawers = /* @__PURE__ */ new Map();
+      this.pathGenerators = /* @__PURE__ */ new Map();
+    }
+    get configs() {
+      const res = {};
+      for (const [name2, config2] of this._configs) {
+        res[name2] = config2;
+      }
+      return res;
+    }
+    get items() {
+      return this._domArray;
+    }
+    get version() {
+      return "3.7.1";
+    }
+    async addColorManager(manager, refresh = true) {
+      this.colorManagers.set(manager.key, manager);
+      await this.refresh(refresh);
+    }
+    addConfig(config2) {
+      const key = config2.key ?? config2.name ?? "default";
+      this._configs.set(key, config2);
+      this._eventDispatcher.dispatchEvent(EventType.configAdded, { data: { name: key, config: config2 } });
+    }
+    async addEasing(name2, easing, refresh = true) {
+      if (this.getEasing(name2)) {
+        return;
+      }
+      this.easingFunctions.set(name2, easing);
+      await this.refresh(refresh);
+    }
+    async addEffect(effect, drawer, refresh = true) {
+      executeOnSingleOrMultiple(effect, (type) => {
+        if (!this.getEffectDrawer(type)) {
+          this.effectDrawers.set(type, drawer);
+        }
+      });
+      await this.refresh(refresh);
+    }
+    addEventListener(type, listener) {
+      this._eventDispatcher.addEventListener(type, listener);
+    }
+    async addInteractor(name2, interactorInitializer, refresh = true) {
+      this._initializers.interactors.set(name2, interactorInitializer);
+      await this.refresh(refresh);
+    }
+    async addMover(name2, moverInitializer, refresh = true) {
+      this._initializers.movers.set(name2, moverInitializer);
+      await this.refresh(refresh);
+    }
+    async addParticleUpdater(name2, updaterInitializer, refresh = true) {
+      this._initializers.updaters.set(name2, updaterInitializer);
+      await this.refresh(refresh);
+    }
+    async addPathGenerator(name2, generator, refresh = true) {
+      if (!this.getPathGenerator(name2)) {
+        this.pathGenerators.set(name2, generator);
+      }
+      await this.refresh(refresh);
+    }
+    async addPlugin(plugin, refresh = true) {
+      if (!this.getPlugin(plugin.id)) {
+        this.plugins.push(plugin);
+      }
+      await this.refresh(refresh);
+    }
+    async addPreset(preset, options, override = false, refresh = true) {
+      if (override || !this.getPreset(preset)) {
+        this.presets.set(preset, options);
+      }
+      await this.refresh(refresh);
+    }
+    async addShape(drawer, refresh = true) {
+      for (const validType of drawer.validTypes) {
+        if (this.getShapeDrawer(validType)) {
+          continue;
+        }
+        this.shapeDrawers.set(validType, drawer);
+      }
+      await this.refresh(refresh);
+    }
+    clearPlugins(container) {
+      this.updaters.delete(container);
+      this.movers.delete(container);
+      this.interactors.delete(container);
+    }
+    dispatchEvent(type, args) {
+      this._eventDispatcher.dispatchEvent(type, args);
+    }
+    dom() {
+      return this.items;
+    }
+    domItem(index) {
+      return this.item(index);
+    }
+    async getAvailablePlugins(container) {
+      const res = /* @__PURE__ */ new Map();
+      for (const plugin of this.plugins) {
+        if (plugin.needsPlugin(container.actualOptions)) {
+          res.set(plugin.id, await plugin.getPlugin(container));
+        }
+      }
+      return res;
+    }
+    getEasing(name2) {
+      return this.easingFunctions.get(name2) ?? ((value) => value);
+    }
+    getEffectDrawer(type) {
+      return this.effectDrawers.get(type);
+    }
+    async getInteractors(container, force = false) {
+      return getItemsFromInitializer(container, this.interactors, this._initializers.interactors, force);
+    }
+    async getMovers(container, force = false) {
+      return getItemsFromInitializer(container, this.movers, this._initializers.movers, force);
+    }
+    getPathGenerator(type) {
+      return this.pathGenerators.get(type);
+    }
+    getPlugin(plugin) {
+      return this.plugins.find((t) => t.id === plugin);
+    }
+    getPreset(preset) {
+      return this.presets.get(preset);
+    }
+    getShapeDrawer(type) {
+      return this.shapeDrawers.get(type);
+    }
+    getSupportedEffects() {
+      return this.effectDrawers.keys();
+    }
+    getSupportedShapes() {
+      return this.shapeDrawers.keys();
+    }
+    async getUpdaters(container, force = false) {
+      return getItemsFromInitializer(container, this.updaters, this._initializers.updaters, force);
+    }
+    init() {
+      if (this._initialized) {
+        return;
+      }
+      this._initialized = true;
+    }
+    item(index) {
+      const { items } = this, item = items[index];
+      if (!item || item.destroyed) {
+        const deleteCount = 1;
+        items.splice(index, deleteCount);
+        return;
+      }
+      return item;
+    }
+    async load(params) {
+      const randomFactor = 1e4, id = params.id ?? params.element?.id ?? `tsparticles${Math.floor(getRandom() * randomFactor)}`, { index, url } = params, options = url ? await getDataFromUrl({ fallback: params.options, url, index }) : params.options;
+      const currentOptions = itemFromSingleOrMultiple(options, index), { items } = this, oldIndex = items.findIndex((v) => v.id.description === id), minIndex = 0, newItem = new Container(this, id, currentOptions);
+      if (oldIndex >= minIndex) {
+        const old = this.item(oldIndex), one = 1, none = 0, deleteCount = old ? one : none;
+        if (old && !old.destroyed) {
+          old.destroy(false);
+        }
+        items.splice(oldIndex, deleteCount, newItem);
+      } else {
+        items.push(newItem);
+      }
+      const domContainer = getDomContainer(id, params.element), canvasEl = getCanvasFromContainer(domContainer);
+      newItem.canvas.loadCanvas(canvasEl);
+      await newItem.start();
+      return newItem;
+    }
+    loadOptions(options, sourceOptions) {
+      this.plugins.forEach((plugin) => plugin.loadOptions?.(options, sourceOptions));
+    }
+    loadParticlesOptions(container, options, ...sourceOptions) {
+      const updaters = this.updaters.get(container);
+      if (!updaters) {
+        return;
+      }
+      updaters.forEach((updater) => updater.loadOptions?.(options, ...sourceOptions));
+    }
+    async refresh(refresh = true) {
+      if (!refresh) {
+        return;
+      }
+      await Promise.all(this.items.map((t) => t.refresh()));
+    }
+    removeEventListener(type, listener) {
+      this._eventDispatcher.removeEventListener(type, listener);
+    }
+    setOnClickHandler(callback) {
+      const { items } = this;
+      if (!items.length) {
+        throw new Error(`${errorPrefix} can only set click handlers after calling tsParticles.load()`);
+      }
+      items.forEach((item) => item.addClickHandler(callback));
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/init.js
+  function init() {
+    const engine = new Engine();
+    engine.init();
+    return engine;
+  }
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/ExternalInteractorBase.js
+  var ExternalInteractorBase = class {
+    constructor(container) {
+      this.type = InteractorType.external;
+      this.container = container;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Core/Utils/ParticlesInteractorBase.js
+  var ParticlesInteractorBase = class {
+    constructor(container) {
+      this.type = InteractorType.particles;
+      this.container = container;
+    }
+  };
+
+  // node_modules/@tsparticles/engine/browser/Enums/Directions/RotateDirection.js
+  var RotateDirection;
+  (function(RotateDirection2) {
+    RotateDirection2["clockwise"] = "clockwise";
+    RotateDirection2["counterClockwise"] = "counter-clockwise";
+    RotateDirection2["random"] = "random";
+  })(RotateDirection || (RotateDirection = {}));
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/GradientType.js
+  var GradientType;
+  (function(GradientType2) {
+    GradientType2["linear"] = "linear";
+    GradientType2["radial"] = "radial";
+    GradientType2["random"] = "random";
+  })(GradientType || (GradientType = {}));
+
+  // node_modules/@tsparticles/engine/browser/Enums/Types/EasingType.js
+  var EasingType;
+  (function(EasingType2) {
+    EasingType2["easeInBack"] = "ease-in-back";
+    EasingType2["easeInCirc"] = "ease-in-circ";
+    EasingType2["easeInCubic"] = "ease-in-cubic";
+    EasingType2["easeInLinear"] = "ease-in-linear";
+    EasingType2["easeInQuad"] = "ease-in-quad";
+    EasingType2["easeInQuart"] = "ease-in-quart";
+    EasingType2["easeInQuint"] = "ease-in-quint";
+    EasingType2["easeInExpo"] = "ease-in-expo";
+    EasingType2["easeInSine"] = "ease-in-sine";
+    EasingType2["easeOutBack"] = "ease-out-back";
+    EasingType2["easeOutCirc"] = "ease-out-circ";
+    EasingType2["easeOutCubic"] = "ease-out-cubic";
+    EasingType2["easeOutLinear"] = "ease-out-linear";
+    EasingType2["easeOutQuad"] = "ease-out-quad";
+    EasingType2["easeOutQuart"] = "ease-out-quart";
+    EasingType2["easeOutQuint"] = "ease-out-quint";
+    EasingType2["easeOutExpo"] = "ease-out-expo";
+    EasingType2["easeOutSine"] = "ease-out-sine";
+    EasingType2["easeInOutBack"] = "ease-in-out-back";
+    EasingType2["easeInOutCirc"] = "ease-in-out-circ";
+    EasingType2["easeInOutCubic"] = "ease-in-out-cubic";
+    EasingType2["easeInOutLinear"] = "ease-in-out-linear";
+    EasingType2["easeInOutQuad"] = "ease-in-out-quad";
+    EasingType2["easeInOutQuart"] = "ease-in-out-quart";
+    EasingType2["easeInOutQuint"] = "ease-in-out-quint";
+    EasingType2["easeInOutExpo"] = "ease-in-out-expo";
+    EasingType2["easeInOutSine"] = "ease-in-out-sine";
+  })(EasingType || (EasingType = {}));
+
+  // node_modules/@tsparticles/engine/browser/index.js
+  var tsParticles = init();
+  if (!isSsr()) {
+    window.tsParticles = tsParticles;
+  }
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/Options/Classes/AbsorberSizeLimit.js
+  var AbsorberSizeLimit = class {
+    constructor() {
+      this.radius = 0;
+      this.mass = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.mass !== void 0) {
+        this.mass = data.mass;
+      }
+      if (data.radius !== void 0) {
+        this.radius = data.radius;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/Options/Classes/AbsorberSize.js
+  var AbsorberSize = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.density = 5;
+      this.value = 50;
+      this.limit = new AbsorberSizeLimit();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      super.load(data);
+      if (data.density !== void 0) {
+        this.density = data.density;
+      }
+      if (isNumber(data.limit)) {
+        this.limit.radius = data.limit;
+      } else {
+        this.limit.load(data.limit);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/Options/Classes/Absorber.js
+  var Absorber = class {
+    constructor() {
+      this.color = new OptionsColor();
+      this.color.value = "#000000";
+      this.draggable = false;
+      this.opacity = 1;
+      this.destroy = true;
+      this.orbits = false;
+      this.size = new AbsorberSize();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.draggable !== void 0) {
+        this.draggable = data.draggable;
+      }
+      this.name = data.name;
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+      if (data.position !== void 0) {
+        this.position = {};
+        if (data.position.x !== void 0) {
+          this.position.x = setRangeValue(data.position.x);
+        }
+        if (data.position.y !== void 0) {
+          this.position.y = setRangeValue(data.position.y);
+        }
+      }
+      if (data.size !== void 0) {
+        this.size.load(data.size);
+      }
+      if (data.destroy !== void 0) {
+        this.destroy = data.destroy;
+      }
+      if (data.orbits !== void 0) {
+        this.orbits = data.orbits;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/Enums/AbsorberClickMode.js
+  var AbsorberClickMode;
+  (function(AbsorberClickMode2) {
+    AbsorberClickMode2["absorber"] = "absorber";
+  })(AbsorberClickMode || (AbsorberClickMode = {}));
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/AbsorberInstance.js
+  var squareExp5 = 2;
+  var absorbFactor = 0.033;
+  var minOrbitLength = 0;
+  var minRadius = 0;
+  var minMass = 0;
+  var origin3 = {
+    x: 0,
+    y: 0
+  };
+  var minAngle = 0;
+  var double5 = 2;
+  var maxAngle = Math.PI * double5;
+  var minVelocity = 0;
+  var AbsorberInstance = class {
+    constructor(absorbers, container, engine, options, position) {
+      this._calcPosition = () => {
+        const exactPosition = calcPositionOrRandomFromSizeRanged({
+          size: this._container.canvas.size,
+          position: this.options.position
+        });
+        return Vector.create(exactPosition.x, exactPosition.y);
+      };
+      this._updateParticlePosition = (particle, v) => {
+        if (particle.destroyed) {
+          return;
+        }
+        const container2 = this._container, canvasSize = container2.canvas.size;
+        if (particle.needsNewPosition) {
+          const newPosition = calcPositionOrRandomFromSize({ size: canvasSize });
+          particle.position.setTo(newPosition);
+          particle.velocity.setTo(particle.initialVelocity);
+          particle.absorberOrbit = void 0;
+          particle.needsNewPosition = false;
+        }
+        if (this.options.orbits) {
+          if (particle.absorberOrbit === void 0) {
+            particle.absorberOrbit = Vector.origin;
+            particle.absorberOrbit.length = getDistance(particle.getPosition(), this.position);
+            particle.absorberOrbit.angle = getRandom() * maxAngle;
+          }
+          if (particle.absorberOrbit.length <= this.size && !this.options.destroy) {
+            const minSize = Math.min(canvasSize.width, canvasSize.height), offset = 1, randomOffset = 0.1, randomFactor = 0.2;
+            particle.absorberOrbit.length = minSize * (offset + (getRandom() * randomFactor - randomOffset));
+          }
+          if (particle.absorberOrbitDirection === void 0) {
+            particle.absorberOrbitDirection = particle.velocity.x >= minVelocity ? RotateDirection.clockwise : RotateDirection.counterClockwise;
+          }
+          const orbitRadius = particle.absorberOrbit.length, orbitAngle = particle.absorberOrbit.angle, orbitDirection = particle.absorberOrbitDirection;
+          particle.velocity.setTo(Vector.origin);
+          const updateFunc = {
+            x: orbitDirection === RotateDirection.clockwise ? Math.cos : Math.sin,
+            y: orbitDirection === RotateDirection.clockwise ? Math.sin : Math.cos
+          };
+          particle.position.x = this.position.x + orbitRadius * updateFunc.x(orbitAngle);
+          particle.position.y = this.position.y + orbitRadius * updateFunc.y(orbitAngle);
+          particle.absorberOrbit.length -= v.length;
+          particle.absorberOrbit.angle += (particle.retina.moveSpeed ?? minVelocity) * container2.retina.pixelRatio / percentDenominator * container2.retina.reduceFactor;
+        } else {
+          const addV = Vector.origin;
+          addV.length = v.length;
+          addV.angle = v.angle;
+          particle.velocity.addTo(addV);
+        }
+      };
+      this._absorbers = absorbers;
+      this._container = container;
+      this._engine = engine;
+      this.initialPosition = position ? Vector.create(position.x, position.y) : void 0;
+      if (options instanceof Absorber) {
+        this.options = options;
+      } else {
+        this.options = new Absorber();
+        this.options.load(options);
+      }
+      this.dragging = false;
+      this.name = this.options.name;
+      this.opacity = this.options.opacity;
+      this.size = getRangeValue(this.options.size.value) * container.retina.pixelRatio;
+      this.mass = this.size * this.options.size.density * container.retina.reduceFactor;
+      const limit = this.options.size.limit;
+      this.limit = {
+        radius: limit.radius * container.retina.pixelRatio * container.retina.reduceFactor,
+        mass: limit.mass
+      };
+      this.color = rangeColorToRgb(this._engine, this.options.color) ?? {
+        b: 0,
+        g: 0,
+        r: 0
+      };
+      this.position = this.initialPosition?.copy() ?? this._calcPosition();
+    }
+    attract(particle) {
+      const container = this._container, options = this.options;
+      if (options.draggable) {
+        const mouse = container.interactivity.mouse;
+        if (mouse.clicking && mouse.downPosition) {
+          const mouseDist = getDistance(this.position, mouse.downPosition);
+          if (mouseDist <= this.size) {
+            this.dragging = true;
+          }
+        } else {
+          this.dragging = false;
+        }
+        if (this.dragging && mouse.position) {
+          this.position.x = mouse.position.x;
+          this.position.y = mouse.position.y;
+        }
+      }
+      const pos = particle.getPosition(), { dx, dy, distance } = getDistances(this.position, pos), v = Vector.create(dx, dy);
+      v.length = this.mass / Math.pow(distance, squareExp5) * container.retina.reduceFactor;
+      if (distance < this.size + particle.getRadius()) {
+        const sizeFactor = particle.getRadius() * absorbFactor * container.retina.pixelRatio;
+        if (this.size > particle.getRadius() && distance < this.size - particle.getRadius() || particle.absorberOrbit !== void 0 && particle.absorberOrbit.length < minOrbitLength) {
+          if (options.destroy) {
+            particle.destroy();
+          } else {
+            particle.needsNewPosition = true;
+            this._updateParticlePosition(particle, v);
+          }
+        } else {
+          if (options.destroy) {
+            particle.size.value -= sizeFactor;
+          }
+          this._updateParticlePosition(particle, v);
+        }
+        if (this.limit.radius <= minRadius || this.size < this.limit.radius) {
+          this.size += sizeFactor;
+        }
+        if (this.limit.mass <= minMass || this.mass < this.limit.mass) {
+          this.mass += sizeFactor * this.options.size.density * container.retina.reduceFactor;
+        }
+      } else {
+        this._updateParticlePosition(particle, v);
+      }
+    }
+    draw(context) {
+      context.translate(this.position.x, this.position.y);
+      context.beginPath();
+      context.arc(origin3.x, origin3.y, this.size, minAngle, maxAngle, false);
+      context.closePath();
+      context.fillStyle = getStyleFromRgb(this.color, this.opacity);
+      context.fill();
+    }
+    resize() {
+      const initialPosition = this.initialPosition;
+      this.position = initialPosition && isPointInside(initialPosition, this._container.canvas.size, Vector.origin) ? initialPosition : this._calcPosition();
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/Absorbers.js
+  var defaultIndex = 0;
+  var Absorbers = class {
+    constructor(container, engine) {
+      this._container = container;
+      this._engine = engine;
+      this.array = [];
+      this.absorbers = [];
+      this.interactivityAbsorbers = [];
+      container.getAbsorber = (idxOrName) => idxOrName === void 0 || isNumber(idxOrName) ? this.array[idxOrName ?? defaultIndex] : this.array.find((t) => t.name === idxOrName);
+      container.addAbsorber = async (options, position) => this.addAbsorber(options, position);
+    }
+    async addAbsorber(options, position) {
+      const absorber = new AbsorberInstance(this, this._container, this._engine, options, position);
+      this.array.push(absorber);
+      return Promise.resolve(absorber);
+    }
+    draw(context) {
+      for (const absorber of this.array) {
+        absorber.draw(context);
+      }
+    }
+    handleClickMode(mode) {
+      const absorberOptions = this.absorbers, modeAbsorbers = this.interactivityAbsorbers;
+      if (mode === AbsorberClickMode.absorber) {
+        const absorbersModeOptions = itemFromSingleOrMultiple(modeAbsorbers), absorbersOptions = absorbersModeOptions ?? itemFromSingleOrMultiple(absorberOptions), aPosition = this._container.interactivity.mouse.clickPosition;
+        void this.addAbsorber(absorbersOptions, aPosition);
+      }
+    }
+    async init() {
+      this.absorbers = this._container.actualOptions.absorbers;
+      this.interactivityAbsorbers = this._container.actualOptions.interactivity.modes.absorbers;
+      const promises = executeOnSingleOrMultiple(this.absorbers, async (absorber) => {
+        await this.addAbsorber(absorber);
+      });
+      if (promises instanceof Array) {
+        await Promise.all(promises);
+      } else {
+        await promises;
+      }
+    }
+    particleUpdate(particle) {
+      for (const absorber of this.array) {
+        absorber.attract(particle);
+        if (particle.destroyed) {
+          break;
+        }
+      }
+    }
+    removeAbsorber(absorber) {
+      const index = this.array.indexOf(absorber), deleteCount = 1;
+      if (index >= defaultIndex) {
+        this.array.splice(index, deleteCount);
+      }
+    }
+    resize() {
+      for (const absorber of this.array) {
+        absorber.resize();
+      }
+    }
+    stop() {
+      this.array = [];
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/AbsorbersPlugin.js
+  var AbsorbersPlugin = class {
+    constructor(engine) {
+      this.id = "absorbers";
+      this._engine = engine;
+    }
+    async getPlugin(container) {
+      return Promise.resolve(new Absorbers(container, this._engine));
+    }
+    loadOptions(options, source) {
+      if (!this.needsPlugin(options) && !this.needsPlugin(source)) {
+        return;
+      }
+      if (source?.absorbers) {
+        options.absorbers = executeOnSingleOrMultiple(source.absorbers, (absorber) => {
+          const tmp = new Absorber();
+          tmp.load(absorber);
+          return tmp;
+        });
+      }
+      options.interactivity.modes.absorbers = executeOnSingleOrMultiple(source?.interactivity?.modes?.absorbers, (absorber) => {
+        const tmp = new Absorber();
+        tmp.load(absorber);
+        return tmp;
+      });
+    }
+    needsPlugin(options) {
+      if (!options) {
+        return false;
+      }
+      const absorbers = options.absorbers;
+      if (isArray(absorbers)) {
+        return !!absorbers.length;
+      } else if (absorbers) {
+        return true;
+      } else if (options.interactivity?.events?.onClick?.mode && isInArray(AbsorberClickMode.absorber, options.interactivity.events.onClick.mode)) {
+        return true;
+      }
+      return false;
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-absorbers/browser/index.js
+  async function loadAbsorbersPlugin(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addPlugin(new AbsorbersPlugin(engine), refresh);
+  }
+
+  // node_modules/@tsparticles/updater-destroy/browser/Options/Classes/DestroyBounds.js
+  var DestroyBounds = class {
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.bottom !== void 0) {
+        this.bottom = setRangeValue(data.bottom);
+      }
+      if (data.left !== void 0) {
+        this.left = setRangeValue(data.left);
+      }
+      if (data.right !== void 0) {
+        this.right = setRangeValue(data.right);
+      }
+      if (data.top !== void 0) {
+        this.top = setRangeValue(data.top);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-destroy/browser/Enums/DestroyMode.js
+  var DestroyMode;
+  (function(DestroyMode2) {
+    DestroyMode2["none"] = "none";
+    DestroyMode2["split"] = "split";
+  })(DestroyMode || (DestroyMode = {}));
+
+  // node_modules/@tsparticles/updater-destroy/browser/Options/Classes/SplitFactor.js
+  var SplitFactor = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.value = 3;
+    }
+  };
+
+  // node_modules/@tsparticles/updater-destroy/browser/Options/Classes/SplitRate.js
+  var SplitRate = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.value = { min: 4, max: 9 };
+    }
+  };
+
+  // node_modules/@tsparticles/updater-destroy/browser/Options/Classes/Split.js
+  var Split = class {
+    constructor() {
+      this.count = 1;
+      this.factor = new SplitFactor();
+      this.rate = new SplitRate();
+      this.sizeOffset = true;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.count !== void 0) {
+        this.count = data.count;
+      }
+      this.factor.load(data.factor);
+      this.rate.load(data.rate);
+      this.particles = executeOnSingleOrMultiple(data.particles, (particles) => {
+        return deepExtend({}, particles);
+      });
+      if (data.sizeOffset !== void 0) {
+        this.sizeOffset = data.sizeOffset;
+      }
+      if (data.colorOffset) {
+        this.colorOffset = this.colorOffset ?? {};
+        if (data.colorOffset.h !== void 0) {
+          this.colorOffset.h = data.colorOffset.h;
+        }
+        if (data.colorOffset.s !== void 0) {
+          this.colorOffset.s = data.colorOffset.s;
+        }
+        if (data.colorOffset.l !== void 0) {
+          this.colorOffset.l = data.colorOffset.l;
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-destroy/browser/Options/Classes/Destroy.js
+  var Destroy = class {
+    constructor() {
+      this.bounds = new DestroyBounds();
+      this.mode = DestroyMode.none;
+      this.split = new Split();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.mode) {
+        this.mode = data.mode;
+      }
+      if (data.bounds) {
+        this.bounds.load(data.bounds);
+      }
+      this.split.load(data.split);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-destroy/browser/Utils.js
+  var defaultOffset = 0;
+  var minDestroySize = 0.5;
+  var defaultSplitCount = 0;
+  var increment = 1;
+  var unbreakableTime = 500;
+  var minSplitCount = 0;
+  function addSplitParticle(engine, container, parent, splitParticlesOptions) {
+    const destroyOptions = parent.options.destroy;
+    if (!destroyOptions) {
+      return;
+    }
+    const splitOptions = destroyOptions.split, options = loadParticlesOptions(engine, container, parent.options), factor = getRangeValue(splitOptions.factor.value), parentColor = parent.getFillColor();
+    if (splitOptions.color) {
+      options.color.load(splitOptions.color);
+    } else if (splitOptions.colorOffset && parentColor) {
+      options.color.load({
+        value: {
+          hsl: {
+            h: parentColor.h + getRangeValue(splitOptions.colorOffset.h ?? defaultOffset),
+            s: parentColor.s + getRangeValue(splitOptions.colorOffset.s ?? defaultOffset),
+            l: parentColor.l + getRangeValue(splitOptions.colorOffset.l ?? defaultOffset)
+          }
+        }
+      });
+    } else {
+      options.color.load({
+        value: {
+          hsl: parent.getFillColor()
+        }
+      });
+    }
+    options.move.load({
+      center: {
+        x: parent.position.x,
+        y: parent.position.y,
+        mode: PixelMode.precise
+      }
+    });
+    if (isNumber(options.size.value)) {
+      options.size.value /= factor;
+    } else {
+      options.size.value.min /= factor;
+      options.size.value.max /= factor;
+    }
+    options.load(splitParticlesOptions);
+    const offset = splitOptions.sizeOffset ? setRangeValue(-parent.size.value, parent.size.value) : defaultOffset, position = {
+      x: parent.position.x + randomInRange(offset),
+      y: parent.position.y + randomInRange(offset)
+    };
+    return container.particles.addParticle(position, options, parent.group, (particle) => {
+      if (particle.size.value < minDestroySize) {
+        return false;
+      }
+      particle.velocity.length = randomInRange(setRangeValue(parent.velocity.length, particle.velocity.length));
+      particle.splitCount = (parent.splitCount ?? defaultSplitCount) + increment;
+      particle.unbreakable = true;
+      setTimeout(() => {
+        particle.unbreakable = false;
+      }, unbreakableTime);
+      return true;
+    });
+  }
+  function split(engine, container, particle) {
+    const destroyOptions = particle.options.destroy;
+    if (!destroyOptions) {
+      return;
+    }
+    const splitOptions = destroyOptions.split;
+    if (splitOptions.count >= minSplitCount && (particle.splitCount === void 0 || particle.splitCount++ > splitOptions.count)) {
+      return;
+    }
+    const rate = getRangeValue(splitOptions.rate.value), particlesSplitOptions = itemFromSingleOrMultiple(splitOptions.particles);
+    for (let i = 0; i < rate; i++) {
+      addSplitParticle(engine, container, particle, particlesSplitOptions);
+    }
+  }
+
+  // node_modules/@tsparticles/updater-destroy/browser/DestroyUpdater.js
+  var DestroyUpdater = class {
+    constructor(engine, container) {
+      this.container = container;
+      this.engine = engine;
+    }
+    init(particle) {
+      const container = this.container, particlesOptions = particle.options, destroyOptions = particlesOptions.destroy;
+      if (!destroyOptions) {
+        return;
+      }
+      particle.splitCount = 0;
+      const destroyBoundsOptions = destroyOptions.bounds;
+      if (!particle.destroyBounds) {
+        particle.destroyBounds = {};
+      }
+      const { bottom, left, right, top } = destroyBoundsOptions, { destroyBounds } = particle, canvasSize = container.canvas.size;
+      if (bottom) {
+        destroyBounds.bottom = getRangeValue(bottom) * canvasSize.height / percentDenominator;
+      }
+      if (left) {
+        destroyBounds.left = getRangeValue(left) * canvasSize.width / percentDenominator;
+      }
+      if (right) {
+        destroyBounds.right = getRangeValue(right) * canvasSize.width / percentDenominator;
+      }
+      if (top) {
+        destroyBounds.top = getRangeValue(top) * canvasSize.height / percentDenominator;
+      }
+    }
+    isEnabled(particle) {
+      return !particle.destroyed;
+    }
+    loadOptions(options, ...sources) {
+      if (!options.destroy) {
+        options.destroy = new Destroy();
+      }
+      for (const source of sources) {
+        options.destroy.load(source?.destroy);
+      }
+    }
+    particleDestroyed(particle, override) {
+      if (override) {
+        return;
+      }
+      const destroyOptions = particle.options.destroy;
+      if (destroyOptions && destroyOptions.mode === DestroyMode.split) {
+        split(this.engine, this.container, particle);
+      }
+    }
+    update(particle) {
+      if (!this.isEnabled(particle)) {
+        return;
+      }
+      const position = particle.getPosition(), bounds = particle.destroyBounds;
+      if (!bounds) {
+        return;
+      }
+      if (bounds.bottom !== void 0 && position.y >= bounds.bottom || bounds.left !== void 0 && position.x <= bounds.left || bounds.right !== void 0 && position.x >= bounds.right || bounds.top !== void 0 && position.y <= bounds.top) {
+        particle.destroy();
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-destroy/browser/index.js
+  async function loadDestroyUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("destroy", (container) => {
+      return Promise.resolve(new DestroyUpdater(engine, container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Options/Classes/EmitterLife.js
+  var EmitterLife = class {
+    constructor() {
+      this.wait = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.count !== void 0) {
+        this.count = data.count;
+      }
+      if (data.delay !== void 0) {
+        this.delay = setRangeValue(data.delay);
+      }
+      if (data.duration !== void 0) {
+        this.duration = setRangeValue(data.duration);
+      }
+      if (data.wait !== void 0) {
+        this.wait = data.wait;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Options/Classes/EmitterRate.js
+  var EmitterRate = class {
+    constructor() {
+      this.quantity = 1;
+      this.delay = 0.1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.quantity !== void 0) {
+        this.quantity = setRangeValue(data.quantity);
+      }
+      if (data.delay !== void 0) {
+        this.delay = setRangeValue(data.delay);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Options/Classes/EmitterShapeReplace.js
+  var EmitterShapeReplace = class {
+    constructor() {
+      this.color = false;
+      this.opacity = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = data.color;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Options/Classes/EmitterShape.js
+  var EmitterShape = class {
+    constructor() {
+      this.options = {};
+      this.replace = new EmitterShapeReplace();
+      this.type = "square";
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.options !== void 0) {
+        this.options = deepExtend({}, data.options ?? {});
+      }
+      this.replace.load(data.replace);
+      if (data.type !== void 0) {
+        this.type = data.type;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Options/Classes/EmitterSize.js
+  var EmitterSize = class {
+    constructor() {
+      this.mode = PixelMode.percent;
+      this.height = 0;
+      this.width = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      if (data.height !== void 0) {
+        this.height = data.height;
+      }
+      if (data.width !== void 0) {
+        this.width = data.width;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Options/Classes/Emitter.js
+  var Emitter = class {
+    constructor() {
+      this.autoPlay = true;
+      this.fill = true;
+      this.life = new EmitterLife();
+      this.rate = new EmitterRate();
+      this.shape = new EmitterShape();
+      this.startCount = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.autoPlay !== void 0) {
+        this.autoPlay = data.autoPlay;
+      }
+      if (data.size !== void 0) {
+        if (!this.size) {
+          this.size = new EmitterSize();
+        }
+        this.size.load(data.size);
+      }
+      if (data.direction !== void 0) {
+        this.direction = data.direction;
+      }
+      this.domId = data.domId;
+      if (data.fill !== void 0) {
+        this.fill = data.fill;
+      }
+      this.life.load(data.life);
+      this.name = data.name;
+      this.particles = executeOnSingleOrMultiple(data.particles, (particles) => {
+        return deepExtend({}, particles);
+      });
+      this.rate.load(data.rate);
+      this.shape.load(data.shape);
+      if (data.position !== void 0) {
+        this.position = {};
+        if (data.position.x !== void 0) {
+          this.position.x = setRangeValue(data.position.x);
+        }
+        if (data.position.y !== void 0) {
+          this.position.y = setRangeValue(data.position.y);
+        }
+      }
+      if (data.spawnColor !== void 0) {
+        if (this.spawnColor === void 0) {
+          this.spawnColor = new AnimatableColor();
+        }
+        this.spawnColor.load(data.spawnColor);
+      }
+      if (data.startCount !== void 0) {
+        this.startCount = data.startCount;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Enums/EmitterClickMode.js
+  var EmitterClickMode;
+  (function(EmitterClickMode2) {
+    EmitterClickMode2["emitter"] = "emitter";
+  })(EmitterClickMode || (EmitterClickMode = {}));
+
+  // node_modules/@tsparticles/plugin-emitters/browser/EmitterInstance.js
+  var half3 = 0.5;
+  var defaultLifeDelay = 0;
+  var minLifeCount = 0;
+  var defaultSpawnDelay = 0;
+  var defaultEmitDelay = 0;
+  var defaultLifeCount = -1;
+  var defaultColorAnimationFactor = 1;
+  function setParticlesOptionsColor(particlesOptions, color) {
+    if (particlesOptions.color) {
+      particlesOptions.color.value = color;
+    } else {
+      particlesOptions.color = {
+        value: color
+      };
+    }
+  }
+  var EmitterInstance = class {
+    constructor(engine, emitters, container, options, position) {
+      var _a;
+      this.emitters = emitters;
+      this.container = container;
+      this._destroy = () => {
+        this._mutationObserver?.disconnect();
+        this._mutationObserver = void 0;
+        this._resizeObserver?.disconnect();
+        this._resizeObserver = void 0;
+        this.emitters.removeEmitter(this);
+        this._engine.dispatchEvent("emitterDestroyed", {
+          container: this.container,
+          data: {
+            emitter: this
+          }
+        });
+      };
+      this._prepareToDie = () => {
+        if (this._paused) {
+          return;
+        }
+        const duration = this.options.life?.duration !== void 0 ? getRangeValue(this.options.life.duration) : void 0, minDuration = 0, minLifeCount2 = 0;
+        if (this.container.retina.reduceFactor && (this._lifeCount > minLifeCount2 || this._immortal) && duration !== void 0 && duration > minDuration) {
+          this._duration = duration * millisecondsToSeconds;
+        }
+      };
+      this._setColorAnimation = (animation, initValue, maxValue, factor = defaultColorAnimationFactor) => {
+        const container2 = this.container;
+        if (!animation.enable) {
+          return initValue;
+        }
+        const colorOffset = randomInRange(animation.offset), delay = getRangeValue(this.options.rate.delay), emitFactor = delay * millisecondsToSeconds / container2.retina.reduceFactor, defaultColorSpeed = 0, colorSpeed = getRangeValue(animation.speed ?? defaultColorSpeed);
+        return (initValue + colorSpeed * container2.fpsLimit / emitFactor + colorOffset * factor) % maxValue;
+      };
+      this._engine = engine;
+      this._currentDuration = 0;
+      this._currentEmitDelay = 0;
+      this._currentSpawnDelay = 0;
+      this._initialPosition = position;
+      if (options instanceof Emitter) {
+        this.options = options;
+      } else {
+        this.options = new Emitter();
+        this.options.load(options);
+      }
+      this._spawnDelay = getRangeValue(this.options.life.delay ?? defaultLifeDelay) * millisecondsToSeconds / this.container.retina.reduceFactor;
+      this.position = this._initialPosition ?? this._calcPosition();
+      this.name = this.options.name;
+      this.fill = this.options.fill;
+      this._firstSpawn = !this.options.life.wait;
+      this._startParticlesAdded = false;
+      let particlesOptions = deepExtend({}, this.options.particles);
+      particlesOptions ?? (particlesOptions = {});
+      particlesOptions.move ?? (particlesOptions.move = {});
+      (_a = particlesOptions.move).direction ?? (_a.direction = this.options.direction);
+      if (this.options.spawnColor) {
+        this.spawnColor = rangeColorToHsl(this._engine, this.options.spawnColor);
+      }
+      this._paused = !this.options.autoPlay;
+      this._particlesOptions = particlesOptions;
+      this._size = this._calcSize();
+      this.size = getSize(this._size, this.container.canvas.size);
+      this._lifeCount = this.options.life.count ?? defaultLifeCount;
+      this._immortal = this._lifeCount <= minLifeCount;
+      if (this.options.domId) {
+        const element = document.getElementById(this.options.domId);
+        if (element) {
+          this._mutationObserver = new MutationObserver(() => {
+            this.resize();
+          });
+          this._resizeObserver = new ResizeObserver(() => {
+            this.resize();
+          });
+          this._mutationObserver.observe(element, {
+            attributes: true,
+            attributeFilter: ["style", "width", "height"]
+          });
+          this._resizeObserver.observe(element);
+        }
+      }
+      const shapeOptions = this.options.shape, shapeGenerator = this._engine.emitterShapeManager?.getShapeGenerator(shapeOptions.type);
+      if (shapeGenerator) {
+        this._shape = shapeGenerator.generate(this.position, this.size, this.fill, shapeOptions.options);
+      }
+      this._engine.dispatchEvent("emitterCreated", {
+        container,
+        data: {
+          emitter: this
+        }
+      });
+      this.play();
+    }
+    externalPause() {
+      this._paused = true;
+      this.pause();
+    }
+    externalPlay() {
+      this._paused = false;
+      this.play();
+    }
+    async init() {
+      await this._shape?.init();
+    }
+    pause() {
+      if (this._paused) {
+        return;
+      }
+      delete this._emitDelay;
+    }
+    play() {
+      if (this._paused) {
+        return;
+      }
+      if (!(this.container.retina.reduceFactor && (this._lifeCount > minLifeCount || this._immortal || !this.options.life.count) && (this._firstSpawn || this._currentSpawnDelay >= (this._spawnDelay ?? defaultSpawnDelay)))) {
+        return;
+      }
+      if (this._emitDelay === void 0) {
+        const delay = getRangeValue(this.options.rate.delay);
+        this._emitDelay = delay * millisecondsToSeconds / this.container.retina.reduceFactor;
+      }
+      if (this._lifeCount > minLifeCount || this._immortal) {
+        this._prepareToDie();
+      }
+    }
+    resize() {
+      const initialPosition = this._initialPosition;
+      this.position = initialPosition && isPointInside(initialPosition, this.container.canvas.size, Vector.origin) ? initialPosition : this._calcPosition();
+      this._size = this._calcSize();
+      this.size = getSize(this._size, this.container.canvas.size);
+      this._shape?.resize(this.position, this.size);
+    }
+    update(delta) {
+      if (this._paused) {
+        return;
+      }
+      if (this._firstSpawn) {
+        this._firstSpawn = false;
+        this._currentSpawnDelay = this._spawnDelay ?? defaultSpawnDelay;
+        this._currentEmitDelay = this._emitDelay ?? defaultEmitDelay;
+      }
+      if (!this._startParticlesAdded) {
+        this._startParticlesAdded = true;
+        this._emitParticles(this.options.startCount);
+      }
+      if (this._duration !== void 0) {
+        this._currentDuration += delta.value;
+        if (this._currentDuration >= this._duration) {
+          this.pause();
+          if (this._spawnDelay !== void 0) {
+            delete this._spawnDelay;
+          }
+          if (!this._immortal) {
+            this._lifeCount--;
+          }
+          if (this._lifeCount > minLifeCount || this._immortal) {
+            this.position = this._calcPosition();
+            this._shape?.resize(this.position, this.size);
+            this._spawnDelay = getRangeValue(this.options.life.delay ?? defaultLifeDelay) * millisecondsToSeconds / this.container.retina.reduceFactor;
+          } else {
+            this._destroy();
+          }
+          this._currentDuration -= this._duration;
+          delete this._duration;
+        }
+      }
+      if (this._spawnDelay !== void 0) {
+        this._currentSpawnDelay += delta.value;
+        if (this._currentSpawnDelay >= this._spawnDelay) {
+          this._engine.dispatchEvent("emitterPlay", {
+            container: this.container
+          });
+          this.play();
+          this._currentSpawnDelay -= this._currentSpawnDelay;
+          delete this._spawnDelay;
+        }
+      }
+      if (this._emitDelay !== void 0) {
+        this._currentEmitDelay += delta.value;
+        if (this._currentEmitDelay >= this._emitDelay) {
+          this._emit();
+          this._currentEmitDelay -= this._emitDelay;
+        }
+      }
+    }
+    _calcPosition() {
+      if (this.options.domId) {
+        const element = document.getElementById(this.options.domId);
+        if (element) {
+          const elRect = element.getBoundingClientRect(), pxRatio = this.container.retina.pixelRatio;
+          return {
+            x: (elRect.x + elRect.width * half3) * pxRatio,
+            y: (elRect.y + elRect.height * half3) * pxRatio
+          };
+        }
+      }
+      return calcPositionOrRandomFromSizeRanged({
+        size: this.container.canvas.size,
+        position: this.options.position
+      });
+    }
+    _calcSize() {
+      const container = this.container;
+      if (this.options.domId) {
+        const element = document.getElementById(this.options.domId);
+        if (element) {
+          const elRect = element.getBoundingClientRect();
+          return {
+            width: elRect.width * container.retina.pixelRatio,
+            height: elRect.height * container.retina.pixelRatio,
+            mode: PixelMode.precise
+          };
+        }
+      }
+      return this.options.size ?? (() => {
+        const size = new EmitterSize();
+        size.load({
+          height: 0,
+          mode: PixelMode.percent,
+          width: 0
+        });
+        return size;
+      })();
+    }
+    _emit() {
+      if (this._paused) {
+        return;
+      }
+      const quantity = getRangeValue(this.options.rate.quantity);
+      this._emitParticles(quantity);
+    }
+    _emitParticles(quantity) {
+      const singleParticlesOptions = itemFromSingleOrMultiple(this._particlesOptions);
+      for (let i = 0; i < quantity; i++) {
+        const particlesOptions = deepExtend({}, singleParticlesOptions);
+        if (this.spawnColor) {
+          const hslAnimation = this.options.spawnColor?.animation;
+          if (hslAnimation) {
+            const maxValues = {
+              h: 360,
+              s: 100,
+              l: 100
+            }, colorFactor = 3.6;
+            this.spawnColor.h = this._setColorAnimation(hslAnimation.h, this.spawnColor.h, maxValues.h, colorFactor);
+            this.spawnColor.s = this._setColorAnimation(hslAnimation.s, this.spawnColor.s, maxValues.s);
+            this.spawnColor.l = this._setColorAnimation(hslAnimation.l, this.spawnColor.l, maxValues.l);
+          }
+          setParticlesOptionsColor(particlesOptions, this.spawnColor);
+        }
+        const shapeOptions = this.options.shape;
+        let position = this.position;
+        if (this._shape) {
+          const shapePosData = this._shape.randomPosition();
+          if (shapePosData) {
+            position = shapePosData.position;
+            const replaceData = shapeOptions.replace;
+            if (replaceData.color && shapePosData.color) {
+              setParticlesOptionsColor(particlesOptions, shapePosData.color);
+            }
+            if (replaceData.opacity) {
+              if (particlesOptions.opacity) {
+                particlesOptions.opacity.value = shapePosData.opacity;
+              } else {
+                particlesOptions.opacity = {
+                  value: shapePosData.opacity
+                };
+              }
+            }
+          } else {
+            position = null;
+          }
+        }
+        if (position) {
+          this.container.particles.addParticle(position, particlesOptions);
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/Emitters.js
+  var Emitters = class {
+    constructor(engine, container) {
+      this.container = container;
+      this._engine = engine;
+      this.array = [];
+      this.emitters = [];
+      this.interactivityEmitters = {
+        random: {
+          count: 1,
+          enable: false
+        },
+        value: []
+      };
+      const defaultIndex2 = 0;
+      container.getEmitter = (idxOrName) => idxOrName === void 0 || isNumber(idxOrName) ? this.array[idxOrName ?? defaultIndex2] : this.array.find((t) => t.name === idxOrName);
+      container.addEmitter = async (options, position) => this.addEmitter(options, position);
+      container.removeEmitter = (idxOrName) => {
+        const emitter = container.getEmitter(idxOrName);
+        if (emitter) {
+          this.removeEmitter(emitter);
+        }
+      };
+      container.playEmitter = (idxOrName) => {
+        const emitter = container.getEmitter(idxOrName);
+        if (emitter) {
+          emitter.externalPlay();
+        }
+      };
+      container.pauseEmitter = (idxOrName) => {
+        const emitter = container.getEmitter(idxOrName);
+        if (emitter) {
+          emitter.externalPause();
+        }
+      };
+    }
+    async addEmitter(options, position) {
+      const emitterOptions = new Emitter();
+      emitterOptions.load(options);
+      const emitter = new EmitterInstance(this._engine, this, this.container, emitterOptions, position);
+      await emitter.init();
+      this.array.push(emitter);
+      return emitter;
+    }
+    handleClickMode(mode) {
+      const emitterOptions = this.emitters, modeEmitters = this.interactivityEmitters;
+      if (mode !== EmitterClickMode.emitter) {
+        return;
+      }
+      let emittersModeOptions;
+      if (modeEmitters && isArray(modeEmitters.value)) {
+        const minLength = 0;
+        if (modeEmitters.value.length > minLength && modeEmitters.random.enable) {
+          emittersModeOptions = [];
+          const usedIndexes = [];
+          for (let i = 0; i < modeEmitters.random.count; i++) {
+            const idx = arrayRandomIndex(modeEmitters.value);
+            if (usedIndexes.includes(idx) && usedIndexes.length < modeEmitters.value.length) {
+              i--;
+              continue;
+            }
+            usedIndexes.push(idx);
+            emittersModeOptions.push(itemFromArray(modeEmitters.value, idx));
+          }
+        } else {
+          emittersModeOptions = modeEmitters.value;
+        }
+      } else {
+        emittersModeOptions = modeEmitters?.value;
+      }
+      const emittersOptions = emittersModeOptions ?? emitterOptions, ePosition = this.container.interactivity.mouse.clickPosition;
+      void executeOnSingleOrMultiple(emittersOptions, async (emitter) => {
+        await this.addEmitter(emitter, ePosition);
+      });
+    }
+    async init() {
+      this.emitters = this.container.actualOptions.emitters;
+      this.interactivityEmitters = this.container.actualOptions.interactivity.modes.emitters;
+      if (!this.emitters) {
+        return;
+      }
+      if (isArray(this.emitters)) {
+        for (const emitterOptions of this.emitters) {
+          await this.addEmitter(emitterOptions);
+        }
+      } else {
+        await this.addEmitter(this.emitters);
+      }
+    }
+    pause() {
+      for (const emitter of this.array) {
+        emitter.pause();
+      }
+    }
+    play() {
+      for (const emitter of this.array) {
+        emitter.play();
+      }
+    }
+    removeEmitter(emitter) {
+      const index = this.array.indexOf(emitter), minIndex = 0, deleteCount = 1;
+      if (index >= minIndex) {
+        this.array.splice(index, deleteCount);
+      }
+    }
+    resize() {
+      for (const emitter of this.array) {
+        emitter.resize();
+      }
+    }
+    stop() {
+      this.array = [];
+    }
+    update(delta) {
+      for (const emitter of this.array) {
+        emitter.update(delta);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/EmittersPlugin.js
+  var EmittersPlugin = class {
+    constructor(engine) {
+      this._engine = engine;
+      this.id = "emitters";
+    }
+    getPlugin(container) {
+      return Promise.resolve(new Emitters(this._engine, container));
+    }
+    loadOptions(options, source) {
+      if (!this.needsPlugin(options) && !this.needsPlugin(source)) {
+        return;
+      }
+      if (source?.emitters) {
+        options.emitters = executeOnSingleOrMultiple(source.emitters, (emitter) => {
+          const tmp = new Emitter();
+          tmp.load(emitter);
+          return tmp;
+        });
+      }
+      const interactivityEmitters = source?.interactivity?.modes?.emitters;
+      if (interactivityEmitters) {
+        if (isArray(interactivityEmitters)) {
+          options.interactivity.modes.emitters = {
+            random: {
+              count: 1,
+              enable: true
+            },
+            value: interactivityEmitters.map((s) => {
+              const tmp = new Emitter();
+              tmp.load(s);
+              return tmp;
+            })
+          };
+        } else {
+          const emitterMode = interactivityEmitters;
+          if (emitterMode.value !== void 0) {
+            const defaultCount = 1;
+            if (isArray(emitterMode.value)) {
+              options.interactivity.modes.emitters = {
+                random: {
+                  count: emitterMode.random.count ?? defaultCount,
+                  enable: emitterMode.random.enable ?? false
+                },
+                value: emitterMode.value.map((s) => {
+                  const tmp = new Emitter();
+                  tmp.load(s);
+                  return tmp;
+                })
+              };
+            } else {
+              const tmp = new Emitter();
+              tmp.load(emitterMode.value);
+              options.interactivity.modes.emitters = {
+                random: {
+                  count: emitterMode.random.count ?? defaultCount,
+                  enable: emitterMode.random.enable ?? false
+                },
+                value: tmp
+              };
+            }
+          } else {
+            const emitterOptions = options.interactivity.modes.emitters = {
+              random: {
+                count: 1,
+                enable: false
+              },
+              value: new Emitter()
+            };
+            emitterOptions.value.load(interactivityEmitters);
+          }
+        }
+      }
+    }
+    needsPlugin(options) {
+      if (!options) {
+        return false;
+      }
+      const emitters = options.emitters;
+      return isArray(emitters) && !!emitters.length || emitters !== void 0 || !!options.interactivity?.events?.onClick?.mode && isInArray(EmitterClickMode.emitter, options.interactivity.events.onClick.mode);
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/ShapeManager.js
+  var shapeGeneratorss = /* @__PURE__ */ new Map();
+  var ShapeManager = class {
+    constructor(engine) {
+      this._engine = engine;
+    }
+    addShapeGenerator(name2, generator) {
+      if (!this.getShapeGenerator(name2)) {
+        shapeGeneratorss.set(name2, generator);
+      }
+    }
+    getShapeGenerator(name2) {
+      return shapeGeneratorss.get(name2);
+    }
+    getSupportedShapeGenerators() {
+      return shapeGeneratorss.keys();
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/EmitterShapeBase.js
+  var EmitterShapeBase = class {
+    constructor(position, size, fill, options) {
+      this.position = position;
+      this.size = size;
+      this.fill = fill;
+      this.options = options;
+    }
+    resize(position, size) {
+      this.position = position;
+      this.size = size;
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters/browser/index.js
+  async function loadEmittersPlugin(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    if (!engine.emitterShapeManager) {
+      engine.emitterShapeManager = new ShapeManager(engine);
+    }
+    if (!engine.addEmitterShapeGenerator) {
+      engine.addEmitterShapeGenerator = (name2, generator) => {
+        engine.emitterShapeManager?.addShapeGenerator(name2, generator);
+      };
+    }
+    const plugin = new EmittersPlugin(engine);
+    await engine.addPlugin(plugin, refresh);
+  }
+
+  // node_modules/@tsparticles/plugin-emitters-shape-circle/browser/EmittersCircleShape.js
+  var quarter = 0.25;
+  var double6 = 2;
+  var doublePI2 = Math.PI * double6;
+  var squareExp6 = 2;
+  var half4 = 0.5;
+  var EmittersCircleShape = class extends EmitterShapeBase {
+    constructor(position, size, fill, options) {
+      super(position, size, fill, options);
+    }
+    async init() {
+    }
+    randomPosition() {
+      const size = this.size, fill = this.fill, position = this.position, generateTheta = (x, y) => {
+        const u = getRandom() * quarter, theta = Math.atan(y / x * Math.tan(doublePI2 * u)), v = getRandom();
+        if (v < quarter) {
+          return theta;
+        } else if (v < double6 * quarter) {
+          return Math.PI - theta;
+        } else if (v < double6 * quarter + quarter) {
+          return Math.PI + theta;
+        } else {
+          return -theta;
+        }
+      }, radius = (x, y, theta) => x * y / Math.sqrt((y * Math.cos(theta)) ** squareExp6 + (x * Math.sin(theta)) ** squareExp6), [a, b] = [size.width * half4, size.height * half4], randomTheta = generateTheta(a, b), maxRadius = radius(a, b, randomTheta), randomRadius = fill ? maxRadius * Math.sqrt(getRandom()) : maxRadius;
+      return {
+        position: {
+          x: position.x + randomRadius * Math.cos(randomTheta),
+          y: position.y + randomRadius * Math.sin(randomTheta)
+        }
+      };
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters-shape-circle/browser/EmittersCircleShapeGenerator.js
+  var EmittersCircleShapeGenerator = class {
+    generate(position, size, fill, options) {
+      return new EmittersCircleShape(position, size, fill, options);
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters-shape-circle/browser/index.js
+  async function loadEmittersShapeCircle(engine, refresh = true) {
+    const emittersEngine = engine;
+    assertValidVersion(emittersEngine, "3.7.1");
+    emittersEngine.addEmitterShapeGenerator?.("circle", new EmittersCircleShapeGenerator());
+    await emittersEngine.refresh(refresh);
+  }
+
+  // node_modules/@tsparticles/plugin-emitters-shape-square/browser/EmittersSquareShape.js
+  var half5 = 0.5;
+  var sides = 4;
+  var double7 = 2;
+  var Sides;
+  (function(Sides2) {
+    Sides2[Sides2["TopLeft"] = 0] = "TopLeft";
+    Sides2[Sides2["TopRight"] = 1] = "TopRight";
+    Sides2[Sides2["BottomRight"] = 2] = "BottomRight";
+    Sides2[Sides2["BottomLeft"] = 3] = "BottomLeft";
+  })(Sides || (Sides = {}));
+  function randomSquareCoordinate(position, offset) {
+    return position + offset * (getRandom() - halfRandom);
+  }
+  var EmittersSquareShape = class extends EmitterShapeBase {
+    constructor(position, size, fill, options) {
+      super(position, size, fill, options);
+    }
+    async init() {
+    }
+    randomPosition() {
+      const fill = this.fill, position = this.position, size = this.size;
+      if (fill) {
+        return {
+          position: {
+            x: randomSquareCoordinate(position.x, size.width),
+            y: randomSquareCoordinate(position.y, size.height)
+          }
+        };
+      } else {
+        const halfW = size.width * half5, halfH = size.height * half5, side = Math.floor(getRandom() * sides), v = (getRandom() - halfRandom) * double7;
+        switch (side) {
+          case Sides.TopLeft:
+            return {
+              position: {
+                x: position.x + v * halfW,
+                y: position.y - halfH
+              }
+            };
+          case Sides.TopRight:
+            return {
+              position: {
+                x: position.x - halfW,
+                y: position.y + v * halfH
+              }
+            };
+          case Sides.BottomRight:
+            return {
+              position: {
+                x: position.x + v * halfW,
+                y: position.y + halfH
+              }
+            };
+          case Sides.BottomLeft:
+          default:
+            return {
+              position: {
+                x: position.x + halfW,
+                y: position.y + v * halfH
+              }
+            };
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters-shape-square/browser/EmittersSquareShapeGenerator.js
+  var EmittersSquareShapeGenerator = class {
+    generate(position, size, fill, options) {
+      return new EmittersSquareShape(position, size, fill, options);
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-emitters-shape-square/browser/index.js
+  async function loadEmittersShapeSquare(engine, refresh = true) {
+    const emittersEngine = engine;
+    assertValidVersion(emittersEngine, "3.7.1");
+    emittersEngine.addEmitterShapeGenerator?.("square", new EmittersSquareShapeGenerator());
+    await emittersEngine.refresh(refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-trail/browser/Options/Classes/Trail.js
+  var Trail = class {
+    constructor() {
+      this.delay = 1;
+      this.pauseOnStop = false;
+      this.quantity = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.delay !== void 0) {
+        this.delay = data.delay;
+      }
+      if (data.quantity !== void 0) {
+        this.quantity = data.quantity;
+      }
+      if (data.particles !== void 0) {
+        this.particles = deepExtend({}, data.particles);
+      }
+      if (data.pauseOnStop !== void 0) {
+        this.pauseOnStop = data.pauseOnStop;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-trail/browser/TrailMaker.js
+  var trailMode = "trail";
+  var TrailMaker = class extends ExternalInteractorBase {
+    constructor(container) {
+      super(container);
+      this._delay = 0;
+    }
+    clear() {
+    }
+    init() {
+    }
+    interact(delta) {
+      const container = this.container, { interactivity } = container;
+      if (!container.retina.reduceFactor) {
+        return;
+      }
+      const options = container.actualOptions, trailOptions = options.interactivity.modes.trail;
+      if (!trailOptions) {
+        return;
+      }
+      const optDelay = trailOptions.delay * millisecondsToSeconds / this.container.retina.reduceFactor;
+      if (this._delay < optDelay) {
+        this._delay += delta.value;
+      }
+      if (this._delay < optDelay) {
+        return;
+      }
+      const canEmit = !(trailOptions.pauseOnStop && (interactivity.mouse.position === this._lastPosition || interactivity.mouse.position?.x === this._lastPosition?.x && interactivity.mouse.position?.y === this._lastPosition?.y));
+      const mousePos = container.interactivity.mouse.position;
+      if (mousePos) {
+        this._lastPosition = { ...mousePos };
+      } else {
+        delete this._lastPosition;
+      }
+      if (canEmit) {
+        container.particles.push(trailOptions.quantity, container.interactivity.mouse, trailOptions.particles);
+      }
+      this._delay -= optDelay;
+    }
+    isEnabled(particle) {
+      const container = this.container, options = container.actualOptions, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? options.interactivity).events;
+      return mouse.clicking && mouse.inside && !!mouse.position && isInArray(trailMode, events.onClick.mode) || mouse.inside && !!mouse.position && isInArray(trailMode, events.onHover.mode);
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.trail) {
+        options.trail = new Trail();
+      }
+      for (const source of sources) {
+        options.trail.load(source?.trail);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-trail/browser/index.js
+  async function loadExternalTrailInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalTrail", (container) => {
+      return Promise.resolve(new TrailMaker(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/updater-roll/browser/RollMode.js
+  var RollMode;
+  (function(RollMode2) {
+    RollMode2["both"] = "both";
+    RollMode2["horizontal"] = "horizontal";
+    RollMode2["vertical"] = "vertical";
+  })(RollMode || (RollMode = {}));
+
+  // node_modules/@tsparticles/updater-roll/browser/Utils.js
+  var double8 = 2;
+  var doublePI3 = Math.PI * double8;
+  var maxAngle2 = 360;
+  function initParticle(engine, particle) {
+    const rollOpt = particle.options.roll;
+    if (!rollOpt?.enable) {
+      particle.roll = {
+        enable: false,
+        horizontal: false,
+        vertical: false,
+        angle: 0,
+        speed: 0
+      };
+      return;
+    }
+    particle.roll = {
+      enable: rollOpt.enable,
+      horizontal: rollOpt.mode === RollMode.horizontal || rollOpt.mode === RollMode.both,
+      vertical: rollOpt.mode === RollMode.vertical || rollOpt.mode === RollMode.both,
+      angle: getRandom() * doublePI3,
+      speed: getRangeValue(rollOpt.speed) / maxAngle2
+    };
+    if (rollOpt.backColor) {
+      particle.backColor = rangeColorToHsl(engine, rollOpt.backColor);
+    } else if (rollOpt.darken.enable && rollOpt.enlighten.enable) {
+      const alterType = getRandom() >= halfRandom ? AlterType.darken : AlterType.enlighten;
+      particle.roll.alter = {
+        type: alterType,
+        value: getRangeValue(alterType === AlterType.darken ? rollOpt.darken.value : rollOpt.enlighten.value)
+      };
+    } else if (rollOpt.darken.enable) {
+      particle.roll.alter = {
+        type: AlterType.darken,
+        value: getRangeValue(rollOpt.darken.value)
+      };
+    } else if (rollOpt.enlighten.enable) {
+      particle.roll.alter = {
+        type: AlterType.enlighten,
+        value: getRangeValue(rollOpt.enlighten.value)
+      };
+    }
+  }
+  function updateRoll(particle, delta) {
+    const roll = particle.options.roll, data = particle.roll;
+    if (!data || !roll?.enable) {
+      return;
+    }
+    const speed = data.speed * delta.factor, max = doublePI3;
+    data.angle += speed;
+    if (data.angle > max) {
+      data.angle -= max;
+    }
+  }
+
+  // node_modules/@tsparticles/updater-roll/browser/Options/Classes/RollLight.js
+  var RollLight = class {
+    constructor() {
+      this.enable = false;
+      this.value = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.value !== void 0) {
+        this.value = setRangeValue(data.value);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-roll/browser/Options/Classes/Roll.js
+  var Roll = class {
+    constructor() {
+      this.darken = new RollLight();
+      this.enable = false;
+      this.enlighten = new RollLight();
+      this.mode = RollMode.vertical;
+      this.speed = 25;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.backColor !== void 0) {
+        this.backColor = OptionsColor.create(this.backColor, data.backColor);
+      }
+      this.darken.load(data.darken);
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      this.enlighten.load(data.enlighten);
+      if (data.mode !== void 0) {
+        this.mode = data.mode;
+      }
+      if (data.speed !== void 0) {
+        this.speed = setRangeValue(data.speed);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-roll/browser/RollUpdater.js
+  var RollUpdater = class {
+    constructor(engine) {
+      this._engine = engine;
+    }
+    getTransformValues(particle) {
+      const roll = particle.roll?.enable && particle.roll, rollHorizontal = roll && roll.horizontal, rollVertical = roll && roll.vertical;
+      return {
+        a: rollHorizontal ? Math.cos(roll.angle) : void 0,
+        d: rollVertical ? Math.sin(roll.angle) : void 0
+      };
+    }
+    init(particle) {
+      initParticle(this._engine, particle);
+    }
+    isEnabled(particle) {
+      const roll = particle.options.roll;
+      return !particle.destroyed && !particle.spawning && !!roll?.enable;
+    }
+    loadOptions(options, ...sources) {
+      if (!options.roll) {
+        options.roll = new Roll();
+      }
+      for (const source of sources) {
+        options.roll.load(source?.roll);
+      }
+    }
+    update(particle, delta) {
+      if (!this.isEnabled(particle)) {
+        return;
+      }
+      updateRoll(particle, delta);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-roll/browser/index.js
+  async function loadRollUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("roll", () => {
+      return Promise.resolve(new RollUpdater(engine));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/move-base/browser/Utils.js
+  var half6 = 0.5;
+  var minVelocity2 = 0;
+  var identity = 1;
+  var moveSpeedFactor = 60;
+  var minSpinRadius = 0;
+  var spinFactor = 0.01;
+  function applyDistance(particle) {
+    const initialPosition = particle.initialPosition, { dx, dy } = getDistances(initialPosition, particle.position), dxFixed = Math.abs(dx), dyFixed = Math.abs(dy), { maxDistance } = particle.retina, hDistance = maxDistance.horizontal, vDistance = maxDistance.vertical;
+    if (!hDistance && !vDistance) {
+      return;
+    }
+    const hasHDistance = (hDistance && dxFixed >= hDistance) ?? false, hasVDistance = (vDistance && dyFixed >= vDistance) ?? false;
+    if ((hasHDistance || hasVDistance) && !particle.misplaced) {
+      particle.misplaced = !!hDistance && dxFixed > hDistance || !!vDistance && dyFixed > vDistance;
+      if (hDistance) {
+        particle.velocity.x = particle.velocity.y * half6 - particle.velocity.x;
+      }
+      if (vDistance) {
+        particle.velocity.y = particle.velocity.x * half6 - particle.velocity.y;
+      }
+    } else if ((!hDistance || dxFixed < hDistance) && (!vDistance || dyFixed < vDistance) && particle.misplaced) {
+      particle.misplaced = false;
+    } else if (particle.misplaced) {
+      const pos = particle.position, vel = particle.velocity;
+      if (hDistance && (pos.x < initialPosition.x && vel.x < minVelocity2 || pos.x > initialPosition.x && vel.x > minVelocity2)) {
+        vel.x *= -getRandom();
+      }
+      if (vDistance && (pos.y < initialPosition.y && vel.y < minVelocity2 || pos.y > initialPosition.y && vel.y > minVelocity2)) {
+        vel.y *= -getRandom();
+      }
+    }
+  }
+  function move(particle, moveOptions, moveSpeed, maxSpeed, moveDrift, delta) {
+    applyPath(particle, delta);
+    const gravityOptions = particle.gravity, gravityFactor = gravityOptions?.enable && gravityOptions.inverse ? -identity : identity;
+    if (moveDrift && moveSpeed) {
+      particle.velocity.x += moveDrift * delta.factor / (moveSpeedFactor * moveSpeed);
+    }
+    if (gravityOptions?.enable && moveSpeed) {
+      particle.velocity.y += gravityFactor * (gravityOptions.acceleration * delta.factor) / (moveSpeedFactor * moveSpeed);
+    }
+    const decay = particle.moveDecay;
+    particle.velocity.multTo(decay);
+    const velocity = particle.velocity.mult(moveSpeed);
+    if (gravityOptions?.enable && maxSpeed > minVelocity2 && (!gravityOptions.inverse && velocity.y >= minVelocity2 && velocity.y >= maxSpeed || gravityOptions.inverse && velocity.y <= minVelocity2 && velocity.y <= -maxSpeed)) {
+      velocity.y = gravityFactor * maxSpeed;
+      if (moveSpeed) {
+        particle.velocity.y = velocity.y / moveSpeed;
+      }
+    }
+    const zIndexOptions = particle.options.zIndex, zVelocityFactor = (identity - particle.zIndexFactor) ** zIndexOptions.velocityRate;
+    velocity.multTo(zVelocityFactor);
+    const { position } = particle;
+    position.addTo(velocity);
+    if (moveOptions.vibrate) {
+      position.x += Math.sin(position.x * Math.cos(position.y));
+      position.y += Math.cos(position.y * Math.sin(position.x));
+    }
+  }
+  function spin(particle, moveSpeed) {
+    const container = particle.container;
+    if (!particle.spin) {
+      return;
+    }
+    const updateFunc = {
+      x: particle.spin.direction === RotateDirection.clockwise ? Math.cos : Math.sin,
+      y: particle.spin.direction === RotateDirection.clockwise ? Math.sin : Math.cos
+    };
+    particle.position.x = particle.spin.center.x + particle.spin.radius * updateFunc.x(particle.spin.angle);
+    particle.position.y = particle.spin.center.y + particle.spin.radius * updateFunc.y(particle.spin.angle);
+    particle.spin.radius += particle.spin.acceleration;
+    const maxCanvasSize = Math.max(container.canvas.size.width, container.canvas.size.height), halfMaxSize = maxCanvasSize * half6;
+    if (particle.spin.radius > halfMaxSize) {
+      particle.spin.radius = halfMaxSize;
+      particle.spin.acceleration *= -identity;
+    } else if (particle.spin.radius < minSpinRadius) {
+      particle.spin.radius = minSpinRadius;
+      particle.spin.acceleration *= -identity;
+    }
+    particle.spin.angle += moveSpeed * spinFactor * (identity - particle.spin.radius / maxCanvasSize);
+  }
+  function applyPath(particle, delta) {
+    const particlesOptions = particle.options, pathOptions = particlesOptions.move.path, pathEnabled = pathOptions.enable;
+    if (!pathEnabled) {
+      return;
+    }
+    if (particle.lastPathTime <= particle.pathDelay) {
+      particle.lastPathTime += delta.value;
+      return;
+    }
+    const path = particle.pathGenerator?.generate(particle, delta);
+    if (path) {
+      particle.velocity.addTo(path);
+    }
+    if (pathOptions.clamp) {
+      particle.velocity.x = clamp(particle.velocity.x, -identity, identity);
+      particle.velocity.y = clamp(particle.velocity.y, -identity, identity);
+    }
+    particle.lastPathTime -= particle.pathDelay;
+  }
+  function getProximitySpeedFactor(particle) {
+    return particle.slow.inRange ? particle.slow.factor : identity;
+  }
+  function initSpin(particle) {
+    const container = particle.container, options = particle.options, spinOptions = options.move.spin;
+    if (!spinOptions.enable) {
+      return;
+    }
+    const spinPos = spinOptions.position ?? { x: 50, y: 50 }, spinFactor2 = 0.01, spinCenter = {
+      x: spinPos.x * spinFactor2 * container.canvas.size.width,
+      y: spinPos.y * spinFactor2 * container.canvas.size.height
+    }, pos = particle.getPosition(), distance = getDistance(pos, spinCenter), spinAcceleration = getRangeValue(spinOptions.acceleration);
+    particle.retina.spinAcceleration = spinAcceleration * container.retina.pixelRatio;
+    const minVelocity7 = 0;
+    particle.spin = {
+      center: spinCenter,
+      direction: particle.velocity.x >= minVelocity7 ? RotateDirection.clockwise : RotateDirection.counterClockwise,
+      angle: particle.velocity.angle,
+      radius: distance,
+      acceleration: particle.retina.spinAcceleration
+    };
+  }
+
+  // node_modules/@tsparticles/move-base/browser/BaseMover.js
+  var diffFactor = 2;
+  var defaultSizeFactor = 1;
+  var defaultDeltaFactor = 1;
+  var BaseMover = class {
+    init(particle) {
+      const options = particle.options, gravityOptions = options.move.gravity;
+      particle.gravity = {
+        enable: gravityOptions.enable,
+        acceleration: getRangeValue(gravityOptions.acceleration),
+        inverse: gravityOptions.inverse
+      };
+      initSpin(particle);
+    }
+    isEnabled(particle) {
+      return !particle.destroyed && particle.options.move.enable;
+    }
+    move(particle, delta) {
+      var _a, _b;
+      const particleOptions = particle.options, moveOptions = particleOptions.move;
+      if (!moveOptions.enable) {
+        return;
+      }
+      const container = particle.container, pxRatio = container.retina.pixelRatio;
+      (_a = particle.retina).moveSpeed ?? (_a.moveSpeed = getRangeValue(moveOptions.speed) * pxRatio);
+      (_b = particle.retina).moveDrift ?? (_b.moveDrift = getRangeValue(particle.options.move.drift) * pxRatio);
+      const slowFactor = getProximitySpeedFactor(particle), baseSpeed = particle.retina.moveSpeed * container.retina.reduceFactor, moveDrift = particle.retina.moveDrift, maxSize = getRangeMax(particleOptions.size.value) * pxRatio, sizeFactor = moveOptions.size ? particle.getRadius() / maxSize : defaultSizeFactor, deltaFactor = delta.factor || defaultDeltaFactor, moveSpeed = baseSpeed * sizeFactor * slowFactor * deltaFactor / diffFactor, maxSpeed = particle.retina.maxSpeed ?? container.retina.maxSpeed;
+      if (moveOptions.spin.enable) {
+        spin(particle, moveSpeed);
+      } else {
+        move(particle, moveOptions, moveSpeed, maxSpeed, moveDrift, delta);
+      }
+      applyDistance(particle);
+    }
+  };
+
+  // node_modules/@tsparticles/move-base/browser/index.js
+  async function loadBaseMover(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addMover("base", () => {
+      return Promise.resolve(new BaseMover());
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/shape-circle/browser/Utils.js
+  var double9 = 2;
+  var doublePI4 = Math.PI * double9;
+  var minAngle2 = 0;
+  var origin4 = { x: 0, y: 0 };
+  function drawCircle(data) {
+    const { context, particle, radius } = data;
+    if (!particle.circleRange) {
+      particle.circleRange = { min: minAngle2, max: doublePI4 };
+    }
+    const circleRange = particle.circleRange;
+    context.arc(origin4.x, origin4.y, radius, circleRange.min, circleRange.max, false);
+  }
+
+  // node_modules/@tsparticles/shape-circle/browser/CircleDrawer.js
+  var sides2 = 12;
+  var maxAngle3 = 360;
+  var minAngle3 = 0;
+  var CircleDrawer = class {
+    constructor() {
+      this.validTypes = ["circle"];
+    }
+    draw(data) {
+      drawCircle(data);
+    }
+    getSidesCount() {
+      return sides2;
+    }
+    particleInit(container, particle) {
+      const shapeData = particle.shapeData, angle = shapeData?.angle ?? {
+        max: maxAngle3,
+        min: minAngle3
+      };
+      particle.circleRange = !isObject(angle) ? {
+        min: minAngle3,
+        max: degToRad(angle)
+      } : { min: degToRad(angle.min), max: degToRad(angle.max) };
+    }
+  };
+
+  // node_modules/@tsparticles/shape-circle/browser/index.js
+  async function loadCircleShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new CircleDrawer(), refresh);
+  }
+
+  // node_modules/@tsparticles/updater-color/browser/ColorUpdater.js
+  var ColorUpdater = class {
+    constructor(container, engine) {
+      this._container = container;
+      this._engine = engine;
+    }
+    init(particle) {
+      const hslColor = rangeColorToHsl(this._engine, particle.options.color, particle.id, particle.options.reduceDuplicates);
+      if (hslColor) {
+        particle.color = getHslAnimationFromHsl(hslColor, particle.options.color.animation, this._container.retina.reduceFactor);
+      }
+    }
+    isEnabled(particle) {
+      const { h: hAnimation, s: sAnimation, l: lAnimation } = particle.options.color.animation, { color } = particle;
+      return !particle.destroyed && !particle.spawning && (color?.h.value !== void 0 && hAnimation.enable || color?.s.value !== void 0 && sAnimation.enable || color?.l.value !== void 0 && lAnimation.enable);
+    }
+    update(particle, delta) {
+      updateColor(particle.color, delta);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-color/browser/index.js
+  async function loadColorUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("color", (container) => {
+      return Promise.resolve(new ColorUpdater(container, engine));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/plugin-hex-color/browser/HexColorManager.js
+  var RgbIndexes;
+  (function(RgbIndexes3) {
+    RgbIndexes3[RgbIndexes3["r"] = 1] = "r";
+    RgbIndexes3[RgbIndexes3["g"] = 2] = "g";
+    RgbIndexes3[RgbIndexes3["b"] = 3] = "b";
+    RgbIndexes3[RgbIndexes3["a"] = 4] = "a";
+  })(RgbIndexes || (RgbIndexes = {}));
+  var shorthandHexRegex = /^#?([a-f\d])([a-f\d])([a-f\d])([a-f\d])?$/i;
+  var hexRegex = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i;
+  var hexRadix = 16;
+  var defaultAlpha = 1;
+  var alphaFactor = 255;
+  var HexColorManager = class {
+    constructor() {
+      this.key = "hex";
+      this.stringPrefix = "#";
+    }
+    handleColor(color) {
+      return this._parseString(color.value);
+    }
+    handleRangeColor(color) {
+      return this._parseString(color.value);
+    }
+    parseString(input) {
+      return this._parseString(input);
+    }
+    _parseString(hexColor) {
+      if (typeof hexColor !== "string") {
+        return;
+      }
+      if (!hexColor?.startsWith(this.stringPrefix)) {
+        return;
+      }
+      const hexFixed = hexColor.replace(shorthandHexRegex, (_, r, g, b, a) => {
+        return r + r + g + g + b + b + (a !== void 0 ? a + a : "");
+      }), result = hexRegex.exec(hexFixed);
+      return result ? {
+        a: result[RgbIndexes.a] !== void 0 ? parseInt(result[RgbIndexes.a], hexRadix) / alphaFactor : defaultAlpha,
+        b: parseInt(result[RgbIndexes.b], hexRadix),
+        g: parseInt(result[RgbIndexes.g], hexRadix),
+        r: parseInt(result[RgbIndexes.r], hexRadix)
+      } : void 0;
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-hex-color/browser/index.js
+  async function loadHexColorPlugin(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addColorManager(new HexColorManager(), refresh);
+  }
+
+  // node_modules/@tsparticles/plugin-hsl-color/browser/HslColorManager.js
+  var HslIndexes;
+  (function(HslIndexes2) {
+    HslIndexes2[HslIndexes2["h"] = 1] = "h";
+    HslIndexes2[HslIndexes2["s"] = 2] = "s";
+    HslIndexes2[HslIndexes2["l"] = 3] = "l";
+    HslIndexes2[HslIndexes2["a"] = 5] = "a";
+  })(HslIndexes || (HslIndexes = {}));
+  var HslColorManager = class {
+    constructor() {
+      this.key = "hsl";
+      this.stringPrefix = "hsl";
+    }
+    handleColor(color) {
+      const colorValue = color.value, hslColor = colorValue.hsl ?? color.value;
+      if (hslColor.h !== void 0 && hslColor.s !== void 0 && hslColor.l !== void 0) {
+        return hslToRgb(hslColor);
+      }
+    }
+    handleRangeColor(color) {
+      const colorValue = color.value, hslColor = colorValue.hsl ?? color.value;
+      if (hslColor.h !== void 0 && hslColor.l !== void 0) {
+        return hslToRgb({
+          h: getRangeValue(hslColor.h),
+          l: getRangeValue(hslColor.l),
+          s: getRangeValue(hslColor.s)
+        });
+      }
+    }
+    parseString(input) {
+      if (!input.startsWith("hsl")) {
+        return;
+      }
+      const regex = /hsla?\(\s*(\d+)\s*[\s,]\s*(\d+)%\s*[\s,]\s*(\d+)%\s*([\s,]\s*(0|1|0?\.\d+|(\d{1,3})%)\s*)?\)/i, result = regex.exec(input), minLength = 4, defaultAlpha3 = 1, radix = 10;
+      return result ? hslaToRgba({
+        a: result.length > minLength ? parseAlpha(result[HslIndexes.a]) : defaultAlpha3,
+        h: parseInt(result[HslIndexes.h], radix),
+        l: parseInt(result[HslIndexes.l], radix),
+        s: parseInt(result[HslIndexes.s], radix)
+      }) : void 0;
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-hsl-color/browser/index.js
+  async function loadHslColorPlugin(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addColorManager(new HslColorManager(), refresh);
+  }
+
+  // node_modules/@tsparticles/updater-opacity/browser/OpacityUpdater.js
+  var OpacityUpdater = class {
+    constructor(container) {
+      this.container = container;
+    }
+    init(particle) {
+      const opacityOptions = particle.options.opacity, pxRatio = 1;
+      particle.opacity = initParticleNumericAnimationValue(opacityOptions, pxRatio);
+      const opacityAnimation = opacityOptions.animation;
+      if (opacityAnimation.enable) {
+        particle.opacity.velocity = getRangeValue(opacityAnimation.speed) / percentDenominator * this.container.retina.reduceFactor;
+        if (!opacityAnimation.sync) {
+          particle.opacity.velocity *= getRandom();
+        }
+      }
+    }
+    isEnabled(particle) {
+      const none = 0;
+      return !particle.destroyed && !particle.spawning && !!particle.opacity && particle.opacity.enable && ((particle.opacity.maxLoops ?? none) <= none || (particle.opacity.maxLoops ?? none) > none && (particle.opacity.loops ?? none) < (particle.opacity.maxLoops ?? none));
+    }
+    reset(particle) {
+      if (particle.opacity) {
+        particle.opacity.time = 0;
+        particle.opacity.loops = 0;
+      }
+    }
+    update(particle, delta) {
+      if (!this.isEnabled(particle) || !particle.opacity) {
+        return;
+      }
+      updateAnimation(particle, particle.opacity, true, particle.options.opacity.animation.destroy, delta);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-opacity/browser/index.js
+  async function loadOpacityUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("opacity", (container) => {
+      return Promise.resolve(new OpacityUpdater(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/updater-out-modes/browser/Utils.js
+  var minVelocity3 = 0;
+  var boundsMin = 0;
+  function bounceHorizontal(data) {
+    if (data.outMode !== OutMode.bounce && data.outMode !== OutMode.split || data.direction !== OutModeDirection.left && data.direction !== OutModeDirection.right) {
+      return;
+    }
+    if (data.bounds.right < boundsMin && data.direction === OutModeDirection.left) {
+      data.particle.position.x = data.size + data.offset.x;
+    } else if (data.bounds.left > data.canvasSize.width && data.direction === OutModeDirection.right) {
+      data.particle.position.x = data.canvasSize.width - data.size - data.offset.x;
+    }
+    const velocity = data.particle.velocity.x;
+    let bounced = false;
+    if (data.direction === OutModeDirection.right && data.bounds.right >= data.canvasSize.width && velocity > minVelocity3 || data.direction === OutModeDirection.left && data.bounds.left <= boundsMin && velocity < minVelocity3) {
+      const newVelocity = getRangeValue(data.particle.options.bounce.horizontal.value);
+      data.particle.velocity.x *= -newVelocity;
+      bounced = true;
+    }
+    if (!bounced) {
+      return;
+    }
+    const minPos = data.offset.x + data.size;
+    if (data.bounds.right >= data.canvasSize.width && data.direction === OutModeDirection.right) {
+      data.particle.position.x = data.canvasSize.width - minPos;
+    } else if (data.bounds.left <= boundsMin && data.direction === OutModeDirection.left) {
+      data.particle.position.x = minPos;
+    }
+    if (data.outMode === OutMode.split) {
+      data.particle.destroy();
+    }
+  }
+  function bounceVertical(data) {
+    if (data.outMode !== OutMode.bounce && data.outMode !== OutMode.split || data.direction !== OutModeDirection.bottom && data.direction !== OutModeDirection.top) {
+      return;
+    }
+    if (data.bounds.bottom < boundsMin && data.direction === OutModeDirection.top) {
+      data.particle.position.y = data.size + data.offset.y;
+    } else if (data.bounds.top > data.canvasSize.height && data.direction === OutModeDirection.bottom) {
+      data.particle.position.y = data.canvasSize.height - data.size - data.offset.y;
+    }
+    const velocity = data.particle.velocity.y;
+    let bounced = false;
+    if (data.direction === OutModeDirection.bottom && data.bounds.bottom >= data.canvasSize.height && velocity > minVelocity3 || data.direction === OutModeDirection.top && data.bounds.top <= boundsMin && velocity < minVelocity3) {
+      const newVelocity = getRangeValue(data.particle.options.bounce.vertical.value);
+      data.particle.velocity.y *= -newVelocity;
+      bounced = true;
+    }
+    if (!bounced) {
+      return;
+    }
+    const minPos = data.offset.y + data.size;
+    if (data.bounds.bottom >= data.canvasSize.height && data.direction === OutModeDirection.bottom) {
+      data.particle.position.y = data.canvasSize.height - minPos;
+    } else if (data.bounds.top <= boundsMin && data.direction === OutModeDirection.top) {
+      data.particle.position.y = minPos;
+    }
+    if (data.outMode === OutMode.split) {
+      data.particle.destroy();
+    }
+  }
+
+  // node_modules/@tsparticles/updater-out-modes/browser/BounceOutMode.js
+  var BounceOutMode = class {
+    constructor(container) {
+      this.container = container;
+      this.modes = [
+        OutMode.bounce,
+        OutMode.split
+      ];
+    }
+    update(particle, direction, delta, outMode) {
+      if (!this.modes.includes(outMode)) {
+        return;
+      }
+      const container = this.container;
+      let handled = false;
+      for (const plugin of container.plugins.values()) {
+        if (plugin.particleBounce !== void 0) {
+          handled = plugin.particleBounce(particle, delta, direction);
+        }
+        if (handled) {
+          break;
+        }
+      }
+      if (handled) {
+        return;
+      }
+      const pos = particle.getPosition(), offset = particle.offset, size = particle.getRadius(), bounds = calculateBounds(pos, size), canvasSize = container.canvas.size;
+      bounceHorizontal({ particle, outMode, direction, bounds, canvasSize, offset, size });
+      bounceVertical({ particle, outMode, direction, bounds, canvasSize, offset, size });
+    }
+  };
+
+  // node_modules/@tsparticles/updater-out-modes/browser/DestroyOutMode.js
+  var minVelocity4 = 0;
+  var DestroyOutMode = class {
+    constructor(container) {
+      this.container = container;
+      this.modes = [OutMode.destroy];
+    }
+    update(particle, direction, _delta, outMode) {
+      if (!this.modes.includes(outMode)) {
+        return;
+      }
+      const container = this.container;
+      switch (particle.outType) {
+        case ParticleOutType.normal:
+        case ParticleOutType.outside:
+          if (isPointInside(particle.position, container.canvas.size, Vector.origin, particle.getRadius(), direction)) {
+            return;
+          }
+          break;
+        case ParticleOutType.inside: {
+          const { dx, dy } = getDistances(particle.position, particle.moveCenter), { x: vx, y: vy } = particle.velocity;
+          if (vx < minVelocity4 && dx > particle.moveCenter.radius || vy < minVelocity4 && dy > particle.moveCenter.radius || vx >= minVelocity4 && dx < -particle.moveCenter.radius || vy >= minVelocity4 && dy < -particle.moveCenter.radius) {
+            return;
+          }
+          break;
+        }
+      }
+      container.particles.remove(particle, particle.group, true);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-out-modes/browser/NoneOutMode.js
+  var minVelocity5 = 0;
+  var NoneOutMode = class {
+    constructor(container) {
+      this.container = container;
+      this.modes = [OutMode.none];
+    }
+    update(particle, direction, delta, outMode) {
+      if (!this.modes.includes(outMode)) {
+        return;
+      }
+      if ((particle.options.move.distance.horizontal && (direction === OutModeDirection.left || direction === OutModeDirection.right)) ?? (particle.options.move.distance.vertical && (direction === OutModeDirection.top || direction === OutModeDirection.bottom))) {
+        return;
+      }
+      const gravityOptions = particle.options.move.gravity, container = this.container, canvasSize = container.canvas.size, pRadius = particle.getRadius();
+      if (!gravityOptions.enable) {
+        if (particle.velocity.y > minVelocity5 && particle.position.y <= canvasSize.height + pRadius || particle.velocity.y < minVelocity5 && particle.position.y >= -pRadius || particle.velocity.x > minVelocity5 && particle.position.x <= canvasSize.width + pRadius || particle.velocity.x < minVelocity5 && particle.position.x >= -pRadius) {
+          return;
+        }
+        if (!isPointInside(particle.position, container.canvas.size, Vector.origin, pRadius, direction)) {
+          container.particles.remove(particle);
+        }
+      } else {
+        const position = particle.position;
+        if (!gravityOptions.inverse && position.y > canvasSize.height + pRadius && direction === OutModeDirection.bottom || gravityOptions.inverse && position.y < -pRadius && direction === OutModeDirection.top) {
+          container.particles.remove(particle);
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-out-modes/browser/OutOutMode.js
+  var minVelocity6 = 0;
+  var minDistance = 0;
+  var OutOutMode = class {
+    constructor(container) {
+      this.container = container;
+      this.modes = [OutMode.out];
+    }
+    update(particle, direction, delta, outMode) {
+      if (!this.modes.includes(outMode)) {
+        return;
+      }
+      const container = this.container;
+      switch (particle.outType) {
+        case ParticleOutType.inside: {
+          const { x: vx, y: vy } = particle.velocity;
+          const circVec = Vector.origin;
+          circVec.length = particle.moveCenter.radius;
+          circVec.angle = particle.velocity.angle + Math.PI;
+          circVec.addTo(Vector.create(particle.moveCenter));
+          const { dx, dy } = getDistances(particle.position, circVec);
+          if (vx <= minVelocity6 && dx >= minDistance || vy <= minVelocity6 && dy >= minDistance || vx >= minVelocity6 && dx <= minDistance || vy >= minVelocity6 && dy <= minDistance) {
+            return;
+          }
+          particle.position.x = Math.floor(randomInRange({
+            min: 0,
+            max: container.canvas.size.width
+          }));
+          particle.position.y = Math.floor(randomInRange({
+            min: 0,
+            max: container.canvas.size.height
+          }));
+          const { dx: newDx, dy: newDy } = getDistances(particle.position, particle.moveCenter);
+          particle.direction = Math.atan2(-newDy, -newDx);
+          particle.velocity.angle = particle.direction;
+          break;
+        }
+        default: {
+          if (isPointInside(particle.position, container.canvas.size, Vector.origin, particle.getRadius(), direction)) {
+            return;
+          }
+          switch (particle.outType) {
+            case ParticleOutType.outside: {
+              particle.position.x = Math.floor(randomInRange({
+                min: -particle.moveCenter.radius,
+                max: particle.moveCenter.radius
+              })) + particle.moveCenter.x;
+              particle.position.y = Math.floor(randomInRange({
+                min: -particle.moveCenter.radius,
+                max: particle.moveCenter.radius
+              })) + particle.moveCenter.y;
+              const { dx, dy } = getDistances(particle.position, particle.moveCenter);
+              if (particle.moveCenter.radius) {
+                particle.direction = Math.atan2(dy, dx);
+                particle.velocity.angle = particle.direction;
+              }
+              break;
+            }
+            case ParticleOutType.normal: {
+              const warp = particle.options.move.warp, canvasSize = container.canvas.size, newPos = {
+                bottom: canvasSize.height + particle.getRadius() + particle.offset.y,
+                left: -particle.getRadius() - particle.offset.x,
+                right: canvasSize.width + particle.getRadius() + particle.offset.x,
+                top: -particle.getRadius() - particle.offset.y
+              }, sizeValue = particle.getRadius(), nextBounds = calculateBounds(particle.position, sizeValue);
+              if (direction === OutModeDirection.right && nextBounds.left > canvasSize.width + particle.offset.x) {
+                particle.position.x = newPos.left;
+                particle.initialPosition.x = particle.position.x;
+                if (!warp) {
+                  particle.position.y = getRandom() * canvasSize.height;
+                  particle.initialPosition.y = particle.position.y;
+                }
+              } else if (direction === OutModeDirection.left && nextBounds.right < -particle.offset.x) {
+                particle.position.x = newPos.right;
+                particle.initialPosition.x = particle.position.x;
+                if (!warp) {
+                  particle.position.y = getRandom() * canvasSize.height;
+                  particle.initialPosition.y = particle.position.y;
+                }
+              }
+              if (direction === OutModeDirection.bottom && nextBounds.top > canvasSize.height + particle.offset.y) {
+                if (!warp) {
+                  particle.position.x = getRandom() * canvasSize.width;
+                  particle.initialPosition.x = particle.position.x;
+                }
+                particle.position.y = newPos.top;
+                particle.initialPosition.y = particle.position.y;
+              } else if (direction === OutModeDirection.top && nextBounds.bottom < -particle.offset.y) {
+                if (!warp) {
+                  particle.position.x = getRandom() * canvasSize.width;
+                  particle.initialPosition.x = particle.position.x;
+                }
+                particle.position.y = newPos.bottom;
+                particle.initialPosition.y = particle.position.y;
+              }
+              break;
+            }
+          }
+          break;
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-out-modes/browser/OutOfCanvasUpdater.js
+  var checkOutMode = (outModes, outMode) => {
+    return outModes.default === outMode || outModes.bottom === outMode || outModes.left === outMode || outModes.right === outMode || outModes.top === outMode;
+  };
+  var OutOfCanvasUpdater = class {
+    constructor(container) {
+      this._addUpdaterIfMissing = (particle, outMode, getUpdater) => {
+        const outModes = particle.options.move.outModes;
+        if (!this.updaters.has(outMode) && checkOutMode(outModes, outMode)) {
+          this.updaters.set(outMode, getUpdater(this.container));
+        }
+      };
+      this._updateOutMode = (particle, delta, outMode, direction) => {
+        for (const updater of this.updaters.values()) {
+          updater.update(particle, direction, delta, outMode);
+        }
+      };
+      this.container = container;
+      this.updaters = /* @__PURE__ */ new Map();
+    }
+    init(particle) {
+      this._addUpdaterIfMissing(particle, OutMode.bounce, (container) => new BounceOutMode(container));
+      this._addUpdaterIfMissing(particle, OutMode.out, (container) => new OutOutMode(container));
+      this._addUpdaterIfMissing(particle, OutMode.destroy, (container) => new DestroyOutMode(container));
+      this._addUpdaterIfMissing(particle, OutMode.none, (container) => new NoneOutMode(container));
+    }
+    isEnabled(particle) {
+      return !particle.destroyed && !particle.spawning;
+    }
+    update(particle, delta) {
+      const outModes = particle.options.move.outModes;
+      this._updateOutMode(particle, delta, outModes.bottom ?? outModes.default, OutModeDirection.bottom);
+      this._updateOutMode(particle, delta, outModes.left ?? outModes.default, OutModeDirection.left);
+      this._updateOutMode(particle, delta, outModes.right ?? outModes.default, OutModeDirection.right);
+      this._updateOutMode(particle, delta, outModes.top ?? outModes.default, OutModeDirection.top);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-out-modes/browser/index.js
+  async function loadOutModesUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("outModes", (container) => {
+      return Promise.resolve(new OutOfCanvasUpdater(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/plugin-rgb-color/browser/RgbColorManager.js
+  var RgbIndexes2;
+  (function(RgbIndexes3) {
+    RgbIndexes3[RgbIndexes3["r"] = 1] = "r";
+    RgbIndexes3[RgbIndexes3["g"] = 2] = "g";
+    RgbIndexes3[RgbIndexes3["b"] = 3] = "b";
+    RgbIndexes3[RgbIndexes3["a"] = 5] = "a";
+  })(RgbIndexes2 || (RgbIndexes2 = {}));
+  var RgbColorManager = class {
+    constructor() {
+      this.key = "rgb";
+      this.stringPrefix = "rgb";
+    }
+    handleColor(color) {
+      const colorValue = color.value, rgbColor = colorValue.rgb ?? color.value;
+      if (rgbColor.r !== void 0) {
+        return rgbColor;
+      }
+    }
+    handleRangeColor(color) {
+      const colorValue = color.value, rgbColor = colorValue.rgb ?? color.value;
+      if (rgbColor.r !== void 0) {
+        return {
+          r: getRangeValue(rgbColor.r),
+          g: getRangeValue(rgbColor.g),
+          b: getRangeValue(rgbColor.b)
+        };
+      }
+    }
+    parseString(input) {
+      if (!input.startsWith(this.stringPrefix)) {
+        return;
+      }
+      const regex = /rgba?\(\s*(\d{1,3})\s*[\s,]\s*(\d{1,3})\s*[\s,]\s*(\d{1,3})\s*([\s,]\s*(0|1|0?\.\d+|(\d{1,3})%)\s*)?\)/i, result = regex.exec(input), radix = 10, minLength = 4, defaultAlpha3 = 1;
+      return result ? {
+        a: result.length > minLength ? parseAlpha(result[RgbIndexes2.a]) : defaultAlpha3,
+        b: parseInt(result[RgbIndexes2.b], radix),
+        g: parseInt(result[RgbIndexes2.g], radix),
+        r: parseInt(result[RgbIndexes2.r], radix)
+      } : void 0;
+    }
+  };
+
+  // node_modules/@tsparticles/plugin-rgb-color/browser/index.js
+  async function loadRgbColorPlugin(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addColorManager(new RgbColorManager(), refresh);
+  }
+
+  // node_modules/@tsparticles/updater-size/browser/SizeUpdater.js
+  var minLoops = 0;
+  var SizeUpdater = class {
+    init(particle) {
+      const container = particle.container, sizeOptions = particle.options.size, sizeAnimation = sizeOptions.animation;
+      if (sizeAnimation.enable) {
+        particle.size.velocity = (particle.retina.sizeAnimationSpeed ?? container.retina.sizeAnimationSpeed) / percentDenominator * container.retina.reduceFactor;
+        if (!sizeAnimation.sync) {
+          particle.size.velocity *= getRandom();
+        }
+      }
+    }
+    isEnabled(particle) {
+      return !particle.destroyed && !particle.spawning && particle.size.enable && ((particle.size.maxLoops ?? minLoops) <= minLoops || (particle.size.maxLoops ?? minLoops) > minLoops && (particle.size.loops ?? minLoops) < (particle.size.maxLoops ?? minLoops));
+    }
+    reset(particle) {
+      particle.size.loops = minLoops;
+    }
+    update(particle, delta) {
+      if (!this.isEnabled(particle)) {
+        return;
+      }
+      updateAnimation(particle, particle.size, true, particle.options.size.animation.destroy, delta);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-size/browser/index.js
+  async function loadSizeUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("size", () => {
+      return Promise.resolve(new SizeUpdater());
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/basic/browser/index.js
+  async function loadBasic(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await loadHexColorPlugin(engine, false);
+    await loadHslColorPlugin(engine, false);
+    await loadRgbColorPlugin(engine, false);
+    await loadBaseMover(engine, false);
+    await loadCircleShape(engine, false);
+    await loadColorUpdater(engine, false);
+    await loadOpacityUpdater(engine, false);
+    await loadOutModesUpdater(engine, false);
+    await loadSizeUpdater(engine, false);
+    await engine.refresh(refresh);
+  }
+
+  // node_modules/@tsparticles/plugin-easing-quad/browser/index.js
+  async function loadEasingQuadPlugin(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addEasing(EasingType.easeInQuad, (value) => value ** 2, false);
+    await engine.addEasing(EasingType.easeOutQuad, (value) => 1 - (1 - value) ** 2, false);
+    await engine.addEasing(EasingType.easeInOutQuad, (value) => value < 0.5 ? 2 * value ** 2 : 1 - (-2 * value + 2) ** 2 / 2, false);
+    await engine.refresh(refresh);
+  }
+
+  // node_modules/@tsparticles/shape-emoji/browser/Utils.js
+  function drawEmoji(data, image) {
+    const { context, opacity } = data, half15 = 0.5, previousAlpha = context.globalAlpha;
+    if (!image) {
+      return;
+    }
+    const diameter = image.width, radius = diameter * half15;
+    context.globalAlpha = opacity;
+    context.drawImage(image, -radius, -radius, diameter, diameter);
+    context.globalAlpha = previousAlpha;
+  }
+
+  // node_modules/@tsparticles/shape-emoji/browser/EmojiDrawer.js
+  var defaultFont = '"Twemoji Mozilla", Apple Color Emoji, "Segoe UI Emoji", "Noto Color Emoji", "EmojiOne Color"';
+  var noPadding = 0;
+  var EmojiDrawer = class {
+    constructor() {
+      this.validTypes = ["emoji"];
+      this._emojiShapeDict = /* @__PURE__ */ new Map();
+    }
+    destroy() {
+      for (const [key, data] of this._emojiShapeDict) {
+        if (data instanceof ImageBitmap) {
+          data?.close();
+        }
+        this._emojiShapeDict.delete(key);
+      }
+    }
+    draw(data) {
+      const key = data.particle.emojiDataKey;
+      if (!key) {
+        return;
+      }
+      const image = this._emojiShapeDict.get(key);
+      if (!image) {
+        return;
+      }
+      drawEmoji(data, image);
+    }
+    async init(container) {
+      const options = container.actualOptions, { validTypes } = this;
+      if (!validTypes.find((t) => isInArray(t, options.particles.shape.type))) {
+        return;
+      }
+      const promises = [loadFont(defaultFont)], shapeOptions = validTypes.map((t) => options.particles.shape.options[t]).find((t) => !!t);
+      if (shapeOptions) {
+        executeOnSingleOrMultiple(shapeOptions, (shape) => {
+          if (shape.font) {
+            promises.push(loadFont(shape.font));
+          }
+        });
+      }
+      await Promise.all(promises);
+    }
+    particleDestroy(particle) {
+      particle.emojiDataKey = void 0;
+    }
+    particleInit(_container, particle) {
+      const double22 = 2, shapeData = particle.shapeData;
+      if (!shapeData?.value) {
+        return;
+      }
+      const emoji = itemFromSingleOrMultiple(shapeData.value, particle.randomIndexData);
+      if (!emoji) {
+        return;
+      }
+      const emojiOptions = typeof emoji === "string" ? {
+        font: shapeData.font ?? defaultFont,
+        padding: shapeData.padding ?? noPadding,
+        value: emoji
+      } : {
+        font: defaultFont,
+        padding: noPadding,
+        ...shapeData,
+        ...emoji
+      }, font = emojiOptions.font, value = emojiOptions.value;
+      const key = `${value}_${font}`;
+      if (this._emojiShapeDict.has(key)) {
+        particle.emojiDataKey = key;
+        return;
+      }
+      const padding = emojiOptions.padding * double22, maxSize = getRangeMax(particle.size.value), fullSize = maxSize + padding, canvasSize = fullSize * double22;
+      let image;
+      if (typeof OffscreenCanvas !== "undefined") {
+        const canvas = new OffscreenCanvas(canvasSize, canvasSize), context = canvas.getContext("2d");
+        if (!context) {
+          return;
+        }
+        context.font = `400 ${maxSize * double22}px ${font}`;
+        context.textBaseline = "middle";
+        context.textAlign = "center";
+        context.fillText(value, fullSize, fullSize);
+        image = canvas.transferToImageBitmap();
+      } else {
+        const canvas = document.createElement("canvas");
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          return;
+        }
+        context.font = `400 ${maxSize * double22}px ${font}`;
+        context.textBaseline = "middle";
+        context.textAlign = "center";
+        context.fillText(value, fullSize, fullSize);
+        image = canvas;
+      }
+      this._emojiShapeDict.set(key, image);
+      particle.emojiDataKey = key;
+    }
+  };
+
+  // node_modules/@tsparticles/shape-emoji/browser/index.js
+  async function loadEmojiShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new EmojiDrawer(), refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-attract/browser/Utils.js
+  var minFactor = 1;
+  var identity2 = 1;
+  var minRadius2 = 0;
+  function processAttract(engine, container, position, attractRadius, area, queryCb) {
+    const attractOptions = container.actualOptions.interactivity.modes.attract;
+    if (!attractOptions) {
+      return;
+    }
+    const query = container.particles.quadTree.query(area, queryCb);
+    for (const particle of query) {
+      const { dx, dy, distance } = getDistances(particle.position, position), velocity = attractOptions.speed * attractOptions.factor, attractFactor2 = clamp(engine.getEasing(attractOptions.easing)(identity2 - distance / attractRadius) * velocity, minFactor, attractOptions.maxSpeed), normVec = Vector.create(!distance ? velocity : dx / distance * attractFactor2, !distance ? velocity : dy / distance * attractFactor2);
+      particle.position.subFrom(normVec);
+    }
+  }
+  function clickAttract(engine, container, enabledCb) {
+    if (!container.attract) {
+      container.attract = { particles: [] };
+    }
+    const { attract } = container;
+    if (!attract.finish) {
+      if (!attract.count) {
+        attract.count = 0;
+      }
+      attract.count++;
+      if (attract.count === container.particles.count) {
+        attract.finish = true;
+      }
+    }
+    if (attract.clicking) {
+      const mousePos = container.interactivity.mouse.clickPosition, attractRadius = container.retina.attractModeDistance;
+      if (!attractRadius || attractRadius < minRadius2 || !mousePos) {
+        return;
+      }
+      processAttract(engine, container, mousePos, attractRadius, new Circle(mousePos.x, mousePos.y, attractRadius), (p) => enabledCb(p));
+    } else if (attract.clicking === false) {
+      attract.particles = [];
+    }
+  }
+  function hoverAttract(engine, container, enabledCb) {
+    const mousePos = container.interactivity.mouse.position, attractRadius = container.retina.attractModeDistance;
+    if (!attractRadius || attractRadius < minRadius2 || !mousePos) {
+      return;
+    }
+    processAttract(engine, container, mousePos, attractRadius, new Circle(mousePos.x, mousePos.y, attractRadius), (p) => enabledCb(p));
+  }
+
+  // node_modules/@tsparticles/interaction-external-attract/browser/Options/Classes/Attract.js
+  var Attract = class {
+    constructor() {
+      this.distance = 200;
+      this.duration = 0.4;
+      this.easing = EasingType.easeOutQuad;
+      this.factor = 1;
+      this.maxSpeed = 50;
+      this.speed = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = data.distance;
+      }
+      if (data.duration !== void 0) {
+        this.duration = data.duration;
+      }
+      if (data.easing !== void 0) {
+        this.easing = data.easing;
+      }
+      if (data.factor !== void 0) {
+        this.factor = data.factor;
+      }
+      if (data.maxSpeed !== void 0) {
+        this.maxSpeed = data.maxSpeed;
+      }
+      if (data.speed !== void 0) {
+        this.speed = data.speed;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-attract/browser/Attractor.js
+  var attractMode = "attract";
+  var Attractor = class extends ExternalInteractorBase {
+    constructor(engine, container) {
+      super(container);
+      this._engine = engine;
+      if (!container.attract) {
+        container.attract = { particles: [] };
+      }
+      this.handleClickMode = (mode) => {
+        const options = this.container.actualOptions, attract = options.interactivity.modes.attract;
+        if (!attract || mode !== attractMode) {
+          return;
+        }
+        if (!container.attract) {
+          container.attract = { particles: [] };
+        }
+        container.attract.clicking = true;
+        container.attract.count = 0;
+        for (const particle of container.attract.particles) {
+          if (!this.isEnabled(particle)) {
+            continue;
+          }
+          particle.velocity.setTo(particle.initialVelocity);
+        }
+        container.attract.particles = [];
+        container.attract.finish = false;
+        setTimeout(() => {
+          if (container.destroyed) {
+            return;
+          }
+          if (!container.attract) {
+            container.attract = { particles: [] };
+          }
+          container.attract.clicking = false;
+        }, attract.duration * millisecondsToSeconds);
+      };
+    }
+    clear() {
+    }
+    init() {
+      const container = this.container, attract = container.actualOptions.interactivity.modes.attract;
+      if (!attract) {
+        return;
+      }
+      container.retina.attractModeDistance = attract.distance * container.retina.pixelRatio;
+    }
+    interact() {
+      const container = this.container, options = container.actualOptions, mouseMoveStatus = container.interactivity.status === mouseMoveEvent, events = options.interactivity.events, { enable: hoverEnabled, mode: hoverMode } = events.onHover, { enable: clickEnabled, mode: clickMode } = events.onClick;
+      if (mouseMoveStatus && hoverEnabled && isInArray(attractMode, hoverMode)) {
+        hoverAttract(this._engine, this.container, (p) => this.isEnabled(p));
+      } else if (clickEnabled && isInArray(attractMode, clickMode)) {
+        clickAttract(this._engine, this.container, (p) => this.isEnabled(p));
+      }
+    }
+    isEnabled(particle) {
+      const container = this.container, options = container.actualOptions, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? options.interactivity).events;
+      if ((!mouse.position || !events.onHover.enable) && (!mouse.clickPosition || !events.onClick.enable)) {
+        return false;
+      }
+      const hoverMode = events.onHover.mode, clickMode = events.onClick.mode;
+      return isInArray(attractMode, hoverMode) || isInArray(attractMode, clickMode);
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.attract) {
+        options.attract = new Attract();
+      }
+      for (const source of sources) {
+        options.attract.load(source?.attract);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-attract/browser/index.js
+  async function loadExternalAttractInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalAttract", (container) => {
+      return Promise.resolve(new Attractor(engine, container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-bounce/browser/Utils.js
+  var squareExp7 = 2;
+  var half7 = 0.5;
+  var halfPI = Math.PI * half7;
+  var double10 = 2;
+  var toleranceFactor = 10;
+  var minRadius3 = 0;
+  function processBounce(container, position, radius, area, enabledCb) {
+    const query = container.particles.quadTree.query(area, enabledCb);
+    for (const particle of query) {
+      if (area instanceof Circle) {
+        circleBounce(circleBounceDataFromParticle(particle), {
+          position,
+          radius,
+          mass: radius ** squareExp7 * halfPI,
+          velocity: Vector.origin,
+          factor: Vector.origin
+        });
+      } else if (area instanceof Rectangle) {
+        rectBounce(particle, calculateBounds(position, radius));
+      }
+    }
+  }
+  function singleSelectorBounce(container, selector, div, bounceCb) {
+    const query = document.querySelectorAll(selector);
+    if (!query.length) {
+      return;
+    }
+    query.forEach((item) => {
+      const elem = item, pxRatio = container.retina.pixelRatio, pos = {
+        x: (elem.offsetLeft + elem.offsetWidth * half7) * pxRatio,
+        y: (elem.offsetTop + elem.offsetHeight * half7) * pxRatio
+      }, radius = elem.offsetWidth * half7 * pxRatio, tolerance = toleranceFactor * pxRatio, area = div.type === DivType.circle ? new Circle(pos.x, pos.y, radius + tolerance) : new Rectangle(elem.offsetLeft * pxRatio - tolerance, elem.offsetTop * pxRatio - tolerance, elem.offsetWidth * pxRatio + tolerance * double10, elem.offsetHeight * pxRatio + tolerance * double10);
+      bounceCb(pos, radius, area);
+    });
+  }
+  function divBounce(container, divs, bounceMode2, enabledCb) {
+    divModeExecute(bounceMode2, divs, (selector, div) => singleSelectorBounce(container, selector, div, (pos, radius, area) => processBounce(container, pos, radius, area, enabledCb)));
+  }
+  function mouseBounce(container, enabledCb) {
+    const pxRatio = container.retina.pixelRatio, tolerance = toleranceFactor * pxRatio, mousePos = container.interactivity.mouse.position, radius = container.retina.bounceModeDistance;
+    if (!radius || radius < minRadius3 || !mousePos) {
+      return;
+    }
+    processBounce(container, mousePos, radius, new Circle(mousePos.x, mousePos.y, radius + tolerance), enabledCb);
+  }
+
+  // node_modules/@tsparticles/interaction-external-bounce/browser/Options/Classes/Bounce.js
+  var Bounce = class {
+    constructor() {
+      this.distance = 200;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = data.distance;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-bounce/browser/Bouncer.js
+  var bounceMode = "bounce";
+  var Bouncer = class extends ExternalInteractorBase {
+    constructor(container) {
+      super(container);
+    }
+    clear() {
+    }
+    init() {
+      const container = this.container, bounce2 = container.actualOptions.interactivity.modes.bounce;
+      if (!bounce2) {
+        return;
+      }
+      container.retina.bounceModeDistance = bounce2.distance * container.retina.pixelRatio;
+    }
+    interact() {
+      const container = this.container, options = container.actualOptions, events = options.interactivity.events, mouseMoveStatus = container.interactivity.status === mouseMoveEvent, hoverEnabled = events.onHover.enable, hoverMode = events.onHover.mode, divs = events.onDiv;
+      if (mouseMoveStatus && hoverEnabled && isInArray(bounceMode, hoverMode)) {
+        mouseBounce(this.container, (p) => this.isEnabled(p));
+      } else {
+        divBounce(this.container, divs, bounceMode, (p) => this.isEnabled(p));
+      }
+    }
+    isEnabled(particle) {
+      const container = this.container, options = container.actualOptions, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? options.interactivity).events, divs = events.onDiv;
+      return !!mouse.position && events.onHover.enable && isInArray(bounceMode, events.onHover.mode) || isDivModeEnabled(bounceMode, divs);
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.bounce) {
+        options.bounce = new Bounce();
+      }
+      for (const source of sources) {
+        options.bounce.load(source?.bounce);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-bounce/browser/index.js
+  async function loadExternalBounceInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalBounce", (container) => {
+      return Promise.resolve(new Bouncer(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-bubble/browser/Options/Classes/BubbleBase.js
+  var BubbleBase = class {
+    constructor() {
+      this.distance = 200;
+      this.duration = 0.4;
+      this.mix = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = data.distance;
+      }
+      if (data.duration !== void 0) {
+        this.duration = data.duration;
+      }
+      if (data.mix !== void 0) {
+        this.mix = data.mix;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+      if (data.color !== void 0) {
+        const sourceColor = isArray(this.color) ? void 0 : this.color;
+        this.color = executeOnSingleOrMultiple(data.color, (color) => {
+          return OptionsColor.create(sourceColor, color);
+        });
+      }
+      if (data.size !== void 0) {
+        this.size = data.size;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-bubble/browser/Options/Classes/BubbleDiv.js
+  var BubbleDiv = class extends BubbleBase {
+    constructor() {
+      super();
+      this.selectors = [];
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      if (data.selectors !== void 0) {
+        this.selectors = data.selectors;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-bubble/browser/Options/Classes/Bubble.js
+  var Bubble = class extends BubbleBase {
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      this.divs = executeOnSingleOrMultiple(data.divs, (div) => {
+        const tmp = new BubbleDiv();
+        tmp.load(div);
+        return tmp;
+      });
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-bubble/browser/Enums.js
+  var ProcessBubbleType;
+  (function(ProcessBubbleType2) {
+    ProcessBubbleType2["color"] = "color";
+    ProcessBubbleType2["opacity"] = "opacity";
+    ProcessBubbleType2["size"] = "size";
+  })(ProcessBubbleType || (ProcessBubbleType = {}));
+
+  // node_modules/@tsparticles/interaction-external-bubble/browser/Utils.js
+  function calculateBubbleValue(particleValue, modeValue, optionsValue, ratio) {
+    if (modeValue >= optionsValue) {
+      const value = particleValue + (modeValue - optionsValue) * ratio;
+      return clamp(value, particleValue, modeValue);
+    } else if (modeValue < optionsValue) {
+      const value = particleValue - (optionsValue - modeValue) * ratio;
+      return clamp(value, modeValue, particleValue);
+    }
+  }
+
+  // node_modules/@tsparticles/interaction-external-bubble/browser/Bubbler.js
+  var bubbleMode = "bubble";
+  var minDistance2 = 0;
+  var defaultClickTime = 0;
+  var double11 = 2;
+  var defaultOpacity = 1;
+  var ratioOffset = 1;
+  var defaultBubbleValue = 0;
+  var minRatio = 0;
+  var half8 = 0.5;
+  var defaultRatio2 = 1;
+  var Bubbler = class extends ExternalInteractorBase {
+    constructor(container, engine) {
+      super(container);
+      this._clickBubble = () => {
+        const container2 = this.container, options = container2.actualOptions, mouseClickPos = container2.interactivity.mouse.clickPosition, bubbleOptions = options.interactivity.modes.bubble;
+        if (!bubbleOptions || !mouseClickPos) {
+          return;
+        }
+        if (!container2.bubble) {
+          container2.bubble = {};
+        }
+        const distance = container2.retina.bubbleModeDistance;
+        if (!distance || distance < minDistance2) {
+          return;
+        }
+        const query = container2.particles.quadTree.queryCircle(mouseClickPos, distance, (p) => this.isEnabled(p)), { bubble } = container2;
+        for (const particle of query) {
+          if (!bubble.clicking) {
+            continue;
+          }
+          particle.bubble.inRange = !bubble.durationEnd;
+          const pos = particle.getPosition(), distMouse = getDistance(pos, mouseClickPos), timeSpent = ((/* @__PURE__ */ new Date()).getTime() - (container2.interactivity.mouse.clickTime ?? defaultClickTime)) / millisecondsToSeconds;
+          if (timeSpent > bubbleOptions.duration) {
+            bubble.durationEnd = true;
+          }
+          if (timeSpent > bubbleOptions.duration * double11) {
+            bubble.clicking = false;
+            bubble.durationEnd = false;
+          }
+          const sizeData = {
+            bubbleObj: {
+              optValue: container2.retina.bubbleModeSize,
+              value: particle.bubble.radius
+            },
+            particlesObj: {
+              optValue: getRangeMax(particle.options.size.value) * container2.retina.pixelRatio,
+              value: particle.size.value
+            },
+            type: ProcessBubbleType.size
+          };
+          this._process(particle, distMouse, timeSpent, sizeData);
+          const opacityData = {
+            bubbleObj: {
+              optValue: bubbleOptions.opacity,
+              value: particle.bubble.opacity
+            },
+            particlesObj: {
+              optValue: getRangeMax(particle.options.opacity.value),
+              value: particle.opacity?.value ?? defaultOpacity
+            },
+            type: ProcessBubbleType.opacity
+          };
+          this._process(particle, distMouse, timeSpent, opacityData);
+          if (!bubble.durationEnd && distMouse <= distance) {
+            this._hoverBubbleColor(particle, distMouse);
+          } else {
+            delete particle.bubble.color;
+          }
+        }
+      };
+      this._hoverBubble = () => {
+        const container2 = this.container, mousePos = container2.interactivity.mouse.position, distance = container2.retina.bubbleModeDistance;
+        if (!distance || distance < minDistance2 || !mousePos) {
+          return;
+        }
+        const query = container2.particles.quadTree.queryCircle(mousePos, distance, (p) => this.isEnabled(p));
+        for (const particle of query) {
+          particle.bubble.inRange = true;
+          const pos = particle.getPosition(), pointDistance = getDistance(pos, mousePos), ratio = ratioOffset - pointDistance / distance;
+          if (pointDistance <= distance) {
+            if (ratio >= minRatio && container2.interactivity.status === mouseMoveEvent) {
+              this._hoverBubbleSize(particle, ratio);
+              this._hoverBubbleOpacity(particle, ratio);
+              this._hoverBubbleColor(particle, ratio);
+            }
+          } else {
+            this.reset(particle);
+          }
+          if (container2.interactivity.status === mouseLeaveEvent) {
+            this.reset(particle);
+          }
+        }
+      };
+      this._hoverBubbleColor = (particle, ratio, divBubble) => {
+        const options = this.container.actualOptions, bubbleOptions = divBubble ?? options.interactivity.modes.bubble;
+        if (!bubbleOptions) {
+          return;
+        }
+        if (!particle.bubble.finalColor) {
+          const modeColor = bubbleOptions.color;
+          if (!modeColor) {
+            return;
+          }
+          const bubbleColor = itemFromSingleOrMultiple(modeColor);
+          particle.bubble.finalColor = rangeColorToHsl(this._engine, bubbleColor);
+        }
+        if (!particle.bubble.finalColor) {
+          return;
+        }
+        if (bubbleOptions.mix) {
+          particle.bubble.color = void 0;
+          const pColor = particle.getFillColor();
+          particle.bubble.color = pColor ? rgbToHsl(colorMix(pColor, particle.bubble.finalColor, ratioOffset - ratio, ratio)) : particle.bubble.finalColor;
+        } else {
+          particle.bubble.color = particle.bubble.finalColor;
+        }
+      };
+      this._hoverBubbleOpacity = (particle, ratio, divBubble) => {
+        const container2 = this.container, options = container2.actualOptions, modeOpacity = divBubble?.opacity ?? options.interactivity.modes.bubble?.opacity;
+        if (!modeOpacity) {
+          return;
+        }
+        const optOpacity = particle.options.opacity.value, pOpacity = particle.opacity?.value ?? defaultOpacity, opacity = calculateBubbleValue(pOpacity, modeOpacity, getRangeMax(optOpacity), ratio);
+        if (opacity !== void 0) {
+          particle.bubble.opacity = opacity;
+        }
+      };
+      this._hoverBubbleSize = (particle, ratio, divBubble) => {
+        const container2 = this.container, modeSize = divBubble?.size ? divBubble.size * container2.retina.pixelRatio : container2.retina.bubbleModeSize;
+        if (modeSize === void 0) {
+          return;
+        }
+        const optSize = getRangeMax(particle.options.size.value) * container2.retina.pixelRatio, pSize = particle.size.value, size = calculateBubbleValue(pSize, modeSize, optSize, ratio);
+        if (size !== void 0) {
+          particle.bubble.radius = size;
+        }
+      };
+      this._process = (particle, distMouse, timeSpent, data) => {
+        const container2 = this.container, bubbleParam = data.bubbleObj.optValue, options = container2.actualOptions, bubbleOptions = options.interactivity.modes.bubble;
+        if (!bubbleOptions || bubbleParam === void 0) {
+          return;
+        }
+        const bubbleDuration = bubbleOptions.duration, bubbleDistance = container2.retina.bubbleModeDistance, particlesParam = data.particlesObj.optValue, pObjBubble = data.bubbleObj.value, pObj = data.particlesObj.value ?? defaultBubbleValue, type = data.type;
+        if (!bubbleDistance || bubbleDistance < minDistance2 || bubbleParam === particlesParam) {
+          return;
+        }
+        if (!container2.bubble) {
+          container2.bubble = {};
+        }
+        if (container2.bubble.durationEnd) {
+          if (pObjBubble) {
+            if (type === ProcessBubbleType.size) {
+              delete particle.bubble.radius;
+            }
+            if (type === ProcessBubbleType.opacity) {
+              delete particle.bubble.opacity;
+            }
+          }
+        } else {
+          if (distMouse <= bubbleDistance) {
+            const obj = pObjBubble ?? pObj;
+            if (obj !== bubbleParam) {
+              const value = pObj - timeSpent * (pObj - bubbleParam) / bubbleDuration;
+              if (type === ProcessBubbleType.size) {
+                particle.bubble.radius = value;
+              }
+              if (type === ProcessBubbleType.opacity) {
+                particle.bubble.opacity = value;
+              }
+            }
+          } else {
+            if (type === ProcessBubbleType.size) {
+              delete particle.bubble.radius;
+            }
+            if (type === ProcessBubbleType.opacity) {
+              delete particle.bubble.opacity;
+            }
+          }
+        }
+      };
+      this._singleSelectorHover = (delta, selector, div) => {
+        const container2 = this.container, selectors = document.querySelectorAll(selector), bubble = container2.actualOptions.interactivity.modes.bubble;
+        if (!bubble || !selectors.length) {
+          return;
+        }
+        selectors.forEach((item) => {
+          const elem = item, pxRatio = container2.retina.pixelRatio, pos = {
+            x: (elem.offsetLeft + elem.offsetWidth * half8) * pxRatio,
+            y: (elem.offsetTop + elem.offsetHeight * half8) * pxRatio
+          }, repulseRadius = elem.offsetWidth * half8 * pxRatio, area = div.type === DivType.circle ? new Circle(pos.x, pos.y, repulseRadius) : new Rectangle(elem.offsetLeft * pxRatio, elem.offsetTop * pxRatio, elem.offsetWidth * pxRatio, elem.offsetHeight * pxRatio), query = container2.particles.quadTree.query(area, (p) => this.isEnabled(p));
+          for (const particle of query) {
+            if (!area.contains(particle.getPosition())) {
+              continue;
+            }
+            particle.bubble.inRange = true;
+            const divs = bubble.divs, divBubble = divMode(divs, elem);
+            if (!particle.bubble.div || particle.bubble.div !== elem) {
+              this.clear(particle, delta, true);
+              particle.bubble.div = elem;
+            }
+            this._hoverBubbleSize(particle, defaultRatio2, divBubble);
+            this._hoverBubbleOpacity(particle, defaultRatio2, divBubble);
+            this._hoverBubbleColor(particle, defaultRatio2, divBubble);
+          }
+        });
+      };
+      this._engine = engine;
+      if (!container.bubble) {
+        container.bubble = {};
+      }
+      this.handleClickMode = (mode) => {
+        if (mode !== bubbleMode) {
+          return;
+        }
+        if (!container.bubble) {
+          container.bubble = {};
+        }
+        container.bubble.clicking = true;
+      };
+    }
+    clear(particle, delta, force) {
+      if (particle.bubble.inRange && !force) {
+        return;
+      }
+      delete particle.bubble.div;
+      delete particle.bubble.opacity;
+      delete particle.bubble.radius;
+      delete particle.bubble.color;
+    }
+    init() {
+      const container = this.container, bubble = container.actualOptions.interactivity.modes.bubble;
+      if (!bubble) {
+        return;
+      }
+      container.retina.bubbleModeDistance = bubble.distance * container.retina.pixelRatio;
+      if (bubble.size !== void 0) {
+        container.retina.bubbleModeSize = bubble.size * container.retina.pixelRatio;
+      }
+    }
+    interact(delta) {
+      const options = this.container.actualOptions, events = options.interactivity.events, onHover = events.onHover, onClick = events.onClick, hoverEnabled = onHover.enable, hoverMode = onHover.mode, clickEnabled = onClick.enable, clickMode = onClick.mode, divs = events.onDiv;
+      if (hoverEnabled && isInArray(bubbleMode, hoverMode)) {
+        this._hoverBubble();
+      } else if (clickEnabled && isInArray(bubbleMode, clickMode)) {
+        this._clickBubble();
+      } else {
+        divModeExecute(bubbleMode, divs, (selector, div) => this._singleSelectorHover(delta, selector, div));
+      }
+    }
+    isEnabled(particle) {
+      const container = this.container, options = container.actualOptions, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? options.interactivity).events, { onClick, onDiv, onHover } = events, divBubble = isDivModeEnabled(bubbleMode, onDiv);
+      if (!(divBubble || onHover.enable && !!mouse.position || onClick.enable && mouse.clickPosition)) {
+        return false;
+      }
+      return isInArray(bubbleMode, onHover.mode) || isInArray(bubbleMode, onClick.mode) || divBubble;
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.bubble) {
+        options.bubble = new Bubble();
+      }
+      for (const source of sources) {
+        options.bubble.load(source?.bubble);
+      }
+    }
+    reset(particle) {
+      particle.bubble.inRange = false;
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-bubble/browser/index.js
+  async function loadExternalBubbleInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalBubble", (container) => {
+      return Promise.resolve(new Bubbler(container, engine));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-connect/browser/Options/Classes/ConnectLinks.js
+  var ConnectLinks = class {
+    constructor() {
+      this.opacity = 0.5;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-connect/browser/Options/Classes/Connect.js
+  var Connect = class {
+    constructor() {
+      this.distance = 80;
+      this.links = new ConnectLinks();
+      this.radius = 60;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = data.distance;
+      }
+      this.links.load(data.links);
+      if (data.radius !== void 0) {
+        this.radius = data.radius;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-connect/browser/Utils.js
+  var gradientMin = 0;
+  var gradientMax = 1;
+  var defaultLinksWidth = 0;
+  function gradient(context, p1, p2, opacity) {
+    const gradStop = Math.floor(p2.getRadius() / p1.getRadius()), color1 = p1.getFillColor(), color2 = p2.getFillColor();
+    if (!color1 || !color2) {
+      return;
+    }
+    const sourcePos = p1.getPosition(), destPos = p2.getPosition(), midRgb = colorMix(color1, color2, p1.getRadius(), p2.getRadius()), grad = context.createLinearGradient(sourcePos.x, sourcePos.y, destPos.x, destPos.y);
+    grad.addColorStop(gradientMin, getStyleFromHsl(color1, opacity));
+    grad.addColorStop(clamp(gradStop, gradientMin, gradientMax), getStyleFromRgb(midRgb, opacity));
+    grad.addColorStop(gradientMax, getStyleFromHsl(color2, opacity));
+    return grad;
+  }
+  function drawConnectLine(context, width, lineStyle2, begin, end) {
+    drawLine(context, begin, end);
+    context.lineWidth = width;
+    context.strokeStyle = lineStyle2;
+    context.stroke();
+  }
+  function lineStyle(container, ctx, p1, p2) {
+    const options = container.actualOptions, connectOptions = options.interactivity.modes.connect;
+    if (!connectOptions) {
+      return;
+    }
+    return gradient(ctx, p1, p2, connectOptions.links.opacity);
+  }
+  function drawConnection(container, p1, p2) {
+    container.canvas.draw((ctx) => {
+      const ls = lineStyle(container, ctx, p1, p2);
+      if (!ls) {
+        return;
+      }
+      const pos1 = p1.getPosition(), pos2 = p2.getPosition();
+      drawConnectLine(ctx, p1.retina.linksWidth ?? defaultLinksWidth, ls, pos1, pos2);
+    });
+  }
+
+  // node_modules/@tsparticles/interaction-external-connect/browser/Connector.js
+  var connectMode = "connect";
+  var minDistance3 = 0;
+  var Connector = class extends ExternalInteractorBase {
+    constructor(container) {
+      super(container);
+    }
+    clear() {
+    }
+    init() {
+      const container = this.container, connect = container.actualOptions.interactivity.modes.connect;
+      if (!connect) {
+        return;
+      }
+      container.retina.connectModeDistance = connect.distance * container.retina.pixelRatio;
+      container.retina.connectModeRadius = connect.radius * container.retina.pixelRatio;
+    }
+    interact() {
+      const container = this.container, options = container.actualOptions;
+      if (options.interactivity.events.onHover.enable && container.interactivity.status === "pointermove") {
+        const mousePos = container.interactivity.mouse.position, { connectModeDistance, connectModeRadius } = container.retina;
+        if (!connectModeDistance || connectModeDistance < minDistance3 || !connectModeRadius || connectModeRadius < minDistance3 || !mousePos) {
+          return;
+        }
+        const distance = Math.abs(connectModeRadius), query = container.particles.quadTree.queryCircle(mousePos, distance, (p) => this.isEnabled(p));
+        query.forEach((p1, i) => {
+          const pos1 = p1.getPosition(), indexOffset = 1;
+          for (const p2 of query.slice(i + indexOffset)) {
+            const pos2 = p2.getPosition(), distMax = Math.abs(connectModeDistance), xDiff = Math.abs(pos1.x - pos2.x), yDiff = Math.abs(pos1.y - pos2.y);
+            if (xDiff < distMax && yDiff < distMax) {
+              drawConnection(container, p1, p2);
+            }
+          }
+        });
+      }
+    }
+    isEnabled(particle) {
+      const container = this.container, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? container.actualOptions.interactivity).events;
+      if (!(events.onHover.enable && mouse.position)) {
+        return false;
+      }
+      return isInArray(connectMode, events.onHover.mode);
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.connect) {
+        options.connect = new Connect();
+      }
+      for (const source of sources) {
+        options.connect.load(source?.connect);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-connect/browser/index.js
+  async function loadExternalConnectInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalConnect", (container) => {
+      return Promise.resolve(new Connector(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-grab/browser/Options/Classes/GrabLinks.js
+  var GrabLinks = class {
+    constructor() {
+      this.blink = false;
+      this.consent = false;
+      this.opacity = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.blink !== void 0) {
+        this.blink = data.blink;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.consent !== void 0) {
+        this.consent = data.consent;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-grab/browser/Options/Classes/Grab.js
+  var Grab = class {
+    constructor() {
+      this.distance = 100;
+      this.links = new GrabLinks();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = data.distance;
+      }
+      this.links.load(data.links);
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-grab/browser/Utils.js
+  var defaultWidth = 0;
+  function drawGrabLine(context, width, begin, end, colorLine, opacity) {
+    drawLine(context, begin, end);
+    context.strokeStyle = getStyleFromRgb(colorLine, opacity);
+    context.lineWidth = width;
+    context.stroke();
+  }
+  function drawGrab(container, particle, lineColor, opacity, mousePos) {
+    container.canvas.draw((ctx) => {
+      const beginPos = particle.getPosition();
+      drawGrabLine(ctx, particle.retina.linksWidth ?? defaultWidth, beginPos, mousePos, lineColor, opacity);
+    });
+  }
+
+  // node_modules/@tsparticles/interaction-external-grab/browser/Grabber.js
+  var grabMode = "grab";
+  var minDistance4 = 0;
+  var minOpacity = 0;
+  var Grabber = class extends ExternalInteractorBase {
+    constructor(container, engine) {
+      super(container);
+      this._engine = engine;
+    }
+    clear() {
+    }
+    init() {
+      const container = this.container, grab = container.actualOptions.interactivity.modes.grab;
+      if (!grab) {
+        return;
+      }
+      container.retina.grabModeDistance = grab.distance * container.retina.pixelRatio;
+    }
+    interact() {
+      const container = this.container, options = container.actualOptions, interactivity = options.interactivity;
+      if (!interactivity.modes.grab || !interactivity.events.onHover.enable || container.interactivity.status !== mouseMoveEvent) {
+        return;
+      }
+      const mousePos = container.interactivity.mouse.position;
+      if (!mousePos) {
+        return;
+      }
+      const distance = container.retina.grabModeDistance;
+      if (!distance || distance < minDistance4) {
+        return;
+      }
+      const query = container.particles.quadTree.queryCircle(mousePos, distance, (p) => this.isEnabled(p));
+      for (const particle of query) {
+        const pos = particle.getPosition(), pointDistance = getDistance(pos, mousePos);
+        if (pointDistance > distance) {
+          continue;
+        }
+        const grabLineOptions = interactivity.modes.grab.links, lineOpacity = grabLineOptions.opacity, opacityLine = lineOpacity - pointDistance * lineOpacity / distance;
+        if (opacityLine <= minOpacity) {
+          continue;
+        }
+        const optColor = grabLineOptions.color ?? particle.options.links?.color;
+        if (!container.particles.grabLineColor && optColor) {
+          const linksOptions = interactivity.modes.grab.links;
+          container.particles.grabLineColor = getLinkRandomColor(this._engine, optColor, linksOptions.blink, linksOptions.consent);
+        }
+        const colorLine = getLinkColor(particle, void 0, container.particles.grabLineColor);
+        if (!colorLine) {
+          continue;
+        }
+        drawGrab(container, particle, colorLine, opacityLine, mousePos);
+      }
+    }
+    isEnabled(particle) {
+      const container = this.container, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? container.actualOptions.interactivity).events;
+      return events.onHover.enable && !!mouse.position && isInArray(grabMode, events.onHover.mode);
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.grab) {
+        options.grab = new Grab();
+      }
+      for (const source of sources) {
+        options.grab.load(source?.grab);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-grab/browser/index.js
+  async function loadExternalGrabInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalGrab", (container) => {
+      return Promise.resolve(new Grabber(container, engine));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-pause/browser/Pauser.js
+  var pauseMode = "pause";
+  var Pauser = class extends ExternalInteractorBase {
+    constructor(container) {
+      super(container);
+      this.handleClickMode = (mode) => {
+        if (mode !== pauseMode) {
+          return;
+        }
+        const container2 = this.container;
+        if (container2.animationStatus) {
+          container2.pause();
+        } else {
+          container2.play();
+        }
+      };
+    }
+    clear() {
+    }
+    init() {
+    }
+    interact() {
+    }
+    isEnabled() {
+      return true;
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-pause/browser/index.js
+  async function loadExternalPauseInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalPause", (container) => {
+      return Promise.resolve(new Pauser(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-push/browser/Options/Classes/Push.js
+  var Push = class {
+    constructor() {
+      this.default = true;
+      this.groups = [];
+      this.quantity = 4;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.default !== void 0) {
+        this.default = data.default;
+      }
+      if (data.groups !== void 0) {
+        this.groups = data.groups.map((t) => t);
+      }
+      if (!this.groups.length) {
+        this.default = true;
+      }
+      const quantity = data.quantity;
+      if (quantity !== void 0) {
+        this.quantity = setRangeValue(quantity);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-push/browser/Pusher.js
+  var pushMode = "push";
+  var minQuantity = 0;
+  var Pusher = class extends ExternalInteractorBase {
+    constructor(container) {
+      super(container);
+      this.handleClickMode = (mode) => {
+        if (mode !== pushMode) {
+          return;
+        }
+        const container2 = this.container, options = container2.actualOptions, pushOptions = options.interactivity.modes.push;
+        if (!pushOptions) {
+          return;
+        }
+        const quantity = getRangeValue(pushOptions.quantity);
+        if (quantity <= minQuantity) {
+          return;
+        }
+        const group = itemFromArray([void 0, ...pushOptions.groups]), groupOptions = group !== void 0 ? container2.actualOptions.particles.groups[group] : void 0;
+        void container2.particles.push(quantity, container2.interactivity.mouse, groupOptions, group);
+      };
+    }
+    clear() {
+    }
+    init() {
+    }
+    interact() {
+    }
+    isEnabled() {
+      return true;
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.push) {
+        options.push = new Push();
+      }
+      for (const source of sources) {
+        options.push.load(source?.push);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-push/browser/index.js
+  async function loadExternalPushInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalPush", (container) => {
+      return Promise.resolve(new Pusher(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-remove/browser/Options/Classes/Remove.js
+  var Remove = class {
+    constructor() {
+      this.quantity = 2;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      const quantity = data.quantity;
+      if (quantity !== void 0) {
+        this.quantity = setRangeValue(quantity);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-remove/browser/Remover.js
+  var removeMode = "remove";
+  var Remover = class extends ExternalInteractorBase {
+    constructor(container) {
+      super(container);
+      this.handleClickMode = (mode) => {
+        const container2 = this.container, options = container2.actualOptions;
+        if (!options.interactivity.modes.remove || mode !== removeMode) {
+          return;
+        }
+        const removeNb = getRangeValue(options.interactivity.modes.remove.quantity);
+        container2.particles.removeQuantity(removeNb);
+      };
+    }
+    clear() {
+    }
+    init() {
+    }
+    interact() {
+    }
+    isEnabled() {
+      return true;
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.remove) {
+        options.remove = new Remove();
+      }
+      for (const source of sources) {
+        options.remove.load(source?.remove);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-remove/browser/index.js
+  async function loadExternalRemoveInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalRemove", (container) => {
+      return Promise.resolve(new Remover(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-repulse/browser/Options/Classes/RepulseBase.js
+  var RepulseBase = class {
+    constructor() {
+      this.distance = 200;
+      this.duration = 0.4;
+      this.factor = 100;
+      this.speed = 1;
+      this.maxSpeed = 50;
+      this.easing = EasingType.easeOutQuad;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = data.distance;
+      }
+      if (data.duration !== void 0) {
+        this.duration = data.duration;
+      }
+      if (data.easing !== void 0) {
+        this.easing = data.easing;
+      }
+      if (data.factor !== void 0) {
+        this.factor = data.factor;
+      }
+      if (data.speed !== void 0) {
+        this.speed = data.speed;
+      }
+      if (data.maxSpeed !== void 0) {
+        this.maxSpeed = data.maxSpeed;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-repulse/browser/Options/Classes/RepulseDiv.js
+  var RepulseDiv = class extends RepulseBase {
+    constructor() {
+      super();
+      this.selectors = [];
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      if (data.selectors !== void 0) {
+        this.selectors = data.selectors;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-repulse/browser/Options/Classes/Repulse.js
+  var Repulse = class extends RepulseBase {
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      this.divs = executeOnSingleOrMultiple(data.divs, (div) => {
+        const tmp = new RepulseDiv();
+        tmp.load(div);
+        return tmp;
+      });
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-repulse/browser/Repulser.js
+  var repulseMode = "repulse";
+  var minDistance5 = 0;
+  var repulseRadiusFactor = 6;
+  var repulseRadiusPower = 3;
+  var squarePower = 2;
+  var minRadius4 = 0;
+  var minSpeed = 0;
+  var easingOffset = 1;
+  var half9 = 0.5;
+  var Repulser = class extends ExternalInteractorBase {
+    constructor(engine, container) {
+      super(container);
+      this._clickRepulse = () => {
+        const container2 = this.container, repulseOptions = container2.actualOptions.interactivity.modes.repulse;
+        if (!repulseOptions) {
+          return;
+        }
+        const repulse = container2.repulse ?? { particles: [] };
+        if (!repulse.finish) {
+          if (!repulse.count) {
+            repulse.count = 0;
+          }
+          repulse.count++;
+          if (repulse.count === container2.particles.count) {
+            repulse.finish = true;
+          }
+        }
+        if (repulse.clicking) {
+          const repulseDistance = container2.retina.repulseModeDistance;
+          if (!repulseDistance || repulseDistance < minDistance5) {
+            return;
+          }
+          const repulseRadius = Math.pow(repulseDistance / repulseRadiusFactor, repulseRadiusPower), mouseClickPos = container2.interactivity.mouse.clickPosition;
+          if (mouseClickPos === void 0) {
+            return;
+          }
+          const range = new Circle(mouseClickPos.x, mouseClickPos.y, repulseRadius), query = container2.particles.quadTree.query(range, (p) => this.isEnabled(p));
+          for (const particle of query) {
+            const { dx, dy, distance } = getDistances(mouseClickPos, particle.position), d = distance ** squarePower, velocity = repulseOptions.speed, force = -repulseRadius * velocity / d;
+            if (d <= repulseRadius) {
+              repulse.particles.push(particle);
+              const vect = Vector.create(dx, dy);
+              vect.length = force;
+              particle.velocity.setTo(vect);
+            }
+          }
+        } else if (repulse.clicking === false) {
+          for (const particle of repulse.particles) {
+            particle.velocity.setTo(particle.initialVelocity);
+          }
+          repulse.particles = [];
+        }
+      };
+      this._hoverRepulse = () => {
+        const container2 = this.container, mousePos = container2.interactivity.mouse.position, repulseRadius = container2.retina.repulseModeDistance;
+        if (!repulseRadius || repulseRadius < minRadius4 || !mousePos) {
+          return;
+        }
+        this._processRepulse(mousePos, repulseRadius, new Circle(mousePos.x, mousePos.y, repulseRadius));
+      };
+      this._processRepulse = (position, repulseRadius, area, divRepulse) => {
+        const container2 = this.container, query = container2.particles.quadTree.query(area, (p) => this.isEnabled(p)), repulseOptions = container2.actualOptions.interactivity.modes.repulse;
+        if (!repulseOptions) {
+          return;
+        }
+        const { easing, speed, factor, maxSpeed } = repulseOptions, easingFunc = this._engine.getEasing(easing), velocity = (divRepulse?.speed ?? speed) * factor;
+        for (const particle of query) {
+          const { dx, dy, distance } = getDistances(particle.position, position), repulseFactor = clamp(easingFunc(easingOffset - distance / repulseRadius) * velocity, minSpeed, maxSpeed), normVec = Vector.create(!distance ? velocity : dx / distance * repulseFactor, !distance ? velocity : dy / distance * repulseFactor);
+          particle.position.addTo(normVec);
+        }
+      };
+      this._singleSelectorRepulse = (selector, div) => {
+        const container2 = this.container, repulse = container2.actualOptions.interactivity.modes.repulse;
+        if (!repulse) {
+          return;
+        }
+        const query = document.querySelectorAll(selector);
+        if (!query.length) {
+          return;
+        }
+        query.forEach((item) => {
+          const elem = item, pxRatio = container2.retina.pixelRatio, pos = {
+            x: (elem.offsetLeft + elem.offsetWidth * half9) * pxRatio,
+            y: (elem.offsetTop + elem.offsetHeight * half9) * pxRatio
+          }, repulseRadius = elem.offsetWidth * half9 * pxRatio, area = div.type === DivType.circle ? new Circle(pos.x, pos.y, repulseRadius) : new Rectangle(elem.offsetLeft * pxRatio, elem.offsetTop * pxRatio, elem.offsetWidth * pxRatio, elem.offsetHeight * pxRatio), divs = repulse.divs, divRepulse = divMode(divs, elem);
+          this._processRepulse(pos, repulseRadius, area, divRepulse);
+        });
+      };
+      this._engine = engine;
+      if (!container.repulse) {
+        container.repulse = { particles: [] };
+      }
+      this.handleClickMode = (mode) => {
+        const options = this.container.actualOptions, repulseOpts = options.interactivity.modes.repulse;
+        if (!repulseOpts || mode !== repulseMode) {
+          return;
+        }
+        if (!container.repulse) {
+          container.repulse = { particles: [] };
+        }
+        const repulse = container.repulse;
+        repulse.clicking = true;
+        repulse.count = 0;
+        for (const particle of container.repulse.particles) {
+          if (!this.isEnabled(particle)) {
+            continue;
+          }
+          particle.velocity.setTo(particle.initialVelocity);
+        }
+        repulse.particles = [];
+        repulse.finish = false;
+        setTimeout(() => {
+          if (container.destroyed) {
+            return;
+          }
+          repulse.clicking = false;
+        }, repulseOpts.duration * millisecondsToSeconds);
+      };
+    }
+    clear() {
+    }
+    init() {
+      const container = this.container, repulse = container.actualOptions.interactivity.modes.repulse;
+      if (!repulse) {
+        return;
+      }
+      container.retina.repulseModeDistance = repulse.distance * container.retina.pixelRatio;
+    }
+    interact() {
+      const container = this.container, options = container.actualOptions, mouseMoveStatus = container.interactivity.status === mouseMoveEvent, events = options.interactivity.events, hover = events.onHover, hoverEnabled = hover.enable, hoverMode = hover.mode, click = events.onClick, clickEnabled = click.enable, clickMode = click.mode, divs = events.onDiv;
+      if (mouseMoveStatus && hoverEnabled && isInArray(repulseMode, hoverMode)) {
+        this._hoverRepulse();
+      } else if (clickEnabled && isInArray(repulseMode, clickMode)) {
+        this._clickRepulse();
+      } else {
+        divModeExecute(repulseMode, divs, (selector, div) => this._singleSelectorRepulse(selector, div));
+      }
+    }
+    isEnabled(particle) {
+      const container = this.container, options = container.actualOptions, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? options.interactivity).events, divs = events.onDiv, hover = events.onHover, click = events.onClick, divRepulse = isDivModeEnabled(repulseMode, divs);
+      if (!(divRepulse || hover.enable && !!mouse.position || click.enable && mouse.clickPosition)) {
+        return false;
+      }
+      const hoverMode = hover.mode, clickMode = click.mode;
+      return isInArray(repulseMode, hoverMode) || isInArray(repulseMode, clickMode) || divRepulse;
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.repulse) {
+        options.repulse = new Repulse();
+      }
+      for (const source of sources) {
+        options.repulse.load(source?.repulse);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-repulse/browser/index.js
+  async function loadExternalRepulseInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalRepulse", (container) => {
+      return Promise.resolve(new Repulser(engine, container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-external-slow/browser/Options/Classes/Slow.js
+  var Slow = class {
+    constructor() {
+      this.factor = 3;
+      this.radius = 200;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.factor !== void 0) {
+        this.factor = data.factor;
+      }
+      if (data.radius !== void 0) {
+        this.radius = data.radius;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-slow/browser/Slower.js
+  var slowMode = "slow";
+  var minRadius5 = 0;
+  var Slower = class extends ExternalInteractorBase {
+    constructor(container) {
+      super(container);
+    }
+    clear(particle, delta, force) {
+      if (particle.slow.inRange && !force) {
+        return;
+      }
+      particle.slow.factor = 1;
+    }
+    init() {
+      const container = this.container, slow = container.actualOptions.interactivity.modes.slow;
+      if (!slow) {
+        return;
+      }
+      container.retina.slowModeRadius = slow.radius * container.retina.pixelRatio;
+    }
+    interact() {
+    }
+    isEnabled(particle) {
+      const container = this.container, mouse = container.interactivity.mouse, events = (particle?.interactivity ?? container.actualOptions.interactivity).events;
+      return events.onHover.enable && !!mouse.position && isInArray(slowMode, events.onHover.mode);
+    }
+    loadModeOptions(options, ...sources) {
+      if (!options.slow) {
+        options.slow = new Slow();
+      }
+      for (const source of sources) {
+        options.slow.load(source?.slow);
+      }
+    }
+    reset(particle) {
+      particle.slow.inRange = false;
+      const container = this.container, options = container.actualOptions, mousePos = container.interactivity.mouse.position, radius = container.retina.slowModeRadius, slowOptions = options.interactivity.modes.slow;
+      if (!slowOptions || !radius || radius < minRadius5 || !mousePos) {
+        return;
+      }
+      const particlePos = particle.getPosition(), dist = getDistance(mousePos, particlePos), proximityFactor = dist / radius, slowFactor = slowOptions.factor, { slow } = particle;
+      if (dist > radius) {
+        return;
+      }
+      slow.inRange = true;
+      slow.factor = proximityFactor / slowFactor;
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-external-slow/browser/index.js
+  async function loadExternalSlowInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("externalSlow", (container) => {
+      return Promise.resolve(new Slower(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/shape-image/browser/Utils.js
+  var stringStart = 0;
+  var defaultOpacity2 = 1;
+  var currentColorRegex = /(#(?:[0-9a-f]{2}){2,4}|(#[0-9a-f]{3})|(rgb|hsl)a?\((-?\d+%?[,\s]+){2,3}\s*[\d.]+%?\))|currentcolor/gi;
+  function replaceColorSvg(imageShape, color, opacity) {
+    const { svgData } = imageShape;
+    if (!svgData) {
+      return "";
+    }
+    const colorStyle = getStyleFromHsl(color, opacity);
+    if (svgData.includes("fill")) {
+      return svgData.replace(currentColorRegex, () => colorStyle);
+    }
+    const preFillIndex = svgData.indexOf(">");
+    return `${svgData.substring(stringStart, preFillIndex)} fill="${colorStyle}"${svgData.substring(preFillIndex)}`;
+  }
+  async function loadImage(image) {
+    return new Promise((resolve) => {
+      image.loading = true;
+      const img = new Image();
+      image.element = img;
+      img.addEventListener("load", () => {
+        image.loading = false;
+        resolve();
+      });
+      img.addEventListener("error", () => {
+        image.element = void 0;
+        image.error = true;
+        image.loading = false;
+        getLogger().error(`${errorPrefix} loading image: ${image.source}`);
+        resolve();
+      });
+      img.src = image.source;
+    });
+  }
+  async function downloadSvgImage(image) {
+    if (image.type !== "svg") {
+      await loadImage(image);
+      return;
+    }
+    image.loading = true;
+    const response = await fetch(image.source);
+    if (!response.ok) {
+      getLogger().error(`${errorPrefix} Image not found`);
+      image.error = true;
+    } else {
+      image.svgData = await response.text();
+    }
+    image.loading = false;
+  }
+  function replaceImageColor(image, imageData, color, particle) {
+    const svgColoredData = replaceColorSvg(image, color, particle.opacity?.value ?? defaultOpacity2), imageRes = {
+      color,
+      gif: imageData.gif,
+      data: {
+        ...image,
+        svgData: svgColoredData
+      },
+      loaded: false,
+      ratio: imageData.width / imageData.height,
+      replaceColor: imageData.replaceColor,
+      source: imageData.src
+    };
+    return new Promise((resolve) => {
+      const svg = new Blob([svgColoredData], { type: "image/svg+xml" }), domUrl = URL || window.URL || window.webkitURL || window, url = domUrl.createObjectURL(svg), img = new Image();
+      img.addEventListener("load", () => {
+        imageRes.loaded = true;
+        imageRes.element = img;
+        resolve(imageRes);
+        domUrl.revokeObjectURL(url);
+      });
+      const errorHandler = async () => {
+        domUrl.revokeObjectURL(url);
+        const img2 = {
+          ...image,
+          error: false,
+          loading: true
+        };
+        await loadImage(img2);
+        imageRes.loaded = true;
+        imageRes.element = img2.element;
+        resolve(imageRes);
+      };
+      img.addEventListener("error", () => void errorHandler());
+      img.src = url;
+    });
+  }
+
+  // node_modules/@tsparticles/shape-image/browser/GifUtils/Constants.js
+  var InterlaceOffsets = [0, 4, 2, 1];
+  var InterlaceSteps = [8, 8, 4, 2];
+
+  // node_modules/@tsparticles/shape-image/browser/GifUtils/ByteStream.js
+  var ByteStream = class {
+    constructor(bytes) {
+      this.pos = 0;
+      this.data = new Uint8ClampedArray(bytes);
+    }
+    getString(count) {
+      const slice = this.data.slice(this.pos, this.pos + count);
+      this.pos += slice.length;
+      return slice.reduce((acc, curr) => acc + String.fromCharCode(curr), "");
+    }
+    nextByte() {
+      return this.data[this.pos++];
+    }
+    nextTwoBytes() {
+      const increment2 = 2, previous = 1, shift = 8;
+      this.pos += increment2;
+      return this.data[this.pos - increment2] + (this.data[this.pos - previous] << shift);
+    }
+    readSubBlocks() {
+      let blockString = "", size = 0;
+      const minCount = 0, emptySize = 0;
+      do {
+        size = this.data[this.pos++];
+        for (let count = size; --count >= minCount; blockString += String.fromCharCode(this.data[this.pos++])) {
+        }
+      } while (size !== emptySize);
+      return blockString;
+    }
+    readSubBlocksBin() {
+      let size = this.data[this.pos], len = 0;
+      const emptySize = 0, increment2 = 1;
+      for (let offset = 0; size !== emptySize; offset += size + increment2, size = this.data[this.pos + offset]) {
+        len += size;
+      }
+      const blockData = new Uint8Array(len);
+      size = this.data[this.pos++];
+      for (let i = 0; size !== emptySize; size = this.data[this.pos++]) {
+        for (let count = size; --count >= emptySize; blockData[i++] = this.data[this.pos++]) {
+        }
+      }
+      return blockData;
+    }
+    skipSubBlocks() {
+      for (const increment2 = 1, noData = 0; this.data[this.pos] !== noData; this.pos += this.data[this.pos] + increment2) {
+      }
+      this.pos++;
+    }
+  };
+
+  // node_modules/@tsparticles/shape-image/browser/GifUtils/Enums/DisposalMethod.js
+  var DisposalMethod;
+  (function(DisposalMethod2) {
+    DisposalMethod2[DisposalMethod2["Replace"] = 0] = "Replace";
+    DisposalMethod2[DisposalMethod2["Combine"] = 1] = "Combine";
+    DisposalMethod2[DisposalMethod2["RestoreBackground"] = 2] = "RestoreBackground";
+    DisposalMethod2[DisposalMethod2["RestorePrevious"] = 3] = "RestorePrevious";
+    DisposalMethod2[DisposalMethod2["UndefinedA"] = 4] = "UndefinedA";
+    DisposalMethod2[DisposalMethod2["UndefinedB"] = 5] = "UndefinedB";
+    DisposalMethod2[DisposalMethod2["UndefinedC"] = 6] = "UndefinedC";
+    DisposalMethod2[DisposalMethod2["UndefinedD"] = 7] = "UndefinedD";
+  })(DisposalMethod || (DisposalMethod = {}));
+
+  // node_modules/@tsparticles/shape-image/browser/GifUtils/Types/GIFDataHeaders.js
+  var GIFDataHeaders;
+  (function(GIFDataHeaders2) {
+    GIFDataHeaders2[GIFDataHeaders2["Extension"] = 33] = "Extension";
+    GIFDataHeaders2[GIFDataHeaders2["ApplicationExtension"] = 255] = "ApplicationExtension";
+    GIFDataHeaders2[GIFDataHeaders2["GraphicsControlExtension"] = 249] = "GraphicsControlExtension";
+    GIFDataHeaders2[GIFDataHeaders2["PlainTextExtension"] = 1] = "PlainTextExtension";
+    GIFDataHeaders2[GIFDataHeaders2["CommentExtension"] = 254] = "CommentExtension";
+    GIFDataHeaders2[GIFDataHeaders2["Image"] = 44] = "Image";
+    GIFDataHeaders2[GIFDataHeaders2["EndOfFile"] = 59] = "EndOfFile";
+  })(GIFDataHeaders || (GIFDataHeaders = {}));
+
+  // node_modules/@tsparticles/shape-image/browser/GifUtils/Utils.js
+  var origin5 = {
+    x: 0,
+    y: 0
+  };
+  var defaultFrame = 0;
+  var half10 = 0.5;
+  var initialTime = 0;
+  var firstIndex = 0;
+  var defaultLoopCount = 0;
+  function parseColorTable(byteStream, count) {
+    const colors = [];
+    for (let i = 0; i < count; i++) {
+      colors.push({
+        r: byteStream.data[byteStream.pos],
+        g: byteStream.data[byteStream.pos + 1],
+        b: byteStream.data[byteStream.pos + 2]
+      });
+      byteStream.pos += 3;
+    }
+    return colors;
+  }
+  function parseExtensionBlock(byteStream, gif, getFrameIndex, getTransparencyIndex) {
+    switch (byteStream.nextByte()) {
+      case GIFDataHeaders.GraphicsControlExtension: {
+        const frame = gif.frames[getFrameIndex(false)];
+        byteStream.pos++;
+        const packedByte = byteStream.nextByte();
+        frame.GCreserved = (packedByte & 224) >>> 5;
+        frame.disposalMethod = (packedByte & 28) >>> 2;
+        frame.userInputDelayFlag = (packedByte & 2) === 2;
+        const transparencyFlag = (packedByte & 1) === 1;
+        frame.delayTime = byteStream.nextTwoBytes() * 10;
+        const transparencyIndex = byteStream.nextByte();
+        if (transparencyFlag) {
+          getTransparencyIndex(transparencyIndex);
+        }
+        byteStream.pos++;
+        break;
+      }
+      case GIFDataHeaders.ApplicationExtension: {
+        byteStream.pos++;
+        const applicationExtension = {
+          identifier: byteStream.getString(8),
+          authenticationCode: byteStream.getString(3),
+          data: byteStream.readSubBlocksBin()
+        };
+        gif.applicationExtensions.push(applicationExtension);
+        break;
+      }
+      case GIFDataHeaders.CommentExtension: {
+        gif.comments.push([getFrameIndex(false), byteStream.readSubBlocks()]);
+        break;
+      }
+      case GIFDataHeaders.PlainTextExtension: {
+        if (gif.globalColorTable.length === 0) {
+          throw new EvalError("plain text extension without global color table");
+        }
+        byteStream.pos++;
+        gif.frames[getFrameIndex(false)].plainTextData = {
+          left: byteStream.nextTwoBytes(),
+          top: byteStream.nextTwoBytes(),
+          width: byteStream.nextTwoBytes(),
+          height: byteStream.nextTwoBytes(),
+          charSize: {
+            width: byteStream.nextTwoBytes(),
+            height: byteStream.nextTwoBytes()
+          },
+          foregroundColor: byteStream.nextByte(),
+          backgroundColor: byteStream.nextByte(),
+          text: byteStream.readSubBlocks()
+        };
+        break;
+      }
+      default:
+        byteStream.skipSubBlocks();
+        break;
+    }
+  }
+  async function parseImageBlock(byteStream, gif, avgAlpha, getFrameIndex, getTransparencyIndex, progressCallback) {
+    const frame = gif.frames[getFrameIndex(true)];
+    frame.left = byteStream.nextTwoBytes();
+    frame.top = byteStream.nextTwoBytes();
+    frame.width = byteStream.nextTwoBytes();
+    frame.height = byteStream.nextTwoBytes();
+    const packedByte = byteStream.nextByte(), localColorTableFlag = (packedByte & 128) === 128, interlacedFlag = (packedByte & 64) === 64;
+    frame.sortFlag = (packedByte & 32) === 32;
+    frame.reserved = (packedByte & 24) >>> 3;
+    const localColorCount = 1 << (packedByte & 7) + 1;
+    if (localColorTableFlag) {
+      frame.localColorTable = parseColorTable(byteStream, localColorCount);
+    }
+    const getColor = (index) => {
+      const { r, g, b } = (localColorTableFlag ? frame.localColorTable : gif.globalColorTable)[index];
+      if (index !== getTransparencyIndex(null)) {
+        return { r, g, b, a: 255 };
+      }
+      return { r, g, b, a: avgAlpha ? ~~((r + g + b) / 3) : 0 };
+    };
+    const image = (() => {
+      try {
+        return new ImageData(frame.width, frame.height, { colorSpace: "srgb" });
+      } catch (error2) {
+        if (error2 instanceof DOMException && error2.name === "IndexSizeError") {
+          return null;
+        }
+        throw error2;
+      }
+    })();
+    if (image == null) {
+      throw new EvalError("GIF frame size is to large");
+    }
+    const minCodeSize = byteStream.nextByte(), imageData = byteStream.readSubBlocksBin(), clearCode = 1 << minCodeSize;
+    const readBits = (pos, len) => {
+      const bytePos = pos >>> 3, bitPos = pos & 7;
+      return (imageData[bytePos] + (imageData[bytePos + 1] << 8) + (imageData[bytePos + 2] << 16) & (1 << len) - 1 << bitPos) >>> bitPos;
+    };
+    if (interlacedFlag) {
+      for (let code = 0, size = minCodeSize + 1, pos = 0, dic = [[0]], pass = 0; pass < 4; pass++) {
+        if (InterlaceOffsets[pass] < frame.height) {
+          let pixelPos = 0, lineIndex = 0, exit = false;
+          while (!exit) {
+            const last = code;
+            code = readBits(pos, size);
+            pos += size + 1;
+            if (code === clearCode) {
+              size = minCodeSize + 1;
+              dic.length = clearCode + 2;
+              for (let i = 0; i < dic.length; i++) {
+                dic[i] = i < clearCode ? [i] : [];
+              }
+            } else {
+              if (code >= dic.length) {
+                dic.push(dic[last].concat(dic[last][0]));
+              } else if (last !== clearCode) {
+                dic.push(dic[last].concat(dic[code][0]));
+              }
+              for (const item of dic[code]) {
+                const { r, g, b, a } = getColor(item);
+                image.data.set([r, g, b, a], InterlaceOffsets[pass] * frame.width + InterlaceSteps[pass] * lineIndex + pixelPos % (frame.width * 4));
+                pixelPos += 4;
+              }
+              if (dic.length === 1 << size && size < 12) {
+                size++;
+              }
+            }
+            if (pixelPos === frame.width * 4 * (lineIndex + 1)) {
+              lineIndex++;
+              if (InterlaceOffsets[pass] + InterlaceSteps[pass] * lineIndex >= frame.height) {
+                exit = true;
+              }
+            }
+          }
+        }
+        progressCallback?.(byteStream.pos / (byteStream.data.length - 1), getFrameIndex(false) + 1, image, { x: frame.left, y: frame.top }, { width: gif.width, height: gif.height });
+      }
+      frame.image = image;
+      frame.bitmap = await createImageBitmap(image);
+    } else {
+      let code = 0, size = minCodeSize + 1, pos = 0, pixelPos = -4, exit = false;
+      const dic = [[0]];
+      while (!exit) {
+        const last = code;
+        code = readBits(pos, size);
+        pos += size;
+        if (code === clearCode) {
+          size = minCodeSize + 1;
+          dic.length = clearCode + 2;
+          for (let i = 0; i < dic.length; i++) {
+            dic[i] = i < clearCode ? [i] : [];
+          }
+        } else {
+          if (code === clearCode + 1) {
+            exit = true;
+            break;
+          }
+          if (code >= dic.length) {
+            dic.push(dic[last].concat(dic[last][0]));
+          } else if (last !== clearCode) {
+            dic.push(dic[last].concat(dic[code][0]));
+          }
+          for (const item of dic[code]) {
+            const { r, g, b, a } = getColor(item);
+            image.data.set([r, g, b, a], pixelPos += 4);
+          }
+          if (dic.length >= 1 << size && size < 12) {
+            size++;
+          }
+        }
+      }
+      frame.image = image;
+      frame.bitmap = await createImageBitmap(image);
+      progressCallback?.((byteStream.pos + 1) / byteStream.data.length, getFrameIndex(false) + 1, frame.image, { x: frame.left, y: frame.top }, { width: gif.width, height: gif.height });
+    }
+  }
+  async function parseBlock(byteStream, gif, avgAlpha, getFrameIndex, getTransparencyIndex, progressCallback) {
+    switch (byteStream.nextByte()) {
+      case GIFDataHeaders.EndOfFile:
+        return true;
+      case GIFDataHeaders.Image:
+        await parseImageBlock(byteStream, gif, avgAlpha, getFrameIndex, getTransparencyIndex, progressCallback);
+        break;
+      case GIFDataHeaders.Extension:
+        parseExtensionBlock(byteStream, gif, getFrameIndex, getTransparencyIndex);
+        break;
+      default:
+        throw new EvalError("undefined block found");
+    }
+    return false;
+  }
+  function getGIFLoopAmount(gif) {
+    for (const extension of gif.applicationExtensions) {
+      if (extension.identifier + extension.authenticationCode !== "NETSCAPE2.0") {
+        continue;
+      }
+      return extension.data[1] + (extension.data[2] << 8);
+    }
+    return NaN;
+  }
+  async function decodeGIF(gifURL, progressCallback, avgAlpha) {
+    if (!avgAlpha)
+      avgAlpha = false;
+    const res = await fetch(gifURL);
+    if (!res.ok && res.status === 404) {
+      throw new EvalError("file not found");
+    }
+    const buffer = await res.arrayBuffer();
+    const gif = {
+      width: 0,
+      height: 0,
+      totalTime: 0,
+      colorRes: 0,
+      pixelAspectRatio: 0,
+      frames: [],
+      sortFlag: false,
+      globalColorTable: [],
+      backgroundImage: new ImageData(1, 1, { colorSpace: "srgb" }),
+      comments: [],
+      applicationExtensions: []
+    }, byteStream = new ByteStream(new Uint8ClampedArray(buffer));
+    if (byteStream.getString(6) !== "GIF89a") {
+      throw new Error("not a supported GIF file");
+    }
+    gif.width = byteStream.nextTwoBytes();
+    gif.height = byteStream.nextTwoBytes();
+    const packedByte = byteStream.nextByte(), globalColorTableFlag = (packedByte & 128) === 128;
+    gif.colorRes = (packedByte & 112) >>> 4;
+    gif.sortFlag = (packedByte & 8) === 8;
+    const globalColorCount = 1 << (packedByte & 7) + 1, backgroundColorIndex = byteStream.nextByte();
+    gif.pixelAspectRatio = byteStream.nextByte();
+    if (gif.pixelAspectRatio !== 0) {
+      gif.pixelAspectRatio = (gif.pixelAspectRatio + 15) / 64;
+    }
+    if (globalColorTableFlag) {
+      gif.globalColorTable = parseColorTable(byteStream, globalColorCount);
+    }
+    const backgroundImage = (() => {
+      try {
+        return new ImageData(gif.width, gif.height, { colorSpace: "srgb" });
+      } catch (error2) {
+        if (error2 instanceof DOMException && error2.name === "IndexSizeError") {
+          return null;
+        }
+        throw error2;
+      }
+    })();
+    if (backgroundImage == null) {
+      throw new Error("GIF frame size is to large");
+    }
+    const { r, g, b } = gif.globalColorTable[backgroundColorIndex];
+    backgroundImage.data.set(globalColorTableFlag ? [r, g, b, 255] : [0, 0, 0, 0]);
+    for (let i = 4; i < backgroundImage.data.length; i *= 2) {
+      backgroundImage.data.copyWithin(i, 0, i);
+    }
+    gif.backgroundImage = backgroundImage;
+    let frameIndex = -1, incrementFrameIndex = true, transparencyIndex = -1;
+    const getframeIndex = (increment2) => {
+      if (increment2) {
+        incrementFrameIndex = true;
+      }
+      return frameIndex;
+    };
+    const getTransparencyIndex = (newValue) => {
+      if (newValue != null) {
+        transparencyIndex = newValue;
+      }
+      return transparencyIndex;
+    };
+    try {
+      do {
+        if (incrementFrameIndex) {
+          gif.frames.push({
+            left: 0,
+            top: 0,
+            width: 0,
+            height: 0,
+            disposalMethod: DisposalMethod.Replace,
+            image: new ImageData(1, 1, { colorSpace: "srgb" }),
+            plainTextData: null,
+            userInputDelayFlag: false,
+            delayTime: 0,
+            sortFlag: false,
+            localColorTable: [],
+            reserved: 0,
+            GCreserved: 0
+          });
+          frameIndex++;
+          transparencyIndex = -1;
+          incrementFrameIndex = false;
+        }
+      } while (!await parseBlock(byteStream, gif, avgAlpha, getframeIndex, getTransparencyIndex, progressCallback));
+      gif.frames.length--;
+      for (const frame of gif.frames) {
+        if (frame.userInputDelayFlag && frame.delayTime === 0) {
+          gif.totalTime = Infinity;
+          break;
+        }
+        gif.totalTime += frame.delayTime;
+      }
+      return gif;
+    } catch (error2) {
+      if (error2 instanceof EvalError) {
+        throw new Error(`error while parsing frame ${frameIndex} "${error2.message}"`);
+      }
+      throw error2;
+    }
+  }
+  function drawGif(data) {
+    const { context, radius, particle, delta } = data, image = particle.image;
+    if (!image?.gifData || !image.gif) {
+      return;
+    }
+    const offscreenCanvas = new OffscreenCanvas(image.gifData.width, image.gifData.height), offscreenContext = offscreenCanvas.getContext("2d");
+    if (!offscreenContext) {
+      throw new Error("could not create offscreen canvas context");
+    }
+    offscreenContext.imageSmoothingQuality = "low";
+    offscreenContext.imageSmoothingEnabled = false;
+    offscreenContext.clearRect(origin5.x, origin5.y, offscreenCanvas.width, offscreenCanvas.height);
+    if (particle.gifLoopCount === void 0) {
+      particle.gifLoopCount = image.gifLoopCount ?? defaultLoopCount;
+    }
+    let frameIndex = particle.gifFrame ?? defaultFrame;
+    const pos = { x: -image.gifData.width * half10, y: -image.gifData.height * half10 }, frame = image.gifData.frames[frameIndex];
+    if (particle.gifTime === void 0) {
+      particle.gifTime = initialTime;
+    }
+    if (!frame.bitmap) {
+      return;
+    }
+    context.scale(radius / image.gifData.width, radius / image.gifData.height);
+    switch (frame.disposalMethod) {
+      case DisposalMethod.UndefinedA:
+      case DisposalMethod.UndefinedB:
+      case DisposalMethod.UndefinedC:
+      case DisposalMethod.UndefinedD:
+      case DisposalMethod.Replace:
+        offscreenContext.drawImage(frame.bitmap, frame.left, frame.top);
+        context.drawImage(offscreenCanvas, pos.x, pos.y);
+        offscreenContext.clearRect(origin5.x, origin5.y, offscreenCanvas.width, offscreenCanvas.height);
+        break;
+      case DisposalMethod.Combine:
+        offscreenContext.drawImage(frame.bitmap, frame.left, frame.top);
+        context.drawImage(offscreenCanvas, pos.x, pos.y);
+        break;
+      case DisposalMethod.RestoreBackground:
+        offscreenContext.drawImage(frame.bitmap, frame.left, frame.top);
+        context.drawImage(offscreenCanvas, pos.x, pos.y);
+        offscreenContext.clearRect(origin5.x, origin5.y, offscreenCanvas.width, offscreenCanvas.height);
+        if (!image.gifData.globalColorTable.length) {
+          offscreenContext.putImageData(image.gifData.frames[firstIndex].image, pos.x + frame.left, pos.y + frame.top);
+        } else {
+          offscreenContext.putImageData(image.gifData.backgroundImage, pos.x, pos.y);
+        }
+        break;
+      case DisposalMethod.RestorePrevious:
+        {
+          const previousImageData = offscreenContext.getImageData(origin5.x, origin5.y, offscreenCanvas.width, offscreenCanvas.height);
+          offscreenContext.drawImage(frame.bitmap, frame.left, frame.top);
+          context.drawImage(offscreenCanvas, pos.x, pos.y);
+          offscreenContext.clearRect(origin5.x, origin5.y, offscreenCanvas.width, offscreenCanvas.height);
+          offscreenContext.putImageData(previousImageData, origin5.x, origin5.y);
+        }
+        break;
+    }
+    particle.gifTime += delta.value;
+    if (particle.gifTime > frame.delayTime) {
+      particle.gifTime -= frame.delayTime;
+      if (++frameIndex >= image.gifData.frames.length) {
+        if (--particle.gifLoopCount <= defaultLoopCount) {
+          return;
+        }
+        frameIndex = firstIndex;
+        offscreenContext.clearRect(origin5.x, origin5.y, offscreenCanvas.width, offscreenCanvas.height);
+      }
+      particle.gifFrame = frameIndex;
+    }
+    context.scale(image.gifData.width / radius, image.gifData.height / radius);
+  }
+  async function loadGifImage(image) {
+    if (image.type !== "gif") {
+      await loadImage(image);
+      return;
+    }
+    image.loading = true;
+    try {
+      image.gifData = await decodeGIF(image.source);
+      image.gifLoopCount = getGIFLoopAmount(image.gifData) ?? defaultLoopCount;
+      if (!image.gifLoopCount) {
+        image.gifLoopCount = Infinity;
+      }
+    } catch {
+      image.error = true;
+    }
+    image.loading = false;
+  }
+
+  // node_modules/@tsparticles/shape-image/browser/ImageDrawer.js
+  var double12 = 2;
+  var defaultAlpha2 = 1;
+  var sides3 = 12;
+  var defaultRatio3 = 1;
+  var ImageDrawer = class {
+    constructor(engine) {
+      this.validTypes = ["image", "images"];
+      this.loadImageShape = async (imageShape) => {
+        if (!this._engine.loadImage) {
+          throw new Error(`${errorPrefix} image shape not initialized`);
+        }
+        await this._engine.loadImage({
+          gif: imageShape.gif,
+          name: imageShape.name,
+          replaceColor: imageShape.replaceColor ?? false,
+          src: imageShape.src
+        });
+      };
+      this._engine = engine;
+    }
+    addImage(image) {
+      if (!this._engine.images) {
+        this._engine.images = [];
+      }
+      this._engine.images.push(image);
+    }
+    draw(data) {
+      const { context, radius, particle, opacity } = data, image = particle.image, element = image?.element;
+      if (!image) {
+        return;
+      }
+      context.globalAlpha = opacity;
+      if (image.gif && image.gifData) {
+        drawGif(data);
+      } else if (element) {
+        const ratio = image.ratio, pos = {
+          x: -radius,
+          y: -radius
+        }, diameter = radius * double12;
+        context.drawImage(element, pos.x, pos.y, diameter, diameter / ratio);
+      }
+      context.globalAlpha = defaultAlpha2;
+    }
+    getSidesCount() {
+      return sides3;
+    }
+    async init(container) {
+      const options = container.actualOptions;
+      if (!options.preload || !this._engine.loadImage) {
+        return;
+      }
+      for (const imageData of options.preload) {
+        await this._engine.loadImage(imageData);
+      }
+    }
+    loadShape(particle) {
+      if (particle.shape !== "image" && particle.shape !== "images") {
+        return;
+      }
+      if (!this._engine.images) {
+        this._engine.images = [];
+      }
+      const imageData = particle.shapeData;
+      if (!imageData) {
+        return;
+      }
+      const image = this._engine.images.find((t) => t.name === imageData.name || t.source === imageData.src);
+      if (!image) {
+        void this.loadImageShape(imageData).then(() => {
+          this.loadShape(particle);
+        });
+      }
+    }
+    particleInit(container, particle) {
+      if (particle.shape !== "image" && particle.shape !== "images") {
+        return;
+      }
+      if (!this._engine.images) {
+        this._engine.images = [];
+      }
+      const images = this._engine.images, imageData = particle.shapeData;
+      if (!imageData) {
+        return;
+      }
+      const color = particle.getFillColor(), image = images.find((t) => t.name === imageData.name || t.source === imageData.src);
+      if (!image) {
+        return;
+      }
+      const replaceColor = imageData.replaceColor ?? image.replaceColor;
+      if (image.loading) {
+        setTimeout(() => {
+          this.particleInit(container, particle);
+        });
+        return;
+      }
+      void (async () => {
+        let imageRes;
+        if (image.svgData && color) {
+          imageRes = await replaceImageColor(image, imageData, color, particle);
+        } else {
+          imageRes = {
+            color,
+            data: image,
+            element: image.element,
+            gif: image.gif,
+            gifData: image.gifData,
+            gifLoopCount: image.gifLoopCount,
+            loaded: true,
+            ratio: imageData.width && imageData.height ? imageData.width / imageData.height : image.ratio ?? defaultRatio3,
+            replaceColor,
+            source: imageData.src
+          };
+        }
+        if (!imageRes.ratio) {
+          imageRes.ratio = 1;
+        }
+        const fill = imageData.fill ?? particle.shapeFill, close = imageData.close ?? particle.shapeClose, imageShape = {
+          image: imageRes,
+          fill,
+          close
+        };
+        particle.image = imageShape.image;
+        particle.shapeFill = imageShape.fill;
+        particle.shapeClose = imageShape.close;
+      })();
+    }
+  };
+
+  // node_modules/@tsparticles/shape-image/browser/Options/Classes/Preload.js
+  var Preload = class {
+    constructor() {
+      this.src = "";
+      this.gif = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.gif !== void 0) {
+        this.gif = data.gif;
+      }
+      if (data.height !== void 0) {
+        this.height = data.height;
+      }
+      if (data.name !== void 0) {
+        this.name = data.name;
+      }
+      if (data.replaceColor !== void 0) {
+        this.replaceColor = data.replaceColor;
+      }
+      if (data.src !== void 0) {
+        this.src = data.src;
+      }
+      if (data.width !== void 0) {
+        this.width = data.width;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/shape-image/browser/ImagePreloader.js
+  var ImagePreloaderPlugin = class {
+    constructor(engine) {
+      this.id = "imagePreloader";
+      this._engine = engine;
+    }
+    async getPlugin() {
+      await Promise.resolve();
+      return {};
+    }
+    loadOptions(options, source) {
+      if (!source?.preload) {
+        return;
+      }
+      if (!options.preload) {
+        options.preload = [];
+      }
+      const preloadOptions = options.preload;
+      for (const item of source.preload) {
+        const existing = preloadOptions.find((t) => t.name === item.name || t.src === item.src);
+        if (existing) {
+          existing.load(item);
+        } else {
+          const preload = new Preload();
+          preload.load(item);
+          preloadOptions.push(preload);
+        }
+      }
+    }
+    needsPlugin() {
+      return true;
+    }
+  };
+
+  // node_modules/@tsparticles/shape-image/browser/index.js
+  var extLength = 3;
+  function addLoadImageToEngine(engine) {
+    if (engine.loadImage) {
+      return;
+    }
+    engine.loadImage = async (data) => {
+      if (!data.name && !data.src) {
+        throw new Error(`${errorPrefix} no image source provided`);
+      }
+      if (!engine.images) {
+        engine.images = [];
+      }
+      if (engine.images.find((t) => t.name === data.name || t.source === data.src)) {
+        return;
+      }
+      try {
+        const image = {
+          gif: data.gif ?? false,
+          name: data.name ?? data.src,
+          source: data.src,
+          type: data.src.substring(data.src.length - extLength),
+          error: false,
+          loading: true,
+          replaceColor: data.replaceColor,
+          ratio: data.width && data.height ? data.width / data.height : void 0
+        };
+        engine.images.push(image);
+        let imageFunc;
+        if (data.gif) {
+          imageFunc = loadGifImage;
+        } else {
+          imageFunc = data.replaceColor ? downloadSvgImage : loadImage;
+        }
+        await imageFunc(image);
+      } catch {
+        throw new Error(`${errorPrefix} ${data.name ?? data.src} not found`);
+      }
+    };
+  }
+  async function loadImageShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    addLoadImageToEngine(engine);
+    const preloader = new ImagePreloaderPlugin(engine);
+    await engine.addPlugin(preloader, refresh);
+    await engine.addShape(new ImageDrawer(engine), refresh);
+  }
+
+  // node_modules/@tsparticles/updater-life/browser/Options/Classes/LifeDelay.js
+  var LifeDelay = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.sync = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      super.load(data);
+      if (data.sync !== void 0) {
+        this.sync = data.sync;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-life/browser/Options/Classes/LifeDuration.js
+  var LifeDuration = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.sync = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      super.load(data);
+      if (data.sync !== void 0) {
+        this.sync = data.sync;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-life/browser/Options/Classes/Life.js
+  var Life = class {
+    constructor() {
+      this.count = 0;
+      this.delay = new LifeDelay();
+      this.duration = new LifeDuration();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.count !== void 0) {
+        this.count = data.count;
+      }
+      this.delay.load(data.delay);
+      this.duration.load(data.duration);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-life/browser/Utils.js
+  var noTime = 0;
+  var infiniteValue = -1;
+  var noLife = 0;
+  var minCanvasSize = 0;
+  function updateLife(particle, delta, canvasSize) {
+    if (!particle.life) {
+      return;
+    }
+    const life = particle.life;
+    let justSpawned = false;
+    if (particle.spawning) {
+      life.delayTime += delta.value;
+      if (life.delayTime >= particle.life.delay) {
+        justSpawned = true;
+        particle.spawning = false;
+        life.delayTime = noTime;
+        life.time = noTime;
+      } else {
+        return;
+      }
+    }
+    if (life.duration === infiniteValue) {
+      return;
+    }
+    if (particle.spawning) {
+      return;
+    }
+    if (justSpawned) {
+      life.time = noTime;
+    } else {
+      life.time += delta.value;
+    }
+    if (life.time < life.duration) {
+      return;
+    }
+    life.time = noTime;
+    if (particle.life.count > noLife) {
+      particle.life.count--;
+    }
+    if (particle.life.count === noLife) {
+      particle.destroy();
+      return;
+    }
+    const widthRange = setRangeValue(minCanvasSize, canvasSize.width), heightRange = setRangeValue(minCanvasSize, canvasSize.width);
+    particle.position.x = randomInRange(widthRange);
+    particle.position.y = randomInRange(heightRange);
+    particle.spawning = true;
+    life.delayTime = noTime;
+    life.time = noTime;
+    particle.reset();
+    const lifeOptions = particle.options.life;
+    if (lifeOptions) {
+      life.delay = getRangeValue(lifeOptions.delay.value) * millisecondsToSeconds;
+      life.duration = getRangeValue(lifeOptions.duration.value) * millisecondsToSeconds;
+    }
+  }
+
+  // node_modules/@tsparticles/updater-life/browser/LifeUpdater.js
+  var noTime2 = 0;
+  var identity3 = 1;
+  var infiniteValue2 = -1;
+  var LifeUpdater = class {
+    constructor(container) {
+      this.container = container;
+    }
+    init(particle) {
+      const container = this.container, particlesOptions = particle.options, lifeOptions = particlesOptions.life;
+      if (!lifeOptions) {
+        return;
+      }
+      particle.life = {
+        delay: container.retina.reduceFactor ? getRangeValue(lifeOptions.delay.value) * (lifeOptions.delay.sync ? identity3 : getRandom()) / container.retina.reduceFactor * millisecondsToSeconds : noTime2,
+        delayTime: noTime2,
+        duration: container.retina.reduceFactor ? getRangeValue(lifeOptions.duration.value) * (lifeOptions.duration.sync ? identity3 : getRandom()) / container.retina.reduceFactor * millisecondsToSeconds : noTime2,
+        time: noTime2,
+        count: lifeOptions.count
+      };
+      if (particle.life.duration <= noTime2) {
+        particle.life.duration = infiniteValue2;
+      }
+      if (particle.life.count <= noTime2) {
+        particle.life.count = infiniteValue2;
+      }
+      if (particle.life) {
+        particle.spawning = particle.life.delay > noTime2;
+      }
+    }
+    isEnabled(particle) {
+      return !particle.destroyed;
+    }
+    loadOptions(options, ...sources) {
+      if (!options.life) {
+        options.life = new Life();
+      }
+      for (const source of sources) {
+        options.life.load(source?.life);
+      }
+    }
+    update(particle, delta) {
+      if (!this.isEnabled(particle) || !particle.life) {
+        return;
+      }
+      updateLife(particle, delta, this.container.canvas.size);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-life/browser/index.js
+  async function loadLifeUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("life", async (container) => {
+      return Promise.resolve(new LifeUpdater(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/shape-line/browser/Utils.js
+  function drawLine2(data) {
+    const { context, particle, radius } = data, shapeData = particle.shapeData, centerY = 0;
+    context.moveTo(-radius, centerY);
+    context.lineTo(radius, centerY);
+    context.lineCap = shapeData?.cap ?? "butt";
+  }
+
+  // node_modules/@tsparticles/shape-line/browser/LineDrawer.js
+  var sides4 = 1;
+  var LineDrawer = class {
+    constructor() {
+      this.validTypes = ["line"];
+    }
+    draw(data) {
+      drawLine2(data);
+    }
+    getSidesCount() {
+      return sides4;
+    }
+  };
+
+  // node_modules/@tsparticles/shape-line/browser/index.js
+  async function loadLineShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new LineDrawer(), refresh);
+  }
+
+  // node_modules/@tsparticles/move-parallax/browser/ParallaxMover.js
+  var half11 = 0.5;
+  var ParallaxMover = class {
+    init() {
+    }
+    isEnabled(particle) {
+      return !isSsr() && !particle.destroyed && particle.container.actualOptions.interactivity.events.onHover.parallax.enable;
+    }
+    move(particle) {
+      const container = particle.container, options = container.actualOptions, parallaxOptions = options.interactivity.events.onHover.parallax;
+      if (isSsr() || !parallaxOptions.enable) {
+        return;
+      }
+      const parallaxForce = parallaxOptions.force, mousePos = container.interactivity.mouse.position;
+      if (!mousePos) {
+        return;
+      }
+      const canvasSize = container.canvas.size, canvasCenter = {
+        x: canvasSize.width * half11,
+        y: canvasSize.height * half11
+      }, parallaxSmooth = parallaxOptions.smooth, factor = particle.getRadius() / parallaxForce, centerDistance = {
+        x: (mousePos.x - canvasCenter.x) * factor,
+        y: (mousePos.y - canvasCenter.y) * factor
+      }, { offset } = particle;
+      offset.x += (centerDistance.x - offset.x) / parallaxSmooth;
+      offset.y += (centerDistance.y - offset.y) / parallaxSmooth;
+    }
+  };
+
+  // node_modules/@tsparticles/move-parallax/browser/index.js
+  async function loadParallaxMover(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addMover("parallax", () => {
+      return Promise.resolve(new ParallaxMover());
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-particles-attract/browser/Attractor.js
+  var attractFactor = 1e3;
+  var identity4 = 1;
+  var Attractor2 = class extends ParticlesInteractorBase {
+    constructor(container) {
+      super(container);
+    }
+    clear() {
+    }
+    init() {
+    }
+    interact(p1) {
+      const container = this.container;
+      if (p1.attractDistance === void 0) {
+        p1.attractDistance = getRangeValue(p1.options.move.attract.distance) * container.retina.pixelRatio;
+      }
+      const distance = p1.attractDistance, pos1 = p1.getPosition(), query = container.particles.quadTree.queryCircle(pos1, distance);
+      for (const p2 of query) {
+        if (p1 === p2 || !p2.options.move.attract.enable || p2.destroyed || p2.spawning) {
+          continue;
+        }
+        const pos2 = p2.getPosition(), { dx, dy } = getDistances(pos1, pos2), rotate = p1.options.move.attract.rotate, ax = dx / (rotate.x * attractFactor), ay = dy / (rotate.y * attractFactor), p1Factor = p2.size.value / p1.size.value, p2Factor = identity4 / p1Factor;
+        p1.velocity.x -= ax * p1Factor;
+        p1.velocity.y -= ay * p1Factor;
+        p2.velocity.x += ax * p2Factor;
+        p2.velocity.y += ay * p2Factor;
+      }
+    }
+    isEnabled(particle) {
+      return particle.options.move.attract.enable;
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-attract/browser/index.js
+  async function loadParticlesAttractInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("particlesAttract", (container) => {
+      return Promise.resolve(new Attractor2(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-particles-collisions/browser/Absorb.js
+  var half12 = 0.5;
+  var absorbFactor2 = 10;
+  var minAbsorbFactor = 0;
+  function updateAbsorb(p1, r1, p2, r2, delta, pixelRatio) {
+    const factor = clamp(p1.options.collisions.absorb.speed * delta.factor / absorbFactor2, minAbsorbFactor, r2);
+    p1.size.value += factor * half12;
+    p2.size.value -= factor;
+    if (r2 <= pixelRatio) {
+      p2.size.value = 0;
+      p2.destroy();
+    }
+  }
+  function absorb(p1, p2, delta, pixelRatio) {
+    const r1 = p1.getRadius(), r2 = p2.getRadius();
+    if (r1 === void 0 && r2 !== void 0) {
+      p1.destroy();
+    } else if (r1 !== void 0 && r2 === void 0) {
+      p2.destroy();
+    } else if (r1 !== void 0 && r2 !== void 0) {
+      if (r1 >= r2) {
+        updateAbsorb(p1, r1, p2, r2, delta, pixelRatio);
+      } else {
+        updateAbsorb(p2, r2, p1, r1, delta, pixelRatio);
+      }
+    }
+  }
+
+  // node_modules/@tsparticles/interaction-particles-collisions/browser/Bounce.js
+  var fixBounceSpeed = (p) => {
+    if (p.collisionMaxSpeed === void 0) {
+      p.collisionMaxSpeed = getRangeValue(p.options.collisions.maxSpeed);
+    }
+    if (p.velocity.length > p.collisionMaxSpeed) {
+      p.velocity.length = p.collisionMaxSpeed;
+    }
+  };
+  function bounce(p1, p2) {
+    circleBounce(circleBounceDataFromParticle(p1), circleBounceDataFromParticle(p2));
+    fixBounceSpeed(p1);
+    fixBounceSpeed(p2);
+  }
+
+  // node_modules/@tsparticles/interaction-particles-collisions/browser/Destroy.js
+  function destroy(p1, p2) {
+    if (!p1.unbreakable && !p2.unbreakable) {
+      bounce(p1, p2);
+    }
+    if (p1.getRadius() === void 0 && p2.getRadius() !== void 0) {
+      p1.destroy();
+    } else if (p1.getRadius() !== void 0 && p2.getRadius() === void 0) {
+      p2.destroy();
+    } else if (p1.getRadius() !== void 0 && p2.getRadius() !== void 0) {
+      const deleteP = p1.getRadius() >= p2.getRadius() ? p2 : p1;
+      deleteP.destroy();
+    }
+  }
+
+  // node_modules/@tsparticles/interaction-particles-collisions/browser/ResolveCollision.js
+  function resolveCollision(p1, p2, delta, pixelRatio) {
+    switch (p1.options.collisions.mode) {
+      case CollisionMode.absorb: {
+        absorb(p1, p2, delta, pixelRatio);
+        break;
+      }
+      case CollisionMode.bounce: {
+        bounce(p1, p2);
+        break;
+      }
+      case CollisionMode.destroy: {
+        destroy(p1, p2);
+        break;
+      }
+    }
+  }
+
+  // node_modules/@tsparticles/interaction-particles-collisions/browser/Collider.js
+  var double13 = 2;
+  var Collider = class extends ParticlesInteractorBase {
+    constructor(container) {
+      super(container);
+    }
+    clear() {
+    }
+    init() {
+    }
+    interact(p1, delta) {
+      if (p1.destroyed || p1.spawning) {
+        return;
+      }
+      const container = this.container, pos1 = p1.getPosition(), radius1 = p1.getRadius(), query = container.particles.quadTree.queryCircle(pos1, radius1 * double13);
+      for (const p2 of query) {
+        if (p1 === p2 || !p2.options.collisions.enable || p1.options.collisions.mode !== p2.options.collisions.mode || p2.destroyed || p2.spawning) {
+          continue;
+        }
+        const pos2 = p2.getPosition(), radius2 = p2.getRadius();
+        if (Math.abs(Math.round(pos1.z) - Math.round(pos2.z)) > radius1 + radius2) {
+          continue;
+        }
+        const dist = getDistance(pos1, pos2), distP = radius1 + radius2;
+        if (dist > distP) {
+          continue;
+        }
+        resolveCollision(p1, p2, delta, container.retina.pixelRatio);
+      }
+    }
+    isEnabled(particle) {
+      return particle.options.collisions.enable;
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-collisions/browser/index.js
+  async function loadParticlesCollisionsInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addInteractor("particlesCollisions", (container) => {
+      return Promise.resolve(new Collider(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/CircleWarp.js
+  var double14 = 2;
+  var CircleWarp = class extends Circle {
+    constructor(x, y, radius, canvasSize) {
+      super(x, y, radius);
+      this.canvasSize = canvasSize;
+      this.canvasSize = { ...canvasSize };
+    }
+    contains(point) {
+      const { width, height } = this.canvasSize, { x, y } = point;
+      return super.contains(point) || super.contains({ x: x - width, y }) || super.contains({ x: x - width, y: y - height }) || super.contains({ x, y: y - height });
+    }
+    intersects(range) {
+      if (super.intersects(range)) {
+        return true;
+      }
+      const rect = range, circle = range, newPos = {
+        x: range.position.x - this.canvasSize.width,
+        y: range.position.y - this.canvasSize.height
+      };
+      if (circle.radius !== void 0) {
+        const biggerCircle = new Circle(newPos.x, newPos.y, circle.radius * double14);
+        return super.intersects(biggerCircle);
+      } else if (rect.size !== void 0) {
+        const rectSW = new Rectangle(newPos.x, newPos.y, rect.size.width * double14, rect.size.height * double14);
+        return super.intersects(rectSW);
+      }
+      return false;
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/Options/Classes/LinksShadow.js
+  var LinksShadow = class {
+    constructor() {
+      this.blur = 5;
+      this.color = new OptionsColor();
+      this.color.value = "#000";
+      this.enable = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.blur !== void 0) {
+        this.blur = data.blur;
+      }
+      this.color = OptionsColor.create(this.color, data.color);
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/Options/Classes/LinksTriangle.js
+  var LinksTriangle = class {
+    constructor() {
+      this.enable = false;
+      this.frequency = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.frequency !== void 0) {
+        this.frequency = data.frequency;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/Options/Classes/Links.js
+  var Links = class {
+    constructor() {
+      this.blink = false;
+      this.color = new OptionsColor();
+      this.color.value = "#fff";
+      this.consent = false;
+      this.distance = 100;
+      this.enable = false;
+      this.frequency = 1;
+      this.opacity = 1;
+      this.shadow = new LinksShadow();
+      this.triangles = new LinksTriangle();
+      this.width = 1;
+      this.warp = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.id !== void 0) {
+        this.id = data.id;
+      }
+      if (data.blink !== void 0) {
+        this.blink = data.blink;
+      }
+      this.color = OptionsColor.create(this.color, data.color);
+      if (data.consent !== void 0) {
+        this.consent = data.consent;
+      }
+      if (data.distance !== void 0) {
+        this.distance = data.distance;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.frequency !== void 0) {
+        this.frequency = data.frequency;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = data.opacity;
+      }
+      this.shadow.load(data.shadow);
+      this.triangles.load(data.triangles);
+      if (data.width !== void 0) {
+        this.width = data.width;
+      }
+      if (data.warp !== void 0) {
+        this.warp = data.warp;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/Linker.js
+  var squarePower2 = 2;
+  var opacityOffset = 1;
+  var origin6 = {
+    x: 0,
+    y: 0
+  };
+  var minDistance6 = 0;
+  function getLinkDistance(pos1, pos2, optDistance, canvasSize, warp) {
+    const { dx, dy, distance } = getDistances(pos1, pos2);
+    if (!warp || distance <= optDistance) {
+      return distance;
+    }
+    const absDiffs = {
+      x: Math.abs(dx),
+      y: Math.abs(dy)
+    }, warpDistances = {
+      x: Math.min(absDiffs.x, canvasSize.width - absDiffs.x),
+      y: Math.min(absDiffs.y, canvasSize.height - absDiffs.y)
+    };
+    return Math.sqrt(warpDistances.x ** squarePower2 + warpDistances.y ** squarePower2);
+  }
+  var Linker = class extends ParticlesInteractorBase {
+    constructor(container, engine) {
+      super(container);
+      this._setColor = (p1) => {
+        if (!p1.options.links) {
+          return;
+        }
+        const container2 = this._linkContainer, linksOptions = p1.options.links;
+        let linkColor = linksOptions.id === void 0 ? container2.particles.linksColor : container2.particles.linksColors.get(linksOptions.id);
+        if (linkColor) {
+          return;
+        }
+        const optColor = linksOptions.color;
+        linkColor = getLinkRandomColor(this._engine, optColor, linksOptions.blink, linksOptions.consent);
+        if (linksOptions.id === void 0) {
+          container2.particles.linksColor = linkColor;
+        } else {
+          container2.particles.linksColors.set(linksOptions.id, linkColor);
+        }
+      };
+      this._linkContainer = container;
+      this._engine = engine;
+    }
+    clear() {
+    }
+    init() {
+      this._linkContainer.particles.linksColor = void 0;
+      this._linkContainer.particles.linksColors = /* @__PURE__ */ new Map();
+    }
+    interact(p1) {
+      if (!p1.options.links) {
+        return;
+      }
+      p1.links = [];
+      const pos1 = p1.getPosition(), container = this.container, canvasSize = container.canvas.size;
+      if (pos1.x < origin6.x || pos1.y < origin6.y || pos1.x > canvasSize.width || pos1.y > canvasSize.height) {
+        return;
+      }
+      const linkOpt1 = p1.options.links, optOpacity = linkOpt1.opacity, optDistance = p1.retina.linksDistance ?? minDistance6, warp = linkOpt1.warp;
+      let range;
+      if (warp) {
+        range = new CircleWarp(pos1.x, pos1.y, optDistance, canvasSize);
+      } else {
+        range = new Circle(pos1.x, pos1.y, optDistance);
+      }
+      const query = container.particles.quadTree.query(range);
+      for (const p2 of query) {
+        const linkOpt2 = p2.options.links;
+        if (p1 === p2 || !linkOpt2?.enable || linkOpt1.id !== linkOpt2.id || p2.spawning || p2.destroyed || !p2.links || p1.links.some((t) => t.destination === p2) || p2.links.some((t) => t.destination === p1)) {
+          continue;
+        }
+        const pos2 = p2.getPosition();
+        if (pos2.x < origin6.x || pos2.y < origin6.y || pos2.x > canvasSize.width || pos2.y > canvasSize.height) {
+          continue;
+        }
+        const distance = getLinkDistance(pos1, pos2, optDistance, canvasSize, warp && linkOpt2.warp);
+        if (distance > optDistance) {
+          continue;
+        }
+        const opacityLine = (opacityOffset - distance / optDistance) * optOpacity;
+        this._setColor(p1);
+        p1.links.push({
+          destination: p2,
+          opacity: opacityLine
+        });
+      }
+    }
+    isEnabled(particle) {
+      return !!particle.options.links?.enable;
+    }
+    loadParticlesOptions(options, ...sources) {
+      if (!options.links) {
+        options.links = new Links();
+      }
+      for (const source of sources) {
+        options.links.load(source?.links);
+      }
+    }
+    reset() {
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/interaction.js
+  async function loadLinksInteraction(engine, refresh = true) {
+    await engine.addInteractor("particlesLinks", async (container) => {
+      return Promise.resolve(new Linker(container, engine));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/Utils.js
+  function drawTriangle(context, p1, p2, p3) {
+    context.beginPath();
+    context.moveTo(p1.x, p1.y);
+    context.lineTo(p2.x, p2.y);
+    context.lineTo(p3.x, p3.y);
+    context.closePath();
+  }
+  function drawLinkLine(params) {
+    let drawn = false;
+    const { begin, end, engine, maxDistance, context, canvasSize, width, backgroundMask, colorLine, opacity, links } = params;
+    if (getDistance(begin, end) <= maxDistance) {
+      drawLine(context, begin, end);
+      drawn = true;
+    } else if (links.warp) {
+      let pi1;
+      let pi2;
+      const endNE = {
+        x: end.x - canvasSize.width,
+        y: end.y
+      };
+      const d1 = getDistances(begin, endNE);
+      if (d1.distance <= maxDistance) {
+        const yi = begin.y - d1.dy / d1.dx * begin.x;
+        pi1 = { x: 0, y: yi };
+        pi2 = { x: canvasSize.width, y: yi };
+      } else {
+        const endSW = {
+          x: end.x,
+          y: end.y - canvasSize.height
+        };
+        const d2 = getDistances(begin, endSW);
+        if (d2.distance <= maxDistance) {
+          const yi = begin.y - d2.dy / d2.dx * begin.x;
+          const xi = -yi / (d2.dy / d2.dx);
+          pi1 = { x: xi, y: 0 };
+          pi2 = { x: xi, y: canvasSize.height };
+        } else {
+          const endSE = {
+            x: end.x - canvasSize.width,
+            y: end.y - canvasSize.height
+          };
+          const d3 = getDistances(begin, endSE);
+          if (d3.distance <= maxDistance) {
+            const yi = begin.y - d3.dy / d3.dx * begin.x;
+            const xi = -yi / (d3.dy / d3.dx);
+            pi1 = { x: xi, y: yi };
+            pi2 = { x: pi1.x + canvasSize.width, y: pi1.y + canvasSize.height };
+          }
+        }
+      }
+      if (pi1 && pi2) {
+        drawLine(context, begin, pi1);
+        drawLine(context, end, pi2);
+        drawn = true;
+      }
+    }
+    if (!drawn) {
+      return;
+    }
+    context.lineWidth = width;
+    if (backgroundMask.enable) {
+      context.globalCompositeOperation = backgroundMask.composite;
+    }
+    context.strokeStyle = getStyleFromRgb(colorLine, opacity);
+    const { shadow: shadow2 } = links;
+    if (shadow2.enable) {
+      const shadowColor = rangeColorToRgb(engine, shadow2.color);
+      if (shadowColor) {
+        context.shadowBlur = shadow2.blur;
+        context.shadowColor = getStyleFromRgb(shadowColor);
+      }
+    }
+    context.stroke();
+  }
+  function drawLinkTriangle(params) {
+    const { context, pos1, pos2, pos3, backgroundMask, colorTriangle, opacityTriangle } = params;
+    drawTriangle(context, pos1, pos2, pos3);
+    if (backgroundMask.enable) {
+      context.globalCompositeOperation = backgroundMask.composite;
+    }
+    context.fillStyle = getStyleFromRgb(colorTriangle, opacityTriangle);
+    context.fill();
+  }
+  function getLinkKey(ids) {
+    ids.sort((a, b) => a - b);
+    return ids.join("_");
+  }
+  function setLinkFrequency(particles, dictionary) {
+    const key = getLinkKey(particles.map((t) => t.id));
+    let res = dictionary.get(key);
+    if (res === void 0) {
+      res = getRandom();
+      dictionary.set(key, res);
+    }
+    return res;
+  }
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/LinkInstance.js
+  var minOpacity2 = 0;
+  var minWidth = 0;
+  var minDistance7 = 0;
+  var half13 = 0.5;
+  var maxFrequency = 1;
+  var LinkInstance = class {
+    constructor(container, engine) {
+      this._drawLinkLine = (p1, link) => {
+        const p1LinksOptions = p1.options.links;
+        if (!p1LinksOptions?.enable) {
+          return;
+        }
+        const container2 = this._container, options = container2.actualOptions, p2 = link.destination, pos1 = p1.getPosition(), pos2 = p2.getPosition();
+        let opacity = link.opacity;
+        container2.canvas.draw((ctx) => {
+          let colorLine;
+          const twinkle = p1.options.twinkle?.lines;
+          if (twinkle?.enable) {
+            const twinkleFreq = twinkle.frequency, twinkleRgb = rangeColorToRgb(this._engine, twinkle.color), twinkling = getRandom() < twinkleFreq;
+            if (twinkling && twinkleRgb) {
+              colorLine = twinkleRgb;
+              opacity = getRangeValue(twinkle.opacity);
+            }
+          }
+          if (!colorLine) {
+            const linkColor = p1LinksOptions.id !== void 0 ? container2.particles.linksColors.get(p1LinksOptions.id) : container2.particles.linksColor;
+            colorLine = getLinkColor(p1, p2, linkColor);
+          }
+          if (!colorLine) {
+            return;
+          }
+          const width = p1.retina.linksWidth ?? minWidth, maxDistance = p1.retina.linksDistance ?? minDistance7, { backgroundMask } = options;
+          drawLinkLine({
+            context: ctx,
+            width,
+            begin: pos1,
+            end: pos2,
+            engine: this._engine,
+            maxDistance,
+            canvasSize: container2.canvas.size,
+            links: p1LinksOptions,
+            backgroundMask,
+            colorLine,
+            opacity
+          });
+        });
+      };
+      this._drawLinkTriangle = (p1, link1, link2) => {
+        const linksOptions = p1.options.links;
+        if (!linksOptions?.enable) {
+          return;
+        }
+        const triangleOptions = linksOptions.triangles;
+        if (!triangleOptions.enable) {
+          return;
+        }
+        const container2 = this._container, options = container2.actualOptions, p2 = link1.destination, p3 = link2.destination, opacityTriangle = triangleOptions.opacity ?? (link1.opacity + link2.opacity) * half13;
+        if (opacityTriangle <= minOpacity2) {
+          return;
+        }
+        container2.canvas.draw((ctx) => {
+          const pos1 = p1.getPosition(), pos2 = p2.getPosition(), pos3 = p3.getPosition(), linksDistance = p1.retina.linksDistance ?? minDistance7;
+          if (getDistance(pos1, pos2) > linksDistance || getDistance(pos3, pos2) > linksDistance || getDistance(pos3, pos1) > linksDistance) {
+            return;
+          }
+          let colorTriangle = rangeColorToRgb(this._engine, triangleOptions.color);
+          if (!colorTriangle) {
+            const linkColor = linksOptions.id !== void 0 ? container2.particles.linksColors.get(linksOptions.id) : container2.particles.linksColor;
+            colorTriangle = getLinkColor(p1, p2, linkColor);
+          }
+          if (!colorTriangle) {
+            return;
+          }
+          drawLinkTriangle({
+            context: ctx,
+            pos1,
+            pos2,
+            pos3,
+            backgroundMask: options.backgroundMask,
+            colorTriangle,
+            opacityTriangle
+          });
+        });
+      };
+      this._drawTriangles = (options, p1, link, p1Links) => {
+        const p2 = link.destination;
+        if (!(options.links?.triangles.enable && p2.options.links?.triangles.enable)) {
+          return;
+        }
+        const vertices = p2.links?.filter((t) => {
+          const linkFreq = this._getLinkFrequency(p2, t.destination), minCount = 0;
+          return p2.options.links && linkFreq <= p2.options.links.frequency && p1Links.findIndex((l) => l.destination === t.destination) >= minCount;
+        });
+        if (!vertices?.length) {
+          return;
+        }
+        for (const vertex of vertices) {
+          const p3 = vertex.destination, triangleFreq = this._getTriangleFrequency(p1, p2, p3);
+          if (triangleFreq > options.links.triangles.frequency) {
+            continue;
+          }
+          this._drawLinkTriangle(p1, link, vertex);
+        }
+      };
+      this._getLinkFrequency = (p1, p2) => {
+        return setLinkFrequency([p1, p2], this._freqs.links);
+      };
+      this._getTriangleFrequency = (p1, p2, p3) => {
+        return setLinkFrequency([p1, p2, p3], this._freqs.triangles);
+      };
+      this._container = container;
+      this._engine = engine;
+      this._freqs = {
+        links: /* @__PURE__ */ new Map(),
+        triangles: /* @__PURE__ */ new Map()
+      };
+    }
+    drawParticle(context, particle) {
+      const { links, options } = particle;
+      if (!links?.length) {
+        return;
+      }
+      const p1Links = links.filter((l) => options.links && (options.links.frequency >= maxFrequency || this._getLinkFrequency(particle, l.destination) <= options.links.frequency));
+      for (const link of p1Links) {
+        this._drawTriangles(options, particle, link, p1Links);
+        if (link.opacity > minOpacity2 && (particle.retina.linksWidth ?? minWidth) > minWidth) {
+          this._drawLinkLine(particle, link);
+        }
+      }
+    }
+    async init() {
+      this._freqs.links = /* @__PURE__ */ new Map();
+      this._freqs.triangles = /* @__PURE__ */ new Map();
+      await Promise.resolve();
+    }
+    particleCreated(particle) {
+      particle.links = [];
+      if (!particle.options.links) {
+        return;
+      }
+      const ratio = this._container.retina.pixelRatio, { retina } = particle, { distance, width } = particle.options.links;
+      retina.linksDistance = distance * ratio;
+      retina.linksWidth = width * ratio;
+    }
+    particleDestroyed(particle) {
+      particle.links = [];
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/LinksPlugin.js
+  var LinksPlugin = class {
+    constructor(engine) {
+      this.id = "links";
+      this._engine = engine;
+    }
+    getPlugin(container) {
+      return Promise.resolve(new LinkInstance(container, this._engine));
+    }
+    loadOptions() {
+    }
+    needsPlugin() {
+      return true;
+    }
+  };
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/plugin.js
+  async function loadLinksPlugin(engine, refresh = true) {
+    const plugin = new LinksPlugin(engine);
+    await engine.addPlugin(plugin, refresh);
+  }
+
+  // node_modules/@tsparticles/interaction-particles-links/browser/index.js
+  async function loadParticlesLinksInteraction(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await loadLinksInteraction(engine, refresh);
+    await loadLinksPlugin(engine, refresh);
+  }
+
+  // node_modules/@tsparticles/shape-polygon/browser/Utils.js
+  var piDeg = 180;
+  var origin7 = { x: 0, y: 0 };
+  var sidesOffset = 2;
+  function drawPolygon(data, start, side) {
+    const { context } = data, sideCount = side.count.numerator * side.count.denominator, decimalSides = side.count.numerator / side.count.denominator, interiorAngleDegrees = piDeg * (decimalSides - sidesOffset) / decimalSides, interiorAngle = Math.PI - degToRad(interiorAngleDegrees);
+    if (!context) {
+      return;
+    }
+    context.beginPath();
+    context.translate(start.x, start.y);
+    context.moveTo(origin7.x, origin7.y);
+    for (let i = 0; i < sideCount; i++) {
+      context.lineTo(side.length, origin7.y);
+      context.translate(side.length, origin7.y);
+      context.rotate(interiorAngle);
+    }
+  }
+
+  // node_modules/@tsparticles/shape-polygon/browser/PolygonDrawerBase.js
+  var defaultSides = 5;
+  var PolygonDrawerBase = class {
+    draw(data) {
+      const { particle, radius } = data, start = this.getCenter(particle, radius), side = this.getSidesData(particle, radius);
+      drawPolygon(data, start, side);
+    }
+    getSidesCount(particle) {
+      const polygon = particle.shapeData;
+      return Math.round(getRangeValue(polygon?.sides ?? defaultSides));
+    }
+  };
+
+  // node_modules/@tsparticles/shape-polygon/browser/PolygonDrawer.js
+  var sidesCenterFactor = 3.5;
+  var yFactor = 2.66;
+  var sidesFactor = 3;
+  var PolygonDrawer = class extends PolygonDrawerBase {
+    constructor() {
+      super(...arguments);
+      this.validTypes = ["polygon"];
+    }
+    getCenter(particle, radius) {
+      return {
+        x: -radius / (particle.sides / sidesCenterFactor),
+        y: -radius / (yFactor / sidesCenterFactor)
+      };
+    }
+    getSidesData(particle, radius) {
+      const sides7 = particle.sides;
+      return {
+        count: {
+          denominator: 1,
+          numerator: sides7
+        },
+        length: radius * yFactor / (sides7 / sidesFactor)
+      };
+    }
+  };
+
+  // node_modules/@tsparticles/shape-polygon/browser/TriangleDrawer.js
+  var yFactor2 = 1.66;
+  var sides5 = 3;
+  var double15 = 2;
+  var TriangleDrawer = class extends PolygonDrawerBase {
+    constructor() {
+      super(...arguments);
+      this.validTypes = ["triangle"];
+    }
+    getCenter(particle, radius) {
+      return {
+        x: -radius,
+        y: radius / yFactor2
+      };
+    }
+    getSidesCount() {
+      return sides5;
+    }
+    getSidesData(particle, radius) {
+      const diameter = radius * double15;
+      return {
+        count: {
+          denominator: 2,
+          numerator: 3
+        },
+        length: diameter
+      };
+    }
+  };
+
+  // node_modules/@tsparticles/shape-polygon/browser/index.js
+  async function loadGenericPolygonShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new PolygonDrawer(), refresh);
+  }
+  async function loadTriangleShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new TriangleDrawer(), refresh);
+  }
+  async function loadPolygonShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await loadGenericPolygonShape(engine, refresh);
+    await loadTriangleShape(engine, refresh);
+  }
+
+  // node_modules/@tsparticles/updater-rotate/browser/Options/Classes/RotateAnimation.js
+  var RotateAnimation = class {
+    constructor() {
+      this.enable = false;
+      this.speed = 0;
+      this.decay = 0;
+      this.sync = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.speed !== void 0) {
+        this.speed = setRangeValue(data.speed);
+      }
+      if (data.decay !== void 0) {
+        this.decay = setRangeValue(data.decay);
+      }
+      if (data.sync !== void 0) {
+        this.sync = data.sync;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-rotate/browser/Options/Classes/Rotate.js
+  var Rotate = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.animation = new RotateAnimation();
+      this.direction = RotateDirection.clockwise;
+      this.path = false;
+      this.value = 0;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      super.load(data);
+      if (data.direction !== void 0) {
+        this.direction = data.direction;
+      }
+      this.animation.load(data.animation);
+      if (data.path !== void 0) {
+        this.path = data.path;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-rotate/browser/RotateUpdater.js
+  var double16 = 2;
+  var doublePI5 = Math.PI * double16;
+  var identity5 = 1;
+  var doublePIDeg = 360;
+  var RotateUpdater = class {
+    constructor(container) {
+      this.container = container;
+    }
+    init(particle) {
+      const rotateOptions = particle.options.rotate;
+      if (!rotateOptions) {
+        return;
+      }
+      particle.rotate = {
+        enable: rotateOptions.animation.enable,
+        value: degToRad(getRangeValue(rotateOptions.value)),
+        min: 0,
+        max: doublePI5
+      };
+      particle.pathRotation = rotateOptions.path;
+      let rotateDirection = rotateOptions.direction;
+      if (rotateDirection === RotateDirection.random) {
+        const index = Math.floor(getRandom() * double16), minIndex = 0;
+        rotateDirection = index > minIndex ? RotateDirection.counterClockwise : RotateDirection.clockwise;
+      }
+      switch (rotateDirection) {
+        case RotateDirection.counterClockwise:
+        case "counterClockwise":
+          particle.rotate.status = AnimationStatus.decreasing;
+          break;
+        case RotateDirection.clockwise:
+          particle.rotate.status = AnimationStatus.increasing;
+          break;
+      }
+      const rotateAnimation = rotateOptions.animation;
+      if (rotateAnimation.enable) {
+        particle.rotate.decay = identity5 - getRangeValue(rotateAnimation.decay);
+        particle.rotate.velocity = getRangeValue(rotateAnimation.speed) / doublePIDeg * this.container.retina.reduceFactor;
+        if (!rotateAnimation.sync) {
+          particle.rotate.velocity *= getRandom();
+        }
+      }
+      particle.rotation = particle.rotate.value;
+    }
+    isEnabled(particle) {
+      const rotate = particle.options.rotate;
+      if (!rotate) {
+        return false;
+      }
+      return !particle.destroyed && !particle.spawning && (!!rotate.value || rotate.animation.enable || rotate.path);
+    }
+    loadOptions(options, ...sources) {
+      if (!options.rotate) {
+        options.rotate = new Rotate();
+      }
+      for (const source of sources) {
+        options.rotate.load(source?.rotate);
+      }
+    }
+    update(particle, delta) {
+      if (!this.isEnabled(particle)) {
+        return;
+      }
+      particle.isRotating = !!particle.rotate;
+      if (!particle.rotate) {
+        return;
+      }
+      updateAnimation(particle, particle.rotate, false, DestroyType.none, delta);
+      particle.rotation = particle.rotate.value;
+    }
+  };
+
+  // node_modules/@tsparticles/updater-rotate/browser/index.js
+  async function loadRotateUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("rotate", (container) => {
+      return Promise.resolve(new RotateUpdater(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/shape-square/browser/Utils.js
+  var fixFactorSquared = 2;
+  var fixFactor = Math.sqrt(fixFactorSquared);
+  var double17 = 2;
+  function drawSquare(data) {
+    const { context, radius } = data, fixedRadius = radius / fixFactor, fixedDiameter = fixedRadius * double17;
+    context.rect(-fixedRadius, -fixedRadius, fixedDiameter, fixedDiameter);
+  }
+
+  // node_modules/@tsparticles/shape-square/browser/SquareDrawer.js
+  var sides6 = 4;
+  var SquareDrawer = class {
+    constructor() {
+      this.validTypes = ["edge", "square"];
+    }
+    draw(data) {
+      drawSquare(data);
+    }
+    getSidesCount() {
+      return sides6;
+    }
+  };
+
+  // node_modules/@tsparticles/shape-square/browser/index.js
+  async function loadSquareShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new SquareDrawer(), refresh);
+  }
+
+  // node_modules/@tsparticles/shape-star/browser/Utils.js
+  var defaultInset = 2;
+  var origin8 = { x: 0, y: 0 };
+  function drawStar(data) {
+    const { context, particle, radius } = data, sides7 = particle.sides, inset = particle.starInset ?? defaultInset;
+    context.moveTo(origin8.x, origin8.y - radius);
+    for (let i = 0; i < sides7; i++) {
+      context.rotate(Math.PI / sides7);
+      context.lineTo(origin8.x, origin8.y - radius * inset);
+      context.rotate(Math.PI / sides7);
+      context.lineTo(origin8.x, origin8.y - radius);
+    }
+  }
+
+  // node_modules/@tsparticles/shape-star/browser/StarDrawer.js
+  var defaultInset2 = 2;
+  var defaultSides2 = 5;
+  var StarDrawer = class {
+    constructor() {
+      this.validTypes = ["star"];
+    }
+    draw(data) {
+      drawStar(data);
+    }
+    getSidesCount(particle) {
+      const star = particle.shapeData;
+      return Math.round(getRangeValue(star?.sides ?? defaultSides2));
+    }
+    particleInit(container, particle) {
+      const star = particle.shapeData;
+      particle.starInset = getRangeValue(star?.inset ?? defaultInset2);
+    }
+  };
+
+  // node_modules/@tsparticles/shape-star/browser/index.js
+  async function loadStarShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new StarDrawer(), refresh);
+  }
+
+  // node_modules/@tsparticles/updater-stroke-color/browser/StrokeColorUpdater.js
+  var defaultOpacity3 = 1;
+  var StrokeColorUpdater = class {
+    constructor(container, engine) {
+      this._container = container;
+      this._engine = engine;
+    }
+    init(particle) {
+      const container = this._container, options = particle.options;
+      const stroke = itemFromSingleOrMultiple(options.stroke, particle.id, options.reduceDuplicates);
+      particle.strokeWidth = getRangeValue(stroke.width) * container.retina.pixelRatio;
+      particle.strokeOpacity = getRangeValue(stroke.opacity ?? defaultOpacity3);
+      particle.strokeAnimation = stroke.color?.animation;
+      const strokeHslColor = rangeColorToHsl(this._engine, stroke.color) ?? particle.getFillColor();
+      if (strokeHslColor) {
+        particle.strokeColor = getHslAnimationFromHsl(strokeHslColor, particle.strokeAnimation, container.retina.reduceFactor);
+      }
+    }
+    isEnabled(particle) {
+      const color = particle.strokeAnimation, { strokeColor } = particle;
+      return !particle.destroyed && !particle.spawning && !!color && (strokeColor?.h.value !== void 0 && strokeColor.h.enable || strokeColor?.s.value !== void 0 && strokeColor.s.enable || strokeColor?.l.value !== void 0 && strokeColor.l.enable);
+    }
+    update(particle, delta) {
+      if (!this.isEnabled(particle)) {
+        return;
+      }
+      updateColor(particle.strokeColor, delta);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-stroke-color/browser/index.js
+  async function loadStrokeColorUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("strokeColor", (container) => {
+      return Promise.resolve(new StrokeColorUpdater(container, engine));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/slim/browser/index.js
+  async function loadSlim(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await loadParallaxMover(engine, false);
+    await loadExternalAttractInteraction(engine, false);
+    await loadExternalBounceInteraction(engine, false);
+    await loadExternalBubbleInteraction(engine, false);
+    await loadExternalConnectInteraction(engine, false);
+    await loadExternalGrabInteraction(engine, false);
+    await loadExternalPauseInteraction(engine, false);
+    await loadExternalPushInteraction(engine, false);
+    await loadExternalRemoveInteraction(engine, false);
+    await loadExternalRepulseInteraction(engine, false);
+    await loadExternalSlowInteraction(engine, false);
+    await loadParticlesAttractInteraction(engine, false);
+    await loadParticlesCollisionsInteraction(engine, false);
+    await loadParticlesLinksInteraction(engine, false);
+    await loadEasingQuadPlugin(engine, false);
+    await loadEmojiShape(engine, false);
+    await loadImageShape(engine, false);
+    await loadLineShape(engine, false);
+    await loadPolygonShape(engine, false);
+    await loadSquareShape(engine, false);
+    await loadStarShape(engine, false);
+    await loadLifeUpdater(engine, false);
+    await loadRotateUpdater(engine, false);
+    await loadStrokeColorUpdater(engine, false);
+    await loadBasic(engine, refresh);
+  }
+
+  // node_modules/@tsparticles/shape-text/browser/Utils.js
+  var double18 = 2;
+  var half14 = 0.5;
+  function drawText(data) {
+    const { context, particle, radius, opacity } = data, character = particle.shapeData;
+    if (!character) {
+      return;
+    }
+    const textData = character.value;
+    if (textData === void 0) {
+      return;
+    }
+    if (particle.text === void 0) {
+      particle.text = itemFromSingleOrMultiple(textData, particle.randomIndexData);
+    }
+    const text = particle.text, style = character.style ?? "", weight = character.weight ?? "400", size = Math.round(radius) * double18, font = character.font ?? "Verdana", fill = particle.shapeFill;
+    const lines = text?.split("\n");
+    if (!lines) {
+      return;
+    }
+    context.font = `${style} ${weight} ${size}px "${font}"`;
+    context.globalAlpha = opacity;
+    for (let i = 0; i < lines.length; i++) {
+      drawLine3(context, lines[i], radius, opacity, i, fill);
+    }
+    context.globalAlpha = 1;
+  }
+  function drawLine3(context, line, radius, opacity, index, fill) {
+    const offsetX = line.length * radius * half14, pos = {
+      x: -offsetX,
+      y: radius * half14
+    }, diameter = radius * double18;
+    if (fill) {
+      context.fillText(line, pos.x, pos.y + diameter * index);
+    } else {
+      context.strokeText(line, pos.x, pos.y + diameter * index);
+    }
+  }
+
+  // node_modules/@tsparticles/shape-text/browser/TextDrawer.js
+  var TextDrawer = class {
+    constructor() {
+      this.validTypes = ["text", "character", "char", "multiline-text"];
+    }
+    draw(data) {
+      drawText(data);
+    }
+    async init(container) {
+      const options = container.actualOptions, { validTypes } = this;
+      if (validTypes.find((t) => isInArray(t, options.particles.shape.type))) {
+        const shapeOptions = validTypes.map((t) => options.particles.shape.options[t]).find((t) => !!t), promises = [];
+        executeOnSingleOrMultiple(shapeOptions, (shape) => {
+          promises.push(loadFont(shape.font, shape.weight));
+        });
+        await Promise.all(promises);
+      }
+    }
+    particleInit(container, particle) {
+      if (!particle.shape || !this.validTypes.includes(particle.shape)) {
+        return;
+      }
+      const character = particle.shapeData;
+      if (character === void 0) {
+        return;
+      }
+      const textData = character.value;
+      if (textData === void 0) {
+        return;
+      }
+      particle.text = itemFromSingleOrMultiple(textData, particle.randomIndexData);
+    }
+  };
+
+  // node_modules/@tsparticles/shape-text/browser/index.js
+  async function loadTextShape(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addShape(new TextDrawer(), refresh);
+  }
+
+  // node_modules/@tsparticles/updater-tilt/browser/TiltDirection.js
+  var TiltDirection;
+  (function(TiltDirection2) {
+    TiltDirection2["clockwise"] = "clockwise";
+    TiltDirection2["counterClockwise"] = "counter-clockwise";
+    TiltDirection2["random"] = "random";
+  })(TiltDirection || (TiltDirection = {}));
+
+  // node_modules/@tsparticles/updater-tilt/browser/Options/Classes/TiltAnimation.js
+  var TiltAnimation = class {
+    constructor() {
+      this.enable = false;
+      this.speed = 0;
+      this.decay = 0;
+      this.sync = false;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.speed !== void 0) {
+        this.speed = setRangeValue(data.speed);
+      }
+      if (data.decay !== void 0) {
+        this.decay = setRangeValue(data.decay);
+      }
+      if (data.sync !== void 0) {
+        this.sync = data.sync;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-tilt/browser/Options/Classes/Tilt.js
+  var Tilt = class extends ValueWithRandom {
+    constructor() {
+      super();
+      this.animation = new TiltAnimation();
+      this.direction = TiltDirection.clockwise;
+      this.enable = false;
+      this.value = 0;
+    }
+    load(data) {
+      super.load(data);
+      if (isNull(data)) {
+        return;
+      }
+      this.animation.load(data.animation);
+      if (data.direction !== void 0) {
+        this.direction = data.direction;
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-tilt/browser/TiltUpdater.js
+  var identity6 = 1;
+  var double19 = 2;
+  var doublePI6 = Math.PI * double19;
+  var maxAngle4 = 360;
+  var TiltUpdater = class {
+    constructor(container) {
+      this.container = container;
+    }
+    getTransformValues(particle) {
+      const tilt = particle.tilt?.enable && particle.tilt;
+      return {
+        b: tilt ? Math.cos(tilt.value) * tilt.cosDirection : void 0,
+        c: tilt ? Math.sin(tilt.value) * tilt.sinDirection : void 0
+      };
+    }
+    init(particle) {
+      const tiltOptions = particle.options.tilt;
+      if (!tiltOptions) {
+        return;
+      }
+      particle.tilt = {
+        enable: tiltOptions.enable,
+        value: degToRad(getRangeValue(tiltOptions.value)),
+        sinDirection: getRandom() >= halfRandom ? identity6 : -identity6,
+        cosDirection: getRandom() >= halfRandom ? identity6 : -identity6,
+        min: 0,
+        max: doublePI6
+      };
+      let tiltDirection = tiltOptions.direction;
+      if (tiltDirection === TiltDirection.random) {
+        const index = Math.floor(getRandom() * double19), minIndex = 0;
+        tiltDirection = index > minIndex ? TiltDirection.counterClockwise : TiltDirection.clockwise;
+      }
+      switch (tiltDirection) {
+        case TiltDirection.counterClockwise:
+        case "counterClockwise":
+          particle.tilt.status = AnimationStatus.decreasing;
+          break;
+        case TiltDirection.clockwise:
+          particle.tilt.status = AnimationStatus.increasing;
+          break;
+      }
+      const tiltAnimation = particle.options.tilt?.animation;
+      if (tiltAnimation?.enable) {
+        particle.tilt.decay = identity6 - getRangeValue(tiltAnimation.decay);
+        particle.tilt.velocity = getRangeValue(tiltAnimation.speed) / maxAngle4 * this.container.retina.reduceFactor;
+        if (!tiltAnimation.sync) {
+          particle.tilt.velocity *= getRandom();
+        }
+      }
+    }
+    isEnabled(particle) {
+      const tiltAnimation = particle.options.tilt?.animation;
+      return !particle.destroyed && !particle.spawning && !!tiltAnimation?.enable;
+    }
+    loadOptions(options, ...sources) {
+      if (!options.tilt) {
+        options.tilt = new Tilt();
+      }
+      for (const source of sources) {
+        options.tilt.load(source?.tilt);
+      }
+    }
+    async update(particle, delta) {
+      if (!this.isEnabled(particle) || !particle.tilt) {
+        return;
+      }
+      updateAnimation(particle, particle.tilt, false, DestroyType.none, delta);
+      await Promise.resolve();
+    }
+  };
+
+  // node_modules/@tsparticles/updater-tilt/browser/index.js
+  async function loadTiltUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("tilt", (container) => {
+      return Promise.resolve(new TiltUpdater(container));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/updater-twinkle/browser/Options/Classes/TwinkleValues.js
+  var TwinkleValues = class {
+    constructor() {
+      this.enable = false;
+      this.frequency = 0.05;
+      this.opacity = 1;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.color !== void 0) {
+        this.color = OptionsColor.create(this.color, data.color);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.frequency !== void 0) {
+        this.frequency = data.frequency;
+      }
+      if (data.opacity !== void 0) {
+        this.opacity = setRangeValue(data.opacity);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-twinkle/browser/Options/Classes/Twinkle.js
+  var Twinkle = class {
+    constructor() {
+      this.lines = new TwinkleValues();
+      this.particles = new TwinkleValues();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      this.lines.load(data.lines);
+      this.particles.load(data.particles);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-twinkle/browser/TwinkleUpdater.js
+  var TwinkleUpdater = class {
+    constructor(engine) {
+      this._engine = engine;
+    }
+    getColorStyles(particle, context, radius, opacity) {
+      const pOptions = particle.options, twinkleOptions = pOptions.twinkle;
+      if (!twinkleOptions) {
+        return {};
+      }
+      const twinkle = twinkleOptions.particles, twinkling = twinkle.enable && getRandom() < twinkle.frequency, zIndexOptions = particle.options.zIndex, zOffset = 1, zOpacityFactor = (zOffset - particle.zIndexFactor) ** zIndexOptions.opacityRate, twinklingOpacity = twinkling ? getRangeValue(twinkle.opacity) * zOpacityFactor : opacity, twinkleRgb = rangeColorToHsl(this._engine, twinkle.color), twinkleStyle = twinkleRgb ? getStyleFromHsl(twinkleRgb, twinklingOpacity) : void 0, res = {}, needsTwinkle = twinkling && twinkleStyle;
+      res.fill = needsTwinkle ? twinkleStyle : void 0;
+      res.stroke = needsTwinkle ? twinkleStyle : void 0;
+      return res;
+    }
+    async init() {
+      await Promise.resolve();
+    }
+    isEnabled(particle) {
+      const pOptions = particle.options, twinkleOptions = pOptions.twinkle;
+      if (!twinkleOptions) {
+        return false;
+      }
+      return twinkleOptions.particles.enable;
+    }
+    loadOptions(options, ...sources) {
+      if (!options.twinkle) {
+        options.twinkle = new Twinkle();
+      }
+      for (const source of sources) {
+        options.twinkle.load(source?.twinkle);
+      }
+    }
+    async update() {
+      await Promise.resolve();
+    }
+  };
+
+  // node_modules/@tsparticles/updater-twinkle/browser/index.js
+  async function loadTwinkleUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("twinkle", () => {
+      return Promise.resolve(new TwinkleUpdater(engine));
+    }, refresh);
+  }
+
+  // node_modules/@tsparticles/updater-wobble/browser/Options/Classes/WobbleSpeed.js
+  var WobbleSpeed = class {
+    constructor() {
+      this.angle = 50;
+      this.move = 10;
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.angle !== void 0) {
+        this.angle = setRangeValue(data.angle);
+      }
+      if (data.move !== void 0) {
+        this.move = setRangeValue(data.move);
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-wobble/browser/Options/Classes/Wobble.js
+  var Wobble = class {
+    constructor() {
+      this.distance = 5;
+      this.enable = false;
+      this.speed = new WobbleSpeed();
+    }
+    load(data) {
+      if (isNull(data)) {
+        return;
+      }
+      if (data.distance !== void 0) {
+        this.distance = setRangeValue(data.distance);
+      }
+      if (data.enable !== void 0) {
+        this.enable = data.enable;
+      }
+      if (data.speed !== void 0) {
+        if (isNumber(data.speed)) {
+          this.speed.load({ angle: data.speed });
+        } else {
+          const rangeSpeed = data.speed;
+          if (rangeSpeed.min !== void 0) {
+            this.speed.load({ angle: rangeSpeed });
+          } else {
+            this.speed.load(data.speed);
+          }
+        }
+      }
+    }
+  };
+
+  // node_modules/@tsparticles/updater-wobble/browser/Utils.js
+  var defaultDistance = 0;
+  var double20 = 2;
+  var doublePI7 = Math.PI * double20;
+  var distanceFactor = 60;
+  function updateWobble(particle, delta) {
+    const { wobble: wobbleOptions } = particle.options, { wobble } = particle;
+    if (!wobbleOptions?.enable || !wobble) {
+      return;
+    }
+    const angleSpeed = wobble.angleSpeed * delta.factor, moveSpeed = wobble.moveSpeed * delta.factor, distance = moveSpeed * ((particle.retina.wobbleDistance ?? defaultDistance) * delta.factor) / (millisecondsToSeconds / distanceFactor), max = doublePI7, { position } = particle;
+    wobble.angle += angleSpeed;
+    if (wobble.angle > max) {
+      wobble.angle -= max;
+    }
+    position.x += distance * Math.cos(wobble.angle);
+    position.y += distance * Math.abs(Math.sin(wobble.angle));
+  }
+
+  // node_modules/@tsparticles/updater-wobble/browser/WobbleUpdater.js
+  var double21 = 2;
+  var doublePI8 = Math.PI * double21;
+  var maxAngle5 = 360;
+  var moveSpeedFactor2 = 10;
+  var defaultDistance2 = 0;
+  var WobbleUpdater = class {
+    constructor(container) {
+      this.container = container;
+    }
+    init(particle) {
+      const wobbleOpt = particle.options.wobble;
+      if (wobbleOpt?.enable) {
+        particle.wobble = {
+          angle: getRandom() * doublePI8,
+          angleSpeed: getRangeValue(wobbleOpt.speed.angle) / maxAngle5,
+          moveSpeed: getRangeValue(wobbleOpt.speed.move) / moveSpeedFactor2
+        };
+      } else {
+        particle.wobble = {
+          angle: 0,
+          angleSpeed: 0,
+          moveSpeed: 0
+        };
+      }
+      particle.retina.wobbleDistance = getRangeValue(wobbleOpt?.distance ?? defaultDistance2) * this.container.retina.pixelRatio;
+    }
+    isEnabled(particle) {
+      return !particle.destroyed && !particle.spawning && !!particle.options.wobble?.enable;
+    }
+    loadOptions(options, ...sources) {
+      if (!options.wobble) {
+        options.wobble = new Wobble();
+      }
+      for (const source of sources) {
+        options.wobble.load(source?.wobble);
+      }
+    }
+    update(particle, delta) {
+      if (!this.isEnabled(particle)) {
+        return;
+      }
+      updateWobble(particle, delta);
+    }
+  };
+
+  // node_modules/@tsparticles/updater-wobble/browser/index.js
+  async function loadWobbleUpdater(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await engine.addParticleUpdater("wobble", (container) => {
+      return Promise.resolve(new WobbleUpdater(container));
+    }, refresh);
+  }
+
+  // node_modules/tsparticles/browser/index.js
+  async function loadFull(engine, refresh = true) {
+    assertValidVersion(engine, "3.7.1");
+    await loadDestroyUpdater(engine, false);
+    await loadRollUpdater(engine, false);
+    await loadTiltUpdater(engine, false);
+    await loadTwinkleUpdater(engine, false);
+    await loadWobbleUpdater(engine, false);
+    await loadTextShape(engine, false);
+    await loadExternalTrailInteraction(engine, false);
+    await loadAbsorbersPlugin(engine, false);
+    await loadEmittersPlugin(engine, false);
+    await loadEmittersShapeCircle(engine, false);
+    await loadEmittersShapeSquare(engine, false);
+    await loadSlim(engine, refresh);
+  }
+
+  // frontend/src/js/helper/ParticleHelper.ts
+  var ParticleHelper = class {
+    constructor() {
+      __publicField(this, "config", {
+        "autoPlay": true,
+        "background": {
+          "opacity": 0
+        },
+        "clear": true,
+        "defaultThemes": {},
+        "delay": 0,
+        "fullScreen": {
+          "enable": false,
+          "zIndex": 0
+        },
+        "duration": 0,
+        "fpsLimit": 60,
+        "interactivity": {
+          "detectsOn": "window",
+          "events": {
+            "onClick": {
+              "enable": false
+            },
+            "onDiv": {
+              "enable": false
+            },
+            "onHover": {
+              "enable": false
+            },
+            "resize": {
+              "enable": false
+            }
+          }
+        },
+        "manualParticles": [],
+        "particles": {
+          "bounce": {
+            "horizontal": {
+              "value": 1
+            },
+            "vertical": {
+              "value": 1
+            }
+          },
+          "color": {
+            "value": "#FFA5A5",
+            "animation": {
+              "h": {
+                "count": 0,
+                "enable": false,
+                "speed": 20,
+                "decay": 0,
+                "delay": 0,
+                "sync": true,
+                "offset": 0
+              },
+              "s": {
+                "count": 0,
+                "enable": false,
+                "speed": 1,
+                "decay": 0,
+                "delay": 0,
+                "sync": true,
+                "offset": 0
+              },
+              "l": {
+                "count": 0,
+                "enable": false,
+                "speed": 1,
+                "decay": 0,
+                "delay": 0,
+                "sync": true,
+                "offset": 0
+              }
+            }
+          },
+          "effect": {
+            "close": true,
+            "fill": true,
+            "options": {},
+            "type": {}
+          },
+          "groups": [],
+          "move": {
+            "angle": {
+              "offset": 0,
+              "value": 90
+            },
+            "center": {
+              "x": 50,
+              "y": 50,
+              "mode": "percent",
+              "radius": 0
+            },
+            "decay": 0,
+            "distance": {},
+            "direction": "none",
+            "drift": 0,
+            "enable": true,
+            "outModes": {
+              "default": "out",
+              "bottom": "out",
+              "left": "out",
+              "right": "out",
+              "top": "out"
+            },
+            "random": false,
+            "size": false,
+            "speed": 3,
+            "straight": false,
+            "vibrate": false,
+            "warp": false
+          },
+          "number": {
+            "density": {
+              "enable": true,
+              "width": 854,
+              "height": 480
+            },
+            "limit": {
+              "mode": "delete",
+              "value": 0
+            },
+            "value": 80
+          },
+          "opacity": {
+            "value": 0.5,
+            "animation": {
+              "count": 0,
+              "enable": false,
+              "speed": 2,
+              "decay": 0,
+              "delay": 0,
+              "sync": false,
+              "mode": "auto",
+              "startValue": "random",
+              "destroy": "none"
+            }
+          },
+          "reduceDuplicates": false,
+          "shape": {
+            "close": true,
+            "fill": true,
+            "options": {},
+            "type": "circle"
+          },
+          "size": {
+            "value": {
+              "min": 1,
+              "max": 3
+            },
+            "animation": {
+              "count": 0,
+              "enable": false,
+              "speed": 5,
+              "decay": 0,
+              "delay": 0,
+              "sync": false,
+              "mode": "auto",
+              "startValue": "random",
+              "destroy": "none"
+            }
+          },
+          "stroke": {
+            "width": 0
+          },
+          "zIndex": {
+            "value": 0,
+            "opacityRate": 1,
+            "sizeRate": 1,
+            "velocityRate": 1
+          },
+          "destroy": {
+            "bounds": {},
+            "mode": "none",
+            "split": {
+              "count": 1,
+              "factor": {
+                "value": 3
+              },
+              "rate": {
+                "value": {
+                  "min": 4,
+                  "max": 9
+                }
+              },
+              "sizeOffset": true,
+              "particles": {}
+            }
+          },
+          "life": {
+            "count": 0,
+            "delay": {
+              "value": 0,
+              "sync": false
+            },
+            "duration": {
+              "value": 0,
+              "sync": false
+            }
+          },
+          "rotate": {
+            "value": 0,
+            "animation": {
+              "enable": false,
+              "speed": 0,
+              "decay": 0,
+              "sync": false
+            },
+            "direction": "clockwise",
+            "path": false
+          },
+          "links": {
+            "blink": false,
+            "color": {
+              "value": "#FFA5A5"
+            },
+            "consent": false,
+            "distance": 170,
+            "enable": true,
+            "frequency": 1,
+            "opacity": 0.3,
+            "shadow": {
+              "blur": 5,
+              "color": {
+                "value": "#000"
+              },
+              "enable": false
+            },
+            "triangles": {
+              "enable": false,
+              "frequency": 1
+            },
+            "width": 1,
+            "warp": false
+          }
+        },
+        "smooth": true,
+        "zLayers": 100,
+        "name": "Basic",
+        "motion": {
+          "disable": false,
+          "reduce": {
+            "factor": 4,
+            "value": true
+          }
+        }
+      });
+      __publicField(this, "container");
+      __publicField(this, "element");
+    }
+    async loadParticle(element) {
+      if (!element) return;
+      if (element.hasAttribute("data-disable-particles")) return;
+      this.destroyParticle();
+      this.element = element;
+      this.container = await tsParticles.load({
+        element,
+        // @ts-ignore
+        options: this.config
+      });
+    }
+    destroyParticle() {
+      if (this.container) {
+        this.container.destroy(true);
+      }
+    }
+    async loadThemeColor(color) {
+      this.config.particles.color.value = color;
+      this.config.particles.links.color.value = color;
+      await this.loadParticle(this.element);
+    }
+  };
+
+  // frontend/src/js/controller/AlertController.ts
+  var AlertController = class extends BaseController {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "particle");
+      __publicField(this, "channel");
+    }
+    async postConnect() {
+      this.particle = new ParticleHelper();
+      await this.particle.loadParticle(this.element);
+      this.videoTarget.addEventListener("ended", (event) => this.videoEnd(event));
+      this.channel = this.element.getAttribute("data-alert-channel");
+    }
+    videoEnd(event) {
+      this.videoTarget.style.opacity = "0";
+      this.element.querySelector("canvas").style.opacity = "1";
+    }
+    async handleMessage(websocket, method, data) {
+      if (!data.channel || data.channel !== this.channel) return;
+      switch (method) {
+        case "show_alert": {
+          if (this.element.style.opacity === "1") return;
+          this.element.style.opacity = "1";
+          this.element.style.height = null;
+          this.videoTarget.style.opacity = "0";
+          if (data.video) {
+            this.videoTarget.style.display = null;
+            this.element.querySelector("canvas").style.opacity = "0";
+            this.element.style.padding = "0 !important";
+            if (!this.element.classList.contains("expand")) {
+              this.element.classList.add("expand");
+            }
+            try {
+              this.videoTarget.querySelector("source").src = data.video;
+              this.videoTarget.load();
+              await sleep(50);
+              this.element.style.height = `${this.videoTarget.getBoundingClientRect().height}px`;
+              await sleep(50);
+              this.videoTarget.style.opacity = "1";
+              await this.videoTarget.play();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.sound) {
+            this.videoTarget.style.display = "none";
+            this.element.style.padding = null;
+            this.element.classList.remove("expand");
+            try {
+              this.soundTarget.querySelector("source").src = data.sound;
+              this.soundTarget.load();
+              await this.soundTarget.play();
+            } catch (e) {
+              console.error(e);
+            }
+          }
+          if (data.iframe) {
+            this.element.classList.add("aspect");
+            this.iframeTarget.src = data.iframe;
+            setTimeout(() => {
+              this.iframeTarget.classList.remove("d-none");
+            }, 2e3);
+          }
+          if (data.logo) {
+            this.logoTarget.classList.remove("d-none");
+            this.logoTarget.src = data.logo;
+          }
+          for (const contentElement of this.contentTargets) {
+            contentElement.innerHTML = data.message;
+          }
+          setTimeout(() => {
+            for (const delayedElement of this.delayedTargets) {
+              delayedElement.style.display = null;
+            }
+          }, 250);
+          this.iconTarget.setAttribute("class", `alert-logo mdi mdi-${data.icon}`);
+          return;
+        }
+        case "hide_alert": {
+          try {
+            this.soundTarget.pause();
+            this.videoTarget.pause();
+          } catch (e) {
+            console.error(e);
+          }
+          this.iframeTarget.src = "";
+          this.logoTarget.src = "";
+          if (!this.iframeTarget.classList.contains("d-none"))
+            this.iframeTarget.classList.add("d-none");
+          if (!this.logoTarget.classList.contains("d-none"))
+            this.logoTarget.classList.add("d-none");
+          this.element.classList.remove("expand");
+          this.element.classList.remove("aspect");
+          this.element.style.height = null;
+          this.element.style.opacity = "0";
+          this.element.style.width = null;
+          this.element.style.padding = null;
+          await sleep(500);
+          for (const contentElement of this.contentTargets) {
+            contentElement.innerHTML = "";
+          }
+          for (const delayedElement of this.delayedTargets) {
+            delayedElement.style.display = "none";
+          }
+          this.iconTarget.setAttribute("class", `alert-logo mdi`);
+          return;
+        }
+      }
+    }
+    async handleTheme(websocket, data) {
+      if (this.element.hasAttribute("data-disable-theme")) return;
+      await this.particle.loadThemeColor(data.color);
+      this.element.style.boxShadow = `0 0 7px 0 ${data.color}`;
+      this.iconTarget.style.color = data.color;
+    }
+  };
+  __publicField(AlertController, "targets", ["icon", "content", "sound", "video", "contentContainer", "logo", "iframe", "delayed"]);
+
+  // frontend/src/js/controller/TimerController.ts
+  var TimerController = class extends BaseController {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "name");
+      __publicField(this, "particle");
+    }
+    async postConnect() {
+      this.name = this.element.getAttribute("data-timer-name");
+      this.particle = new ParticleHelper();
+      await this.particle.loadParticle(this.element);
+    }
+    async handleTheme(websocket, data) {
+      await this.particle.loadThemeColor(data.color);
+      this.element.style.boxShadow = `0 0 7px 0 ${data.color}`;
+    }
+    async handleMessage(websocket, method, data) {
+      if (method !== "timer_update" && method !== "timer_finished") return;
+      if (data.name !== this.name) return;
+      switch (method) {
+        case "timer_update":
+          this.element.classList.remove("blink");
+          this.handleTimerUpdate(data);
+          return;
+        case "timer_finished":
+          this.handleTimerUpdate(data);
+          void this.handleTimerFinish(data);
+          return;
+      }
+    }
+    async handleTimerFinish(data) {
+      switch (data.end) {
+        case "fate":
+          await sleep(1e3 * 2);
+          this.element.parentElement.style.opacity = "0";
+          return;
+        case "blink":
+          this.element.classList.add("blink");
+          return;
+      }
+    }
+    handleTimerUpdate(data) {
+      this.element.parentElement.style.opacity = null;
+      const date = new Date(data.time * 1e3);
+      let hours = date.getUTCHours();
+      let minutes = date.getUTCMinutes();
+      let seconds = date.getSeconds();
+      if (hours < 10) {
+        hours = "0" + hours;
+      }
+      if (minutes < 10) {
+        minutes = "0" + minutes;
+      }
+      if (seconds < 10) {
+        seconds = "0" + seconds;
+      }
+      hours = `${hours}`;
+      minutes = `${minutes}`;
+      seconds = `${seconds}`;
+      const leadingMinute = minutes.substring(0, 1);
+      const lastMinute = minutes.substring(1);
+      const leadingSecond = seconds.substring(0, 1);
+      const lastSecond = seconds.substring(1);
+      if (this.leadingMinuteTargets[0].innerHTML !== leadingMinute) {
+        void this.updateContent("leadingMinute", leadingMinute);
+      }
+      if (this.lastMinuteTargets[0].innerHTML !== lastMinute) {
+        void this.updateContent("lastMinute", lastMinute);
+      }
+      if (this.leadingSecondTargets[0].innerHTML !== leadingSecond) {
+        void this.updateContent("leadingSecond", leadingSecond);
+      }
+      if (this.lastSecondTargets[0].innerHTML !== lastSecond) {
+        void this.updateContent("lastSecond", lastSecond);
+      }
+    }
+    async updateContent(type, content) {
+      for (const element of this[`${type}Targets`]) {
+        element.style.display = "none";
+      }
+      for (const element of this[`${type}Targets`]) {
+        element.innerHTML = content;
+      }
+      await sleep(25);
+      for (const element of this[`${type}Targets`]) {
+        element.style.display = null;
+      }
+    }
+  };
+  __publicField(TimerController, "targets", ["leadingMinute", "lastMinute", "leadingSecond", "lastSecond"]);
+
+  // frontend/src/js/controller/AnnounceController.ts
+  var AnnounceController = class extends BaseController {
+    //static targets = ['']
+  };
+
+  // frontend/src/js/effects/BaseEffect.ts
+  var BaseEffect = class {
+    constructor() {
+      __publicField(this, "content");
+    }
+    async handle() {
+    }
+    getContent() {
+      return this.content;
+    }
+  };
+
+  // frontend/src/js/effects/BluescreenEffect.ts
+  var BluescreenEffect = class extends BaseEffect {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "content", `
         LOL
-    `)}};var po=class extends ae{constructor(){super(...arguments);R(this,"effectMap",{effect:new bo})}async postConnect(){this.websocket.send("get_effect",{})}async handleMessage(t,n,r){if(n==="effect"){if(r.enabled!==void 0&&r.enabled===!1){this.element.innerHTML="";return}!r.effect&&!this.effectMap[r.effect]||(this.element.innerHTML=this.effectMap[r.effect].getContent())}}};var Ka;dp();async function dp(){console.log(`Starting ${nc} ${rc} frontend...`),await Gi(),await Al(ro),Ka=new Nt,await Ka.connect();let o=wo.start();o.register("background",Ut),o.register("badge",Ct),o.register("alert",Lt),o.register("timer",jt),o.register("announce",mo),o.register("effect",po)}function ms(){return Ka}})();
+    `);
+    }
+  };
+
+  // frontend/src/js/controller/EffectController.ts
+  var EffectController = class extends BaseController {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "effectMap", {
+        "effect": new BluescreenEffect()
+      });
+    }
+    async postConnect() {
+      this.websocket.send("get_effect", {});
+    }
+    async handleMessage(websocket, method, data) {
+      if (method !== "effect") {
+        return;
+      }
+      if (data.enabled !== void 0 && data.enabled === false) {
+        this.element.innerHTML = ``;
+        return;
+      }
+      if (!data.effect && !this.effectMap[data.effect]) {
+        return;
+      }
+      this.element.innerHTML = this.effectMap[data.effect].getContent();
+    }
+  };
+
+  // frontend/src/js/controller/SvgController.ts
+  var SvgController = class extends BaseController {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "themeElements", []);
+    }
+    async postConnect() {
+      const request = await fetch(this.element.dataset.src);
+      if (request.status !== 200) return;
+      const content = new DOMParser().parseFromString(await request.text(), "text/html");
+      const parsedContent = content.querySelector("svg");
+      if (!parsedContent) return;
+      this.element.innerHTML = parsedContent.innerHTML;
+      this.element.setAttribute("viewBox", parsedContent.getAttribute("viewBox"));
+      const svgElements = this.element.querySelectorAll("*");
+      svgElements.forEach((element) => {
+        const computedFill = getComputedStyle(element).fill;
+        if (computedFill === "rgb(255, 165, 165)") {
+          this.themeElements.push(element);
+        }
+      });
+      const svgStyleElement = this.element.querySelector("style");
+      let styleContent = svgStyleElement.innerHTML;
+      styleContent = styleContent.replace(/fill:\s*#ffa5a5/g, "transition: all 1s ease-in-out");
+      svgStyleElement.innerHTML = styleContent;
+    }
+    async handleTheme(websocket, data) {
+      this.themeElements.forEach((themeElement) => {
+        themeElement.style.fill = data.color;
+      });
+    }
+  };
+
+  // frontend/src/App.ts
+  var websocketClient;
+  void init2();
+  async function init2() {
+    console.log(`Starting ${name} ${version} frontend...`);
+    await fetchConfig();
+    await loadFull(tsParticles);
+    websocketClient = new WebsocketClient();
+    await websocketClient.connect();
+    const stimulus = Application.start();
+    stimulus.register("background", BackgroundController);
+    stimulus.register("badge", BadgeController);
+    stimulus.register("alert", AlertController);
+    stimulus.register("timer", TimerController);
+    stimulus.register("announce", AnnounceController);
+    stimulus.register("effect", EffectController);
+    stimulus.register("svg", SvgController);
+  }
+  function getWebsocketClient() {
+    return websocketClient;
+  }
+})();

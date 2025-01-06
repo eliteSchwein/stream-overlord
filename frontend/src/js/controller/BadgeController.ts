@@ -19,8 +19,8 @@ export default class BadgeController extends BaseController {
     async postConnect() {
         this.websocket.send('get_ads', {})
 
-        this.particle = new ParticleHelper()
-        await this.particle.loadParticle(this.element)
+        //this.particle = new ParticleHelper()
+        //await this.particle.loadParticle(this.element)
     }
 
     loadBadgeContent() {
@@ -108,19 +108,19 @@ export default class BadgeController extends BaseController {
 
                 this.createInterval()
                 break
-            case 'expand_badge':
-                if(this.element.classList.contains('expand')) break
+            //case 'expand_badge':
+            //    if(this.element.classList.contains('expand')) break
 
-                this.element.classList.add('expand')
-                break
-            case 'collapse_badge':
-                this.element.classList.remove('expand')
-                break
+            //    this.element.classList.add('expand')
+            //    break
+            //case 'collapse_badge':
+            //    this.element.classList.remove('expand')
+            //    break
         }
     }
 
     async handleTheme(websocket: Websocket, data: any) {
-        await this.particle.loadThemeColor(data.color)
-        this.element.style.boxShadow = `0 0 7px 0 ${data.color}`
+        //await this.particle.loadThemeColor(data.color)
+        //this.element.style.boxShadow = `0 0 7px 0 ${data.color}`
     }
 }

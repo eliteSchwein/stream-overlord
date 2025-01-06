@@ -1,5 +1,5 @@
 .badge {
-    background: rgba(52, 52, 52, 0.71);
+    /*background: rgba(52, 52, 52, 0.71);*/
     border-radius: 20px;
     position: relative;
     margin: 20px;
@@ -14,8 +14,9 @@
 .badge .badge-container .logo {
     height: 107px;
     width: 100px;
+    margin-top: 5px;
     background-size: cover;
-    background-image: url("../images/eliteSCHW31N.webp");
+    background-image: url("/logo.webp");
 }
 
 .badge .badge-container {
@@ -23,7 +24,7 @@
     padding-left: 10px;
     height: 100px;
     border-radius: 10px;
-    width: 500px;
+    width: 650px;
     position: relative;
     z-index: 999;
 }
@@ -31,8 +32,8 @@
 .badge .badge-container .badge-content {
     width: 370px;
     position: absolute;
-    top: 12px;
-    left: 120px;
+    top: 18px;
+    left: 140px;
     height: 80px;
 }
 
@@ -45,22 +46,22 @@
     color: #e5e5e5;
     width: 100%;
     height: 50%;
-    text-align: center;
+    text-align: left;
     font-size: 25px;
     font-family: 'Silkscreen', sans-serif;
 }
 
 .badge .badge-container .badge-title {
-    place-items: center;
+    place-items: start;
     width: 100%;
     height: 60%;
-    text-align: center;
+    text-align: left;
     font-size: 40px;
     font-family: 'Orbitron', sans-serif;
     grid-template-columns: 1fr;
-    align-items: center;
-    justify-content: center;
-    align-content: center;
+    align-items: start;
+    justify-content: start;
+    align-content: start;
 }
 
 .badge .badge-container .badge-title img {
@@ -77,4 +78,10 @@
 
 .badge.expand .expand-container {
     height: 300px;
+}
+
+.badge .badge-background {
+    position: absolute;
+    top: 0;
+    left: 0;
 }
