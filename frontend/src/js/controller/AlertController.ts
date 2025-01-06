@@ -15,12 +15,9 @@ export default class AlertController extends BaseController {
     declare readonly logoTarget: HTMLImageElement
     declare readonly iframeTarget: HTMLIFrameElement
 
-    protected particle: ParticleHelper
     protected channel: string
 
     async postConnect() {
-        this.particle = new ParticleHelper()
-        await this.particle.loadParticle(this.element)
         this.videoTarget.addEventListener('ended', (event) => this.videoEnd(event))
         this.channel = this.element.getAttribute('data-alert-channel')
     }
@@ -153,8 +150,6 @@ export default class AlertController extends BaseController {
 
     async handleTheme(websocket: Websocket, data: any) {
         if(this.element.hasAttribute("data-disable-theme")) return
-        await this.particle.loadThemeColor(data.color)
-        this.element.style.boxShadow = `0 0 7px 0 ${data.color}`
         this.iconTarget.style.color = data.color
     }
 }

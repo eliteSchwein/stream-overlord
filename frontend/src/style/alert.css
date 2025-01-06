@@ -2,29 +2,47 @@
     transition-duration: 0.25s;
     transition-timing-function: ease-in-out;
     height: 500px;
-    width: 1600px;
-    background: rgba(52, 52, 52, 0.71);
     border-radius: 20px;
     position: relative;
     margin: 20px;
     display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 .alert-container.power-alert {
     box-shadow: 0 0 45px #000 !important;
     margin-top: 300px;
-    background: none!important;
     height: unset!important;
     border-radius: 0;
+}
+
+.alert-container.power-alert,
+.alert-container.system-alert {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.alert-container.power-alert .alert-content,
+.alert-container.system-alert .alert-content {
+    margin-top: unset!important;
+    padding-left: 20px!important;
+}
+
+.alert-container.power-alert .alert-background,
+.alert-container.system-alert .alert-background{
+    display: none;
+}
+
+.alert-container .alert-background{
+    top: 0;
+    left: 0;
+    position: absolute;
 }
 
 .alert-container.system-alert {
     box-shadow: 0 0 45px #000 !important;
     margin-top: 300px;
     border-bottom: #fb1b03 5px solid;
-    background: none!important;
     height: unset!important;
     border-radius: 0;
     transform: scaleX(1) scaleY(1) scaleZ(1) rotateX(-8deg) rotateY(-20deg) rotateZ(0deg) translateX(0px) translateY(0px) translateZ(0px) skewX(0deg) skewY(2deg);
@@ -51,9 +69,11 @@
     margin-right: 35px!important;
     font-size: 250px!important;
     color: #d65100;
+    position: relative!important;
 }
 
 .system-alert .alert-logo {
+    position: relative!important;
     font-size: 250px!important;
     color: #fff;
 }
@@ -76,13 +96,18 @@
     margin-left: 150px;
     z-index: 3;
     text-shadow: 0 0 15px #000000c4;
-    font-size: 300px;
+    font-size: 150px;
+    transition-duration: 0.5s;
+    transition-timing-function: ease-in-out;
+    position: absolute;
+    right: 150px;
+    top: -15px;
 }
 
 .alert-container .alert-content {
     z-index: 3;
     width: 100%;
-    padding-left: 20px;
+    padding-left: 50px;
     font-size: 60px;
     font-family: 'Orbitron', sans-serif;
     display: flex;
@@ -90,13 +115,14 @@
     justify-content: center;
     color: rgba(255, 255, 255);
     word-wrap: anywhere;
+    margin-top: 130px;
 }
 
 .alert-container .alert-video-container {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+    top: 76px;
+    left: 64px;
+    width: 85%;
     height: max-content;
     display: flex;
     justify-content: center;
