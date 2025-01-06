@@ -8,12 +8,12 @@ export default function initialSchedulers() {
     // moderate scheduler
     setInterval(async () => {
         await updateAdData()
-    }, 60_000)
+    }, 15_000)
 }
 
 async function updateAdData() {
     try {
-        const adData = (await getAdData()).ads
+        const adData = (await getAdData(true)).ads
         getWebsocketServer().send('ad_result', adData)
     } catch (error) {
         logWarn('ads fetch failed:')

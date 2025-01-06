@@ -1,6 +1,8 @@
 import {getConfig} from "../../helper/ConfigHelper";
 import {logDebug} from "../../helper/LogHelper";
 
+let adData = {}
+
 async function requestApi(slug: string) {
     const config = getConfig(/api website/g)[0]
 
@@ -13,8 +15,11 @@ export default async function getThemeData() {
     return  await requestApi('getTheme')
 }
 
-export async function getAdData() {
-    return await requestApi('getAd')
+export async function getAdData(forceUpdate = false) {
+    if(Object.keys(adData).length === 0 || forceUpdate) {
+        adData = await requestApi('getAd')
+    }
+    return adData
 }
 
 export async function getVariableData(variable: string) {
