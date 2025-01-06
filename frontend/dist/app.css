@@ -463,11 +463,15 @@ picture {
   font-size: 250px !important;
   color: #d65100;
   position: relative !important;
+  top: unset !important;
+  right: unset !important;
 }
 .system-alert .alert-logo {
   position: relative !important;
   font-size: 250px !important;
   color: #fff;
+  top: unset !important;
+  right: unset !important;
 }
 .alert-container.expand {
 }
