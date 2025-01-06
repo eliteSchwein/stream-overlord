@@ -57,7 +57,10 @@ export default function initialAlerts() {
     }, 1000)
 }
 
-export function isAlertActive(eventUuid: string) {
+export function isAlertActive(eventUuid: string|undefined = undefined) {
+    if(!eventUuid) {
+        return activeAlerts.length > 0
+    }
     return activeAlerts.indexOf(eventUuid) > -1
 }
 

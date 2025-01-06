@@ -5,6 +5,7 @@ import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {addAlert, isAlertActive} from "../../../helper/AlertHelper";
 import getWebsocketServer from "../../../App";
 import {waitUntil} from "async-wait-until";
+import {isEventQueried} from "../helper/CooldownHelper";
 
 export default class ShoutoutCommand extends BaseCommand {
     command = 'shoutout'
@@ -22,6 +23,8 @@ export default class ShoutoutCommand extends BaseCommand {
             await context.reply('Es ist gerade ein Shoutout aktiv!')
             return
         }
+
+        await waitUntil(() => !isAlertActive(), {timeout: Number.POSITIVE_INFINITY})
 
         const user = await this.bot.api.users.getUserByName(params.userName)
 

@@ -4,6 +4,7 @@ import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class ShoutoutController extends BaseController {
     private elements = []
+    private iframe: HTMLIFrameElement
 
     async postConnect() {
         await sleep(250)
@@ -15,6 +16,13 @@ export default class ShoutoutController extends BaseController {
 
             this.elements.push(element)
         })
+
+
+        const iframe = this.element.querySelector('iframe')
+
+        if(!iframe) return
+
+        this.iframe = iframe
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
@@ -22,21 +30,25 @@ export default class ShoutoutController extends BaseController {
 
         this.element.classList.add('visible')
 
-        const iframe = this.element.querySelector('iframe')
+        if(!this.iframe) return
 
-        if(!iframe) return
-
-        iframe.src = this.parseData(data, iframe.dataset.src)
+        this.iframe.style.display = null
+        this.iframe.src = this.parseData(data, this.iframe.dataset.src)
 
         this.elements.forEach((element) => {
             element.innerHTML = this.parseData(data, element.innerHTML)
         })
 
-        setTimeout(async () => {
-            iframe.src = ''
+        await sleep(20_000)
 
-            this.element.classList.remove('visible')
-        }, 15_000)
+        const iframe = this.element.querySelector('iframe')
+
+        if(!iframe) return
+
+        iframe.src = ''
+        iframe.style.display = 'none'
+
+        this.element.classList.remove('visible')
     }
 
     private parseData(data: any, input: string): any {
