@@ -25,9 +25,9 @@ export default class SvgController extends BaseController {
 
         if (!svgStyleElement) {
             svgStyleElement = document.createElementNS("http://www.w3.org/2000/svg", "style") as SVGStyleElement
-            svgStyleElement.innerHTML = `.insvg-fader {
-                transition: all 1s ease-in-out;
-              }`
+            //svgStyleElement.innerHTML = `.insvg-fader {
+            //    transition: all 1s ease-in-out;
+            //  }`
             this.element.appendChild(svgStyleElement)
             hasStyle = false
         }
@@ -47,7 +47,7 @@ export default class SvgController extends BaseController {
             element.classList.add('insvg-fader')
         })
 
-        styleContent = styleContent.replace(/fill:\s*#ffa5a5/g, 'transition: all 1s ease-in-out')
+        //styleContent = styleContent.replace(/fill:\s*#ffa5a5/g, 'transition: all 1s ease-in-out')
 
         svgStyleElement.innerHTML = styleContent
     }
