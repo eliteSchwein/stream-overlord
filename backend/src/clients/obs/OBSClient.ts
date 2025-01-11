@@ -42,7 +42,7 @@ export class OBSClient {
             logCustom(`items for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
 
             for(const sceneItem of sceneItems) {
-                logCustom(`item ${sceneItem.sourceName}[${sceneItem.sceneItemId}]`.blue)
+                logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}]`.blue)
             }
         }
 
