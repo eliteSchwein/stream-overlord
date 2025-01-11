@@ -3,12 +3,15 @@ import {fetchTheme, pushTheme} from "../../../../helper/ThemeHelper";
 import getThemeData, {editGameTracker, updateTwitchData} from "../../../website/WebsiteClient";
 import {logNotice} from "../../../../helper/LogHelper";
 import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
+import {updateAdData} from "../../../../helper/SchedulerHelper";
 
 export default class ChannelUpdateEvent extends BaseEvent {
     name = 'ChannelUpdateEvent'
     eventTypes = ['onChannelUpdate']
 
     async handle(event: any) {
+        await updateAdData()
+
         const oldThemeData = await getThemeData()
 
         if(oldThemeData.game_id === Number.parseInt(event.categoryId)) return

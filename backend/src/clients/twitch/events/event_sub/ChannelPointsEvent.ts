@@ -12,7 +12,7 @@ import isShieldActive from "../../../../helper/ShieldHelper";
 import FAChannelPoint from "../channel_points/FAChannelPoint";
 import getWebsocketServer from "../../../../App";
 import HudChannelPoint from "../channel_points/HudChannelPoint";
-import {fetchChannelPointData, toggleChannelPoints, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
+import {fetchChannelPointData, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
