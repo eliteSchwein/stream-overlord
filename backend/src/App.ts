@@ -26,8 +26,6 @@ async function init() {
     logRegular('load config')
     readConfig()
 
-    console.log(JSON.stringify(getConfig(), null, 4))
-
     logRegular('connect twitch')
     twitchClient = new TwitchClient()
     await twitchClient.connect()
