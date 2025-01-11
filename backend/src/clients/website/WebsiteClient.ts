@@ -31,11 +31,15 @@ export async function setVariableData(variable: string, value: string) {
 }
 
 export async function getYoutubeData() {
-    return await requestApi(`getData&data=youtube}`)
+    return await requestApi(`getData&data=youtube`)
 }
 
 export async function getGithubData() {
-    return await requestApi(`getData&data=github}`)
+    return await requestApi(`getData&data=github`)
+}
+
+export async function getTwitchData() {
+    return await requestApi(`getData&data=twitch`)
 }
 
 export async function getDeathCounter() {
@@ -52,4 +56,9 @@ export async function updateGameState(state: string) {
 
 export async function updateTwitchData() {
     return await requestApi(`updateTwitch`)
+}
+
+export async function editGameTracker(gameId: string, mode: string = 'add') {
+    if(!(await getTwitchData()).stream) return
+    return await requestApi(`editGameTracker&game_id=${gameId}&mode=${mode}`)
 }

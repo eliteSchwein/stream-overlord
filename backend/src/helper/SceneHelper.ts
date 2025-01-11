@@ -2,6 +2,7 @@ import {getConfig} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
+import getThemeData, {editGameTracker} from "../clients/website/WebsiteClient";
 
 const scenes = {}
 
@@ -60,6 +61,17 @@ async function handleFunction(method: string, data: any) {
     switch (method) {
         case 'sleep': {
             await sleep(data.time)
+            break
+        }
+        case 'track': {
+            const themeData = await getThemeData()
+            let mode = 'add'
+
+            if(data.mode) {
+                mode = data.mode
+            }
+
+            await editGameTracker(themeData.game_id, mode)
             break
         }
     }
