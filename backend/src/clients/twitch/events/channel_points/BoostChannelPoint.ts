@@ -5,7 +5,6 @@ import getWebsocketServer from "../../../../App";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
 import {waitUntil} from "async-wait-until";
-import {isEventQueried} from "../../helper/CooldownHelper";
 
 export default class BoostChannelPoint extends BaseChannelPoint {
     title = 'Boost'

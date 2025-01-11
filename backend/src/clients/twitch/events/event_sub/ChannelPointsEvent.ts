@@ -12,6 +12,7 @@ import isShieldActive from "../../../../helper/ShieldHelper";
 import FAChannelPoint from "../channel_points/FAChannelPoint";
 import getWebsocketServer from "../../../../App";
 import HudChannelPoint from "../channel_points/HudChannelPoint";
+import {fetchChannelPointData, toggleChannelPoints, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -31,7 +32,6 @@ export default class ChannelPointsEvent extends BaseEvent {
         const rewardNames = presentChannelPoints.map(reward => reward.title)
         const configChannelPoints = getConfig(/channel_point /g)
 
-
         for(const channelPoint of this.channelPoints) {
             const channelPointTitle = channelPoint.getTitle()
 
@@ -49,6 +49,8 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: configChannelPoint.label, cost: 69})
         }
+
+        await updateChannelPoints()
     }
 
     async handle(event: EventSubChannelRedemptionAddEvent) {

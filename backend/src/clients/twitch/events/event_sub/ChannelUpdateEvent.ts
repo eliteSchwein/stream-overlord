@@ -2,6 +2,7 @@ import BaseEvent from "./BaseEvent";
 import {fetchTheme, pushTheme} from "../../../../helper/ThemeHelper";
 import getThemeData, {editGameTracker, updateTwitchData} from "../../../website/WebsiteClient";
 import {logNotice} from "../../../../helper/LogHelper";
+import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 
 export default class ChannelUpdateEvent extends BaseEvent {
     name = 'ChannelUpdateEvent'
@@ -14,8 +15,9 @@ export default class ChannelUpdateEvent extends BaseEvent {
 
         await editGameTracker(oldThemeData.game_id, 'end')
 
-        logNotice('update theme assets on website')
+        logNotice(`game change detected, load assets for ${event.categoryName}`)
         await updateTwitchData()
+        await updateChannelPoints()
         await fetchTheme()
         pushTheme()
 
