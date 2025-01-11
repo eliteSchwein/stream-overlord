@@ -24,7 +24,7 @@ export default class AlertController extends BaseController {
 
     videoEnd(event: Event) {
         this.videoTarget.style.opacity = '0'
-        this.element.querySelector('canvas').style.opacity = '1'
+        //this.element.querySelector('canvas').style.opacity = '1'
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
@@ -42,7 +42,7 @@ export default class AlertController extends BaseController {
 
                 if(data.video) {
                     this.videoTarget.style.display = null
-                    this.element.querySelector('canvas').style.opacity = '0'
+                    //this.element.querySelector('canvas').style.opacity = '0'
                     this.element.style.padding = '0 !important'
 
                     if(!this.element.classList.contains('expand')) {
