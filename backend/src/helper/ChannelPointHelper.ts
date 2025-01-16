@@ -21,14 +21,17 @@ export async function fetchChannelPointData() {
 export async function updateChannelPoints() {
     await fetchChannelPointData()
 
-    const themeData = await getGameInfoData()
+    const gameData = await getGameInfoData()
     const bot = getTwitchClient().getBot()
     const primaryChannel = await bot.api.users.getUserByName(
         getConfig(/twitch/g)[0]['channels'][0])
 
     const defaultChannelPoints = getConfig(/defaults/g)[0]['channel_points']
-    const gameChannelPoints = themeData.channel_points
-    const activeChannelPoints = defaultChannelPoints.concat(gameChannelPoints)
+
+    const gameChannelPoints = gameData.channel_points;
+    const gameChannelPointNames = gameChannelPoints.map(point => point.name);
+
+    const activeChannelPoints = defaultChannelPoints.concat(gameChannelPointNames);
 
     const toDisableKeys = Object.keys(channelPoints).filter(item => !activeChannelPoints.includes(item))
 

@@ -12,7 +12,7 @@ async function requestApi(slug: string) {
 }
 
 export default async function getGameInfoData() {
-    return  await requestApi('getGame')
+    return (await requestApi('getGame')).data
 }
 
 export async function getAdData(forceUpdate = false) {
