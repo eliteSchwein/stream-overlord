@@ -27,26 +27,26 @@ export default function getGameInfo() {
 
 export async function fetchGameInfo() {
     logRegular('fetch theme from website')
-    theme.data = await getGameInfoData()
+    gameInfo.data = await getGameInfoData()
 }
 
 export function pushGameInfo(websocket: Websocket|undefined = undefined) {
-    const theme = getGameInfo()
+    const gameInfo = getGameInfo()
     if(websocket) {
-        websocket.send(JSON.stringify({method: 'game_update', data: theme}))
+        websocket.send(JSON.stringify({method: 'game_update', data: gameInfo}))
         return
     }
-    getWebsocketServer().send('game_update', theme)
+    getWebsocketServer().send('game_update', gameInfo)
 }
 
 export function setManualColor(value: string|undefined = undefined) {
     if(value) {
         logRegular(`set manual theme color: ${value}`);
-        theme.manual = value
+        gameInfo.manual = value
         return
     }
 
     logRegular('reset manual theme color');
-    theme.manual = ''
+    gameInfo.manual = ''
     void setLedColor()
 }
