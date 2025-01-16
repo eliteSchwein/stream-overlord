@@ -11,8 +11,8 @@ async function requestApi(slug: string) {
     return await (await fetch(`${config.url}${config.api_slug}&token=${config.token}&method=${slug}`)).json()
 }
 
-export default async function getThemeData() {
-    return  await requestApi('getTheme')
+export default async function getGameInfoData() {
+    return  await requestApi('getGame')
 }
 
 export async function getAdData(forceUpdate = false) {

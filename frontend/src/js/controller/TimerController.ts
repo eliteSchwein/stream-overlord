@@ -16,7 +16,7 @@ export default class TimerController extends BaseController {
         this.name = this.element.getAttribute('data-timer-name') as string
     }
 
-    async handleTheme(websocket: Websocket, data: any) {
+    async handleGameUpdate(websocket: Websocket, data: any) {
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {

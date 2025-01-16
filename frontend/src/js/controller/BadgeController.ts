@@ -119,12 +119,14 @@ export default class BadgeController extends BaseController {
         }
     }
 
-    async handleTheme(websocket: Websocket, data: any) {
+    async handleGameUpdate(websocket: Websocket, data: any) {
         if(!this.element.classList.contains('wall-badge')) return
+
+        const themeData = data.theme
 
         //this.element.style.borderTop = `3px solid ${data.color}`
         //this.element.style.borderBottom = `3px solid ${data.color}`
         //await this.particle.loadThemeColor(data.color)
-        this.element.style.boxShadow = `0 -5px 7px -2px ${data.color}, 0 5px 7px -2px ${data.color}`;
+        this.element.style.boxShadow = `0 -5px 7px -2px ${themeData.color}, 0 5px 7px -2px ${themeData.color}`;
     }
 }

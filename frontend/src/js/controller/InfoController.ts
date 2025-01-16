@@ -2,7 +2,7 @@ import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
 
 export default class InfoController extends BaseController {
-    async handleTheme(websocket: Websocket, data: any) {
+    async handleGameUpdate(websocket: Websocket, data: any) {
         const gameInfoElements = this.element.querySelectorAll('[data-info]') as NodeListOf<HTMLElement>;
 
         gameInfoElements.forEach(element => {

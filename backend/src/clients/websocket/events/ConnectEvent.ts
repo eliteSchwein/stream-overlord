@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {logNotice} from "../../../helper/LogHelper";
-import {pushTheme} from "../../../helper/ThemeHelper";
+import {pushGameInfo} from "../../../helper/GameHelper";
 import AdMessage from "./messages/AdMessage";
 import {sleep} from "../../../../../helper/GeneralHelper";
 import EditColorMessage from "./messages/EditColorMessage";
@@ -28,7 +28,7 @@ export default class ConnectEvent extends BaseEvent{
 
         await sleep(500)
 
-        pushTheme(event)
+        pushGameInfo(event)
         event.send(JSON.stringify({method: 'shield_mode', data: {status: isShieldActive()}}))
     }
 }

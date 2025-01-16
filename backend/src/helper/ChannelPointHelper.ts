@@ -1,4 +1,4 @@
-import getThemeData from "../clients/website/WebsiteClient";
+import getGameInfoData from "../clients/website/WebsiteClient";
 import {getConfig} from "./ConfigHelper";
 import {getTwitchClient} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
@@ -21,7 +21,7 @@ export async function fetchChannelPointData() {
 export async function updateChannelPoints() {
     await fetchChannelPointData()
 
-    const themeData = await getThemeData()
+    const themeData = await getGameInfoData()
     const bot = getTwitchClient().getBot()
     const primaryChannel = await bot.api.users.getUserByName(
         getConfig(/twitch/g)[0]['channels'][0])

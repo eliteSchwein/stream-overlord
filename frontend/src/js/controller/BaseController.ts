@@ -30,9 +30,10 @@ export default class BaseController extends Controller<HTMLElement> {
     async handleWebsocket(websocket: Websocket, event: MessageEvent) {
         const data = JSON.parse(event.data)
 
-        if(data.method === 'theme_update') {
-            const themeData = data.data.data
-            await this.handleTheme(websocket, themeData)
+        if(data.method === 'game_update') {
+            const gameData = data.data.data
+            const themeData = gameData.theme
+            await this.handleGameUpdate(websocket, gameData)
 
             const themeStyle = document.createElement('style')
             themeStyle.innerHTML = `:root {--theme-color: ${themeData.color}}`
@@ -52,7 +53,7 @@ export default class BaseController extends Controller<HTMLElement> {
 
     }
 
-    async handleTheme(websocket: Websocket, data: any) {
+    async handleGameUpdate(websocket: Websocket, data: any) {
 
     }
 

@@ -1,6 +1,6 @@
 import {removeEventFromQuery} from "../clients/twitch/helper/CooldownHelper";
 import getWebsocketServer from "../App";
-import {pushTheme, setManual} from "./ThemeHelper";
+import {pushGameInfo, setManualColor} from "./GameHelper";
 import {setLedColor} from "./WledHelper";
 
 const alertQuery = {}
@@ -31,8 +31,8 @@ export default function initialAlerts() {
                 activeAlert.active = true
 
                 if(activeAlert.color) {
-                    setManual(activeAlert.color)
-                    pushTheme()
+                    setManualColor(activeAlert.color)
+                    pushGameInfo()
                 }
 
                 if(activeAlert.lamp_color) {
@@ -52,8 +52,8 @@ export default function initialAlerts() {
 
         if(Object.keys(alertQuery).length > 0) return
 
-        setManual()
-        pushTheme()
+        setManualColor()
+        pushGameInfo()
     }, 1000)
 }
 

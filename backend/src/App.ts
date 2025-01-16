@@ -4,7 +4,7 @@ import {logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
 import registerPermissions, {registerPermissionInterval} from "./clients/twitch/helper/PermissionHelper";
 import WebsocketServer from "./clients/websocket/WebsocketServer";
-import {fetchTheme} from "./helper/ThemeHelper";
+import {fetchGameInfo} from "./helper/GameHelper";
 import WebServer from "./clients/webserver/WebServer";
 import {OBSClient} from "./clients/obs/OBSClient";
 import initialTimers from "./helper/TimerHelper";
@@ -53,7 +53,7 @@ async function init() {
     webServer = new WebServer()
     webServer.initial()
 
-    await fetchTheme()
+    await fetchGameInfo()
 
     await obsClient.reloadAllBrowserScenes()
 

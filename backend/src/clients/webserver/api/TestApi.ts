@@ -1,6 +1,6 @@
 import BaseApi from "./BaseApi";
 import getWebsocketServer from "../../../App";
-import {pushTheme, setManual} from "../../../helper/ThemeHelper";
+import {pushGameInfo, setManualColor} from "../../../helper/GameHelper";
 import {Websocket} from "websocket-ts";
 import {getConfig} from "../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
@@ -24,8 +24,8 @@ export default class TestApi extends BaseApi {
         const data = body.data
 
         if(method === 'set_color') {
-            setManual(data.color)
-            pushTheme()
+            setManualColor(data.color)
+            pushGameInfo()
 
             return {
                 status: 200
@@ -41,8 +41,8 @@ export default class TestApi extends BaseApi {
         }
 
         if(method === 'reset_color') {
-            setManual()
-            pushTheme()
+            setManualColor()
+            pushGameInfo()
 
             return {
                 status: 200

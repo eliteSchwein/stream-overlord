@@ -1,7 +1,7 @@
 import {getConfig} from "./ConfigHelper";
 import {triggerScene} from "./SceneHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
-import {pushTheme, setManual} from "./ThemeHelper";
+import {pushGameInfo, setManualColor} from "./GameHelper";
 import {logWarn} from "./LogHelper";
 
 let shieldActive = false;
@@ -28,8 +28,8 @@ export async function enableShield() {
         true
     )
 
-    setManual('FF1744')
-    pushTheme()
+    setManualColor('FF1744')
+    pushGameInfo()
 
     websocketServer.send('shield_mode', {status: true})
 
@@ -56,8 +56,8 @@ export async function disableShield() {
         false
     )
 
-    setManual()
-    pushTheme()
+    setManualColor()
+    pushGameInfo()
 
     websocketServer.send('shield_mode', {status: false})
 

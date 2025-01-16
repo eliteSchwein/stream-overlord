@@ -52,9 +52,9 @@ export default class SvgController extends BaseController {
         svgStyleElement.innerHTML = styleContent
     }
 
-    async handleTheme(websocket: Websocket, data: any) {
+    async handleGameUpdate(websocket: Websocket, data: any) {
         this.themeElements.forEach((themeElement) => {
-            themeElement.style.fill = data.color
+            themeElement.style.fill = data.theme.color
         })
     }
 }

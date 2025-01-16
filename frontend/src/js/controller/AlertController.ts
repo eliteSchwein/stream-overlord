@@ -148,8 +148,8 @@ export default class AlertController extends BaseController {
         }
     }
 
-    async handleTheme(websocket: Websocket, data: any) {
+    async handleGameUpdate(websocket: Websocket, data: any) {
         if(this.element.hasAttribute("data-disable-theme")) return
-        this.iconTarget.style.color = data.color
+        this.iconTarget.style.color = data.theme.color
     }
 }

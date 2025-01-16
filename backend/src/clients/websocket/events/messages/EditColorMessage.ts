@@ -1,5 +1,5 @@
 import BaseMessage from "./BaseMessage";
-import {pushTheme, setManual} from "../../../../helper/ThemeHelper";
+import {pushGameInfo, setManualColor} from "../../../../helper/GameHelper";
 
 export default class EditColorMessage extends BaseMessage {
     method = 'set_color'
@@ -7,7 +7,7 @@ export default class EditColorMessage extends BaseMessage {
     async handle(data: any) {
         const color = data.color
 
-        setManual(color)
-        pushTheme()
+        setManualColor(color)
+        pushGameInfo()
     }
 }
