@@ -2,7 +2,7 @@ import {getConfig} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
-import getGameInfoData, {editGameTracker} from "../clients/website/WebsiteClient";
+import {editGameTracker, getGameInfoData} from "../clients/website/WebsiteClient";
 
 const scenes = {}
 

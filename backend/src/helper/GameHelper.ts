@@ -1,9 +1,9 @@
-import getGameInfoData from "../clients/website/WebsiteClient";
 import {logRegular} from "./LogHelper";
 import getWebsocketServer from "../App";
 import {getConfig} from "./ConfigHelper";
 import {Websocket} from "websocket-ts";
 import {setLedColor} from "./WledHelper";
+import {getGameInfoData} from "../clients/website/WebsiteClient";
 
 const gameInfo = {
     data: {},

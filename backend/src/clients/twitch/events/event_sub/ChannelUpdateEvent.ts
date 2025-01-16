@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {fetchGameInfo, pushGameInfo} from "../../../../helper/GameHelper";
-import getGameInfoData, {editGameTracker, updateTwitchData} from "../../../website/WebsiteClient";
+import {editGameTracker, getGameInfoData, updateTwitchData} from "../../../website/WebsiteClient";
 import {logNotice} from "../../../../helper/LogHelper";
 import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {updateAdData} from "../../../../helper/SchedulerHelper";

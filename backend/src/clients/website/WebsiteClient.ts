@@ -3,7 +3,7 @@ import {logDebug} from "../../helper/LogHelper";
 
 let adData = {}
 
-async function requestApi(slug: string) {
+export async function requestApi(slug: string) {
     const config = getConfig(/api website/g)[0]
 
     logDebug(`request website api: ${config.url}${config.api_slug}&token=REDACTED&method=${slug}`)
@@ -11,8 +11,12 @@ async function requestApi(slug: string) {
     return await (await fetch(`${config.url}${config.api_slug}&token=${config.token}&method=${slug}`)).json()
 }
 
-export default async function getGameInfoData() {
+export async function getGameInfoData() {
     return (await requestApi('getGame')).data
+}
+
+export async function getGamesInfoData() {
+    return (await requestApi('getGames')).data
 }
 
 export async function getAdData(forceUpdate = false) {

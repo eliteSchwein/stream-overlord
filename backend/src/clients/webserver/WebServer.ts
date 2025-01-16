@@ -10,6 +10,9 @@ import AlertApi from "./api/AlertApi";
 import SceneApi from "./api/SceneApi";
 import ObsApi from "./api/ObsApi";
 import ShieldApi from "./api/ShieldApi";
+import WebRequestApi from "./api/WebRequestApi";
+import GetGameApi from "./api/GetGameApi";
+import GetGamesApi from "./api/GetGamesApi";
 
 export default class WebServer {
     webServer: Express
@@ -42,6 +45,9 @@ export default class WebServer {
         new SceneApi().register(this.webServer)
         new ObsApi().register(this.webServer)
         new ShieldApi().register(this.webServer)
+        // new WebRequestApi().register(this.webServer)
+        new GetGameApi().register(this.webServer)
+        new GetGamesApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 
