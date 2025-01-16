@@ -26,6 +26,8 @@ export default class WebServer {
         this.webServer.use(express.static(path.join(__dirname, '../../assets')))
         this.webServer.use(bodyParser.json())
 
+        this.webServer.use('/commander', express.static(path.join(__dirname, '../../commander/dist')));
+
         this.webServer.listen(config.port, '0.0.0.0', () => {
             logSuccess('web server is ready')
         })
