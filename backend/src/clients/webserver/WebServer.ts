@@ -1,5 +1,6 @@
 import {getConfig} from "../../helper/ConfigHelper";
-import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import cors from 'cors';
+import {logDebug, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import express, {Express} from "express";
 import * as path from "node:path";
 import ToggleBadgeApi from "./api/ToggleBadgeApi";
@@ -24,6 +25,19 @@ export default class WebServer {
         logRegular(`initial web server`)
 
         this.webServer = express();
+
+        this.webServer.use(cors({
+            origin: '*', // Allow all origins
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all HTTP methods
+            allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'], // Allow all common headers
+            credentials: true, // Optional: Allow cookies to be included in requests
+        }));
+
+        this.webServer.use((req, res, next) => {
+            logDebug(`webserver request: ${req.url}`)
+            next()
+        });
+
         this.webServer.use(express.static(path.join(__dirname, '../../frontend/dist')))
         this.webServer.use(express.static(path.join(__dirname, '../../frontend/src/html')))
         this.webServer.use(express.static(path.join(__dirname, '../../assets')))
@@ -36,8 +50,9 @@ export default class WebServer {
         })
 
         this.webServer.get('/config.json',
-            (req, res) =>
-                res.json(getConfig()))
+            (req, res) => {
+                res.json(getConfig())
+            })
 
         new ToggleBadgeApi().register(this.webServer)
         new TimerApi().register(this.webServer)

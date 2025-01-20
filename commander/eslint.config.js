@@ -23,6 +23,8 @@ export default [
 
   {
     rules: {
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      "@typescript-eslint/ban-ts-ignore": "off",
       '@typescript-eslint/no-unused-expressions': [
         'error',
         {

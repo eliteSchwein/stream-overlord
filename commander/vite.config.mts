@@ -13,7 +13,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: 'commander',
+  base: '/commander',
   plugins: [
     VueRouter({
       dts: 'src/typed-router.d.ts',
@@ -70,7 +70,15 @@ export default defineConfig({
     ],
   },
   server: {
+    host: '0.0.0.0',
     port: 3000,
+    proxy: {
+      '/config.json': {
+        target: `http://localhost:8105/`,
+        changeOrigin: true,
+        secure: true
+      }
+    }
   },
   css: {
     preprocessorOptions: {
