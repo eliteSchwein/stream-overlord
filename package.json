@@ -1,5 +1,5 @@
 {
-  "name": "dynamic-scene",
+  "name": "stream-controller",
   "version": "1.0.0",
   "description": "My Twitch Overlay and Bot",
   "main": "dist/index.js",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eliteSchwein/dynamic-scene.git"
+    "url": "git+https://github.com/eliteSchwein/stream-controller.git"
   },
   "keywords": [
     "twitch"
@@ -25,9 +25,9 @@
   "author": "tludwig-dev",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/eliteSchwein/dynamic-scene/issues"
+    "url": "https://github.com/eliteSchwein/stream-controller/issues"
   },
-  "homepage": "https://github.com/eliteSchwein/dynamic-scene#readme",
+  "homepage": "https://github.com/eliteSchwein/stream-controller#readme",
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "@mdi/font": "^7.4.47",
