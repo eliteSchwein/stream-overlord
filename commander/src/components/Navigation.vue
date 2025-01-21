@@ -2,7 +2,7 @@
 export default {
   data () {
     return {
-      rail: true,
+      rail: true
     }
   },
   computed: {
@@ -11,7 +11,7 @@ export default {
     }
   },
   methods: {
-    async toggleFullscreen() {
+    toggleFullscreen() {
       const target = document.documentElement;
 
       if (!document.fullscreenElement) {
@@ -36,7 +36,10 @@ export default {
       } else if (document.msExitFullscreen) { // IE/Edge
         document.msExitFullscreen();
       }
-    }
+    },
+    async restartService() {
+
+    },
   }
 }
 </script>
@@ -53,18 +56,22 @@ export default {
 
     <v-spacer></v-spacer>
 
-    <v-menu>
-      <template v-slot:activator="{ props }">
-        <v-btn icon="mdi-dots-vertical" v-bind="props" variant="text"></v-btn>
-      </template>
-      <v-list>
-        <v-list-item
-          title="Toggle Fullscreen"
-          @click.stop="toggleFullscreen"
-          prepend-icon="mdi-fullscreen"
-        ></v-list-item>
-      </v-list>
-    </v-menu>
+    <v-btn icon="mdi-dots-vertical" variant="text">
+      <v-menu activator="parent">
+        <v-list>
+          <v-list-item
+            title="Toggle Fullscreen"
+            @click="toggleFullscreen"
+            prepend-icon="mdi-fullscreen"
+          ></v-list-item>
+          <v-list-item
+            title="Restart Service"
+            @click="restartService"
+            prepend-icon="mdi-restart"
+          ></v-list-item>
+        </v-list>
+      </v-menu>
+    </v-btn>
   </v-app-bar>
   <v-navigation-drawer
     class="secondary"
