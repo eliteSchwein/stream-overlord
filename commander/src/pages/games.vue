@@ -15,7 +15,6 @@
         density="compact"
         class="mt-5"
         v-model="filter"
-        @focus="showKeyboard = true"
         @input="filterGames"
       ></v-text-field>
     </v-banner>
@@ -25,7 +24,6 @@
       </template>
     </v-row>
   </v-card>
-  <SimpleKeyboard @onChange="onChange" @onKeyPress="onKeyPress" :input="filter" v-if="showKeyboard"/>
 </template>
 
 <script lang="ts" setup>
@@ -35,7 +33,6 @@ const appOption = useAppStore()
 
 
 const filter = ref<string | undefined>("")
-const showKeyboard = ref<boolean | undefined>(false)
 const games = ref<any | undefined>([])
 
 onMounted(async () => {
@@ -57,18 +54,5 @@ function filterGames() {
     // @ts-ignore
     game.game_name.toLowerCase().includes(filter.value.toLowerCase())
   )
-}
-function onChange(input: string) {
-  filter.value = input
-
-  filterGames()
-}
-
-function onKeyPress(button: string) {
-  switch(button) {
-    case "{enter}":
-      showKeyboard.value = false
-      break
-  }
 }
 </script>
