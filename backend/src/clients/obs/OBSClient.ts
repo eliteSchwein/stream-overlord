@@ -5,11 +5,13 @@ import {logCustom, logNotice, logRegular, logSuccess, logWarn} from "../../helpe
 export class OBSClient {
     obsWebsocket: OBSWebSocket
     connected = false
+    sceneData: []
 
     public async connect() {
         const config = getConfig(/obs/g)[0]
 
         this.connected = false
+        this.sceneData = []
 
         if(this.obsWebsocket) {
             await this.obsWebsocket.disconnect()
@@ -60,6 +62,10 @@ export class OBSClient {
         await this.connect()
     }
 
+    public getSceneData() {
+        return this.sceneData
+    }
+
     public getOBSWebSocket() {
         return this.obsWebsocket
     }
@@ -79,10 +85,21 @@ export class OBSClient {
         for(const scene of scenes) {
             // @ts-ignore
             const {sceneItems} = await this.obsWebsocket.call('GetSceneItemList', {sceneUuid: scene.sceneUuid})
-            logCustom(`items for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
+            logCustom(`sources for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
+
+            const sceneData = {
+                index: scene.sceneIndex,
+                name: scene.sceneName,
+                items: []
+            }
 
             for(const sceneItem of sceneItems) {
                 logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}]`.blue)
+
+                sceneData.items.push({
+                    id: sceneItem.sceneItemId,
+                    name: sceneItem.sourceName
+                })
             }
         }
 

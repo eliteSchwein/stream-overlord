@@ -14,6 +14,7 @@ import ShieldApi from "./api/ShieldApi";
 import WebRequestApi from "./api/WebRequestApi";
 import GetGameApi from "./api/GetGameApi";
 import GetGamesApi from "./api/GetGamesApi";
+import GetSceneDataApi from "./api/GetSceneDataApi";
 
 export default class WebServer {
     webServer: Express
@@ -66,6 +67,7 @@ export default class WebServer {
         // new WebRequestApi().register(this.webServer)
         new GetGameApi().register(this.webServer)
         new GetGamesApi().register(this.webServer)
+        new GetSceneDataApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 
