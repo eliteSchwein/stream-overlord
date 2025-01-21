@@ -56,7 +56,10 @@ export default {
 
     <v-spacer></v-spacer>
 
-    <v-btn icon="mdi-dots-vertical">
+    <v-btn
+      icon="mdi-dots-vertical"
+      variant="text"
+    >
       <v-menu activator="parent">
         <v-list>
           <v-list-item
