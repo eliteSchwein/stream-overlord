@@ -43,10 +43,8 @@ async function init() {
         logRegular('connect obs')
         obsClient = new OBSClient()
         await obsClient.connect()
-        obsClient.registerEvents()
-        logSuccess('obs client is ready')
     } catch(error) {
-        logWarn('obs connection failed:')
+        logWarn('obs client failed:')
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
 

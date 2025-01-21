@@ -1,6 +1,7 @@
 import {getConfig} from "../../helper/ConfigHelper";
-import OBSWebSocket, {EventSubscription} from "obs-websocket-js";
-import {logCustom, logNotice, logRegular} from "../../helper/LogHelper";
+import OBSWebSocket, {EventSubscription, OBSWebSocketError} from "obs-websocket-js";
+import {logCustom, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {sleep} from "../../../../helper/GeneralHelper";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
@@ -9,15 +10,51 @@ export class OBSClient {
     public async connect() {
         const config = getConfig(/obs/g)[0]
 
-        this.obsWebsocket = new OBSWebSocket()
-        await this.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password, {
-            eventSubscriptions: EventSubscription.All
-        })
+        this.connected = false
+
+        if(this.obsWebsocket) {
+            await this.obsWebsocket.disconnect()
+        }
+
+        try {
+            this.obsWebsocket = new OBSWebSocket()
+            await this.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password, {
+                eventSubscriptions: EventSubscription.All
+            })
+        } catch (error) {
+            logWarn('obs connection failed:')
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logWarn('reconnecting obs in 15 seconds...')
+
+            await sleep(15_000)
+
+            return this.connect()
+        }
+
+        this.registerEvents()
+
         this.connected = true
+
+        logSuccess('obs client is ready')
     }
 
     public registerEvents() {
+        this.obsWebsocket.on('ConnectionClosed', async (error: OBSWebSocketError) => {
+            await this.handleOBSError(error)
+        })
+        this.obsWebsocket.on('ConnectionError', async (error: OBSWebSocketError) => {
+            await this.handleOBSError(error)
+        })
+    }
 
+    private async handleOBSError(error: OBSWebSocketError) {
+        logWarn(`obs disconnect: ${error.code} ${error.message}`)
+
+        if(!this.connected) return
+
+        logWarn('reconnecting obs now...')
+
+        await this.connect()
     }
 
     public getOBSWebSocket() {
