@@ -1,7 +1,6 @@
 import {getConfig} from "../../helper/ConfigHelper";
 import OBSWebSocket, {EventSubscription, OBSWebSocketError} from "obs-websocket-js";
 import {logCustom, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
-import {sleep} from "../../../../helper/GeneralHelper";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
@@ -92,7 +91,8 @@ export class OBSClient {
 
     public async reloadAllBrowserScenes() {
         if(!this.connected) return
-        logRegular('reload all browser scenes')
+
+        logRegular('reload all obs browser sources')
 
         const {inputs} = await this.obsWebsocket.call('GetInputList', {inputKind: 'browser_source'})
 
