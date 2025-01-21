@@ -26,14 +26,18 @@ export class OBSClient {
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             logWarn('reconnecting obs in 15 seconds...')
 
-            await sleep(15_000)
+            setTimeout(async () => {
+                await this.connect()
+            }, 15_000)
 
-            return this.connect()
+            return
         }
 
         this.registerEvents()
 
         this.connected = true
+
+        await this.reloadAllBrowserScenes()
 
         logSuccess('obs client is ready')
     }
