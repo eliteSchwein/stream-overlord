@@ -1,4 +1,8 @@
 <script>
+
+import {mapActions, mapState} from "pinia";
+import {useAppStore} from "@/stores/app";
+
 export default {
   data () {
     return {
@@ -6,6 +10,7 @@ export default {
     }
   },
   computed: {
+    ...mapState(useAppStore, ['getRestApi']),
     currentRouteName() {
       return this.$route.name;
     }
@@ -38,7 +43,10 @@ export default {
       }
     },
     async restartService() {
-
+      await fetch(`${this.getRestApi}/api/restart`)
+    },
+    async reloadBrowserSources() {
+      await fetch(`${this.getRestApi}/api/obs/reload_browsers`)
     },
   }
 }
@@ -57,9 +65,10 @@ export default {
     <v-spacer></v-spacer>
 
     <v-btn
-      icon="mdi-dots-vertical"
-      variant="text"
+      icon
+      text="test"
     >
+      <v-icon icon="mdi-dots-vertical"></v-icon>
       <v-menu activator="parent">
         <v-list>
           <v-list-item
@@ -70,6 +79,11 @@ export default {
           <v-list-item
             title="Restart Service"
             @click="restartService"
+            prepend-icon="mdi-restart"
+          ></v-list-item>
+          <v-list-item
+            title="Reload Browser Sources"
+            @click="reloadBrowserSources"
             prepend-icon="mdi-restart"
           ></v-list-item>
         </v-list>

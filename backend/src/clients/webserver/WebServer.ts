@@ -14,7 +14,9 @@ import ShieldApi from "./api/ShieldApi";
 import WebRequestApi from "./api/WebRequestApi";
 import GetGameApi from "./api/GetGameApi";
 import GetGamesApi from "./api/GetGamesApi";
-import GetSceneDataApi from "./api/GetSceneDataApi";
+import GetSceneDataApi from "./api/Obs/GetSceneDataApi";
+import ReloadBrowserScenesApi from "./api/Obs/ReloadBrowserScenesApi";
+import RestartApi from "./api/RestartApi";
 
 export default class WebServer {
     webServer: Express
@@ -58,16 +60,26 @@ export default class WebServer {
                 res.json(getConfig())
             })
 
+
+        // General API
+        new RestartApi().register(this.webServer)
+
+        // Scene API
         new ToggleBadgeApi().register(this.webServer)
         new TimerApi().register(this.webServer)
         new AlertApi().register(this.webServer)
         new SceneApi().register(this.webServer)
-        new ObsApi().register(this.webServer)
         new ShieldApi().register(this.webServer)
         // new WebRequestApi().register(this.webServer)
+
+        // Games API
         new GetGameApi().register(this.webServer)
         new GetGamesApi().register(this.webServer)
+
+        // OBS API
+        new ObsApi().register(this.webServer)
         new GetSceneDataApi().register(this.webServer)
+        new ReloadBrowserScenesApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 

@@ -17,8 +17,6 @@
   onMounted(async () => {
     await appOption.fetchConfig()
     await appOption.fetchGames()
-
-    console.log(appOption.getGames)
   })
 </script>
 

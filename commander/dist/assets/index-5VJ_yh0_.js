@@ -1,1 +1,0 @@
-import{_ as e}from"./HelloWorld.vue_vue_type_script_setup_true_lang-BvygTfgO.js";import{h as n,o as t,i as r}from"./index-DBYsAYCU.js";import"./VRow-R2Z6RYOJ.js";const i=n({__name:"index",setup(_){return(a,c)=>{const o=e;return t(),r(o)}}});export{i as default};
