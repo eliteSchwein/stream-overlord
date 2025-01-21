@@ -1,6 +1,9 @@
 <script setup lang="ts">
 
 import {sleep} from "@/helper/GeneralHelper";
+import { useAppStore } from '@/stores/app';
+
+const appOption = useAppStore();
 
 defineProps({
   game: {}
@@ -12,6 +15,14 @@ async function changeGame( event: Event, gameId: string) {
   console.log(gameId)
   console.log(event)
   loading.value = true
+
+  await fetch(`${appOption.getRestApi}/api/game/set`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({game_id: gameId})
+  })
 
   await sleep(1000)
   loading.value = false

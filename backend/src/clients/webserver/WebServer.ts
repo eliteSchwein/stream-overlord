@@ -12,11 +12,12 @@ import SceneApi from "./api/SceneApi";
 import ObsApi from "./api/ObsApi";
 import ShieldApi from "./api/ShieldApi";
 import WebRequestApi from "./api/WebRequestApi";
-import GetGameApi from "./api/GetGameApi";
-import GetGamesApi from "./api/GetGamesApi";
+import CurrentGameApi from "./api/Games/CurrentGameApi";
+import AllGamesApi from "./api/Games/AllGamesApi";
 import GetSceneDataApi from "./api/Obs/GetSceneDataApi";
 import ReloadBrowserScenesApi from "./api/Obs/ReloadBrowserScenesApi";
 import RestartApi from "./api/RestartApi";
+import SetGameApi from "./api/Games/SetGameApi";
 
 export default class WebServer {
     webServer: Express
@@ -73,8 +74,9 @@ export default class WebServer {
         // new WebRequestApi().register(this.webServer)
 
         // Games API
-        new GetGameApi().register(this.webServer)
-        new GetGamesApi().register(this.webServer)
+        new CurrentGameApi().register(this.webServer)
+        new AllGamesApi().register(this.webServer)
+        new SetGameApi().register(this.webServer)
 
         // OBS API
         new ObsApi().register(this.webServer)
