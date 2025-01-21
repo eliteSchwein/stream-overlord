@@ -9,6 +9,34 @@ export default {
     currentRouteName() {
       return this.$route.name;
     }
+  },
+  methods: {
+    async toggleFullscreen() {
+      const target = document.documentElement;
+
+      if (!document.fullscreenElement) {
+        if (target.requestFullscreen) {
+          target.requestFullscreen();
+        } else if (target.mozRequestFullScreen) { // Firefox
+          target.mozRequestFullScreen();
+        } else if (target.webkitRequestFullscreen) { // Safari
+          target.webkitRequestFullscreen();
+        } else if (target.msRequestFullscreen) { // IE/Edge
+          target.msRequestFullscreen();
+        }
+        return
+      }
+
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) { // Firefox
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) { // Safari
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { // IE/Edge
+        document.msExitFullscreen();
+      }
+    }
   }
 }
 </script>
@@ -25,13 +53,18 @@ export default {
 
     <v-spacer></v-spacer>
 
-    <template v-if="$vuetify.display.mdAndUp">
-      <v-btn icon="mdi-magnify" variant="text"></v-btn>
-
-      <v-btn icon="mdi-filter" variant="text"></v-btn>
-    </template>
-
-    <v-btn icon="mdi-dots-vertical" variant="text"></v-btn>
+    <v-menu>
+      <template v-slot:activator="{ props }">
+        <v-btn icon="mdi-dots-vertical" v-bind="props" variant="text"></v-btn>
+      </template>
+      <v-list>
+        <v-list-item
+          title="Toggle Fullscreen"
+          @click.stop="toggleFullscreen"
+          prepend-icon="mdi-fullscreen"
+        ></v-list-item>
+      </v-list>
+    </v-menu>
   </v-app-bar>
   <v-navigation-drawer
     class="secondary"
