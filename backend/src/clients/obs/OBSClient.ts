@@ -23,7 +23,7 @@ export class OBSClient {
         } catch (error) {
             logWarn('obs connection failed:')
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-            logWarn('reconnecting obs in 15 seconds...')
+            logWarn('reconnect obs in 15 seconds...')
 
             setTimeout(async () => {
                 await this.connect()
@@ -55,7 +55,7 @@ export class OBSClient {
 
         if(!this.connected) return
 
-        logWarn('reconnecting obs now...')
+        logWarn('reconnect obs now...')
 
         await this.connect()
     }
