@@ -73,6 +73,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "sharp": "^0.33.5",
-    "systeminformation": "^5.25.3"
+    "systeminformation": "^5.25.3",
+    "tesmart-api": "^1.0.0"
   }
 }
