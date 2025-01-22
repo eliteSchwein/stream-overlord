@@ -24,7 +24,7 @@ export function activateEffect() {
     activeEffect = effects[0]
     effectPosition = 1
 
-    getWebsocketServer().send('effect', {enabled: true, effect: activeEffect})
+    getWebsocketServer().send('notify_effect', {action: 'show', effect: activeEffect})
 
     effectInterval = setInterval(() => {
         if(effectPosition === effects.length) {
@@ -33,7 +33,7 @@ export function activateEffect() {
 
         activeEffect = effects[effectPosition]
 
-        getWebsocketServer().send('effect', {enabled: true, effect: activeEffect})
+        getWebsocketServer().send('notify_effect', {action: 'show', effect: activeEffect})
 
         effectPosition++
     }, 30 * 1000)
@@ -42,5 +42,5 @@ export function activateEffect() {
 export function deactivateEffect() {
     clearInterval(effectInterval)
     isActive = false
-    getWebsocketServer().send('effect', {enabled: false})
+    getWebsocketServer().send('notify_effect', {action: 'hide'})
 }

@@ -20,16 +20,16 @@ export default class TimerController extends BaseController {
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method !== 'timer_update' && method !== 'timer_finished') return
+        if(method !== 'notify_timer') return
 
         if(data.name !== this.name) return
 
-        switch (method) {
-            case "timer_update":
+        switch (data.action) {
+            case "update":
                 this.element.classList.remove('blink')
                 this.handleTimerUpdate(data)
                 return
-            case "timer_finished":
+            case "finish":
                 this.handleTimerUpdate(data)
                 void this.handleTimerFinish(data)
                 return

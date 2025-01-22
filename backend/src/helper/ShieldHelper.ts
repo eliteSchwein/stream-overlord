@@ -31,7 +31,7 @@ export async function enableShield() {
     setManualColor('FF1744')
     pushGameInfo()
 
-    websocketServer.send('shield_mode', {status: true})
+    websocketServer.send('notify_shield_mode', {action: 'enable'})
 
     if(config) {
         await triggerScene('shield_on')
@@ -59,7 +59,7 @@ export async function disableShield() {
     setManualColor()
     pushGameInfo()
 
-    websocketServer.send('shield_mode', {status: false})
+    websocketServer.send('notify_shield_mode', {action: 'disable'})
 
     if(config) {
         await triggerScene('shield_off')

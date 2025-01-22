@@ -30,8 +30,10 @@ export default class BaseController extends Controller<HTMLElement> {
     async handleWebsocket(websocket: Websocket, event: MessageEvent) {
         const data = JSON.parse(event.data)
 
-        if(data.method === 'game_update') {
-            const gameData = data.data.data
+        if(
+            data.method === 'notify_game_update'
+        ) {
+            const gameData = data.params.data
             const themeData = gameData.theme
             await this.handleGameUpdate(websocket, gameData)
 
@@ -41,12 +43,12 @@ export default class BaseController extends Controller<HTMLElement> {
             return
         }
 
-        if(data.method === 'shield_mode') {
-            this.shieldActive = data.data.status
+        if(data.method === 'notify_shield_mode') {
+            this.shieldActive = data.params.action === 'enable'
             await this.handleShield()
         }
 
-        await this.handleMessage(websocket, data.method, data.data)
+        await this.handleMessage(websocket, data.method, data.params)
     }
 
     async handleShield() {

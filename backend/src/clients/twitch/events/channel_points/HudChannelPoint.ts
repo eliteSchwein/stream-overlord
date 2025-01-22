@@ -31,10 +31,10 @@ export default class HudChannelPoint extends BaseChannelPoint {
             await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
         }
 
-        websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['ctrl_left', 'alt_left', 'g']})
+        websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['ctrl_left', 'alt_left', 'g']})
 
         await sleep(15_000)
 
-        websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['ctrl_left', 'alt_left', 'g']})
+        websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['ctrl_left', 'alt_left', 'g']})
     }
 }

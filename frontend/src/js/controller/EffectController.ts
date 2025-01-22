@@ -12,11 +12,11 @@ export default class EffectController extends BaseController {
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method !== 'effect') {
+        if(method !== 'notify_effect') {
             return
         }
 
-        if(data.enabled !== undefined && data.enabled === false) {
+        if(data.action !== 'show') {
             this.element.innerHTML = ``
             return
         }

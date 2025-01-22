@@ -19,7 +19,7 @@ export default function initialAlerts() {
             if(activeAlert.duration > 0) {
                 activeAlert.duration--
 
-                websocketServer.send('show_alert', activeAlert)
+                websocketServer.send('notify_alert', {...activeAlert, action: 'show'})
 
                 if(activeAlert.active) {
                     if(!activeAlerts.includes(activeAlert['event-uuid'])) activeAlerts.push(activeAlert['event-uuid'])
@@ -43,8 +43,9 @@ export default function initialAlerts() {
                 return
             }
 
-            websocketServer.send('hide_alert', {
-                'channel': key
+            websocketServer.send('notify_alert', {
+                channel: key,
+                action: 'hide'
             })
 
             removeAlert(activeAlert)
@@ -75,7 +76,7 @@ export function addAlert(alert: any) {
         const websocketServer = getWebsocketServer()
 
         alertQuery[alert.channel] = []
-        websocketServer.send('show_alert', alert)
+        websocketServer.send('notify_alert', {...alert, action: 'show'})
         active = true
     }
 

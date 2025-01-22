@@ -29,13 +29,13 @@ export default class ToggleApi extends BaseApi {
 
         switch (method) {
             case 'enable':
-                websocket.send('toggle_element', {target: target})
+                websocket.send('notify_toggle_element', {target: target, action: 'enable'})
                 break
             case 'disable':
-                websocket.send('enable_toggle_element', {target: target})
+                websocket.send('notify_toggle_element', {target: target, action: 'disable'})
                 break
             case 'toggle':
-                websocket.send('disable_toggle_element', {target: target})
+                websocket.send('notify_toggle_element', {target: target})
                 break
             default:
                 return {

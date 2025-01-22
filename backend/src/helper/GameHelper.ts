@@ -34,10 +34,10 @@ export async function fetchGameInfo() {
 export function pushGameInfo(websocket: Websocket|undefined = undefined) {
     const gameInfo = getGameInfo()
     if(websocket) {
-        websocket.send(JSON.stringify({jsonrpc: "2.0", method: 'game_update', data: gameInfo, id: getRandomInt(10_000)}))
+        websocket.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_game_update', params: gameInfo, id: getRandomInt(10_000)}))
         return
     }
-    getWebsocketServer().send('game_update', gameInfo)
+    getWebsocketServer().send('notify_game_update', gameInfo)
 }
 
 export function setManualColor(value: string|undefined = undefined) {

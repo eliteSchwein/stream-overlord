@@ -50,7 +50,7 @@ export default class ShoutoutCommand extends BaseCommand {
 
         logRegular(`shout from ${context.userDisplayName} to ${user.displayName}`)
 
-        await getWebsocketServer().send('shoutout_clip', {channel: user.name, name: user.displayName})
+        getWebsocketServer().send('notify_shoutout_clip', {channel: user.name, name: user.displayName})
 
         addAlert({
             'logo': user.profilePictureUrl,

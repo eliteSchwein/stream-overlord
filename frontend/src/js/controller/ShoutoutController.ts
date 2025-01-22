@@ -26,7 +26,7 @@ export default class ShoutoutController extends BaseController {
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method !== 'shoutout_clip') return
+        if(method !== 'notify_shoutout_clip') return
 
         this.element.classList.add('visible')
 

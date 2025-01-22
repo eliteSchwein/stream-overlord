@@ -3,7 +3,6 @@ import cors from 'cors';
 import {logDebug, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import express, {Express} from "express";
 import * as path from "node:path";
-import ToggleBadgeApi from "./api/ToggleBadgeApi";
 import TestApi from "./api/TestApi";
 import * as bodyParser from "body-parser";
 import TimerApi from "./api/TimerApi";
@@ -66,7 +65,6 @@ export default class WebServer {
         new RestartApi().register(this.webServer)
 
         // Scene API
-        new ToggleBadgeApi().register(this.webServer)
         new TimerApi().register(this.webServer)
         new AlertApi().register(this.webServer)
         new SceneApi().register(this.webServer)

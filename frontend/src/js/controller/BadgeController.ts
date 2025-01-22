@@ -101,7 +101,7 @@ export default class BadgeController extends BaseController {
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
         switch (method) {
-            case 'ad_result':
+            case 'notify_ads':
                 if(JSON.stringify(this.ads) === JSON.stringify(data)) return
 
                 this.ads = data

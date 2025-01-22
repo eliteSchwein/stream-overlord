@@ -30,8 +30,12 @@ export default class AlertController extends BaseController {
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if(!data.channel || data.channel !== this.channel) return
 
-        switch (method) {
-            case 'show_alert': {
+        if(method !== 'notify_alert') return
+
+        const action = data.action
+
+        switch (action) {
+            case 'show': {
                 if(data.dummy) return
 
                 if(this.element.style.opacity === "1") return
@@ -104,7 +108,7 @@ export default class AlertController extends BaseController {
                 this.iconTarget.setAttribute('class', `alert-logo mdi mdi-${data.icon}`)
                 return
             }
-            case 'hide_alert': {
+            case 'hide': {
                 if(data.dummy) return
 
                 try {

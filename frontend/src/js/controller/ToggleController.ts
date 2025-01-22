@@ -7,18 +7,19 @@ export default class ToggleController extends BaseController {
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if(!data.target || data.target !== this.id) return
 
-        switch (method) {
-            case 'toggle_element':
-                this.element.classList.toggle('visible')
+        if(method !== 'notify_toggle_element') return
+
+        switch (data.action) {
+            case 'disable':
+                this.element.classList.remove('visible')
                 break
-            case 'enable_toggle_element':
+            case 'enable':
                 if(this.element.classList.contains('visible')) return
 
                 this.element.classList.add('visible')
                 break
-            case 'disable_toggle_element':
-                this.element.classList.remove('visible')
-                break
+            default:
+                this.element.classList.toggle('visible')
         }
     }
 }

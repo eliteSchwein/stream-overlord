@@ -23,10 +23,10 @@ export default function initialTimers() {
             if(!timer.active) continue
 
             if(timer.time === 0) {
-                websocket.send('timer_finished', timer)
+                websocket.send('notify_timer', {...timer, action: 'finish'})
                 timer.active = false
             } else {
-                websocket.send('timer_update', timer)
+                websocket.send('notify_timer', {...timer, action: 'update'})
                 timer.time--
             }
 

@@ -14,7 +14,7 @@ export default function initialSchedulers() {
 export async function updateAdData() {
     try {
         const adData = (await getAdData(true)).ads
-        getWebsocketServer().send('ad_result', adData)
+        getWebsocketServer().send('notify_ads', adData)
     } catch (error) {
         logWarn('ads fetch failed:')
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
