@@ -2,7 +2,7 @@ import BaseEvent from "./BaseEvent";
 import {logNotice} from "../../../helper/LogHelper";
 import {pushGameInfo} from "../../../helper/GameHelper";
 import AdMessage from "./messages/AdMessage";
-import {sleep} from "../../../../../helper/GeneralHelper";
+import {getRandomInt, sleep} from "../../../../../helper/GeneralHelper";
 import EditColorMessage from "./messages/EditColorMessage";
 import ClearEventMessage from "./messages/ClearEventMessage";
 import GetEffectMessage from "./messages/GetEffectMessage";
@@ -29,6 +29,6 @@ export default class ConnectEvent extends BaseEvent{
         await sleep(500)
 
         pushGameInfo(event)
-        event.send(JSON.stringify({method: 'shield_mode', data: {status: isShieldActive()}}))
+        event.send(JSON.stringify({jsonrpc: "2.0", method: 'shield_mode', data: {status: isShieldActive()}, id: getRandomInt(10_000)}))
     }
 }

@@ -8,10 +8,7 @@ export default class AdMessage extends BaseMessage {
     async handle(data: any) {
         try {
             const adData = (await getAdData()).ads
-            this.webSocket.send(JSON.stringify({
-                method: 'ad_result',
-                data: adData
-            }))
+            this.send('ad_result', adData)
         } catch (error) {
             logWarn('ads fetch failed:')
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))

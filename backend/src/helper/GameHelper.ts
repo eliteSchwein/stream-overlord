@@ -4,6 +4,7 @@ import {getConfig} from "./ConfigHelper";
 import {Websocket} from "websocket-ts";
 import {setLedColor} from "./WledHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
+import {getRandomInt} from "../../../helper/GeneralHelper";
 
 const gameInfo = {
     data: {},
@@ -33,7 +34,7 @@ export async function fetchGameInfo() {
 export function pushGameInfo(websocket: Websocket|undefined = undefined) {
     const gameInfo = getGameInfo()
     if(websocket) {
-        websocket.send(JSON.stringify({method: 'game_update', data: gameInfo}))
+        websocket.send(JSON.stringify({jsonrpc: "2.0", method: 'game_update', data: gameInfo, id: getRandomInt(10_000)}))
         return
     }
     getWebsocketServer().send('game_update', gameInfo)
