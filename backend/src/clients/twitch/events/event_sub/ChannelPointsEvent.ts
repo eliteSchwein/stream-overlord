@@ -119,7 +119,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                         const subKeyStrokes = keyStroke.split(',')
                         const websocketServer = getWebsocketServer()
 
-                        websocketServer.send('notify_trigger_keyboard', {'name': configChannelPoint.label, 'keys': subKeyStrokes})
+                        websocketServer.send('trigger_keyboard', {'name': configChannelPoint.label, 'keys': subKeyStrokes})
                     }
 
                     break

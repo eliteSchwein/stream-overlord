@@ -62,6 +62,6 @@ export default class FAChannelPoint extends BaseChannelPoint {
             await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
         }
 
-        websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['z']})
+        websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['z']})
     }
 }

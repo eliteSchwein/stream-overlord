@@ -62,11 +62,11 @@ export default class BoostChannelPoint extends BaseChannelPoint {
                 await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
             }
 
-            websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
+            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
 
             await sleep(15_000)
 
-            websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
+            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
             
             return
         }
@@ -87,16 +87,16 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
         }
 
-        if(shipApiData.gear_down) websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['l']})
-        if(shipApiData.scoop_deployed) websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['home']})
+        if(shipApiData.gear_down) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['l']})
+        if(shipApiData.scoop_deployed) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['home']})
 
         await sleep(100)
 
-        websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
+        websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
 
         await sleep(100)
 
-        if(shipApiData.gear_down) websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['l']})
-        if(shipApiData.scoop_deployed) websocketServer.send('notify_trigger_keyboard', {'name': 'ship', 'keys': ['home']})
+        if(shipApiData.gear_down) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['l']})
+        if(shipApiData.scoop_deployed) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['home']})
     }
 }
