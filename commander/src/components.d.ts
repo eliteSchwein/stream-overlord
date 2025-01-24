@@ -7,8 +7,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ConnectDialog: typeof import('./components/dialogs/ConnectDialog.vue')['default']
     Game: typeof import('./components/Game.vue')['default']
-    HelloWorld: typeof import('./components/HelloWorld.vue')['default']
     Navigation: typeof import('./components/Navigation.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

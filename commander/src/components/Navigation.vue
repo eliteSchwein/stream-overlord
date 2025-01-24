@@ -10,7 +10,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(useAppStore, ['getRestApi']),
+    ...mapState(useAppStore, ['getRestApi', 'isShieldActive']),
     currentRouteName() {
       return this.$route.name;
     }
@@ -48,21 +48,35 @@ export default {
     async reloadBrowserSources() {
       await fetch(`${this.getRestApi}/api/obs/reload_browsers`)
     },
+    reloadCommander() {
+      window.location.reload()
+    }
   }
 }
 </script>
 
 <template>
   <v-app-bar
-    color="primary"
+    color="grey-darken-3"
     prominent
     rounded="0"
+    density="compact"
+    class="topbar"
   >
     <v-app-bar-nav-icon variant="text" @click.stop="rail = !rail"></v-app-bar-nav-icon>
 
     <v-toolbar-title>{{ currentRouteName }}</v-toolbar-title>
 
     <v-spacer></v-spacer>
+
+    <v-btn
+      color="grey-darken-4"
+      variant="flat"
+      v-if="isShieldActive"
+    >
+      <v-icon icon="mdi-shield" color="error"></v-icon>
+      <p class="text-error ml-2">Shield Active</p>
+    </v-btn>
 
     <v-btn
       icon
@@ -77,12 +91,17 @@ export default {
             prepend-icon="mdi-fullscreen"
           ></v-list-item>
           <v-list-item
+            title="Reload Commander"
+            @click="reloadCommander"
+            prepend-icon="mdi-restart"
+          ></v-list-item>
+          <v-list-item
             title="Restart Service"
             @click="restartService"
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-list-item
-            title="Reload Browser Sources"
+            title="Restart Browser Sources"
             @click="reloadBrowserSources"
             prepend-icon="mdi-restart"
           ></v-list-item>
@@ -103,12 +122,6 @@ export default {
         @click.stop="rail = false"
         to="/"></v-list-item>
       <v-list-item
-        prepend-icon="mdi-view-dashboard"
-        title="/test"
-        color=""
-        @click.stop="rail = false"
-        to="/test"></v-list-item>
-      <v-list-item
         prepend-icon="mdi-controller"
         title="/games"
         color=""
@@ -120,6 +133,6 @@ export default {
 
 </template>
 
-<style scoped lang="sass">
+<style scoped lang="scss">
 
 </style>

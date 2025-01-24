@@ -1,6 +1,6 @@
 import {Websocket} from "websocket-ts";
 import {getConfig} from "../helper/ConfigHelper";
-import {sleep} from "../../../../helper/GeneralHelper";
+import {getRandomInt, sleep} from "../../../../helper/GeneralHelper";
 
 export default class WebsocketClient {
     websocket: Websocket
@@ -18,7 +18,7 @@ export default class WebsocketClient {
     }
 
     public send(method: string, data: any = {}) {
-        this.websocket.send(JSON.stringify({method: method, data: data}))
+        this.websocket.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id: getRandomInt(10_000)}))
     }
 
     public editColor(color: string|undefined = undefined) {
@@ -26,6 +26,6 @@ export default class WebsocketClient {
     }
 
     public clearEvent(eventUuid: string) {
-        this.send('clear_event', {'event-uuid': eventUuid})
+        this.send('remove_event', {'event-uuid': eventUuid})
     }
 }

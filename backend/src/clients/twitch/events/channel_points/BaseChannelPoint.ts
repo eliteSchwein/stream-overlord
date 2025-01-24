@@ -2,11 +2,13 @@ import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
 import {Bot} from "@twurple/easy-bot";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
+import {v4 as uuidv4} from "uuid";
 
 export default class BaseChannelPoint {
     eventSubWs: EventSubWsListener
     bot: Bot
     title: string
+    eventUuid: string
 
     public constructor(eventSubWs: EventSubWsListener, bot: Bot) {
         this.eventSubWs = eventSubWs
@@ -17,6 +19,8 @@ export default class BaseChannelPoint {
         if(event.rewardTitle !== this.title) return
 
         logRegular(`channel point redeemed by ${event.userName}: ${this.title} ${event.input}`)
+
+        this.eventUuid = `${this.title}_${uuidv4()}`
 
         await this.handle(event)
     }

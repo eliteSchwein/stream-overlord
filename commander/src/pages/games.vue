@@ -3,6 +3,8 @@
     class="overflow-auto mx-auto"
     max-height="100%"
     elevation="0"
+    color="transparent"
+    max-width="100%"
   >
     <v-banner
       sticky

@@ -19,7 +19,7 @@ export default class BaseMessage {
             this.id = data.id
         }
 
-        await this.handle(data.data)
+        await this.handle(data.params)
     }
 
 

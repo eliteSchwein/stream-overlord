@@ -4,7 +4,7 @@ import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../../App";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
-import {waitUntil} from "async-wait-until";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 
 export default class BoostChannelPoint extends BaseChannelPoint {
     title = 'Boost'
@@ -53,13 +53,13 @@ export default class BoostChannelPoint extends BaseChannelPoint {
                 'color': theme.color,
                 'icon': theme.icon,
                 'message': `OVERCHARGE`,
-                'event-uuid': this.title,
+                'event-uuid': this.eventUuid,
                 'video': theme.video,
                 'lamp_color': theme.lamp_color
             })
 
             if(!isActive) {
-                await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+                await waitUntil(() => isAlertActive(this.title), {timeout: WAIT_FOREVER})
             }
 
             websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['tab']})
@@ -78,13 +78,13 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             'color': theme.color,
             'icon': theme.icon,
             'message': `BOOOST`,
-            'event-uuid': this.title,
+            'event-uuid': this.eventUuid,
             'video': theme.video,
             'lamp_color': theme.lamp_color
         })
 
         if(!isActive) {
-            await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+            await waitUntil(() => isAlertActive(this.title), {timeout: WAIT_FOREVER})
         }
 
         if(shipApiData.gear_down) websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['l']})

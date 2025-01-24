@@ -3,7 +3,7 @@ import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../../App";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
-import {waitUntil} from "async-wait-until";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 
 export default class FAChannelPoint extends BaseChannelPoint {
     title = 'FlightAssistant'
@@ -53,13 +53,13 @@ export default class FAChannelPoint extends BaseChannelPoint {
             'color': theme.color,
             'icon': icon,
             'message': message,
-            'event-uuid': this.title,
+            'event-uuid': this.eventUuid,
             'video': theme.video,
             'lamp_color': theme.lamp_color
         })
 
         if(!isActive) {
-            await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+            await waitUntil(() => isAlertActive(this.title), {timeout: WAIT_FOREVER})
         }
 
         websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['z']})

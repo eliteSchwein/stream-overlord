@@ -3,55 +3,54 @@ import getWebsocketServer from "../App";
 import {pushGameInfo, setManualColor} from "./GameHelper";
 import {setLedColor} from "./WledHelper";
 
-const alertQuery = {}
+const alertQuery = []
 const activeAlerts = []
 
 export default function initialAlerts() {
     const websocketServer = getWebsocketServer()
 
     setInterval(() => {
-        if(Object.keys(alertQuery).length === 0) return
+        websocketServer.send('notify_alert_query', alertQuery)
 
-        for(const key in alertQuery) {
-            const activeAlert = alertQuery[key][0]
-            if(!activeAlert) continue
+        if(alertQuery.length === 0) return
 
-            if(activeAlert.duration > 0) {
-                activeAlert.duration--
+        const activeAlert = alertQuery[0]
 
-                websocketServer.send('notify_alert', {...activeAlert, action: 'show'})
+        if(activeAlert.duration > 0) {
+            activeAlert.duration--
 
-                if(activeAlert.active) {
-                    if(!activeAlerts.includes(activeAlert['event-uuid'])) activeAlerts.push(activeAlert['event-uuid'])
+            websocketServer.send('notify_alert', {...activeAlert, action: 'show'})
 
-                    alertQuery[key][0] = activeAlert
-                    return
-                }
+            if(activeAlert.active) {
+                if(!activeAlerts.includes(activeAlert['event-uuid'])) activeAlerts.push(activeAlert['event-uuid'])
 
-                activeAlert.active = true
-
-                if(activeAlert.color) {
-                    setManualColor(activeAlert.color)
-                    pushGameInfo()
-                }
-
-                if(activeAlert.lamp_color) {
-                    void setLedColor(activeAlert.lamp_color)
-                }
-
-                alertQuery[key][0] = activeAlert
+                alertQuery[0] = activeAlert
                 return
             }
 
-            websocketServer.send('notify_alert', {
-                channel: key,
-                action: 'hide'
-            })
+            activeAlert.active = true
 
-            removeAlert(activeAlert)
+            if(activeAlert.color) {
+                setManualColor(activeAlert.color)
+                pushGameInfo()
+            }
+
+            if(activeAlert.lamp_color) {
+                void setLedColor(activeAlert.lamp_color)
+            }
+
+            alertQuery[0] = activeAlert
+            return
         }
 
-        if(Object.keys(alertQuery).length > 0) return
+        websocketServer.send('notify_alert', {
+            channel: activeAlert.channel,
+            action: 'hide'
+        })
+
+        removeAlert(activeAlert)
+
+        if(alertQuery.length > 0) return
 
         setManualColor()
         pushGameInfo()
@@ -72,32 +71,25 @@ export function addAlert(alert: any) {
 
     let active = false
 
-    if(!alertQuery[alert.channel]) {
+    if(alertQuery.length === 0) {
         const websocketServer = getWebsocketServer()
 
-        alertQuery[alert.channel] = []
         websocketServer.send('notify_alert', {...alert, action: 'show'})
         active = true
     }
 
-    alertQuery[alert.channel].push(alert)
+    alertQuery.push(alert)
 
     return active
 }
 
 export function removeAlert(alert: any) {
-    if(!alert.channel) alert.channel = 'general'
-
-    for(const alertIndex in alertQuery[alert.channel]) {
-        const alertPartial = alertQuery[alert.channel][alertIndex]
+    for(const alertIndex in alertQuery) {
+        const alertPartial = alertQuery[alertIndex]
 
         if(alert['event-uuid'] !== alertPartial['event-uuid']) continue
 
-        alertQuery[alert.channel].splice(Number(alertIndex), 1)
-
-        if(alertQuery[alert.channel].length === 0) {
-            delete alertQuery[alert.channel]
-        }
+        alertQuery.splice(Number(alertIndex), 1)
 
         activeAlerts.splice(activeAlerts.indexOf(alert['event-uuid']), 1)
 

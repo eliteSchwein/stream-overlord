@@ -1,7 +1,7 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelCheerEvent} from "@twurple/eventsub-base";
 import {getAssetConfig} from "../../../../helper/ConfigHelper";
-import {waitUntil} from "async-wait-until";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
@@ -33,6 +33,6 @@ export default class BitEvent extends BaseEvent {
             'lamp_color': theme.lamp_color
         })
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 30_000})
+        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
     }
 }

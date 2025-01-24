@@ -4,7 +4,7 @@ import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import getWebsocketServer from "../../../../App";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
-import {waitUntil} from "async-wait-until";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 
 export default class HudChannelPoint extends BaseChannelPoint {
@@ -22,13 +22,13 @@ export default class HudChannelPoint extends BaseChannelPoint {
             'color': theme.color,
             'icon': theme.icon,
             'message': `HUD Fuse blown`,
-            'event-uuid': this.title,
+            'event-uuid': this.eventUuid,
             'video': theme.video,
             'lamp_color': theme.lamp_color
         })
 
         if(!isActive) {
-            await waitUntil(() => isAlertActive(this.title), {timeout: Number.POSITIVE_INFINITY})
+            await waitUntil(() => isAlertActive(this.title), {timeout: WAIT_FOREVER})
         }
 
         websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['ctrl_left', 'alt_left', 'g']})

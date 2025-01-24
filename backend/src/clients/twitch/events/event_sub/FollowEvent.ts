@@ -39,6 +39,6 @@ export default class FollowEvent extends BaseEvent {
             'lamp_color': theme.lamp_color
         })
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
+        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})
     }
 }

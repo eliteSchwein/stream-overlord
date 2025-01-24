@@ -7,7 +7,14 @@ export const useAppStore = defineStore('app', {
       websocketPort: 8100,
       webserverPort: 8105
     },
-    games: []
+    games: [],
+    alerts: [],
+    websocket: {
+      connected: false,
+      connecting: false
+    },
+    shieldMode: false,
+    currentGame: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -18,6 +25,11 @@ export const useAppStore = defineStore('app', {
       return `http://${location.hostname}:${state.config.webserverPort}`
     },
     getGames: (state) => state.games,
+    getAlerts: (state) => state.alerts,
+    isWebsocketConnected: (state) => state.websocket.connected,
+    isWebsocketConnecting: (state) => state.websocket.connecting,
+    getCurrentGame: (state) => state.currentGame,
+    isShieldActive: (state) => state.shieldMode
   },
   actions: {
     async fetchConfig() {
@@ -36,6 +48,26 @@ export const useAppStore = defineStore('app', {
       this.games = data
 
       this.$patch(state => state.games = data)
+    },
+    setAlerts(alerts: []) {
+      this.alerts = alerts
+      this.$patch(state => state.alerts = alerts)
+    },
+    setWebsocketConnected(connected: boolean) {
+      this.websocket.connected = connected
+      this.$patch(state => state.websocket.connected = connected)
+    },
+    setWebsocketConnecting(connecting: boolean) {
+      this.websocket.connecting = connecting
+      this.$patch(state => state.websocket.connecting = connecting)
+    },
+    setCurrentGame(currentGame: any) {
+      this.currentGame = currentGame
+      this.$patch(state => state.currentGame = currentGame)
+    },
+    setShieldActive(shieldMode: boolean) {
+      this.shieldMode = shieldMode
+      this.$patch(state => state.shieldMode = shieldMode)
     }
   }
 })

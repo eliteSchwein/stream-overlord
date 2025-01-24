@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {SubEvent as EasyEvent} from "@twurple/easy-bot";
-import {waitUntil} from "async-wait-until";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {getAssetConfig} from "../../../helper/ConfigHelper";
 import {addAlert} from "../../../helper/AlertHelper";
@@ -38,6 +38,6 @@ export default class SubEvent extends BaseEvent {
             'lamp_color': theme.lamp_color
         })
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})
+        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
     }
 }

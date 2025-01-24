@@ -1,7 +1,7 @@
 import BaseEvent from "./BaseEvent";
 import {RaidEvent as EasyEvent} from "@twurple/easy-bot/lib/events/RaidEvent";
 import {getAssetConfig, getConfig} from "../../../helper/ConfigHelper";
-import {waitUntil} from "async-wait-until";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {addAlert} from "../../../helper/AlertHelper";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
@@ -32,7 +32,7 @@ export default class RaidEvent extends BaseEvent {
             'lamp_color': theme.lamp_color
         })
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: Number.POSITIVE_INFINITY})
+        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
 
         const primaryChannel = await this.bot.api.users.getUserByName(
             getConfig(/twitch/g)[0]['channels'][0])
