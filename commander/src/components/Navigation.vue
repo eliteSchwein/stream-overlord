@@ -101,7 +101,7 @@ export default {
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-list-item
-            title="Restart Browser Sources"
+            title="Reload Browser Sources"
             @click="reloadBrowserSources"
             prepend-icon="mdi-restart"
           ></v-list-item>
