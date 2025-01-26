@@ -14,7 +14,6 @@ export default function buildCommands(bot: Bot) {
     // coded commands
     commands = commands.concat(new InfoCommand(bot).register())
     commands = commands.concat(new SetGameCommand(bot).register())
-    commands = commands.concat(new HardwareCommand(bot).register())
     commands = commands.concat(new ShoutoutCommand(bot).register())
     commands = commands.concat(new ClipCommand(bot).register())
     commands = commands.concat(new GetGameCommand(bot).register())
