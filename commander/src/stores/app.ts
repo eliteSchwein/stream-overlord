@@ -14,7 +14,8 @@ export const useAppStore = defineStore('app', {
       connecting: false
     },
     shieldMode: false,
-    currentGame: {}
+    currentGame: {},
+    channelPoints: [],
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -29,7 +30,8 @@ export const useAppStore = defineStore('app', {
     isWebsocketConnected: (state) => state.websocket.connected,
     isWebsocketConnecting: (state) => state.websocket.connecting,
     getCurrentGame: (state) => state.currentGame,
-    isShieldActive: (state) => state.shieldMode
+    isShieldActive: (state) => state.shieldMode,
+    getChannelPoints: (state) => state.channelPoints
   },
   actions: {
     async fetchConfig() {
@@ -68,6 +70,10 @@ export const useAppStore = defineStore('app', {
     setShieldActive(shieldMode: boolean) {
       this.shieldMode = shieldMode
       this.$patch(state => state.shieldMode = shieldMode)
+    },
+    setChannelPoints(channelPoints: []) {
+      this.channelPoints = channelPoints
+      this.$patch(state => state.channelPoints = channelPoints)
     }
   }
 })

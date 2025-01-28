@@ -17,6 +17,8 @@ import GetSceneDataApi from "./api/Obs/GetSceneDataApi";
 import ReloadBrowserScenesApi from "./api/Obs/ReloadBrowserScenesApi";
 import RestartApi from "./api/RestartApi";
 import SetGameApi from "./api/Games/SetGameApi";
+import GetChannelPointsApi from "./api/ChannelPoints/GetChannelPointsApi";
+import ToggleChannelPointApi from "./api/ChannelPoints/ToggleChannelPointApi";
 
 export default class WebServer {
     webServer: Express
@@ -80,6 +82,10 @@ export default class WebServer {
         new ObsApi().register(this.webServer)
         new GetSceneDataApi().register(this.webServer)
         new ReloadBrowserScenesApi().register(this.webServer)
+
+        // ChannelPoints API
+        new GetChannelPointsApi().register(this.webServer)
+        new ToggleChannelPointApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 

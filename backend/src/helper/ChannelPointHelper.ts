@@ -1,10 +1,11 @@
 import {getConfig} from "./ConfigHelper";
-import {getTwitchClient} from "../App";
+import getWebsocketServer, {getTwitchClient} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
 import {logError, logRegular, logWarn} from "./LogHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
 
 let channelPoints = {}
+let activeChannelPoints = []
 
 export async function fetchChannelPointData() {
     const bot = getTwitchClient().getBot()
@@ -31,19 +32,30 @@ export async function updateChannelPoints() {
     const gameChannelPoints = gameData.channel_points;
     const gameChannelPointNames = gameChannelPoints.map(point => point.name);
 
-    const activeChannelPoints = defaultChannelPoints.concat(gameChannelPointNames);
+    const newActiveChannelPoints = defaultChannelPoints.concat(gameChannelPointNames);
 
-    const toDisableKeys = Object.keys(channelPoints).filter(item => !activeChannelPoints.includes(item))
+    const toDisableKeys = Object.keys(channelPoints).filter(item => !newActiveChannelPoints.includes(item))
 
     const toDisable = toDisableKeys.map(key => channelPoints[key])
-    const toEnable = activeChannelPoints.map(key => channelPoints[key])
+    const toEnable = newActiveChannelPoints.map(key => channelPoints[key])
+
+    activeChannelPoints = []
 
     for (const channelPoint of toDisable) {
         await enableChannelPoint(channelPoint, primaryChannel, false)
     }
     for (const channelPoint of toEnable) {
+        activeChannelPoints.push({
+            name: channelPoint.title,
+            id: channelPoint.id,
+            background: channelPoint.backgroundColor,
+            image: channelPoint.getImageUrl(4),
+            active: true,
+        })
         await enableChannelPoint(channelPoint, primaryChannel, true)
     }
+
+    getWebsocketServer()?.send('notify_channel_point_update', activeChannelPoints)
 }
 
 async function enableChannelPoint(channelPoint: HelixCustomReward, primaryChannel: HelixUser, enable: boolean) {
@@ -57,6 +69,7 @@ async function enableChannelPoint(channelPoint: HelixCustomReward, primaryChanne
 
     try {
         await bot.api.channelPoints.updateCustomReward(primaryChannel, channelPoint.id, {
+            isPaused: false,
             isEnabled: enable,
         })
     } catch(error) {
@@ -65,6 +78,38 @@ async function enableChannelPoint(channelPoint: HelixCustomReward, primaryChanne
     }
 }
 
+export async function toggleChannelPoint(channelPoint: any, pause = false) {
+    const channelPointEntity = channelPoints[channelPoint.name]
+
+    if(!channelPointEntity) {
+        return false
+    }
+
+    const bot = getTwitchClient().getBot()
+
+    const primaryChannel = await bot.api.users.getUserByName(
+        getConfig(/twitch/g)[0]['channels'][0])
+
+    await bot.api.channelPoints.updateCustomReward(primaryChannel, channelPoint.id, {
+        isPaused: pause,
+    })
+
+    activeChannelPoints.forEach((activeChannelPoint) => {
+        if(activeChannelPoint.id !== channelPoint.id) {
+            return
+        }
+        activeChannelPoint.active = !pause;
+    })
+
+    getWebsocketServer()?.send('notify_channel_point_update', activeChannelPoints)
+
+    return true
+}
+
 export function getChannelPointMapping() {
     return channelPoints
+}
+
+export function getActiveChannelPoints() {
+    return activeChannelPoints
 }

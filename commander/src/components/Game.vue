@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 import {sleep} from "@/helper/GeneralHelper";
 import { useAppStore } from '@/stores/app';
 
@@ -12,8 +11,6 @@ defineProps({
 const loading = ref<boolean | undefined>(false);
 
 async function changeGame( event: Event, gameId: string) {
-  console.log(gameId)
-  console.log(event)
   loading.value = true
 
   await fetch(`${appOption.getRestApi}/api/game/set`, {

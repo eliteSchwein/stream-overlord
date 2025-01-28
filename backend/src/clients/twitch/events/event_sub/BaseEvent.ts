@@ -49,7 +49,7 @@ export default class BaseEvent {
     async handleEvent(event: any) {
         if(isEventFull(this.name, event.broadcasterName, this.eventLimit)) return
 
-        this.eventUuid = uuidv4()
+        this.eventUuid = `${this.name}_${uuidv4()}`
 
         queryEvent(this.eventUuid)
         addEventToCooldown(this.eventUuid, this.name, event.broadcasterName)

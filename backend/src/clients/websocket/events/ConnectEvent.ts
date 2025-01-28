@@ -8,6 +8,7 @@ import RemoveEventMessage from "./messages/RemoveEventMessage";
 import GetEffectMessage from "./messages/GetEffectMessage";
 import isShieldActive from "../../../helper/ShieldHelper";
 import RemoveAlertMessage from "./messages/RemoveAlertMessage";
+import {getActiveChannelPoints} from "../../../helper/ChannelPointHelper";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -30,5 +31,6 @@ export default class ConnectEvent extends BaseEvent{
 
         pushGameInfo(event)
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_shield_mode', params: {action: isShieldActive()? 'enable' : 'disable'}, id: getRandomInt(10_000)}))
+        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_channel_point_update', params: getActiveChannelPoints(), id: getRandomInt(10_000)}))
     }
 }

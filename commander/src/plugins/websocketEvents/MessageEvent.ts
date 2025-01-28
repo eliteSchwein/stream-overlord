@@ -3,6 +3,8 @@ import {type Websocket, WebsocketEvent} from "websocket-ts";
 import NotifyAlertQueryMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAlertQueryMessage";
 import NotifyGameUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyGameUpdateMessage";
 import NotifyShieldModeMessage from "@/plugins/websocketEvents/websocketMessage/NotifyShieldModeMessage";
+import NotifyChannelPointUpdateMessage
+  from "@/plugins/websocketEvents/websocketMessage/NotifyChannelPointUpdateMessage";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -14,5 +16,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyAlertQueryMessage(this.webSocketClient).handleMessage(data)
     await new NotifyGameUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyShieldModeMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyChannelPointUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

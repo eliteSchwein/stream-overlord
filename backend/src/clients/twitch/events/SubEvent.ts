@@ -33,7 +33,7 @@ export default class SubEvent extends BaseEvent {
             'color': theme.color,
             'icon': theme.icon,
             'message': `${event.userDisplayName} abonniert im ${event.months}. Monat auf Stufe ${plan}`,
-            'eventv-uuid': this.eventUuid,
+            'event-uuid': this.eventUuid,
             'video': theme.video,
             'lamp_color': theme.lamp_color
         })

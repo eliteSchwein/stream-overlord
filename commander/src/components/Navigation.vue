@@ -122,6 +122,12 @@ export default {
         @click.stop="rail = false"
         to="/"></v-list-item>
       <v-list-item
+        prepend-icon="mdi-motion-play-outline"
+        title="/channelPoints"
+        color=""
+        @click.stop="rail = false"
+        to="/channelPoints"></v-list-item>
+      <v-list-item
         prepend-icon="mdi-controller"
         title="/games"
         color=""
