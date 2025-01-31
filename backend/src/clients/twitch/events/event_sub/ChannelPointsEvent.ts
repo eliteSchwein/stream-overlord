@@ -13,6 +13,7 @@ import FAChannelPoint from "../channel_points/FAChannelPoint";
 import getWebsocketServer from "../../../../App";
 import HudChannelPoint from "../channel_points/HudChannelPoint";
 import {fetchChannelPointData, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
+import {getGameInfoData} from "../../../website/WebsiteClient";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -31,6 +32,8 @@ export default class ChannelPointsEvent extends BaseEvent {
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)
         const configChannelPoints = getConfig(/channel_point /g)
+        const gameData = await getGameInfoData()
+        const gameChannelPoints = gameData.channel_points
 
         for(const channelPoint of this.channelPoints) {
             const channelPointTitle = channelPoint.getTitle()
@@ -39,15 +42,23 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             logNotice(`create channel point: ${channelPointTitle}`)
 
-            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPointTitle, cost: 666})
+            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPointTitle, cost: 991})
         }
 
-        for(const configChannelPoint of configChannelPoints) {
-            if(rewardNames.includes(configChannelPoint.label)) continue
+        for(const channelPoint of configChannelPoints) {
+            if(rewardNames.includes(channelPoint.label)) continue
 
-            logNotice(`create config channel point: ${configChannelPoint.label}`)
+            logNotice(`create config channel point: ${channelPoint.label}`)
 
-            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: configChannelPoint.label, cost: 69})
+            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPoint.label, cost: 992})
+        }
+
+        for(const channelPoint of gameChannelPoints) {
+            if(rewardNames.includes(channelPoint.name)) continue
+
+            logNotice(`create website channel point: ${channelPoint.name}`)
+
+            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {title: channelPoint.name, cost: 993})
         }
 
         await updateChannelPoints()

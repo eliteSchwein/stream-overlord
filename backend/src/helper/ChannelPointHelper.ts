@@ -6,6 +6,7 @@ import {getGameInfoData} from "../clients/website/WebsiteClient";
 
 let channelPoints = {}
 let activeChannelPoints = []
+let gameKeyCombos = {}
 
 export async function fetchChannelPointData() {
     const bot = getTwitchClient().getBot()
@@ -29,8 +30,20 @@ export async function updateChannelPoints() {
 
     const defaultChannelPoints = getConfig(/defaults/g)[0]['channel_points']
 
+    gameKeyCombos = {}
+
     const gameChannelPoints = gameData.channel_points;
     const gameChannelPointNames = gameChannelPoints.map(point => point.name);
+
+    for(const channelPoint of gameChannelPoints) {
+        if(!gameKeyCombos[channelPoint.name]) {
+            gameKeyCombos[channelPoint.name] = []
+        }
+
+        for(const keyCombo of channelPoint.keyboard_combos) {
+            gameKeyCombos[channelPoint.name].push(keyCombo)
+        }
+    }
 
     const newActiveChannelPoints = defaultChannelPoints.concat(gameChannelPointNames);
 
@@ -45,6 +58,8 @@ export async function updateChannelPoints() {
         await enableChannelPoint(channelPoint, primaryChannel, false)
     }
     for (const channelPoint of toEnable) {
+        if(!channelPoint) continue
+
         activeChannelPoints.push({
             name: channelPoint.title,
             id: channelPoint.id,
