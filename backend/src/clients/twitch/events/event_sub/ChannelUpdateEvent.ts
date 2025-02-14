@@ -1,5 +1,5 @@
 import BaseEvent from "./BaseEvent";
-import {fetchGameInfo, pushGameInfo} from "../../../../helper/GameHelper";
+import {fetchGameInfo, getCurrentGameId, pushGameInfo} from "../../../../helper/GameHelper";
 import {editGameTracker, getGameInfoData, updateTwitchData} from "../../../website/WebsiteClient";
 import {logNotice} from "../../../../helper/LogHelper";
 import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
@@ -10,15 +10,15 @@ export default class ChannelUpdateEvent extends BaseEvent {
     eventTypes = ['onChannelUpdate']
 
     async handle(event: any) {
-        await updateAdData()
+        void updateAdData()
 
-        const oldThemeData = await getGameInfoData()
+        const oldGameId = getCurrentGameId()
 
-        if(oldThemeData.game_id === Number.parseInt(event.categoryId)) return
+        if(oldGameId === Number.parseInt(event.categoryId)) return
 
-        await editGameTracker(oldThemeData.game_id, 'end')
+        void editGameTracker(`${oldGameId}`, 'end')
 
-        logNotice(`game change detected, load assets for ${event.categoryName}`)
+        logNotice(`game change (${oldGameId} -> ${event.categoryId}) detected, load assets for ${event.categoryName}`)
         await updateTwitchData()
         await updateChannelPoints()
         await fetchGameInfo()

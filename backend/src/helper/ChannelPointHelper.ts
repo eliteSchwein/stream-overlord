@@ -32,8 +32,8 @@ export async function updateChannelPoints() {
 
     gameKeyCombos = {}
 
-    const gameChannelPoints = gameData.channel_points;
-    const gameChannelPointNames = gameChannelPoints.map(point => point.name);
+    const gameChannelPoints = gameData.channel_points
+    const gameChannelPointNames = gameChannelPoints.map(point => point.name)
 
     for(const channelPoint of gameChannelPoints) {
         if(!gameKeyCombos[channelPoint.name]) {
@@ -93,6 +93,17 @@ async function enableChannelPoint(channelPoint: HelixCustomReward, primaryChanne
     }
 }
 
+export function updateActiveChannelPoint(id: string, isActive: boolean) {
+    const index = activeChannelPoints.findIndex(reward => reward.id === id);
+    const reward = activeChannelPoints[index];
+
+    reward.active = isActive;
+
+    activeChannelPoints[index] = reward;
+
+    getWebsocketServer()?.send('notify_channel_point_update', activeChannelPoints)
+}
+
 export async function toggleChannelPoint(channelPoint: any, pause = false) {
     const channelPointEntity = channelPoints[channelPoint.name]
 
@@ -116,8 +127,6 @@ export async function toggleChannelPoint(channelPoint: any, pause = false) {
         activeChannelPoint.active = !pause;
     })
 
-    getWebsocketServer()?.send('notify_channel_point_update', activeChannelPoints)
-
     return true
 }
 
@@ -127,4 +136,8 @@ export function getChannelPointMapping() {
 
 export function getActiveChannelPoints() {
     return activeChannelPoints
+}
+
+export function getKeyCombos(rewardName: string) {
+    return gameKeyCombos[rewardName]
 }

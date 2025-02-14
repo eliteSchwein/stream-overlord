@@ -14,6 +14,7 @@ import BitEvent from "./events/event_sub/BitEvent";
 import RaidEvent from "./events/RaidEvent";
 import FollowEvent from "./events/event_sub/FollowEvent";
 import ShieldEvent from "./events/event_sub/ShieldEvent";
+import ChannelPointEditEvent from "./events/event_sub/ChannelPointEditEvent";
 
 export default class TwitchClient {
     protected auth: TwitchAuth
@@ -68,6 +69,7 @@ export default class TwitchClient {
         await new ChannelUpdateEvent(this.eventSub, this.bot).register()
         await new BitEvent(this.eventSub, this.bot).register()
         await new ShieldEvent(this.eventSub, this.bot).register()
+        await new ChannelPointEditEvent(this.eventSub, this.bot).register()
     }
 
     public getBot() {

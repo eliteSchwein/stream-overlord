@@ -11,6 +11,8 @@ const gameInfo = {
     manual: ''
 }
 
+let currentGameId = 0
+
 export default function getGameInfo() {
     const config = getConfig(/theme/g)[0]
     const clonedGameInfo = structuredClone(gameInfo)
@@ -26,9 +28,14 @@ export default function getGameInfo() {
     return clonedGameInfo
 }
 
+export function getCurrentGameId() {
+    return currentGameId
+}
+
 export async function fetchGameInfo() {
     logRegular('fetch theme from website')
     gameInfo.data = await getGameInfoData()
+    currentGameId = gameInfo.data.game_id
 }
 
 export function pushGameInfo(websocket: Websocket|undefined = undefined) {

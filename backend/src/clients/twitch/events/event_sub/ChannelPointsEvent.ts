@@ -3,17 +3,24 @@ import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logError, logNotice, logRegular, logWarn} from "../../../../helper/LogHelper";
 import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
 import BoostChannelPoint from "../channel_points/BoostChannelPoint";
-import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../helper/CooldownHelper";
+import {
+    addEventToCooldown,
+    isEventFull,
+    isEventQueried,
+    queryEvent,
+    removeEventFromCooldown
+} from "../../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
-import {addAlert} from "../../../../helper/AlertHelper";
+import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
 import {triggerScene} from "../../../../helper/SceneHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
 import FAChannelPoint from "../channel_points/FAChannelPoint";
 import getWebsocketServer from "../../../../App";
 import HudChannelPoint from "../channel_points/HudChannelPoint";
-import {fetchChannelPointData, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
+import {fetchChannelPointData, getKeyCombos, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {getGameInfoData} from "../../../website/WebsiteClient";
+import {waitUntil} from "async-wait-until";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -167,23 +174,65 @@ export default class ChannelPointsEvent extends BaseEvent {
             break
         }
 
+        const gameKeyCombos = getKeyCombos(event.rewardTitle)
+
+        if(gameKeyCombos) {
+            isValid = true
+        }
+
         if(!isValid) return
 
         addEventToCooldown(eventUuid, this.name, event.broadcasterName)
 
-        for(const channelPoint of this.channelPoints) {
-            try {
-                await channelPoint.handleChannelPoint(event)
-            } catch (error) {
-                if(event.broadcasterName !== event.userName) {
-                    await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.')
+        try {
+            if(gameKeyCombos) {
+                const websocketServer = getWebsocketServer()
+                const theme = getAssetConfig('generic_channel_point')
+                const comboUuid = `${event.rewardTitle}_${uuidv4()}`
+
+                let alertDuration = 5
+
+                for(const keyCombo of gameKeyCombos) {
+                    alertDuration += keyCombo.delays.release / 1000
+                    alertDuration += keyCombo.delays.follow_up
                 }
 
-                logError(`channel point denied for ${event.userName} because of a exception:`)
-                logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-                await event.updateStatus('CANCELED')
-                return
+                logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`)
+
+                addAlert({
+                    'sound': theme.sound,
+                    'duration': alertDuration.toFixed(0),
+                    'color': theme.color,
+                    'icon': theme.icon,
+                    'message': `${event.userDisplayName} löst ${event.rewardTitle} aus`,
+                    'event-uuid': comboUuid,
+                    'video': theme.video,
+                    'lamp_color': theme.lamp_color
+                })
+
+                await waitUntil(() => isAlertActive(comboUuid), {timeout: 600_000})
+
+                for(const keyCombo of gameKeyCombos) {
+                    logRegular(`trigger key combo ${keyCombo.name}`)
+                    websocketServer.send('trigger_keyboard', {'name': keyCombo.name, 'keys': keyCombo.keys, 'duration': keyCombo.delays.release})
+
+                    await sleep(keyCombo.delays.release)
+                    await sleep(keyCombo.delays.follow_up * 1000)
+                }
+            } else {
+                for(const channelPoint of this.channelPoints) {
+                    await channelPoint.handleChannelPoint(event)
+                }
             }
+        } catch (error) {
+            if(event.broadcasterName !== event.userName) {
+                await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.')
+            }
+
+            logError(`channel point denied for ${event.userName} because of a exception:`)
+            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            await event.updateStatus('CANCELED')
+            return
         }
 
         await sleep(this.eventCooldown * 1000)
