@@ -2,6 +2,7 @@ import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {hasModerator, hasVip} from "../helper/PermissionHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
+import {isShowErrorMessage} from "../../../helper/CommandHelper";
 
 export default class BaseCommand {
     command: string
@@ -145,6 +146,7 @@ export default class BaseCommand {
 
     private async replyPermissionError(context: BotCommandContext) {
         logWarn(`permission denied: ${context.userName} in ${context.broadcasterName}`)
+        if(!isShowErrorMessage()) return
         await context.reply('du hast keine Berechtigung auf diesen Befehl!')
     }
 
