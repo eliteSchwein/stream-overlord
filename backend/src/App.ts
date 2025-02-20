@@ -12,6 +12,7 @@ import initialAlerts from "./helper/AlertHelper";
 import loadScenes from "./helper/SceneHelper";
 import initialSchedulers from "./helper/SchedulerHelper";
 import {setLedColor} from "./helper/WledHelper";
+import {initAudio} from "./helper/AudioHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -68,6 +69,9 @@ async function init() {
 
     logRegular('activate configured wled lamps')
     await setLedColor()
+
+    logRegular('load audio outputs')
+    await initAudio()
 
     logSuccess('backend is ready')
 }

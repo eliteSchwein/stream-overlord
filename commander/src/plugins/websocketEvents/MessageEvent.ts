@@ -5,6 +5,7 @@ import NotifyGameUpdateMessage from "@/plugins/websocketEvents/websocketMessage/
 import NotifyShieldModeMessage from "@/plugins/websocketEvents/websocketMessage/NotifyShieldModeMessage";
 import NotifyChannelPointUpdateMessage
   from "@/plugins/websocketEvents/websocketMessage/NotifyChannelPointUpdateMessage";
+import NotifyAudioUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAudioUpdateMessage";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -17,5 +18,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyGameUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyShieldModeMessage(this.webSocketClient).handleMessage(data)
     await new NotifyChannelPointUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyAudioUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

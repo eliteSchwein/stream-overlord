@@ -133,6 +133,12 @@ export default {
         color=""
         @click.stop="rail = false"
         to="/games"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-volume-high"
+        title="/audio"
+        color=""
+        @click.stop="rail = false"
+        to="/audio"></v-list-item>
     </v-list>
   </v-navigation-drawer>
 
