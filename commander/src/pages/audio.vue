@@ -63,14 +63,12 @@ export default {
   },
   methods: {
     setVolume(audioInterface: string, volume: number) {
-      console.log(volume)
       eventBus.$emit('websocket:send', {
         method: 'set_volume',
         params: {'interface': audioInterface, 'volume': volume},
       })
     },
     unmute(audioInterface: string, audioData: any) {
-      console.log(audioData)
       this.setVolume(audioInterface, audioData.current_volume);
     }
   }
