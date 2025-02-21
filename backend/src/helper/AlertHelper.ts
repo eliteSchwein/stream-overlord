@@ -56,7 +56,7 @@ export default function initialAlerts() {
             action: 'hide'
         })
 
-        if(activeAlert.speak && !activeAlerts.speakFinished) return
+        if(activeAlert.speak && !activeAlert.speakFinished) return
 
         removeAlert(activeAlert)
 
