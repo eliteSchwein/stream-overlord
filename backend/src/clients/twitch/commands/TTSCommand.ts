@@ -10,7 +10,7 @@ export default class TTSCommand extends BaseCommand {
     params = [
         {
             name: 'text',
-            type: 'string'
+            type: 'all'
         },
     ]
 

@@ -21,5 +21,5 @@ export async function speak(message: string)
 export function calculateTTSduration(text: string, speechRate = 165) {
     const wordCount = text.trim().split(/\s+/).length
     const duration = (wordCount / speechRate) * 60
-    return Number.parseInt(duration.toFixed(0)) + 5
+    return Number.parseInt(duration.toFixed(0)) + 10
 }
