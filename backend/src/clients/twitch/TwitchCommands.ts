@@ -8,6 +8,7 @@ import ShoutoutCommand from "./commands/ShoutoutCommand";
 import ClipCommand from "./commands/ClipCommand";
 import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
+import TTSCommand from "./commands/TTSCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -19,6 +20,7 @@ export default function buildCommands(bot: Bot) {
     commands = commands.concat(new ClipCommand(bot).register())
     commands = commands.concat(new GetGameCommand(bot).register())
     commands = commands.concat(new ToggleErrorMessageCommand(bot).register())
+    commands = commands.concat(new TTSCommand(bot).register())
 
     // configured commands
     commands = buildConfigCommands(commands)

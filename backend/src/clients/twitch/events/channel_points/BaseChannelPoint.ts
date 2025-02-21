@@ -9,6 +9,7 @@ export default class BaseChannelPoint {
     bot: Bot
     title: string
     eventUuid: string
+    input: boolean = false
 
     public constructor(eventSubWs: EventSubWsListener, bot: Bot) {
         this.eventSubWs = eventSubWs
@@ -23,6 +24,10 @@ export default class BaseChannelPoint {
         this.eventUuid = `${this.title}_${uuidv4()}`
 
         await this.handle(event)
+    }
+
+    public hasInput() {
+        return this.input
     }
 
     async handle(event: EventSubChannelRedemptionAddEvent) {

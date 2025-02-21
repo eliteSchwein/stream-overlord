@@ -2,6 +2,8 @@ import {removeEventFromQuery} from "../clients/twitch/helper/CooldownHelper";
 import getWebsocketServer from "../App";
 import {pushGameInfo, setManualColor} from "./GameHelper";
 import {setLedColor} from "./WledHelper";
+import {speak} from "./TTShelper";
+import {logWarn} from "./LogHelper";
 
 const alertQuery = []
 const activeAlerts = []
@@ -9,7 +11,7 @@ const activeAlerts = []
 export default function initialAlerts() {
     const websocketServer = getWebsocketServer()
 
-    setInterval(() => {
+    setInterval(async () => {
         websocketServer.send('notify_alert_query', alertQuery)
 
         if(alertQuery.length === 0) return
@@ -37,6 +39,10 @@ export default function initialAlerts() {
 
             if(activeAlert.lamp_color) {
                 void setLedColor(activeAlert.lamp_color)
+            }
+
+            if(activeAlert.speak) {
+                await speak(activeAlert.message)
             }
 
             alertQuery[0] = activeAlert
