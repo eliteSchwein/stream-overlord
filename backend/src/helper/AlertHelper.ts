@@ -42,7 +42,9 @@ export default function initialAlerts() {
             }
 
             if(activeAlert.speak) {
+                activeAlert['speakFinished'] = false
                 await speak(activeAlert.message)
+                activeAlert['speakFinished'] = true
             }
 
             alertQuery[0] = activeAlert
@@ -53,6 +55,8 @@ export default function initialAlerts() {
             channel: activeAlert.channel,
             action: 'hide'
         })
+
+        if(activeAlert.speak && !activeAlerts.speakFinished) return
 
         removeAlert(activeAlert)
 
