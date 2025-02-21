@@ -54,6 +54,7 @@ export default class AlertController extends BaseController {
                     }
 
                     try {
+                        this.videoTarget.muted = true
                         this.videoTarget.querySelector('source').src = data.video
                         this.videoTarget.load()
 
@@ -65,6 +66,8 @@ export default class AlertController extends BaseController {
 
                         this.videoTarget.style.opacity = '1'
                         await this.videoTarget.play()
+                        if(!data.sound)
+                            this.websocket.send('play_sound', {sound: data.video})
                     } catch (e) {
                         console.error(e)
                     }
@@ -76,9 +79,10 @@ export default class AlertController extends BaseController {
                     this.element.classList.remove('expand')
 
                     try {
-                        this.soundTarget.querySelector('source').src = data.sound
-                        this.soundTarget.load()
-                        await this.soundTarget.play()
+                        this.websocket.send('play_sound', {sound: data.sound})
+                        //this.soundTarget.querySelector('source').src = data.sound
+                        //this.soundTarget.load()
+                        //await this.soundTarget.play()
                     } catch (e) {
                         console.error(e)
                     }

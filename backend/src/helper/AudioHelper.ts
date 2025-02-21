@@ -1,7 +1,7 @@
 import {getConfig} from "./ConfigHelper";
 import getWebsocketServer from "../App";
 import {execute} from "./CommandHelper";
-import {logRegular} from "./LogHelper";
+import {logRegular, logWarn} from "./LogHelper";
 
 let audioData = {};
 
@@ -22,7 +22,12 @@ export async function initAudio() {
 export async function setVolume(audioInterface: string, volume: number, sendUpdate = true) {
     const currentAudioData = audioData[audioInterface]
 
-    await execute(`${currentAudioData.command} ${volume}`)
+    try {
+        await execute(`${currentAudioData.command} ${volume}`)
+    } catch (error) {
+        logWarn(`setting volume for ${audioInterface} failed:`)
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
 
     if(volume === 0) {
         logRegular(`mute ${audioInterface}`)

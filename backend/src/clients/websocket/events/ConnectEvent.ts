@@ -11,6 +11,7 @@ import RemoveAlertMessage from "./messages/RemoveAlertMessage";
 import {getActiveChannelPoints} from "../../../helper/ChannelPointHelper";
 import {getAudioData} from "../../../helper/AudioHelper";
 import SetVolumeMessage from "./messages/SetVolumeMessage";
+import PlaySoundMessage from "./messages/PlaySoundMessage";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -28,6 +29,7 @@ export default class ConnectEvent extends BaseEvent{
             await new GetEffectMessage(this.webSocketServer, event).handleMessage(data)
             await new RemoveAlertMessage(this.webSocketServer, event).handleMessage(data)
             await new SetVolumeMessage(this.webSocketServer, event).handleMessage(data)
+            await new PlaySoundMessage(this.webSocketServer, event).handleMessage(data)
         })
 
         await sleep(500)
