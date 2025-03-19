@@ -38,6 +38,11 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             return
         }
 
+        if(shipApiData.supercruise_overcharge_active) {
+            await this.deny(event, "Deine Kanalpunkte wurden dir zurück gegeben weil der Supercruise Overcharge aktiv ist.", "overcharge_active")
+            return
+        }
+
         const theme = getAssetConfig('boost')
 
         if(shipApiData.in_supercruise) {
