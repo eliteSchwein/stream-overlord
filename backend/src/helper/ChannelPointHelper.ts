@@ -45,6 +45,7 @@ export async function updateChannelPoints() {
         }
     }
 
+    // TODO: somehow custom rewards via website overwrite the hardcoded ones.. THIS SHOULD NOT HAPPEN
     const newActiveChannelPoints = defaultChannelPoints.concat(gameChannelPointNames);
 
     const toDisableKeys = Object.keys(channelPoints).filter(item => !newActiveChannelPoints.includes(item))
