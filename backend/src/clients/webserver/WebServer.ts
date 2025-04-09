@@ -49,7 +49,7 @@ export default class WebServer {
         this.webServer.use(bodyParser.json())
 
         this.webServer.use('/commander', express.static(path.join(__dirname, '../../commander/dist')));
-        this.webServer.get('/commander/*', (req, res) => {
+        this.webServer.get(/^\/commander(\/.*)?$/, (req, res) => {
             res.sendFile(path.join(__dirname, '../../commander/dist/index.html'));
         });
 

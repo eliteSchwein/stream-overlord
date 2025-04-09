@@ -187,7 +187,7 @@ export default class ChannelPointsEvent extends BaseEvent {
         addEventToCooldown(eventUuid, this.name, event.broadcasterName)
 
         try {
-            if(gameKeyCombos) {
+            if(gameKeyCombos && gameKeyCombos.length > 0) {
                 const websocketServer = getWebsocketServer()
                 const theme = getAssetConfig('generic_channel_point')
                 const comboUuid = `${event.rewardTitle}_${uuidv4()}`
