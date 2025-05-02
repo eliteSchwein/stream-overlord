@@ -10,7 +10,6 @@ import AlertApi from "./api/AlertApi";
 import SceneApi from "./api/SceneApi";
 import ObsApi from "./api/ObsApi";
 import ShieldApi from "./api/ShieldApi";
-import WebRequestApi from "./api/WebRequestApi";
 import CurrentGameApi from "./api/Games/CurrentGameApi";
 import AllGamesApi from "./api/Games/AllGamesApi";
 import GetSceneDataApi from "./api/Obs/GetSceneDataApi";

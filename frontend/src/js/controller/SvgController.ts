@@ -3,9 +3,17 @@ import {Websocket} from "websocket-ts";
 
 export default class SvgController extends BaseController {
     private themeElements = []
+    private src = this.element.dataset.src
 
     async postConnect() {
-        const request = await fetch(this.element.dataset.src)
+        if(this.src === "function_attribute") {
+            const params = new URLSearchParams(document.location.search)
+            if(!params.has("svg_file")) return
+
+            this.src = `/${params.get("svg_file")}.svg`
+        }
+
+        const request = await fetch(this.src)
 
         if(request.status !== 200) return
 

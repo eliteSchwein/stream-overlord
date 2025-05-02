@@ -4,6 +4,16 @@ import {Websocket} from "websocket-ts";
 export default class ToggleController extends BaseController {
     protected id = this.element.dataset.id
 
+    async postConnect() {
+        if(this.id === "function_attribute") {
+            const params = new URLSearchParams(document.location.search)
+
+            if(!params.has("toggle_id")) return
+
+            this.id = params.get("toggle_id")
+        }
+    }
+
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if(!data) return
         if(!data.target || data.target !== this.id) return
