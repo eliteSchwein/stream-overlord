@@ -13,7 +13,7 @@ export default class ClipCommand extends BaseCommand{
             getConfig(/twitch/g)[0]['channels'][0])
         const webhookUrl = getConfig(/api clip_url/g)[0]
 
-        const clipId = await this.bot.api.clips.createClip({channel: primaryChannel, createAfterDelay: true})
+        const clipId = await this.bot.api.clips.createClip({channel: primaryChannel, createAfterDelay: false})
 
         await sleep(5_000)
 
