@@ -1,5 +1,5 @@
 import {getConfig} from "./ConfigHelper";
-import {triggerScene} from "./SceneHelper";
+import {triggerMacro} from "./MacroHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {pushGameInfo, setManualColor} from "./GameHelper";
 import {logWarn} from "./LogHelper";
@@ -12,7 +12,7 @@ export default function isShieldActive() {
 
 export async function enableShield() {
     if(shieldActive) return;
-    const config = getConfig(/scene shield_on/g)[0]
+    const config = getConfig(/macro shield_on/g)[0]
     const websocketServer = getWebsocketServer()
     const twitchClient = getTwitchClient()
 
@@ -34,13 +34,13 @@ export async function enableShield() {
     websocketServer.send('notify_shield_mode', {action: 'enable'})
 
     if(config) {
-        await triggerScene('shield_on')
+        await triggerMacro('shield_on')
     }
 }
 
 export async function disableShield() {
     if(!shieldActive) return;
-    const config = getConfig(/scene shield_off/g)[0]
+    const config = getConfig(/macro shield_off/g)[0]
     const websocketServer = getWebsocketServer()
     const twitchClient = getTwitchClient()
 
@@ -62,6 +62,6 @@ export async function disableShield() {
     websocketServer.send('notify_shield_mode', {action: 'disable'})
 
     if(config) {
-        await triggerScene('shield_off')
+        await triggerMacro('shield_off')
     }
 }

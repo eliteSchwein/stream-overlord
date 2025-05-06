@@ -7,7 +7,7 @@ import TestApi from "./api/TestApi";
 import * as bodyParser from "body-parser";
 import TimerApi from "./api/TimerApi";
 import AlertApi from "./api/AlertApi";
-import SceneApi from "./api/SceneApi";
+import MacroApi from "./api/MacroApi";
 import ObsApi from "./api/ObsApi";
 import ShieldApi from "./api/ShieldApi";
 import CurrentGameApi from "./api/Games/CurrentGameApi";
@@ -68,7 +68,7 @@ export default class WebServer {
         // Scene API
         new TimerApi().register(this.webServer)
         new AlertApi().register(this.webServer)
-        new SceneApi().register(this.webServer)
+        new MacroApi().register(this.webServer)
         new ShieldApi().register(this.webServer)
         // new WebRequestApi().register(this.webServer)
 

@@ -9,10 +9,10 @@ import WebServer from "./clients/webserver/WebServer";
 import {OBSClient} from "./clients/obs/OBSClient";
 import initialTimers from "./helper/TimerHelper";
 import initialAlerts from "./helper/AlertHelper";
-import loadScenes from "./helper/SceneHelper";
 import initialSchedulers from "./helper/SchedulerHelper";
 import {setLedColor} from "./helper/WledHelper";
 import {initAudio} from "./helper/AudioHelper";
+import loadMacros from "./helper/MacroHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -61,8 +61,8 @@ async function init() {
     initialAlerts()
     initialSchedulers()
 
-    logRegular('load scenes')
-    loadScenes()
+    logRegular('load macros')
+    loadMacros()
 
     logRegular('dump obs scenes and items')
     await obsClient.getItems()

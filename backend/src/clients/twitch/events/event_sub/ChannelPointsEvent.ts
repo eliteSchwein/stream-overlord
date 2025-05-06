@@ -13,7 +13,7 @@ import {
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
-import {triggerScene} from "../../../../helper/SceneHelper";
+import {triggerMacro} from "../../../../helper/MacroHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
 import FAChannelPoint from "../channel_points/FAChannelPoint";
 import getWebsocketServer from "../../../../App";
@@ -143,13 +143,13 @@ export default class ChannelPointsEvent extends BaseEvent {
                     }
 
                     break
-                case 'scene':
-                    if(!await triggerScene(configChannelPoint.trigger)) {
+                case 'macro':
+                    if(!await triggerMacro(configChannelPoint.trigger)) {
                         if(event.broadcasterName !== event.userName) {
                             await this.bot.whisper(event.userName, 'Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.')
                         }
 
-                        logWarn(`channel point denied for ${event.userName} because scene was not found!`)
+                        logWarn(`channel point denied for ${event.userName} because macro was not found!`)
                         await event.updateStatus('CANCELED')
                         return
                     }

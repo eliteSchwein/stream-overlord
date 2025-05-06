@@ -1,25 +1,23 @@
 import BaseApi from "./BaseApi";
-import {triggerScene} from "../../../helper/SceneHelper";
+import {triggerMacro} from "../../../helper/MacroHelper";
 
-export default class SceneApi extends BaseApi {
-    endpoint = 'scene'
+export default class MacroApi extends BaseApi {
+    endpoint = 'macro'
     post = true
 
     async handle(req: Request) {
         const body = req.body as any
 
-        if(!body.scene) {
+        if(!body.macro) {
             return {
-                error: 'scene missing',
+                error: 'macro missing',
                 status: 400
             }
         }
 
-        const sceneName = body.scene
-
-        if(!await triggerScene(sceneName)) {
+        if(!await triggerMacro(body.macro)) {
             return {
-                error: 'scene not found',
+                error: 'macro not found',
                 status: 404
             }
         }

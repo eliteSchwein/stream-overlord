@@ -4,24 +4,24 @@ import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {editGameTracker, getGameInfoData} from "../clients/website/WebsiteClient";
 
-const scenes = {}
+const macros = {}
 
-export default function loadScenes() {
-    const config = getConfig((/^scene /g), true)
+export default function loadMacros() {
+    const config = getConfig((/^macro /g), true)
 
-    for(const sceneName in config) {
-        scenes[sceneName] = config[sceneName];
+    for(const macroName in config) {
+        macros[macroName] = config[macroName];
     }
 }
 
-export async function triggerScene(name: string) {
-    if(!scenes[name]) {
+export async function triggerMacro(name: string) {
+    if(!macros[name]) {
         return false
     }
 
-    const tasks = scenes[name]['tasks']
+    const tasks = macros[name]['tasks']
 
-    logNotice(`trigger ${tasks.length} tasks from ${name} scene`)
+    logNotice(`trigger ${tasks.length} tasks from ${name} macro`)
 
     for (const task of tasks) {
         try {
@@ -42,8 +42,8 @@ export async function triggerScene(name: string) {
                     await handleFunction(task.method, task.data)
                     break
                 }
-                case "scene": {
-                    await triggerScene(task.method)
+                case "macro": {
+                    await triggerMacro(task.method)
                     break
                 }
             }
