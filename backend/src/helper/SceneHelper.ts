@@ -63,6 +63,13 @@ async function handleFunction(method: string, data: any) {
             await sleep(data.time)
             break
         }
+        case 'send_message': {
+            const primaryChannel = await this.bot.api.users.getUserByName(
+                getConfig(/twitch/g)[0]['channels'][0])
+
+            await this.bot.api.chat.sendChatMessage(primaryChannel, data.content)
+            break
+        }
         case 'track': {
             const themeData = await getGameInfoData()
             let mode = 'add'
