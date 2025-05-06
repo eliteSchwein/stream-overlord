@@ -46,6 +46,10 @@ export async function triggerMacro(name: string) {
                     await triggerMacro(task.method)
                     break
                 }
+                case "webhook": {
+                    await handleWebhook(task.method, task.data)
+                    break
+                }
             }
         } catch (error) {
             logWarn(`task failed:`)
@@ -54,6 +58,62 @@ export async function triggerMacro(name: string) {
     }
 
     return true
+}
+
+async function handleWebhook(method: string, data: any) {
+    logRegular(`send webhook: ${method}`)
+
+    let webhookContent: any = {}
+    let webhookUrl: string = ''
+
+    const primaryChannel = await this.bot.api.users.getUserByName(
+        getConfig(/twitch/g)[0]['channels'][0])
+
+    const streamInfo = await primaryChannel.getStream()
+
+    const gameInfo = await getGameInfoData()
+
+    switch (method) {
+        case 'start': {
+            const config = getConfig(/api start_webhook_url/g)[0]
+            webhookUrl = config.url
+
+            webhookContent = {
+                "content": `<@&${config.role_id}>`,
+                "embeds": [
+                    {
+                        "color": 16754085,
+                        "fields": [
+                            {
+                                "name": "Spiel",
+                                "value": streamInfo.gameName()
+                            },
+                            {
+                                "name": "Titel",
+                                "value": streamInfo.title()
+                            }
+                        ],
+                        "author": {
+                            "name": "eliteSCHW31N ist nun live!",
+                            "icon_url": primaryChannel.profilePictureUrl()
+                        },
+                        "image": {
+                            "url": gameInfo.media.static_background
+                        }
+                    }
+                ],
+                "attachments": []
+            }
+        }
+
+        await fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(webhookContent),
+        })
+    }
 }
 
 async function handleFunction(method: string, data: any) {
