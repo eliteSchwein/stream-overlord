@@ -1,5 +1,5 @@
 import {getConfig} from "./ConfigHelper";
-import getWebsocketServer, {getOBSClient} from "../App";
+import getWebsocketServer, {getOBSClient, getTwitchClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {editGameTracker, getGameInfoData} from "../clients/website/WebsiteClient";
@@ -66,7 +66,7 @@ async function handleWebhook(method: string, data: any) {
     let webhookContent: any = {}
     let webhookUrl: string = ''
 
-    const primaryChannel = await this.bot.api.users.getUserByName(
+    const primaryChannel = await getTwitchClient().getBot().api.users.getUserByName(
         getConfig(/twitch/g)[0]['channels'][0])
 
     const streamInfo = await primaryChannel.getStream()
@@ -86,16 +86,16 @@ async function handleWebhook(method: string, data: any) {
                         "fields": [
                             {
                                 "name": "Spiel",
-                                "value": streamInfo.gameName()
+                                "value": streamInfo.gameName
                             },
                             {
                                 "name": "Titel",
-                                "value": streamInfo.title()
+                                "value": streamInfo.title
                             }
                         ],
                         "author": {
                             "name": "eliteSCHW31N ist nun live!",
-                            "icon_url": primaryChannel.profilePictureUrl()
+                            "icon_url": primaryChannel.profilePictureUrl
                         },
                         "image": {
                             "url": gameInfo.media.static_background
@@ -124,10 +124,10 @@ async function handleFunction(method: string, data: any) {
             break
         }
         case 'send_message': {
-            const primaryChannel = await this.bot.api.users.getUserByName(
+            const primaryChannel = await getTwitchClient().getBot().api.users.getUserByName(
                 getConfig(/twitch/g)[0]['channels'][0])
 
-            await this.bot.api.chat.sendChatMessage(primaryChannel, data.content)
+            await getTwitchClient().getBot().api.chat.sendChatMessage(primaryChannel, data.content)
             break
         }
         case 'track': {
