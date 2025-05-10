@@ -12,6 +12,8 @@ export default class PlaySoundMessage extends BaseMessage {
         const assetDirectory = `${__dirname}/../../assets`
         const config = getConfig(/shell/g)[0]
 
+        console.log(`bash -c "cd ${assetDirectory} && ${config.play_command} ${data['sound']}"`)
+
         try {
             await execute(`bash -c "cd ${assetDirectory} && ${config.play_command} ${data['sound']}"`)
         } catch (error) {
