@@ -1,6 +1,6 @@
 import {getConfig} from "./ConfigHelper";
 import {execute} from "./CommandHelper";
-import {logWarn} from "./LogHelper";
+import {logDebug, logWarn} from "./LogHelper";
 
 const escapeRegex = /[\/'"]/
 
@@ -11,12 +11,14 @@ export async function speak(message: string)
     message = message.replace(escapeRegex, '')
 
     try {
+        let command =  `bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output_file ${config.output_file} && ${config.play_command}"`
+
         if(config.raw_command) {
-            console.log(`bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${config.play_command}"`)
-            await execute(`bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${config.play_command}"`)
-            return
+            command = `bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${config.play_command}"`
         }
-        await execute(`bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output_file ${config.output_file} && ${config.play_command}"`)
+
+        logDebug(`TTS Command: ${command}`)
+        await execute(command)
     } catch (error) {
         logWarn(`TTS failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
