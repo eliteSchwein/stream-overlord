@@ -12,6 +12,7 @@ export async function speak(message: string)
 
     try {
         if(config.raw_command) {
+            console.log(`bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${config.play_command}"`)
             await execute(`bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${config.play_command}"`)
             return
         }
