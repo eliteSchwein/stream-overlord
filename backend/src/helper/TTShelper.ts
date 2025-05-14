@@ -11,6 +11,10 @@ export async function speak(message: string)
     message = message.replace(escapeRegex, '')
 
     try {
+        if(config.raw_command) {
+            await execute(`bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${config.play_command}"`)
+            return
+        }
         await execute(`bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output_file ${config.output_file} && ${config.play_command}"`)
     } catch (error) {
         logWarn(`TTS failed:`)
