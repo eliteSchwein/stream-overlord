@@ -8,7 +8,7 @@ export default class AdMessage extends BaseMessage {
     async handle(data: any) {
         try {
             const adData = (await getAdData()).ads
-            this.send('ad_result', adData)
+            this.send('notify_ads', adData)
         } catch (error) {
             logWarn('ads fetch failed:')
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
