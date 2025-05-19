@@ -4,3 +4,4 @@ node_modules
 twitchTokens.json
 assets/*
 !assets/placeholder
+!assets/ytdl_blacklist.json
