@@ -11,7 +11,7 @@ export default class BadgeController extends BaseController {
     declare readonly titleImageTarget: HTMLImageElement
     declare readonly subtitleTargets: HTMLElement[]
 
-    protected ads: any
+    protected ads: any = []
     protected adInterval: any
     protected adIndex = 0
     //protected particle: ParticleHelper
