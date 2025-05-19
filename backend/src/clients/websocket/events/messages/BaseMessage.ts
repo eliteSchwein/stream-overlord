@@ -25,7 +25,7 @@ export default class BaseMessage {
 
     public send(method: string, data: any = {}) {
         try {
-            this.webSocket.send(JSON.stringify({jsonrpc: "2.0", method: method, param: data, id: this.id}))
+            this.webSocket.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id: this.id}))
         } catch (error) {
             logError('request to a websocket client failed!')
             logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
