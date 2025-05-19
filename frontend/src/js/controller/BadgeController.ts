@@ -49,6 +49,8 @@ export default class BadgeController extends BaseController {
     }
 
     async updateTitle(data: any) {
+        if(!data) return
+
         for (const titleElement of this.titleTargets) {
             titleElement.style.display = 'none'
         }
