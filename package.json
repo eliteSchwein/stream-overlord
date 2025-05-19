@@ -30,6 +30,7 @@
   "devDependencies": {
     "@hotwired/stimulus": "^3.2.2",
     "@mdi/font": "^7.4.47",
+    "@nuclearplayer/ytdl-core": "^4.16.11",
     "@twurple/api": "^7.3.0",
     "@twurple/auth": "^7.3.0",
     "@twurple/chat": "^7.3.0",
