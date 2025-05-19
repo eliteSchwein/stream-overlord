@@ -91,6 +91,10 @@ export default class BadgeController extends BaseController {
                 return
             }
 
+            if(!this.ads) {
+                return
+            }
+
             if(this.adIndex === this.ads.length ) {
                 this.adIndex = 0
             }
@@ -104,7 +108,7 @@ export default class BadgeController extends BaseController {
     async handleMessage(websocket: Websocket, method: string, data: any) {
         switch (method) {
             case 'notify_ads':
-                if(JSON.stringify(this.ads) === JSON.stringify(data)) return
+                if(this.ads && JSON.stringify(this.ads) === JSON.stringify(data)) return
 
                 this.ads = data
 
