@@ -93,6 +93,8 @@ export default class BadgeController extends BaseController {
                 return
             }
 
+            console.log(this.ads)
+
             if(!this.ads) {
                 return
             }
