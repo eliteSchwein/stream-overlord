@@ -28,6 +28,8 @@ export default class BadgeController extends BaseController {
 
         this.logoTarget.style.backgroundImage = null
 
+        if(!this.ads) return
+
         void this.updateTitle(this.ads[this.adIndex])
     }
 
