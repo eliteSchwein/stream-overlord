@@ -42,7 +42,6 @@
     "@types/express": "^5.0.2",
     "@types/node": "^22.15.21",
     "@types/readline-sync": "^1.4.8",
-    "@types/sharp": "^0.32.0",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
     "async-wait-until": "^2.0.27",
