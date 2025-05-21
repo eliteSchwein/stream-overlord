@@ -5,6 +5,7 @@ import {isShowErrorMessage, setShowErrorMessage} from "../../../helper/CommandHe
 export default class ToggleErrorMessageCommand extends BaseCommand {
     command = 'toggleerror'
     requiresMod = true
+    enforceSame = true
 
     async handle(params: any, context: BotCommandContext) {
         const newState = !isShowErrorMessage()

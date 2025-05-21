@@ -1,7 +1,7 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logError, logNotice, logRegular, logWarn} from "../../../../helper/LogHelper";
-import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import BoostChannelPoint from "../channel_points/BoostChannelPoint";
 import {
     addEventToCooldown,
@@ -30,8 +30,7 @@ export default class ChannelPointsEvent extends BaseEvent {
     protected channelPoints = []
 
     async handleRegister() {
-        const primaryChannel = await this.bot.api.users.getUserByName(
-            getConfig(/twitch/g)[0]['channels'][0])
+        const primaryChannel = getPrimaryChannel()
 
         this.channelPoints.push(new BoostChannelPoint(this.eventSubWs, this.bot))
         this.channelPoints.push(new FAChannelPoint(this.eventSubWs, this.bot))

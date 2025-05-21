@@ -1,4 +1,4 @@
-import {getConfig} from "./ConfigHelper";
+import {getConfig, getPrimaryChannel} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient, getTwitchClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
@@ -66,8 +66,7 @@ async function handleWebhook(method: string, data: any) {
     let webhookContent: any = {}
     let webhookUrl: string = ''
 
-    const primaryChannel = await getTwitchClient().getBot().api.users.getUserByName(
-        getConfig(/twitch/g)[0]['channels'][0])
+    const primaryChannel = getPrimaryChannel()
 
     const streamInfo = await primaryChannel.getStream()
 
@@ -124,8 +123,7 @@ async function handleFunction(method: string, data: any) {
             break
         }
         case 'send_message': {
-            const primaryChannel = await getTwitchClient().getBot().api.users.getUserByName(
-                getConfig(/twitch/g)[0]['channels'][0])
+            const primaryChannel = getPrimaryChannel()
 
             await getTwitchClient().getBot().api.chat.sendChatMessage(primaryChannel, data.content)
             break

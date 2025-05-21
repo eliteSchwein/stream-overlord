@@ -1,5 +1,5 @@
 import BaseEvent from "./BaseEvent";
-import {getConfig} from "../../../../helper/ConfigHelper";
+import {getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {disableShield, enableShield} from "../../../../helper/ShieldHelper";
 
 export default class ShieldEvent extends BaseEvent {
@@ -7,8 +7,7 @@ export default class ShieldEvent extends BaseEvent {
     eventTypes = []
 
     async handleRegister() {
-        const primaryChannel = await this.bot.api.users.getUserByName(
-            getConfig(/twitch/g)[0]['channels'][0])
+        const primaryChannel = getPrimaryChannel()
 
         this.eventSubWs.onChannelShieldModeBegin(primaryChannel, primaryChannel, (event: any) => this.handle(event))
         this.eventSubWs.onChannelShieldModeEnd(primaryChannel, primaryChannel, (event: any) => this.handle(event))

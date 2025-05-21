@@ -6,6 +6,7 @@ import {v4 as uuidv4} from "uuid";
 
 export default class TTSCommand extends BaseCommand {
     command = 'tts'
+    enforceSame = true
     requiresMod = true
     params = [
         {

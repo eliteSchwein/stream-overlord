@@ -1,4 +1,4 @@
-import {getConfig} from "./ConfigHelper";
+import {getConfig, getDefaultChannel, getPrimaryChannel} from "./ConfigHelper";
 import {triggerMacro} from "./MacroHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {pushGameInfo, setManualColor} from "./GameHelper";
@@ -20,8 +20,7 @@ export async function enableShield() {
 
     shieldActive = true
 
-    const primaryChannel = await twitchClient.getBot().api.users.getUserByName(
-        getConfig(/twitch/g)[0]['channels'][0])
+    const primaryChannel = getPrimaryChannel()
 
     await twitchClient.getBot().api.moderation.updateShieldModeStatus(
         primaryChannel,
@@ -48,8 +47,7 @@ export async function disableShield() {
 
     shieldActive = false
 
-    const primaryChannel = await twitchClient.getBot().api.users.getUserByName(
-        getConfig(/twitch/g)[0]['channels'][0])
+    const primaryChannel = getPrimaryChannel()
 
     await twitchClient.getBot().api.moderation.updateShieldModeStatus(
         primaryChannel,

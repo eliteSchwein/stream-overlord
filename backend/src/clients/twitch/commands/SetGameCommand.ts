@@ -1,11 +1,12 @@
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
-import {getConfig} from "../../../helper/ConfigHelper";
+import {getConfig, getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {logRegular} from "../../../helper/LogHelper";
 
 export default class SetGameCommand extends BaseCommand {
     command = 'setgame'
     requiresMod = true
+    enforceSame = true
     params = [
         {
             name: 'gameName',
@@ -23,8 +24,7 @@ export default class SetGameCommand extends BaseCommand {
 
         logRegular(`update game to ${game.name}`)
 
-        const primaryChannel = await this.bot.api.users.getUserByName(
-            getConfig(/twitch/g)[0]['channels'][0])
+        const primaryChannel = getPrimaryChannel()
 
         await this.bot.api.channels.updateChannelInfo(primaryChannel, {
             gameId: game.id

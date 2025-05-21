@@ -1,4 +1,4 @@
-import {getConfig} from "./ConfigHelper";
+import {getConfig, getPrimaryChannel} from "./ConfigHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
 import {logError, logRegular, logWarn} from "./LogHelper";
@@ -10,8 +10,7 @@ let gameKeyCombos = {}
 
 export async function fetchChannelPointData() {
     const bot = getTwitchClient().getBot()
-    const primaryChannel = await bot.api.users.getUserByName(
-        getConfig(/twitch/g)[0]['channels'][0])
+    const primaryChannel = getPrimaryChannel()
 
     const channelPointsData = await bot.api.channelPoints.getCustomRewards(primaryChannel.id)
 
@@ -25,8 +24,7 @@ export async function updateChannelPoints() {
 
     const gameData = await getGameInfoData()
     const bot = getTwitchClient().getBot()
-    const primaryChannel = await bot.api.users.getUserByName(
-        getConfig(/twitch/g)[0]['channels'][0])
+    const primaryChannel = getPrimaryChannel()
 
     const defaultChannelPoints = getConfig(/defaults/g)[0]['channel_points']
 
@@ -113,8 +111,7 @@ export async function toggleChannelPoint(channelPoint: any, pause = false) {
 
     const bot = getTwitchClient().getBot()
 
-    const primaryChannel = await bot.api.users.getUserByName(
-        getConfig(/twitch/g)[0]['channels'][0])
+    const primaryChannel = getPrimaryChannel()
 
     await bot.api.channelPoints.updateCustomReward(primaryChannel, channelPoint.id, {
         isPaused: pause,

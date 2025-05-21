@@ -3,6 +3,7 @@ import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {hasModerator, hasVip} from "../helper/PermissionHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
 import {isShowErrorMessage} from "../../../helper/CommandHelper";
+import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 
 export default class BaseCommand {
     command: string
@@ -13,6 +14,7 @@ export default class BaseCommand {
     requiresBroadcaster = false
     globalCooldown = 5
     userCooldown = 10
+    enforceSame = false
 
     bot: Bot
 
@@ -47,6 +49,11 @@ export default class BaseCommand {
     }
 
     private async handleCommand(param: string[], context: BotCommandContext) {
+        if(this.enforceSame) {
+            const primaryChannel = getPrimaryChannel()
+
+            if(context.broadcasterId !== primaryChannel.id) return
+        }
         if(this.requiresBroadcaster && context.broadcasterId !== context.userId) {
             await this.replyPermissionError(context)
             return

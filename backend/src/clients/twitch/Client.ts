@@ -1,5 +1,5 @@
 import TwitchAuth from "./Auth";
-import {getConfig} from "../../helper/ConfigHelper";
+import {getConfig, loadPrimaryChannel} from "../../helper/ConfigHelper";
 import {Bot} from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
@@ -49,6 +49,8 @@ export default class TwitchClient {
         await waitUntil(() => botActive, {
             intervalBetweenAttempts: 250,
         })
+
+        await loadPrimaryChannel(this)
 
         logRegular('connect eventsub')
 

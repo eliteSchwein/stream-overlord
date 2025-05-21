@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelFollowEvent} from "@twurple/eventsub-base";
-import {getAssetConfig, getConfig} from "../../../../helper/ConfigHelper";
+import {getAssetConfig, getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
@@ -12,8 +12,7 @@ export default class FollowEvent extends BaseEvent {
     eventTypes = []
 
     async handleRegister() {
-        const primaryChannel = await this.bot.api.users.getUserByName(
-            getConfig(/twitch/g)[0]['channels'][0])
+        const primaryChannel = getPrimaryChannel()
 
         this.eventSubWs.onChannelFollow(primaryChannel, primaryChannel, (event: any) => this.handleEvent(event))
     }

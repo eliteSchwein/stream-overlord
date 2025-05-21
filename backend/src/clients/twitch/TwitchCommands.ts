@@ -1,4 +1,4 @@
-import {getConfig} from "../../helper/ConfigHelper";
+import {getConfig, getPrimaryChannel} from "../../helper/ConfigHelper";
 import {Bot, createBotCommand} from "@twurple/easy-bot";
 import InfoCommand from "./commands/InfoCommand";
 import {logRegular} from "../../helper/LogHelper";
@@ -9,6 +9,7 @@ import ClipCommand from "./commands/ClipCommand";
 import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
 import TTSCommand from "./commands/TTSCommand";
+import {getTwitchClient} from "../../App";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -59,7 +60,13 @@ function buildConfigCommands(commands: any[]) {
 }
 
 function buildConfigCommand(command: string, option: any) {
-    return createBotCommand(command, (params, { reply }) => {
-        void reply(option.message);
+    return createBotCommand(command, (params, context) => {
+        if(option.enforce_primary) {
+            const primaryChannel = getPrimaryChannel()
+
+            if(context.broadcasterId !== primaryChannel.id) return
+        }
+
+        void context.reply(option.message);
     }, {aliases: option.alias, userCooldown: option.userCooldown, globalCooldown: option.globalCooldown})
 }

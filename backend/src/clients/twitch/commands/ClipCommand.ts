@@ -1,6 +1,6 @@
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
-import {getConfig} from "../../../helper/ConfigHelper";
+import {getConfig, getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {sleep} from "../../../../../helper/GeneralHelper";
 
 export default class ClipCommand extends BaseCommand{
@@ -9,8 +9,7 @@ export default class ClipCommand extends BaseCommand{
     userCooldown = 15
 
     async handle(params: any, context: BotCommandContext) {
-        const primaryChannel = await this.bot.api.users.getUserByName(
-            getConfig(/twitch/g)[0]['channels'][0])
+        const primaryChannel = getPrimaryChannel()
         const webhookUrl = getConfig(/api clip_url/g)[0]
 
         const clipId = await this.bot.api.clips.createClip({channel: primaryChannel, createAfterDelay: false})

@@ -1,6 +1,6 @@
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
-import {getConfig} from "../../../helper/ConfigHelper";
+import {getConfig, getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {addAlert, isAlertActive} from "../../../helper/AlertHelper";
 import getWebsocketServer from "../../../App";
@@ -10,7 +10,7 @@ import {v4 as uuidv4} from "uuid";
 
 export default class ShoutoutCommand extends BaseCommand {
     command = 'shoutout'
-    aliases: string[] = ['so'];
+    aliases: string[] = ['so']
     requiresMod = true
     params = [
         {
@@ -18,6 +18,7 @@ export default class ShoutoutCommand extends BaseCommand {
             type: 'user'
         },
     ]
+    enforceSame = true
 
     async handle(params: any, context: BotCommandContext) {
         if(isAlertActive('shoutout')) {
@@ -36,8 +37,7 @@ export default class ShoutoutCommand extends BaseCommand {
 
         const channelInfo = await this.bot.api.channels.getChannelInfoById(user)
 
-        const primaryChannel = await this.bot.api.users.getUserByName(
-            getConfig(/twitch/g)[0]['channels'][0])
+        const primaryChannel = getPrimaryChannel()
 
         try {
             await this.bot.api.chat.shoutoutUser(primaryChannel, user)

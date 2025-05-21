@@ -1,6 +1,6 @@
 import BaseApi from "../BaseApi";
 import {getTwitchClient} from "../../../../App";
-import {getConfig} from "../../../../helper/ConfigHelper";
+import {getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
 
 export default class SetGameApi extends BaseApi {
     endpoint = 'game/set'
@@ -28,8 +28,7 @@ export default class SetGameApi extends BaseApi {
             }
         }
 
-        const primaryChannel = await twitchBot.api.users.getUserByName(
-            getConfig(/twitch/g)[0]['channels'][0])
+        const primaryChannel = getPrimaryChannel()
 
         await twitchBot.api.channels.updateChannelInfo(primaryChannel, {
             gameId: game.id
