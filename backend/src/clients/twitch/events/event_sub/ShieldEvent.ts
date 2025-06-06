@@ -1,4 +1,5 @@
 import BaseEvent from "./BaseEvent";
+import {EventSubChannelShieldModeBeginEvent, EventSubChannelShieldModeEndEvent} from "@twurple/eventsub-base";
 import {getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {disableShield, enableShield} from "../../../../helper/ShieldHelper";
 
@@ -14,10 +15,10 @@ export default class ShieldEvent extends BaseEvent {
     }
 
     async handle(event: any) {
-        if(event.constructor.name.includes('EventSubChannelShieldModeBeginEvent')) {
+        if(event instanceof EventSubChannelShieldModeBeginEvent) {
             void enableShield()
         }
-        if(event.constructor.name.includes('EventSubChannelShieldModeEndEvent')) {
+        if(event instanceof EventSubChannelShieldModeEndEvent) {
             void disableShield()
         }
     }
