@@ -1,6 +1,8 @@
 import {getAdData} from "../clients/website/WebsiteClient";
 import {logWarn} from "./LogHelper";
 import getWebsocketServer from "../App";
+import {updateSystemInfo} from "./SystemInfoHelper";
+import {checkThrottle} from "./ThrottleHelper";
 
 export default function initialSchedulers() {
     void updateAdData()
@@ -9,6 +11,12 @@ export default function initialSchedulers() {
     setInterval(async () => {
         //await updateAdData()
     }, 15_000)
+
+    // fast scheduler
+    setInterval(async () => {
+        await updateSystemInfo()
+        await checkThrottle()
+    }, 1_000)
 }
 
 export async function updateAdData() {

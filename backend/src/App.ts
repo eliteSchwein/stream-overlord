@@ -13,6 +13,7 @@ import initialSchedulers from "./helper/SchedulerHelper";
 import {setLedColor} from "./helper/WledHelper";
 import {initAudio} from "./helper/AudioHelper";
 import loadMacros from "./helper/MacroHelper";
+import {updateSystemInfo} from "./helper/SystemInfoHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -72,6 +73,9 @@ async function init() {
 
     logRegular('load audio outputs')
     await initAudio()
+
+    logRegular("init system info")
+    await updateSystemInfo()
 
     logSuccess('backend is ready')
 }

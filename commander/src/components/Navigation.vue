@@ -10,7 +10,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(useAppStore, ['getRestApi', 'isShieldActive']),
+    ...mapState(useAppStore, ['getRestApi', 'isShieldActive', 'getSystemInfo', 'isThrottled']),
     currentRouteName() {
       return this.$route.name;
     }
@@ -69,13 +69,34 @@ export default {
 
     <v-spacer></v-spacer>
 
+    <template v-for="(systemInfo) in getSystemInfo">
+      <v-btn
+        class="mr-1"
+        color="grey-darken-4"
+        variant="flat"
+      >
+        <v-icon :icon="'mdi-'+systemInfo.icon"></v-icon>
+        <p class="ml-2">{{systemInfo.short}} {{systemInfo.data}}</p>
+      </v-btn>
+    </template>
+
+    <v-btn
+      class="mr-1"
+      color="grey-darken-4"
+      variant="flat"
+      v-if="isThrottled"
+    >
+      <v-icon icon="mdi-flash" color="warning"></v-icon>
+      <p class="text-warning ml-2">Throttled</p>
+    </v-btn>
+
     <v-btn
       color="grey-darken-4"
       variant="flat"
       v-if="isShieldActive"
     >
       <v-icon icon="mdi-shield" color="error"></v-icon>
-      <p class="text-error ml-2">Shield Active</p>
+      <p class="text-error ml-2">Shield</p>
     </v-btn>
 
     <v-btn

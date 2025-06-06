@@ -16,7 +16,9 @@ export const useAppStore = defineStore('app', {
     shieldMode: false,
     currentGame: {},
     channelPoints: [],
-    audioData: {}
+    audioData: {},
+    systemInfo: {},
+    throttled: false,
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -33,7 +35,9 @@ export const useAppStore = defineStore('app', {
     getCurrentGame: (state) => state.currentGame,
     isShieldActive: (state) => state.shieldMode,
     getChannelPoints: (state) => state.channelPoints,
-    getAudioData: (state) => state.audioData
+    getAudioData: (state) => state.audioData,
+    getSystemInfo: (state) => state.systemInfo,
+    isThrottled: (state) => state.throttled,
   },
   actions: {
     async fetchConfig() {
@@ -80,6 +84,14 @@ export const useAppStore = defineStore('app', {
     setAudioData(audioData: {}) {
       this.audioData = audioData
       this.$patch(state => state.audioData = audioData)
+    },
+    setThrottled(throttled: boolean) {
+      this.throttled = throttled
+      this.$patch(state => state.throttled = throttled)
+    },
+    setSystemInfo(systemInfo: {}) {
+      this.systemInfo = systemInfo
+      this.$patch(state => state.systemInfo = systemInfo)
     }
   }
 })
