@@ -18,8 +18,6 @@ export default class BoostChannelPoint extends BaseChannelPoint {
 
         const shipApiData = await (await fetch(shipDiagnosticsConfig.url)).json()
 
-        console.log(shipApiData)
-
         if(!shipApiData.in_ship) {
             await this.deny(event, "Deine Kanalpunkte wurden dir zurück gegeben weil ich aktuell nicht in ein Schiff bin.", "not_in_ship")
             return
