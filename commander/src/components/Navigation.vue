@@ -74,6 +74,7 @@ export default {
         class="mr-1"
         color="grey-darken-4"
         variant="flat"
+        style="min-width: 120px;"
       >
         <v-icon :icon="'mdi-'+systemInfo.icon"></v-icon>
         <p class="ml-2">{{systemInfo.short}} {{systemInfo.data}}</p>
