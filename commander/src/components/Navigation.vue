@@ -69,16 +69,18 @@ export default {
 
     <v-spacer></v-spacer>
 
-    <template v-for="(systemInfo) in getSystemInfo">
-      <v-btn
-        class="mr-1"
-        color="grey-darken-4"
-        variant="flat"
-        style="min-width: 150px;"
-      >
-        <v-icon :icon="'mdi-'+systemInfo.icon"></v-icon>
-        <p class="ml-2">{{systemInfo.short}} {{systemInfo.data}}</p>
-      </v-btn>
+    <template v-if="!isThrottled && !isShieldActive">
+      <template v-for="(systemInfo) in getSystemInfo" :key="systemInfo.short">
+        <v-btn
+          class="mr-1"
+          color="grey-darken-4"
+          variant="flat"
+          style="min-width: 150px;"
+        >
+          <v-icon :icon="'mdi-' + systemInfo.icon"></v-icon>
+          <p class="ml-2">{{ systemInfo.short }} {{ systemInfo.data }}</p>
+        </v-btn>
+      </template>
     </template>
 
     <v-btn
