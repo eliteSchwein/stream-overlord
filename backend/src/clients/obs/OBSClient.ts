@@ -94,11 +94,21 @@ export class OBSClient {
             }
 
             for(const sceneItem of sceneItems) {
-                logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}]`.blue)
+                logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
+                const sourceFilters = await this.obsWebsocket.call('GetSourceFilterList', {sourceUuid: sceneItem.sourceUuid})
+
+                if(sourceFilters.filters.length > 0) {
+                    logCustom(`Filters[${sourceFilters.filters.length}]:`.blue)
+                    for(const filter of sourceFilters.filters) {
+                        console.log(filter)
+                    }
+                }
 
                 sceneData.items.push({
                     id: sceneItem.sceneItemId,
-                    name: sceneItem.sourceName
+                    uuid: sceneItem.sourceUuid,
+                    name: sceneItem.sourceName,
+                    filters: sourceFilters.filters
                 })
             }
         }
