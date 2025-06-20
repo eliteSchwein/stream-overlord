@@ -14,6 +14,7 @@ import {setLedColor} from "./helper/WledHelper";
 import {initAudio} from "./helper/AudioHelper";
 import loadMacros from "./helper/MacroHelper";
 import {updateSystemInfo} from "./helper/SystemInfoHelper";
+import {updateSourceFilters} from "./helper/SourceHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -76,6 +77,8 @@ async function init() {
 
     logRegular("init system info")
     await updateSystemInfo()
+
+    await updateSourceFilters()
 
     logSuccess('backend is ready')
 }

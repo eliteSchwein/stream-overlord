@@ -3,12 +3,16 @@ import {logDebug} from "../../helper/LogHelper";
 
 let adData = {}
 
-export async function requestApi(slug: string) {
+export async function requestApi(slug: string)
+{
+    const url = generateBaseUrl(slug);
+    return await (await fetch(url)).json()
+}
+
+export function generateBaseUrl(slug: string) {
     const config = getConfig(/api website/g)[0]
-
     logDebug(`request website api: ${config.url}${config.api_slug}&token=REDACTED&method=${slug}`)
-
-    return await (await fetch(`${config.url}${config.api_slug}&token=${config.token}&method=${slug}`)).json()
+    return `${config.url}${config.api_slug}&token=${config.token}&method=${slug}`
 }
 
 export async function getGameInfoData() {
@@ -65,4 +69,12 @@ export async function updateTwitchData() {
 export async function editGameTracker(gameId: string, mode: string = 'add') {
     if(!(await getTwitchData()).stream) return
     return await requestApi(`editGameTracker&game_id=${gameId}&mode=${mode}`)
+}
+
+export async function getSources() {
+    return await requestApi(`source&mode=getSources`)
+}
+
+export async function getSourceFilters(gameId: string) {
+    return await requestApi(`source&game_id=${gameId}&mode=getFilters`)
 }

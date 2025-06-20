@@ -4,6 +4,7 @@ import {editGameTracker, getGameInfoData, updateTwitchData} from "../../../websi
 import {logNotice} from "../../../../helper/LogHelper";
 import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {updateAdData} from "../../../../helper/SchedulerHelper";
+import {updateSourceFilters} from "../../../../helper/SourceHelper";
 
 export default class ChannelUpdateEvent extends BaseEvent {
     name = 'ChannelUpdateEvent'
@@ -25,5 +26,6 @@ export default class ChannelUpdateEvent extends BaseEvent {
         pushGameInfo()
 
         await editGameTracker(event.categoryId)
+        await updateSourceFilters()
     }
 }
