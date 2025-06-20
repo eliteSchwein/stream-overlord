@@ -13,6 +13,7 @@ import {getAudioData} from "../../../helper/AudioHelper";
 import SetVolumeMessage from "./messages/SetVolumeMessage";
 import PlaySoundMessage from "./messages/PlaySoundMessage";
 import {getSystemInfo} from "../../../helper/SystemInfoHelper";
+import {getSourceFilters} from "../../../helper/SourceHelper";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -40,5 +41,6 @@ export default class ConnectEvent extends BaseEvent{
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_channel_point_update', params: getActiveChannelPoints(), id: getRandomInt(10_000)}))
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_audio_update', params: getAudioData(), id: getRandomInt(10_000)}))
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_system_info', params: getSystemInfo(), id: getRandomInt(10_000)}))
+        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_source_update', params: getSourceFilters(), id: getRandomInt(10_000)}))
     }
 }
