@@ -26,9 +26,9 @@ export async function updateSourceFilters() {
             const filter = databaseSource.filters[filterName];
             const config = JSON.parse(filter.config)
 
-            if(filterName.startsWith("Source::")) {
+            if(filterName.startsWith("Source|")) {
                 switch (filterName) {
-                    case "Source::Transform":
+                    case "Source|Transform":
                         delete config["boundsAlignment"]
                         delete config["boundsHeight"]
                         delete config["boundsWidth"]
@@ -83,7 +83,7 @@ export async function saveSourceFilters() {
             }
         }
 
-        newSourceFilters[source.uuid]["Source::Transform"] = {
+        newSourceFilters[source.uuid]["Source|Transform"] = {
             config: sourceItemData.transform,
             sourceIndex: 0
         }
