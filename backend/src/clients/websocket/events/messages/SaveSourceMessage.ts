@@ -7,7 +7,6 @@ export default class SaveSourceMessage extends BaseMessage {
 
     async handle(data: any) {
         await saveSourceFilters()
-        await updateSourceFilters()
 
         this.send('notify_source_update', getSourceFilters())
     }
