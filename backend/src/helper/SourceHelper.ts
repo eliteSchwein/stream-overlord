@@ -45,10 +45,6 @@ export async function updateSourceFilters() {
             }
             try {
                 delete config["shader_file_name"]
-                console.log(sourceItemData.name)
-                console.log(filterName)
-                console.log(filter)
-                console.log(config)
                 await getOBSClient().getOBSWebSocket().call('SetSourceFilterIndex', {
                     sourceUuid: sourceUuid,
                     filterName: filterName,
@@ -84,7 +80,6 @@ export async function saveSourceFilters() {
         const sourceItemData = obsClient.getSceneItemByUuid(source.uuid)
 
         for(const filter of sourceFilters) {
-            console.log(filter)
             newSourceFilters[source.uuid][filter.filterName] = {
                 config: filter.filterSettings,
                 sourceIndex: filter.filterIndex
