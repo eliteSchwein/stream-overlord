@@ -89,8 +89,6 @@ export async function saveSourceFilters() {
         }
     }
 
-    console.log(newSourceFilters)
-
     const url = generateBaseUrl(`source&game_id=${gameInfo.data.game_id}&mode=updateFilters`)
     logDebug(`request website post api: ${url}`)
 

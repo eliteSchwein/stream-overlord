@@ -163,6 +163,12 @@ export default {
         color=""
         @click.stop="rail = false"
         to="/audio"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-view-dashboard-variant"
+        title="/scene"
+        color=""
+        @click.stop="rail = false"
+        to="/scene"></v-list-item>
     </v-list>
   </v-navigation-drawer>
 

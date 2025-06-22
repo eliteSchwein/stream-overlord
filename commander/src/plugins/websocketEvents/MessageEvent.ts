@@ -7,6 +7,7 @@ import NotifyChannelPointUpdateMessage
   from "@/plugins/websocketEvents/websocketMessage/NotifyChannelPointUpdateMessage";
 import NotifyAudioUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAudioUpdateMessage";
 import NotifySystemInfoMessage from "@/plugins/websocketEvents/websocketMessage/NotifySystemInfoMessage.ts";
+import NotifySceneMessage from "@/plugins/websocketEvents/websocketMessage/NotifySceneMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -21,5 +22,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyChannelPointUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyAudioUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifySystemInfoMessage(this.webSocketClient).handleMessage(data)
+    await new NotifySceneMessage(this.webSocketClient).handleMessage(data)
   }
 }

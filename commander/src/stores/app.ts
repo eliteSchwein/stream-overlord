@@ -19,6 +19,7 @@ export const useAppStore = defineStore('app', {
     audioData: {},
     systemInfo: {},
     throttled: false,
+    scene: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -38,6 +39,7 @@ export const useAppStore = defineStore('app', {
     getAudioData: (state) => state.audioData,
     getSystemInfo: (state) => state.systemInfo,
     isThrottled: (state) => state.throttled,
+    getScene: (state) => state.scene
   },
   actions: {
     async fetchConfig() {
@@ -92,6 +94,10 @@ export const useAppStore = defineStore('app', {
     setSystemInfo(systemInfo: {}) {
       this.systemInfo = systemInfo
       this.$patch(state => state.systemInfo = systemInfo)
+    },
+    setScene(scene: {}) {
+      this.scene = scene
+      this.$patch(state => state.scene = scene)
     }
   }
 })

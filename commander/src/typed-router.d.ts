@@ -22,5 +22,6 @@ declare module 'vue-router/auto-routes' {
     '/audio': RouteRecordInfo<'/audio', '/audio', Record<never, never>, Record<never, never>>,
     '/channelPoints': RouteRecordInfo<'/channelPoints', '/channelPoints', Record<never, never>, Record<never, never>>,
     '/games': RouteRecordInfo<'/games', '/games', Record<never, never>, Record<never, never>>,
+    '/scene': RouteRecordInfo<'/scene', '/scene', Record<never, never>, Record<never, never>>,
   }
 }

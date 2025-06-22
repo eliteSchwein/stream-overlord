@@ -14,6 +14,8 @@ import SetVolumeMessage from "./messages/SetVolumeMessage";
 import PlaySoundMessage from "./messages/PlaySoundMessage";
 import {getSystemInfo} from "../../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../../helper/SourceHelper";
+import RefreshSourceMessage from "./messages/RefreshSourceMessage";
+import SaveSourceMessage from "./messages/SaveSourceMessage";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -32,6 +34,8 @@ export default class ConnectEvent extends BaseEvent{
             await new RemoveAlertMessage(this.webSocketServer, event).handleMessage(data)
             await new SetVolumeMessage(this.webSocketServer, event).handleMessage(data)
             await new PlaySoundMessage(this.webSocketServer, event).handleMessage(data)
+            await new RefreshSourceMessage(this.webSocketServer, event).handleMessage(data)
+            await new SaveSourceMessage(this.webSocketServer, event).handleMessage(data)
         })
 
         await sleep(500)
