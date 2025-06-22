@@ -115,8 +115,6 @@ export class OBSClient {
             for(const sceneItem of sceneItems) {
                 logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
 
-                console.log(sceneItem)
-
                 sceneData.items.push({
                     id: sceneItem.sceneItemId,
                     uuid: sceneItem.sourceUuid,
