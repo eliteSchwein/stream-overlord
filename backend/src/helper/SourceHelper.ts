@@ -84,6 +84,7 @@ export async function saveSourceFilters() {
         const sourceItemData = obsClient.getSceneItemByUuid(source.uuid)
 
         for(const filter of sourceFilters) {
+            console.log(filter)
             newSourceFilters[source.uuid][filter.filterName] = {
                 config: filter.filterSettings,
                 sourceIndex: filter.filterIndex
