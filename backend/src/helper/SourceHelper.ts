@@ -71,6 +71,8 @@ export async function saveSourceFilters() {
 
     if(!obsClient.connected) return
 
+    await obsClient.getItems()
+
     for (const source of sources) {
         newSourceFilters[source.uuid] = {}
         const sourceFilters = (await getOBSClient().getOBSWebSocket().call('GetSourceFilterList', {sourceUuid: source.uuid})).filters
@@ -91,8 +93,6 @@ export async function saveSourceFilters() {
 
     const url = generateBaseUrl(`source&game_id=${gameInfo.data.game_id}&mode=updateFilters`)
     logDebug(`request website post api: ${url}`)
-
-    console.log(JSON.stringify(newSourceFilters))
 
     await fetch(url, {
         method: 'POST',
