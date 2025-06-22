@@ -48,6 +48,7 @@ export async function updateSourceFilters() {
                 console.log(sourceItemData.name)
                 console.log(filterName)
                 console.log(filter)
+                console.log(config)
                 await getOBSClient().getOBSWebSocket().call('SetSourceFilterIndex', {
                     sourceUuid: sourceUuid,
                     filterName: filterName,
