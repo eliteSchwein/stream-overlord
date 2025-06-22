@@ -26,14 +26,14 @@ export async function updateSourceFilters() {
             const filter = databaseSource.filters[filterName];
             const config = JSON.parse(filter.config)
 
+            delete config["boundsAlignment"]
+            delete config["boundsHeight"]
+            delete config["boundsWidth"]
+            delete config["boundsType"]
+
             if(filterName.startsWith("Source|")) {
                 switch (filterName) {
                     case "Source|Transform":
-                        delete config["boundsAlignment"]
-                        delete config["boundsHeight"]
-                        delete config["boundsWidth"]
-                        delete config["boundsType"]
-
                         await getOBSClient().getOBSWebSocket().call('SetSceneItemTransform', {
                             sceneUuid: sourceItemData.scene.uuid,
                             sceneItemId: sourceItemData.id,
@@ -44,6 +44,7 @@ export async function updateSourceFilters() {
                 continue
             }
             try {
+                delete config["shader_file_name"]
                 console.log(sourceItemData.name)
                 console.log(filterName)
                 console.log(filter)
