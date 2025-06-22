@@ -70,6 +70,22 @@ export class OBSClient {
         return this.obsWebsocket
     }
 
+    public getSceneItemByUuid(uuid: string) {
+        for (const scene of this.sceneData) {
+            // @ts-ignore
+            for (const sceneItem of scene.items) {
+                if(sceneItem.uuid !== uuid) continue
+
+                const clonedSceneItem = Object.assign({}, sceneItem)
+                clonedSceneItem.scene = scene
+
+                return clonedSceneItem
+            }
+        }
+
+        return undefined
+    }
+
     public async send(method: string, data: any) {
         // @ts-ignore
         await this.obsWebsocket.call(method, data)
@@ -82,6 +98,8 @@ export class OBSClient {
 
         const {scenes} = await this.obsWebsocket.call('GetSceneList')
 
+        const scenesData = []
+
         for(const scene of scenes) {
             // @ts-ignore
             const {sceneItems} = await this.obsWebsocket.call('GetSceneItemList', {sceneUuid: scene.sceneUuid})
@@ -90,6 +108,7 @@ export class OBSClient {
             const sceneData = {
                 index: scene.sceneIndex,
                 name: scene.sceneName,
+                uuid: scene.sceneUuid,
                 items: []
             }
 
@@ -99,10 +118,16 @@ export class OBSClient {
                 sceneData.items.push({
                     id: sceneItem.sceneItemId,
                     uuid: sceneItem.sourceUuid,
-                    name: sceneItem.sourceName
+                    name: sceneItem.sourceName,
+                    transform: sceneItem.sceneItemTransform
                 })
             }
+
+            scenesData.push(sceneData)
         }
+
+        // @ts-ignore
+        this.sceneData = scenesData
 
         logNotice('end of obs dump')
     }

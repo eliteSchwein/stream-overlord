@@ -14,7 +14,7 @@ import {setLedColor} from "./helper/WledHelper";
 import {initAudio} from "./helper/AudioHelper";
 import loadMacros from "./helper/MacroHelper";
 import {updateSystemInfo} from "./helper/SystemInfoHelper";
-import {updateSourceFilters} from "./helper/SourceHelper";
+import {saveSourceFilters, updateSourceFilters} from "./helper/SourceHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer

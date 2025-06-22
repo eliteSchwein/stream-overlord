@@ -1,21 +1,65 @@
 import getGameInfo from "./GameHelper";
 import {fetchSourceFilters, generateBaseUrl, getSourceFilters, getSources} from "../clients/website/WebsiteClient";
-import {logDebug} from "./LogHelper";
+import {logDebug, logWarn} from "./LogHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 
 let currentSourceFilters = {
     background: null,
-    filters: []
+    sources: []
 }
 
 export async function updateSourceFilters() {
     logDebug("update source filters")
     const gameInfo = getGameInfo()
+    const obsClient = getOBSClient()
+
+    if(!obsClient.connected) return
     currentSourceFilters = (await fetchSourceFilters(gameInfo.data.game_id)).data
 
     getWebsocketServer().send('notify_source_update', currentSourceFilters)
 
-    console.log(currentSourceFilters)
+    for(const sourceUuid in currentSourceFilters.sources) {
+        const databaseSource = currentSourceFilters.sources[sourceUuid]
+        const sourceItemData = obsClient.getSceneItemByUuid(sourceUuid)
+
+        for(const filterName in databaseSource.filters) {
+            const filter = databaseSource.filters[filterName];
+            const config = JSON.parse(filter.config)
+
+            if(filterName.startsWith("Source::")) {
+                switch (filterName) {
+                    case "Source::Transform":
+                        delete config["boundsAlignment"]
+                        delete config["boundsHeight"]
+                        delete config["boundsWidth"]
+                        delete config["boundsType"]
+
+                        await getOBSClient().getOBSWebSocket().call('SetSceneItemTransform', {
+                            sceneUuid: sourceItemData.scene.uuid,
+                            sceneItemId: sourceItemData.id,
+                            sceneItemTransform: config
+                        })
+                        break;
+                }
+                continue
+            }
+            try {
+                await getOBSClient().getOBSWebSocket().call('SetSourceFilterIndex', {
+                    sourceUuid: sourceUuid,
+                    filterName: filterName,
+                    filterIndex: filter.index
+                })
+                await getOBSClient().getOBSWebSocket().call('SetSourceFilterSettings', {
+                    sourceUuid: sourceUuid,
+                    filterName: filterName,
+                    filterSettings: config
+                })
+            } catch (error) {
+                logWarn('obs source filter update failed:')
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            }
+        }
+    }
 }
 
 export async function saveSourceFilters() {
@@ -23,15 +67,29 @@ export async function saveSourceFilters() {
     const gameInfo = getGameInfo()
     const sources = (await getSources()).data
     const newSourceFilters = {}
+    const obsClient = getOBSClient()
+
+    if(!obsClient.connected) return
 
     for (const source of sources) {
         newSourceFilters[source.uuid] = {}
         const sourceFilters = (await getOBSClient().getOBSWebSocket().call('GetSourceFilterList', {sourceUuid: source.uuid})).filters
+        const sourceItemData = obsClient.getSceneItemByUuid(source.uuid)
 
         for(const filter of sourceFilters) {
-            newSourceFilters[source.uuid][filter.filterName] = filter.filterSettings
+            newSourceFilters[source.uuid][filter.filterName] = {
+                config: filter.filterSettings,
+                sourceIndex: filter.filterIndex
+            }
+        }
+
+        newSourceFilters[source.uuid]["Source::Transform"] = {
+            config: sourceItemData.transform,
+            sourceIndex: 0
         }
     }
+
+    console.log(newSourceFilters)
 
     const url = generateBaseUrl(`source&game_id=${gameInfo.data.game_id}&mode=updateFilters`)
     logDebug(`request website post api: ${url}`)
