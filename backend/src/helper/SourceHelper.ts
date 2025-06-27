@@ -36,8 +36,6 @@ export async function updateSourceFilters() {
             if(filterName.startsWith("Source|")) {
                 switch (filterName) {
                     case "Source|Transform":
-                        console.log(sourceItemData)
-                        console.log(config)
                         await getOBSClient().getOBSWebSocket().call('SetSceneItemTransform', {
                             sceneUuid: sourceItemData.scene.uuid,
                             sceneItemId: sourceItemData.id,
