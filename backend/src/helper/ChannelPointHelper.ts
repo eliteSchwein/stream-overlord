@@ -95,6 +95,8 @@ export function updateActiveChannelPoint(id: string, isActive: boolean) {
     const index = activeChannelPoints.findIndex(reward => reward.id === id);
     const reward = activeChannelPoints[index];
 
+    if(!reward) return
+
     reward.active = isActive;
 
     activeChannelPoints[index] = reward;
