@@ -26,10 +26,12 @@ export async function updateSourceFilters() {
             const filter = databaseSource.filters[filterName];
             const config = JSON.parse(filter.config)
 
-            delete config["boundsAlignment"]
-            delete config["boundsHeight"]
-            delete config["boundsWidth"]
-            delete config["boundsType"]
+            if(config.boundsType === "OBS_BOUNDS_NONE") {
+                delete config["boundsAlignment"]
+                delete config["boundsHeight"]
+                delete config["boundsWidth"]
+                delete config["boundsType"]
+            }
 
             if(filterName.startsWith("Source|")) {
                 switch (filterName) {
