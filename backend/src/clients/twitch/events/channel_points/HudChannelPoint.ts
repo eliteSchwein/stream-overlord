@@ -15,6 +15,8 @@ export default class HudChannelPoint extends BaseChannelPoint {
 
         const websocketServer = getWebsocketServer()
 
+        const shipApiData = await (await fetch(shipDiagnosticsConfig.url)).json()
+
         const isActive = addAlert({
             'channel': 'power',
             'sound': theme.sound,

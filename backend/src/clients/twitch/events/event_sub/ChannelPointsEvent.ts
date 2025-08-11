@@ -22,6 +22,7 @@ import {fetchChannelPointData, getKeyCombos, updateChannelPoints} from "../../..
 import {getGameInfoData} from "../../../website/WebsiteClient";
 import {waitUntil} from "async-wait-until";
 import TTSChannelPoint from "../channel_points/TTSChannelPoint";
+import ShieldPurgeChannelPoint from "../channel_points/ShieldPurgeChannelPoint";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = 'ChannelPointsEvent'
@@ -36,6 +37,7 @@ export default class ChannelPointsEvent extends BaseEvent {
         this.channelPoints.push(new FAChannelPoint(this.eventSubWs, this.bot))
         this.channelPoints.push(new HudChannelPoint(this.eventSubWs, this.bot))
         this.channelPoints.push(new TTSChannelPoint(this.eventSubWs, this.bot))
+        this.channelPoints.push(new ShieldPurgeChannelPoint(this.eventSubWs, this.bot))
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id)
         const rewardNames = presentChannelPoints.map(reward => reward.title)
