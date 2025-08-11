@@ -1,6 +1,6 @@
 import {getAdData} from "../clients/website/WebsiteClient";
 import {logWarn} from "./LogHelper";
-import getWebsocketServer from "../App";
+import getWebsocketServer, {getTauonmbClient} from "../App";
 import {updateSystemInfo} from "./SystemInfoHelper";
 import {checkThrottle} from "./ThrottleHelper";
 
@@ -17,6 +17,11 @@ export default function initialSchedulers() {
         await updateSystemInfo()
         await checkThrottle()
     }, 1_000)
+
+    // fastest scheduler
+    setInterval(() => {
+        void getTauonmbClient()?.sync()
+    }, 250)
 }
 
 export async function updateAdData() {

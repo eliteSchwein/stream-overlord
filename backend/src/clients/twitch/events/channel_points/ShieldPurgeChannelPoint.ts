@@ -5,13 +5,13 @@ import getWebsocketServer from "../../../../App";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
-import {isEventQueried} from "../../helper/CooldownHelper";
 
 export default class ShieldPurgeChannelPoint extends BaseChannelPoint {
     title = 'Shield Purge'
 
     async handle(event: EventSubChannelRedemptionAddEvent) {
         const theme = getAssetConfig('shield_purge')
+        const shipDiagnosticsConfig = getConfig(/api ship_diagnostics/g)[0]
 
         const websocketServer = getWebsocketServer()
 

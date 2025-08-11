@@ -15,11 +15,13 @@ import {initAudio} from "./helper/AudioHelper";
 import loadMacros from "./helper/MacroHelper";
 import {updateSystemInfo} from "./helper/SystemInfoHelper";
 import {saveSourceFilters, updateSourceFilters} from "./helper/SourceHelper";
+import TauonmbClient from "./clients/tauonmb/TauonmbClient";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
 let webServer: WebServer
 let obsClient: OBSClient
+let tauonmbClient: TauonmbClient
 
 void init()
 
@@ -57,6 +59,10 @@ async function init() {
     await fetchGameInfo()
 
     await obsClient.reloadAllBrowserScenes()
+
+    logRegular("connect tauonmb client")
+    tauonmbClient = new TauonmbClient()
+    await tauonmbClient.init()
 
     logRegular('initial schedulers')
     initialTimers()
@@ -97,4 +103,8 @@ export function getWebServer() {
 
 export function getOBSClient() {
     return obsClient
+}
+
+export function getTauonmbClient() {
+    return tauonmbClient
 }
