@@ -3,6 +3,8 @@ import getWebsocketServer, {getOBSClient, getTwitchClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {editGameTracker, getGameInfoData} from "../clients/website/WebsiteClient";
+import {get} from "lodash";
+import {parsePlaceholders} from "./DataHelper";
 
 const macros = {}
 
@@ -66,53 +68,27 @@ async function handleWebhook(method: string, data: any) {
     let webhookContent: any = {}
     let webhookUrl: string = ''
 
-    const primaryChannel = getPrimaryChannel()
+    const regex = new RegExp(`webhook ${method}`, "g");
+    const config = getConfig(regex)[0];
 
-    const streamInfo = await primaryChannel.getStream()
-
-    const gameInfo = await getGameInfoData()
-
-    switch (method) {
-        case 'start': {
-            const config = getConfig(/api start_webhook_url/g)[0]
-            webhookUrl = config.url
-
-            webhookContent = {
-                "content": `<@&${config.role_id}>`,
-                "embeds": [
-                    {
-                        "color": 16754085,
-                        "fields": [
-                            {
-                                "name": "Spiel",
-                                "value": streamInfo.gameName
-                            },
-                            {
-                                "name": "Titel",
-                                "value": streamInfo.title
-                            }
-                        ],
-                        "author": {
-                            "name": "eliteSCHW31N ist nun live!",
-                            "icon_url": primaryChannel.profilePictureUrl
-                        },
-                        "image": {
-                            "url": gameInfo.media.static_background
-                        }
-                    }
-                ],
-                "attachments": []
-            }
-        }
-
-        await fetch(webhookUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(webhookContent),
-        })
+    if(!config) {
+        logWarn(`no webhook config found for ${method}`)
+        return
     }
+
+    webhookUrl = config.url
+
+    webhookContent = JSON.parse(await parsePlaceholders(JSON.stringify(config.content), config.additional_data))
+
+
+    console.log(JSON.stringify(webhookContent))
+    await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(webhookContent),
+    })
 }
 
 async function handleFunction(method: string, data: any) {

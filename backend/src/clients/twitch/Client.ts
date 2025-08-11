@@ -15,6 +15,9 @@ import RaidEvent from "./events/RaidEvent";
 import FollowEvent from "./events/event_sub/FollowEvent";
 import ShieldEvent from "./events/event_sub/ShieldEvent";
 import ChannelPointEditEvent from "./events/event_sub/ChannelPointEditEvent";
+import ChannelSharedChatSessionEnd from "./events/event_sub/ChannelSharedChatSessionEnd";
+import ChannelSharedChatSession from "./events/event_sub/ChannelSharedChatSession";
+import PollPredictionEvent from "./events/event_sub/PollPredictionEvent";
 
 export default class TwitchClient {
     protected auth: TwitchAuth
@@ -72,6 +75,9 @@ export default class TwitchClient {
         await new BitEvent(this.eventSub, this.bot).register()
         await new ShieldEvent(this.eventSub, this.bot).register()
         await new ChannelPointEditEvent(this.eventSub, this.bot).register()
+        await new ChannelSharedChatSessionEnd(this.eventSub, this.bot).register()
+        await new ChannelSharedChatSession(this.eventSub, this.bot).register()
+        await new PollPredictionEvent(this.eventSub, this.bot).register()
     }
 
     public getBot() {
