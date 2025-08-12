@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="application/javascript" src="./app.js"></script>
+    <link rel="stylesheet" href="app.css">
+    <meta charset="UTF-8">
+    <title>Music</title>
+</head>
+<body>
+    <div class="music" data-controller="tauonmb">
+        <div class="music-container font-orbitron row d-flex align-items-center flex-nowrap">
+            <div class="col col-music-image d-flex justify-content-center">
+                <img id="music-thumbnail" class="spin"/>
+            </div>
+
+            <!-- allow shrink so it doesn't push under the image -->
+            <div class="col" style="min-width:0;">
+                <div class="music-title-container">
+                    <div class="music-title-track">
+                        <span class="music-title-text">Loading</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="music-progress">
+            <div class="music-progress-container">
+                <div class="music-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

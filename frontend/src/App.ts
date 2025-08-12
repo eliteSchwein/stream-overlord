@@ -9,6 +9,7 @@ import "./style/timer.css"
 import "./style/announce.css"
 import "./style/toggle.css"
 import "./style/shoutout.css"
+import "./style/music.css"
 import "bootstrap/dist/css/bootstrap.css"
 import "@mdi/font/css/materialdesignicons.css"
 
@@ -30,6 +31,7 @@ import ToggleController from "./js/controller/ToggleController";
 import ShoutoutController from "./js/controller/ShoutoutController";
 import InfoController from "./js/controller/InfoController";
 import SourceBackgroundController from "./js/controller/SourceBackgroundController";
+import TauonmbController from "./js/controller/TauonmbController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -57,6 +59,7 @@ async function init(){
     stimulus.register('shoutout', ShoutoutController)
     stimulus.register('info', InfoController)
     stimulus.register('source_background', SourceBackgroundController)
+    stimulus.register('tauonmb', TauonmbController)
 }
 
 export function getWebsocketClient() {

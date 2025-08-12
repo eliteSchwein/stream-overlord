@@ -18,6 +18,9 @@ import RestartApi from "./api/RestartApi";
 import SetGameApi from "./api/Games/SetGameApi";
 import GetChannelPointsApi from "./api/ChannelPoints/GetChannelPointsApi";
 import ToggleChannelPointApi from "./api/ChannelPoints/ToggleChannelPointApi";
+import TauonStatusApi from "./api/Tauonmb/TauonStatusApi";
+import TauonNextApi from "./api/Tauonmb/TauonNextApi";
+import TauonBackApi from "./api/Tauonmb/TauonBackApi";
 
 export default class WebServer {
     webServer: Express
@@ -85,6 +88,11 @@ export default class WebServer {
         // ChannelPoints API
         new GetChannelPointsApi().register(this.webServer)
         new ToggleChannelPointApi().register(this.webServer)
+
+        // Tauon API
+        new TauonStatusApi().register(this.webServer)
+        new TauonNextApi().register(this.webServer)
+        new TauonBackApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 

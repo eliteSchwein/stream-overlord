@@ -16,6 +16,7 @@ import {getSystemInfo} from "../../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../../helper/SourceHelper";
 import RefreshSourceMessage from "./messages/RefreshSourceMessage";
 import SaveSourceMessage from "./messages/SaveSourceMessage";
+import {getTauonmbClient} from "../../../App";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -41,10 +42,12 @@ export default class ConnectEvent extends BaseEvent{
         await sleep(500)
 
         pushGameInfo(event)
+
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_shield_mode', params: {action: isShieldActive()? 'enable' : 'disable'}, id: getRandomInt(10_000)}))
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_channel_point_update', params: getActiveChannelPoints(), id: getRandomInt(10_000)}))
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_audio_update', params: getAudioData(), id: getRandomInt(10_000)}))
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_system_info', params: getSystemInfo(), id: getRandomInt(10_000)}))
         event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_source_update', params: getSourceFilters(), id: getRandomInt(10_000)}))
+        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_tauonmb_update', params: getTauonmbClient()?.getStatus(), id: getRandomInt(10_000)}))
     }
 }
