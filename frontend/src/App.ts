@@ -32,6 +32,7 @@ import ShoutoutController from "./js/controller/ShoutoutController";
 import InfoController from "./js/controller/InfoController";
 import SourceBackgroundController from "./js/controller/SourceBackgroundController";
 import TauonmbController from "./js/controller/TauonmbController";
+import VisibleController from "./js/controller/VisibleController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -60,6 +61,7 @@ async function init(){
     stimulus.register('info', InfoController)
     stimulus.register('source_background', SourceBackgroundController)
     stimulus.register('tauonmb', TauonmbController)
+    stimulus.register('visible', VisibleController)
 }
 
 export function getWebsocketClient() {
