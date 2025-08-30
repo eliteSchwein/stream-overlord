@@ -7,6 +7,7 @@ import {logWarn} from "./LogHelper";
 
 const alertQuery = []
 const activeAlerts = []
+let activeSound: string|null = null
 
 export default function initialAlerts() {
     const websocketServer = getWebsocketServer()
@@ -105,4 +106,12 @@ export function removeAlert(alert: any) {
 
         removeEventFromQuery(alert['event-uuid'])
     }
+}
+
+export function getActiveSound() {
+    return activeSound
+}
+
+export function setActiveSound(sound: string|null) {
+    activeSound = sound
 }
