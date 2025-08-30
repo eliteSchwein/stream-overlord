@@ -39,7 +39,7 @@ export default class ConnectEvent extends BaseEvent{
             await new SaveSourceMessage(this.webSocketServer, event).handleMessage(data)
         })
 
-        await sleep(1000)
+        await sleep(500)
 
         pushGameInfo(event)
 
