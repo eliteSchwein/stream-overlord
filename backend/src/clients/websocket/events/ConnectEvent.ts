@@ -26,8 +26,14 @@ export default class ConnectEvent extends BaseEvent{
         logNotice(`new client connected: ${event._socket.remoteAddress}:${event._socket.remotePort}`)
         logDebug(`current connections: ${this.webSocketServer.clients.size}`);
 
+        let minimalMode = false
+
         event.on('message', async (message: any) => {
             const data = JSON.parse(`${message}`);
+
+            if(data.config_connection && data.config_connection === 'minimal') {
+                minimalMode = true;
+            }
 
             await new AdMessage(this.webSocketServer, event).handleMessage(data)
             await new EditColorMessage(this.webSocketServer, event).handleMessage(data)
@@ -38,15 +44,23 @@ export default class ConnectEvent extends BaseEvent{
             await new PlaySoundMessage(this.webSocketServer, event).handleMessage(data)
             await new RefreshSourceMessage(this.webSocketServer, event).handleMessage(data)
             await new SaveSourceMessage(this.webSocketServer, event).handleMessage(data)
+
         })
 
         event.on("close", (code, reason) => {
             logDebug(`client disconnected: ${event._socket.remoteAddress}:${event._socket.remotePort} code: ${code} reason: ${reason.toString()}`)
 
             logDebug(`current connections: ${this.webSocketServer.clients.size}`);
+
+            this.client.removeMinimalConnection(`${event._socket.remoteAddress}:${event._socket.remotePort}`)
         });
 
         await sleep(500)
+
+        if(minimalMode) {
+            this.client.addMinimalConnection(`${event._socket.remoteAddress}:${event._socket.remotePort}`)
+            return
+        }
 
         pushGameInfo(event)
 
