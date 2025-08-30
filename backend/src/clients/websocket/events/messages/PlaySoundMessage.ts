@@ -16,13 +16,15 @@ export default class PlaySoundMessage extends BaseMessage {
         const assetDirectory = `${__dirname}/../../assets`
         const config = getConfig(/shell/g)[0]
 
+        setTimeout(() => {
+            setActiveSound(null)
+        }, 250)
+
         try {
             await execute(`bash -c "cd ${assetDirectory} && ${config.play_command} ${data['sound']}"`)
         } catch (error) {
             logWarn(`playing sound ${data['sound']} failed:`)
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
-
-        setActiveSound(null)
     }
 }
