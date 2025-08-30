@@ -1,5 +1,5 @@
 import BaseEvent from "./BaseEvent";
-import {logNotice} from "../../../helper/LogHelper";
+import {logDebug, logNotice} from "../../../helper/LogHelper";
 import {pushGameInfo} from "../../../helper/GameHelper";
 import AdMessage from "./messages/AdMessage";
 import {getRandomInt, sleep} from "../../../../../helper/GeneralHelper";
@@ -24,6 +24,7 @@ export default class ConnectEvent extends BaseEvent{
 
     async handle(event:any) {
         logNotice(`new client connected: ${event._socket.remoteAddress}:${event._socket.remotePort}`)
+        logDebug(`current connections: ${this.webSocketServer.clients.size}`);
 
         event.on('message', async (message: any) => {
             const data = JSON.parse(`${message}`);
@@ -40,7 +41,9 @@ export default class ConnectEvent extends BaseEvent{
         })
 
         event.on("close", (code, reason) => {
-            console.log("[WS] Client disconnected", { code, reason: reason.toString() });
+            logDebug(`client disconnected: ${event._socket.remoteAddress}:${event._socket.remotePort} code: ${code} reason: ${reason.toString()}`)
+
+            logDebug(`current connections: ${this.webSocketServer.clients.size}`);
         });
 
         await sleep(500)
