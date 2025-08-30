@@ -13,7 +13,7 @@ export default class WebsocketServer {
 
         logRegular(`initial websocket server`)
 
-        this.websocket = new WebSocketServer({port: config.port, host: '0.0.0.0'})
+        this.websocket = new WebSocketServer({port: config.port, host: '0.0.0.0', maxPayload: 512 * 1024 * 1024})
     }
 
     public registerEvents() {
