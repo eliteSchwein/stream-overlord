@@ -39,6 +39,10 @@ export default class ConnectEvent extends BaseEvent{
             await new SaveSourceMessage(this.webSocketServer, event).handleMessage(data)
         })
 
+        event.on("close", (code, reason) => {
+            console.log("[WS] Client disconnected", { code, reason: reason.toString() });
+        });
+
         await sleep(500)
 
         pushGameInfo(event)
