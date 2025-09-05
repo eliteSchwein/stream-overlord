@@ -2,6 +2,7 @@ import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
 
 export default class SourceBackgroundController extends BaseController {
+    websocketEndpoints = ['notify_source_update']
     protected videoExtensions = ['mp4','webm']
     protected imageExtensions = ['gif','png','jpg','webp']
 

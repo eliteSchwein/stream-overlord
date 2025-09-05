@@ -3,6 +3,8 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class TimerController extends BaseController {
+    websocketEndpoints = ['notify_timer']
+
     static targets = ['leadingMinute', 'lastMinute', 'leadingSecond', 'lastSecond']
 
     declare readonly leadingMinuteTargets: HTMLDivElement[]

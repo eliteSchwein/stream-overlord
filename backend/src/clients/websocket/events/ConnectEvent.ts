@@ -1,5 +1,5 @@
 import BaseEvent from "./BaseEvent";
-import {logDebug, logNotice} from "../../../helper/LogHelper";
+import {logDebug, logNotice, logWarn} from "../../../helper/LogHelper";
 import {pushGameInfo} from "../../../helper/GameHelper";
 import AdMessage from "./messages/AdMessage";
 import {getRandomInt, sleep} from "../../../../../helper/GeneralHelper";
@@ -17,58 +17,53 @@ import {getSourceFilters} from "../../../helper/SourceHelper";
 import RefreshSourceMessage from "./messages/RefreshSourceMessage";
 import SaveSourceMessage from "./messages/SaveSourceMessage";
 import {getTauonmbClient} from "../../../App";
+import RegisterMessage from "./messages/RegisterMessage";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
     eventTypes = ['connection']
 
-    async handle(event:any) {
+    async handle(event: any) {
         logNotice(`new client connected: ${event._socket.remoteAddress}:${event._socket.remotePort}`)
         logDebug(`current connections: ${this.webSocketServer.clients.size}`);
 
-        let minimalMode = false
+        const client = `${event._socket.remoteAddress}:${event._socket.remotePort}`
 
         event.on('message', async (message: any) => {
             const data = JSON.parse(`${message}`);
 
-            if(data.config_connection && data.config_connection === 'minimal') {
-                minimalMode = true;
-            }
+            await new RegisterMessage(this.webSocketServer, event, this.client).handleMessage(data)
 
-            await new AdMessage(this.webSocketServer, event).handleMessage(data)
-            await new EditColorMessage(this.webSocketServer, event).handleMessage(data)
-            await new RemoveEventMessage(this.webSocketServer, event).handleMessage(data)
-            await new GetEffectMessage(this.webSocketServer, event).handleMessage(data)
-            await new RemoveAlertMessage(this.webSocketServer, event).handleMessage(data)
-            await new SetVolumeMessage(this.webSocketServer, event).handleMessage(data)
-            await new PlaySoundMessage(this.webSocketServer, event).handleMessage(data)
-            await new RefreshSourceMessage(this.webSocketServer, event).handleMessage(data)
-            await new SaveSourceMessage(this.webSocketServer, event).handleMessage(data)
+            await new AdMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new EditColorMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new RemoveEventMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new GetEffectMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new RemoveAlertMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new SetVolumeMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new PlaySoundMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new RefreshSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new SaveSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
 
         })
 
         event.on("close", (code, reason) => {
-            logDebug(`client disconnected: ${event._socket.remoteAddress}:${event._socket.remotePort} code: ${code} reason: ${reason.toString()}`)
+            logDebug(`client disconnected: ${client} code: ${code} reason: ${reason.toString()}`)
 
-            logDebug(`current connections: ${this.webSocketServer.clients.size}`);
+            logWarn(`current connections: ${this.webSocketServer.clients.size}`);
 
-            this.client.removeMinimalConnection(`${event._socket.remoteAddress}:${event._socket.remotePort}`)
+            this.client.removeConnection(client)
         });
 
-        await sleep(500)
+        await sleep(1_000)
 
-        if(minimalMode) {
-            this.client.addMinimalConnection(`${event._socket.remoteAddress}:${event._socket.remotePort}`)
+        if(event.readyState === WebSocket.CLOSED) return
+
+        if(!this.client.isConnectionRegistered(client)) {
+            event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_disconnect', params: {reason: 'not registered in time!'}, id: getRandomInt(10_000)}))
+            event.close()
+
+            logWarn(`client disconnected: ${client} reason: not registered in time!`)
             return
         }
-
-        pushGameInfo(event)
-
-        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_shield_mode', params: {action: isShieldActive()? 'enable' : 'disable'}, id: getRandomInt(10_000)}))
-        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_channel_point_update', params: getActiveChannelPoints(), id: getRandomInt(10_000)}))
-        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_audio_update', params: getAudioData(), id: getRandomInt(10_000)}))
-        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_system_info', params: getSystemInfo(), id: getRandomInt(10_000)}))
-        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_source_update', params: getSourceFilters(), id: getRandomInt(10_000)}))
-        event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_tauonmb_update', params: getTauonmbClient()?.getStatus(), id: getRandomInt(10_000)}))
     }
 }

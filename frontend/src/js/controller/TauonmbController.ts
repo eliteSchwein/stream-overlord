@@ -2,6 +2,8 @@ import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
 
 export default class TauonmbController extends BaseController {
+    websocketEndpoints = ['notify_tauonmb_update']
+
     protected image = {
         trackId: '',
         small: '',

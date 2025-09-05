@@ -1,4 +1,4 @@
-import {Websocket} from "websocket-ts";
+import {Websocket, WebsocketEvent} from "websocket-ts";
 import {getConfig} from "../helper/ConfigHelper";
 import {getRandomInt, sleep} from "../../../../helper/GeneralHelper";
 
@@ -9,6 +9,10 @@ export default class WebsocketClient {
         const config = getConfig(/websocket/g)[0]
 
         this.websocket = new Websocket('ws://' + window.location.hostname + ':' + config.port)
+
+        this.websocket.addEventListener(WebsocketEvent.open, (event) => {
+            this.registerEndpoints(['notify_game_update', 'notify_shield_mode'])
+        })
 
         await sleep(250)
     }
@@ -27,5 +31,13 @@ export default class WebsocketClient {
 
     public clearEvent(eventUuid: string) {
         this.send('remove_event', {'event-uuid': eventUuid})
+    }
+
+    public registerEndpoint(endpoint: string): void {
+        this.send('register_endpoints', [endpoint])
+    }
+
+    public registerEndpoints(endpoints: string[]): void {
+        this.send('register_endpoints', endpoints)
     }
 }

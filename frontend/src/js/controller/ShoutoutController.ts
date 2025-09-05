@@ -3,6 +3,8 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class ShoutoutController extends BaseController {
+    websocketEndpoints = ['notify_shoutout_clip']
+
     private elements = []
     private iframe: HTMLIFrameElement
 

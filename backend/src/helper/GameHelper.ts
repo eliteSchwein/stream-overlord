@@ -1,7 +1,6 @@
 import {logRegular} from "./LogHelper";
 import getWebsocketServer from "../App";
 import {getConfig} from "./ConfigHelper";
-import {Websocket} from "websocket-ts";
 import {setLedColor} from "./WledHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
 import {getRandomInt} from "../../../helper/GeneralHelper";
@@ -38,13 +37,9 @@ export async function fetchGameInfo() {
     currentGameId = gameInfo.data.game_id
 }
 
-export function pushGameInfo(websocket: Websocket|undefined = undefined) {
+export function pushGameInfo(websocket?: WebSocket) {
     const gameInfo = getGameInfo()
-    if(websocket) {
-        websocket.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_game_update', params: gameInfo, id: getRandomInt(10_000)}))
-        return
-    }
-    getWebsocketServer().send('notify_game_update', gameInfo)
+    getWebsocketServer().send('notify_game_update', gameInfo, websocket)
 }
 
 export function setManualColor(value: string|undefined = undefined) {

@@ -1,16 +1,19 @@
 import {WebSocket, WebSocketServer} from "ws";
 import {logError} from "../../../../helper/LogHelper";
 import {getRandomInt} from "../../../../../../helper/GeneralHelper";
+import WebsocketServer from "../../WebsocketServer";
 
 export default class BaseMessage {
     webSocketServer: WebSocketServer
     webSocket: WebSocket
+    client: WebsocketServer
     method: string
     id: number = getRandomInt(10_000)
 
-    public constructor(webSocketServer: WebSocketServer, webSocket: WebSocket) {
+    public constructor(webSocketServer: WebSocketServer, webSocket: WebSocket, client: WebsocketServer) {
         this.webSocketServer = webSocketServer
         this.webSocket = webSocket
+        this.client = client
     }
 
     public async handleMessage(data: any) {

@@ -6,9 +6,12 @@ import WebsocketClient from "../client/WebsocketClient";
 export default class BaseController extends Controller<HTMLElement> {
     websocket: WebsocketClient;
     shieldActive = false;
+    websocketEndpoints: string[] = [];
 
     async register() {
         this.websocket = getWebsocketClient()
+
+        this.websocket.registerEndpoints(this.websocketEndpoints)
 
         this.websocket.getWebsocket().addEventListener(WebsocketEvent.message, (websocket, event) => this.handleWebsocket(websocket, event))
     }

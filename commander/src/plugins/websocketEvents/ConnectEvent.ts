@@ -8,6 +8,8 @@ export default class ConnectEvent extends BaseEvent {
   async handle(websocket: Websocket, event:any) {
     this.store.setWebsocketConnected(true)
     this.store.setWebsocketConnecting(false)
+
+    this.webSocketClient.send('register_endpoints', ['all'])
     console.log('Connected to Websocket')
   }
 }

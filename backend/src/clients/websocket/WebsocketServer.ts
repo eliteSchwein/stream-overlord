@@ -3,19 +3,37 @@ import {getConfig} from "../../helper/ConfigHelper";
 import {logError, logRegular} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
+import isShieldActive from "../../helper/ShieldHelper";
+import {getActiveChannelPoints} from "../../helper/ChannelPointHelper";
+import {getAudioData} from "../../helper/AudioHelper";
+import {getSystemInfo} from "../../helper/SystemInfoHelper";
+import {getSourceFilters} from "../../helper/SourceHelper";
+import {getTauonmbClient} from "../../App";
+import getGameInfo from "../../helper/GameHelper";
 
 
 export default class WebsocketServer {
     websocket: WebSocketServer
-    minimalConnections: string[] = []
-    minimalEndpointBlacklist: string[] = [
+    validEndpoints: string[] = [
+        'notify_alert',
+        'notify_alert_query',
+        'notify_ads',
+        'notify_effect',
+        'notify_toggle_element',
+        'notify_shoutout_clip',
         'notify_tauonmb_update',
         'notify_source_update',
         'notify_system_info',
         'notify_audio_update',
         'notify_channel_point_update',
-        'notify_shield_mode'
+        'notify_shield_mode',
+        'notify_game_update',
+        'notify_throttle',
+        'notify_timer',
+        'trigger_keyboard',
+        'notify_visible_element'
     ]
+    connectionEndpoints = {}
     
     public initial() {
         const config = getConfig(/websocket/g)[0]
@@ -29,32 +47,92 @@ export default class WebsocketServer {
         void new ConnectEvent(this.websocket, this).register()
     }
 
-    public send(method: string, data: any = {}) {
-        this.websocket.clients.forEach((client) => {
+    public send(method: string, data: any = {}, connection?: WebSocket) {
+        // @ts-ignore
+        const targets = connection  ? [connection] : [...this.websocket.clients]
+
+        targets.forEach((client) => {
             try {
-                if(
-                    this.minimalConnections.includes(`${client._socket.remoteAddress}:${client._socket.remotePort}`) &&
-                    this.minimalEndpointBlacklist.includes(method)
-                ) {
-                    return
-                }
-                client.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id: getRandomInt(10_000)}))
+                const clientKey = `${client._socket.remoteAddress}:${client._socket.remotePort}`
+                const allowed = this.connectionEndpoints[clientKey]
+
+                if (!allowed || !allowed.includes(method)) return
+
+                client.send(JSON.stringify({
+                    jsonrpc: "2.0",
+                    method,
+                    params: data,
+                    id: getRandomInt(10_000)
+                }))
             } catch (error) {
-                logError('request to a websocket client failed!')
+                logError("request to a websocket client failed!")
                 logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             }
         })
     }
 
-    public addMinimalConnection(client: string) {
-        if(this.minimalConnections.includes(client)) return
+    public addConnection(connection: WebSocket, endpoints: string[]): string[] {
+        // @ts-ignore
+        const client = `${connection._socket.remoteAddress}:${connection._socket.remotePort}`
 
-        this.minimalConnections.push(client)
+        // expand "all" shortcut
+        if (endpoints[0] === "all") {
+            endpoints = this.validEndpoints
+        }
+
+        const invalidEndpoints = endpoints.filter(
+            (ep) => !this.validEndpoints.includes(ep)
+        )
+
+        const validNewEndpoints = endpoints.filter(
+            (ep) => this.validEndpoints.includes(ep)
+        )
+
+        if (!this.connectionEndpoints[client]) {
+            this.connectionEndpoints[client] = []
+        }
+
+        // add only the new ones that aren't already present
+        for (const ep of validNewEndpoints) {
+            if (!this.connectionEndpoints[client].includes(ep)) {
+                this.connectionEndpoints[client].push(ep)
+            }
+        }
+
+        this.sendUpdate(connection)
+
+        return invalidEndpoints
     }
 
-    public removeMinimalConnection(client: string) {
-        this.minimalConnections = this.minimalConnections.filter(
-            (c) => c !== client
-        );
+    public removeConnection(client: string) {
+        delete this.connectionEndpoints[client];
     }
+
+    public isConnectionRegistered(client: string): boolean {
+        return Object.keys(this.connectionEndpoints).includes(client)
+    }
+
+    public sendUpdate(connection?: WebSocket) {
+        // @ts-ignore
+        const targets = connection ? [connection] : [...this.websocket.clients]
+
+        targets.forEach((client) => {
+            try {
+                this.send("notify_shield_mode", {
+                    action: isShieldActive() ? "enable" : "disable"
+                }, client)
+
+                this.send("notify_game_update", getGameInfo(), client)
+                this.send("notify_channel_point_update", getActiveChannelPoints(), client)
+                this.send("notify_audio_update", getAudioData(), client)
+                this.send("notify_system_info", getSystemInfo(), client)
+                this.send("notify_source_update", getSourceFilters(), client)
+                this.send("notify_tauonmb_update", getTauonmbClient()?.getStatus(), client)
+            } catch (error) {
+                logError("failed to send update to client")
+                logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            }
+        })
+    }
+
 }

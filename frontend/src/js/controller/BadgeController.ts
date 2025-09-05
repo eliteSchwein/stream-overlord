@@ -4,6 +4,8 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class BadgeController extends BaseController {
+    websocketEndpoints = ['notify_ads']
+
     static targets = ['title', 'subtitle', 'titleImage', 'logo']
 
     declare readonly titleTargets: HTMLElement[]

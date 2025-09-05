@@ -3,6 +3,8 @@ import {Websocket} from "websocket-ts";
 import BluescreenEffect from "../effects/BluescreenEffect";
 
 export default class EffectController extends BaseController {
+    websocketEndpoints = ['notify_effect']
+
     protected effectMap = {
         'effect': new BluescreenEffect()
     }

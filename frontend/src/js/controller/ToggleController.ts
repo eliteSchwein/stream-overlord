@@ -2,6 +2,8 @@ import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
 
 export default class ToggleController extends BaseController {
+    websocketEndpoints = ['notify_toggle_element']
+
     protected id = this.element.dataset.id
 
     async postConnect() {
