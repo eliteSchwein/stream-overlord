@@ -10,6 +10,7 @@ import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
 import {getTauonmbClient} from "../../App";
 import getGameInfo from "../../helper/GameHelper";
+import {getAllVisibleElements, toggleElementVisiblity} from "../../helper/VisibleHelper";
 
 
 export default class WebsocketServer {
@@ -48,6 +49,10 @@ export default class WebsocketServer {
     }
 
     public send(method: string, data: any = {}, connection?: WebSocket) {
+        if(method === 'notify_visible_element') {
+            toggleElementVisiblity(data.target, data.state)
+        }
+
         // @ts-ignore
         const targets = connection  ? [connection] : [...this.websocket.clients]
 
@@ -128,6 +133,12 @@ export default class WebsocketServer {
                 this.send("notify_system_info", getSystemInfo(), client)
                 this.send("notify_source_update", getSourceFilters(), client)
                 this.send("notify_tauonmb_update", getTauonmbClient()?.getStatus(), client)
+
+                for(const id in getAllVisibleElements()) {
+                    const state = getAllVisibleElements()[id]
+
+                    this.send("notify_visible_element", {target: id, state: state}, client)
+                }
             } catch (error) {
                 logError("failed to send update to client")
                 logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
