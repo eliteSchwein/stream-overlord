@@ -11,7 +11,15 @@ export default class WebsocketClient {
         this.websocket = new Websocket('ws://' + window.location.hostname + ':' + config.port)
 
         this.websocket.addEventListener(WebsocketEvent.open, (event) => {
+            console.log('Websocket connected')
             this.registerEndpoints(['notify_game_update', 'notify_shield_mode'])
+        })
+
+        this.websocket.addEventListener(WebsocketEvent.close, (event) => {
+            console.log('Websocket closed')
+
+            // @ts-ignore
+            location.reload(true)
         })
 
         await sleep(250)
