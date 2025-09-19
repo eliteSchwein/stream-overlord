@@ -10,7 +10,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(useAppStore, ['getRestApi', 'isShieldActive', 'getSystemInfo', 'isThrottled']),
+    ...mapState(useAppStore, ['getRestApi', 'isShieldActive', 'getSystemInfo', 'isThrottled', 'getConnections']),
     currentRouteName() {
       return this.$route.name;
     }
@@ -68,6 +68,15 @@ export default {
     <v-toolbar-title>{{ currentRouteName }}</v-toolbar-title>
 
     <v-spacer></v-spacer>
+
+    <v-btn
+      class="mr-1"
+      color="grey-darken-4"
+      variant="flat"
+    >
+      <v-icon icon="mdi-webhook"></v-icon>
+      <p class="ml-2">{{ Object.keys(getConnections).length }}</p>
+    </v-btn>
 
     <template v-if="!isThrottled && !isShieldActive">
       <template v-for="(systemInfo) in getSystemInfo" :key="systemInfo.short">
