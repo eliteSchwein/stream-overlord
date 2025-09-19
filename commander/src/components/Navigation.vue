@@ -73,6 +73,9 @@ export default {
       class="mr-1"
       color="grey-darken-4"
       variant="flat"
+      :to="{ path: '/connections' }"
+      :active="false"
+      active-class=""
     >
       <v-icon icon="mdi-webhook"></v-icon>
       <p class="ml-2">{{ Object.keys(getConnections).length }}</p>
