@@ -1,6 +1,6 @@
 import {WebSocketServer} from "ws";
 import {getConfig} from "../../helper/ConfigHelper";
-import {logError, logRegular} from "../../helper/LogHelper";
+import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
 import isShieldActive from "../../helper/ShieldHelper";
@@ -32,7 +32,8 @@ export default class WebsocketServer {
         'notify_throttle',
         'notify_timer',
         'trigger_keyboard',
-        'notify_visible_element'
+        'notify_visible_element',
+        'notify_connection'
     ]
     connectionEndpoints = {}
     
@@ -106,11 +107,29 @@ export default class WebsocketServer {
 
         this.sendUpdate(connection)
 
+        this.send("notify_connection", this.getConnections())
+
         return invalidEndpoints
+    }
+
+    public disconnectConnection(client: string) {
+        for(const socket of this.websocket.clients) {
+            const socketId = `${socket._socket.remoteAddress}:${socket._socket.remotePort}`
+
+            if(socketId !== client) continue
+
+            logWarn(`client disconnected: ${client} reason: disconnect message!`)
+            socket.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_disconnect', params: {reason: 'disconnect message!'}, id: getRandomInt(10_000)}))
+            socket.close()
+
+            this.removeConnection(client)
+        }
     }
 
     public removeConnection(client: string) {
         delete this.connectionEndpoints[client];
+
+        this.send("notify_connection", this.getConnections())
     }
 
     public isConnectionRegistered(client: string): boolean {
@@ -133,6 +152,7 @@ export default class WebsocketServer {
                 this.send("notify_system_info", getSystemInfo(), client)
                 this.send("notify_source_update", getSourceFilters(), client)
                 this.send("notify_tauonmb_update", getTauonmbClient()?.getStatus(), client)
+                this.send("notify_connection", this.getConnections(), client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]
@@ -144,6 +164,10 @@ export default class WebsocketServer {
                 logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             }
         })
+    }
+
+    public getConnections() {
+        return this.connectionEndpoints
     }
 
 }

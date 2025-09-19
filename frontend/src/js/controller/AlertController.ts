@@ -4,6 +4,8 @@ import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class AlertController extends BaseController {
+    websocketEndpoints = ['notify_alert']
+
     static targets = ['icon', 'content', 'sound', 'video', 'contentContainer', 'logo', 'iframe', 'delayed']
 
     declare readonly iconTarget: HTMLElement

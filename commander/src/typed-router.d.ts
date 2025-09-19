@@ -21,7 +21,56 @@ declare module 'vue-router/auto-routes' {
     '/': RouteRecordInfo<'/', '/', Record<never, never>, Record<never, never>>,
     '/audio': RouteRecordInfo<'/audio', '/audio', Record<never, never>, Record<never, never>>,
     '/channelPoints': RouteRecordInfo<'/channelPoints', '/channelPoints', Record<never, never>, Record<never, never>>,
+    '/connections': RouteRecordInfo<'/connections', '/connections', Record<never, never>, Record<never, never>>,
     '/games': RouteRecordInfo<'/games', '/games', Record<never, never>, Record<never, never>>,
     '/scene': RouteRecordInfo<'/scene', '/scene', Record<never, never>, Record<never, never>>,
   }
+
+  /**
+   * Route file to route info map by unplugin-vue-router.
+   * Used by the volar plugin to automatically type useRoute()
+   *
+   * Each key is a file path relative to the project root with 2 properties:
+   * - routes: union of route names of the possible routes when in this page (passed to useRoute<...>())
+   * - views: names of nested views (can be passed to <RouterView name="...">)
+   *
+   * @internal
+   */
+  export interface _RouteFileInfoMap {
+    'src/pages/index.vue': {
+      routes: '/'
+      views: never
+    }
+    'src/pages/audio.vue': {
+      routes: '/audio'
+      views: never
+    }
+    'src/pages/channelPoints.vue': {
+      routes: '/channelPoints'
+      views: never
+    }
+    'src/pages/connections.vue': {
+      routes: '/connections'
+      views: never
+    }
+    'src/pages/games.vue': {
+      routes: '/games'
+      views: never
+    }
+    'src/pages/scene.vue': {
+      routes: '/scene'
+      views: never
+    }
+  }
+
+  /**
+   * Get a union of possible route names in a certain route component file.
+   * Used by the volar plugin to automatically type useRoute()
+   *
+   * @internal
+   */
+  export type _RouteNamesForFilePath<FilePath extends string> =
+    _RouteFileInfoMap extends Record<FilePath, infer Info>
+      ? Info['routes']
+      : keyof RouteNamedMap
 }

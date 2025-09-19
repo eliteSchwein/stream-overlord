@@ -38,6 +38,7 @@ export default class WebsocketClient {
     }
 
     public registerEndpoints(endpoints: string[]): void {
+        if(endpoints.length === 0) return
         this.send('register_endpoints', endpoints)
     }
 }

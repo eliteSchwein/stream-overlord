@@ -169,6 +169,12 @@ export default {
         color=""
         @click.stop="rail = false"
         to="/scene"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-webhook"
+        title="/connections"
+        color=""
+        @click.stop="rail = false"
+        to="/connections"></v-list-item>
     </v-list>
   </v-navigation-drawer>
 
