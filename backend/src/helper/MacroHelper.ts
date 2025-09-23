@@ -9,6 +9,7 @@ import {parsePlaceholders} from "./DataHelper";
 const macros = {}
 
 export default function loadMacros() {
+    logRegular('load macros')
     const config = getConfig((/^macro /g), true)
 
     for(const macroName in config) {

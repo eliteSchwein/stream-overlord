@@ -1,11 +1,17 @@
 import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
-import {logRegular} from "./LogHelper";
+import {logNotice, logRegular, logSuccess} from "./LogHelper";
+import {watchFile} from "node:fs";
+import loadMacros from "./MacroHelper";
+import {getTwitchClient} from "../App";
+import registerPermissions from "../clients/twitch/helper/PermissionHelper";
+import {fetchGameInfo} from "./GameHelper";
 
 let config = {}
 let primaryChannel = undefined
 
-export default function readConfig() {
+export default function readConfig(standalone = false) {
+    if(standalone) return parseConfig(`${__dirname}/../..`, ".env.conf")
     config = parseConfig(`${__dirname}/../..`, ".env.conf")
 }
 
@@ -43,4 +49,26 @@ export async function loadPrimaryChannel(client: TwitchClient) {
 
 export function getPrimaryChannel() {
     return primaryChannel
+}
+
+export function watchConfig() {
+    logRegular('watch config file')
+
+    watchFile(
+        `${__dirname}/../../.env.conf`,
+        {
+            persistent: true,
+            interval: 100
+        },
+        async (curr, prev) => {
+            logNotice("config update detected")
+            config = readConfig(true)
+
+            await getTwitchClient().connect()
+            await registerPermissions(getTwitchClient().getBot())
+            loadMacros()
+            await fetchGameInfo()
+            logSuccess('reload finished')
+        }
+    )
 }

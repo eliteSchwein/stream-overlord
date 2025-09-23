@@ -5,7 +5,7 @@ import buildCommands from "./TwitchCommands";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
 import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import {waitUntil} from "async-wait-until";
-import {logRegular} from "../../helper/LogHelper";
+import {logRegular, logSuccess} from "../../helper/LogHelper";
 import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
 import SubEvent from "./events/SubEvent";
 import CommunitySubEvent from "./events/CommunitySubEvent";
@@ -25,27 +25,32 @@ export default class TwitchClient {
     protected eventSub: EventSubWsListener
 
     public async connect() {
+        if (this.bot?.chat) {
+            logRegular("disconnect twitch")
+            this.bot.chat.quit()
+            this.bot = undefined
+        }
+
+        if (this.eventSub) {
+            logRegular("disconnect eventsub")
+            this.eventSub.stop()
+            this.eventSub = undefined
+        }
+
+        logRegular('connect twitch')
+
         this.auth = new TwitchAuth()
         let botActive = false
 
         const config = getConfig(/twitch/g)[0]
 
-        let chatClientOptions = undefined
-
-        //if(config.test_mode) {
-         //   chatClientOptions = {
-         //       secure: true,
-         //       hostName: 'irc.fdgt.dev'
-         //   }
-        //}
-
         const authProvider = await this.auth.getAuthCode()
 
-        const tempBot = new Bot({ authProvider, channels: config.channels, chatClientOptions: chatClientOptions})
+        const tempBot = new Bot({ authProvider, channels: config.channels})
 
         const commands = buildCommands(tempBot);
 
-        this.bot = new Bot({ authProvider, channels: config.channels, chatClientOptions: chatClientOptions, commands })
+        this.bot = new Bot({ authProvider, channels: config.channels, chatClientOptions: null, commands })
 
         this.bot.onConnect(() => {botActive = true})
 
@@ -59,6 +64,9 @@ export default class TwitchClient {
 
         this.eventSub = new EventSubWsListener({ apiClient: this.bot.api, logger: { minLevel: 'ERROR' } })
         this.eventSub.start()
+
+        await this.registerEvents()
+        logSuccess('twitch client is ready')
     }
 
     public async registerEvents() {

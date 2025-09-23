@@ -1,4 +1,4 @@
-import readConfig, {getConfig} from "./helper/ConfigHelper";
+import readConfig, {getConfig, watchConfig} from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
 import {logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
@@ -31,13 +31,10 @@ async function init() {
     logRegular('load config')
     readConfig()
 
-    logRegular('connect twitch')
     twitchClient = new TwitchClient()
     await twitchClient.connect()
-    await twitchClient.registerEvents()
     await registerPermissions(twitchClient.getBot())
     registerPermissionInterval(twitchClient.getBot())
-    logSuccess('twitch client is ready')
 
     websocketServer = new WebsocketServer()
     websocketServer.initial()
@@ -69,7 +66,6 @@ async function init() {
     initialAlerts()
     initialSchedulers()
 
-    logRegular('load macros')
     loadMacros()
 
     logRegular('dump obs scenes and items')
@@ -85,6 +81,8 @@ async function init() {
     await updateSystemInfo()
 
     await updateSourceFilters()
+
+    watchConfig()
 
     logSuccess('backend is ready')
 }
