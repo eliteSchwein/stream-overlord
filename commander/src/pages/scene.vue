@@ -9,7 +9,7 @@
     <v-row class="mx-3 my-2">
       <v-col cols="8">
         <v-img
-          style="border-radius: 10px"
+          style="border-radius: 5px"
           aspect-ratio="16/9"
           cover
           :src="getScene.background ?? noObs"
@@ -17,9 +17,8 @@
       </v-col>
 
       <v-col>
-        <currentGame></currentGame>
 
-        <v-card class="px-4 py-3 mt-3">
+        <v-card class="px-4 py-3">
           <v-row
             align-content="center"
             justify="center"
@@ -52,6 +51,8 @@
             </v-col>
           </v-row>
         </v-card>
+
+        <currentGame class="mt-5"></currentGame>
       </v-col>
     </v-row>
   </v-card>
