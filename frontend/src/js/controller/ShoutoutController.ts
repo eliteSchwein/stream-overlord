@@ -1,30 +1,20 @@
 import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
+import AlertBoxHelper from "../helper/AlertBoxHelper";
 
 export default class ShoutoutController extends BaseController {
     websocketEndpoints = ['notify_shoutout_clip']
 
-    private elements = []
-    private iframe: HTMLIFrameElement
+    static targets = ['channelname', 'iframe']
+
+    protected alertBoxHelper: AlertBoxHelper
+
+    declare readonly channelnameTargets: HTMLElement[]
+    declare readonly iframeTarget: HTMLIFrameElement
 
     async postConnect() {
-        await sleep(250)
-        const contentElements = this.element.querySelectorAll("*")
-
-        contentElements.forEach((element) => {
-            if(!element.innerHTML.includes('${channelname}') &&
-                !element.innerHTML.includes('${channel}')) return
-
-            this.elements.push(element)
-        })
-
-
-        const iframe = this.element.querySelector('iframe')
-
-        if(!iframe) return
-
-        this.iframe = iframe
+        this.alertBoxHelper = new AlertBoxHelper(this.element.querySelector('.new-alert-box'))
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
@@ -32,23 +22,27 @@ export default class ShoutoutController extends BaseController {
 
         this.element.classList.add('visible')
 
-        if(!this.iframe) return
+        this.alertBoxHelper.show()
 
-        this.iframe.style.display = null
-        this.iframe.src = this.parseData(data, this.iframe.dataset.src)
+        if(!this.iframeTarget) return
 
-        this.elements.forEach((element) => {
-            element.innerHTML = this.parseData(data, element.innerHTML)
+        this.iframeTarget.style.display = null
+        this.iframeTarget.src = this.parseData(data, this.iframeTarget.dataset.src)
+
+        this.channelnameTargets.forEach((element) => {
+            element.innerHTML = data.name
         })
 
         await sleep(20_000)
 
-        const iframe = this.element.querySelector('iframe')
+        if(!this.iframeTarget) return
 
-        if(!iframe) return
+        this.iframeTarget.src = ''
+        this.iframeTarget.style.display = 'none'
 
-        iframe.src = ''
-        iframe.style.display = 'none'
+        this.alertBoxHelper.hide()
+
+        await sleep(1000)
 
         this.element.classList.remove('visible')
     }
