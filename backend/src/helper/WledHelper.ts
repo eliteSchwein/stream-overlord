@@ -22,7 +22,7 @@ export async function setLedColor(color: string = undefined) {
         }
 
         try {
-            await fetch(`${wledLamp.url}/win&R=${newColor.red}&G=${newColor.green}&B=${newColor.blue}&W=${newColor.white}&FX=${newColor.effect}`)
+            await fetch(`${wledLamp.url}/win&A=${newColor.brightness ?? 255}&R=${newColor.red}&G=${newColor.green}&B=${newColor.blue}&W=${newColor.white}&FX=${newColor.effect}`)
         } catch (e) {
             logWarn(`couldn't update lamp ${wledName}!`)
         }
