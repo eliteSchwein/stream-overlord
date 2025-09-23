@@ -55,7 +55,7 @@
     "js-conf-parser": "^1.0.3",
     "lodash": "^4.17.21",
     "node-fetch": "^3.3.2",
-    "npm-check-updates": "^18.1.1",
+    "npm-check-updates": "^18.3.0",
     "obs-websocket-js": "^5.0.6",
     "querystring": "^0.2.1",
     "readline-sync": "^1.4.10",
