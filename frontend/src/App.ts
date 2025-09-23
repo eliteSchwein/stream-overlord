@@ -33,6 +33,7 @@ import InfoController from "./js/controller/InfoController";
 import SourceBackgroundController from "./js/controller/SourceBackgroundController";
 import TauonmbController from "./js/controller/TauonmbController";
 import VisibleController from "./js/controller/VisibleController";
+import {sleep} from "../../helper/GeneralHelper";
 
 // variables
 let websocketClient: WebsocketClient
@@ -62,6 +63,10 @@ async function init(){
     stimulus.register('source_background', SourceBackgroundController)
     stimulus.register('tauonmb', TauonmbController)
     stimulus.register('visible', VisibleController)
+
+    await sleep(250)
+
+    websocketClient.registerEndpoints(['notify_game_update', 'notify_shield_mode'])
 }
 
 export function getWebsocketClient() {

@@ -26,7 +26,6 @@ export default class ConnectEvent extends BaseEvent{
 
     async handle(event: any) {
         logNotice(`new client connected: ${event._socket.remoteAddress}:${event._socket.remotePort}`)
-        logDebug(`current connections: ${this.webSocketServer.clients.size}`);
 
         const client = `${event._socket.remoteAddress}:${event._socket.remotePort}`
 
@@ -49,8 +48,6 @@ export default class ConnectEvent extends BaseEvent{
 
         event.on("close", (code, reason) => {
             logDebug(`client disconnected: ${client} code: ${code} reason: ${reason.toString()}`)
-
-            logWarn(`current connections: ${this.webSocketServer.clients.size}`);
 
             this.client.removeConnection(client)
         });
