@@ -22,7 +22,9 @@
     </v-banner>
     <v-row class="mx-3 my-2">
       <template v-for="(game, index) in games">
-        <Game :game="game"></Game>
+        <v-col>
+          <Game :game="game"></Game>
+        </v-col>
       </template>
     </v-row>
   </v-card>

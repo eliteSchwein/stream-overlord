@@ -12,11 +12,14 @@
           style="border-radius: 10px"
           aspect-ratio="16/9"
           cover
-          :src="getScene.background"
+          :src="getScene.background ?? noObs"
         />
       </v-col>
+
       <v-col>
-        <v-card class="px-4 py-3">
+        <currentGame></currentGame>
+
+        <v-card class="px-4 py-3 mt-3">
           <v-row
             align-content="center"
             justify="center"
@@ -58,9 +61,16 @@
 import {mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
 import eventBus from "@/eventBus.ts";
+import noObs from "@/assets/no_obs.png"
+
 export default {
+  data() {
+    return {
+      noObs,
+    };
+  },
   computed: {
-    ...mapState(useAppStore, ['getScene']),
+    ...mapState(useAppStore, ['getScene', 'getCurrentGame']),
   },
   methods: {
     saveItems() {

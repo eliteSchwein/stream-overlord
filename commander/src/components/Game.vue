@@ -27,9 +27,8 @@ async function changeGame( event: Event, gameId: string) {
 </script>
 
 <template>
-  <v-col class="mt-3">
     <div class="game-container"
-         @click.stop="changeGame($event, game.game_id)"
+         @click.stop="changeGame($event, game?.game_id)"
     >
       <v-img
         :class="{darken: loading}"
@@ -37,7 +36,7 @@ async function changeGame( event: Event, gameId: string) {
         :width="150"
         aspect-ratio="16/9"
         cover
-        :src="game.media.cover"
+        :src="game?.media?.cover"
       />
       <template v-if="loading">
         <div class="game-content">
@@ -47,7 +46,6 @@ async function changeGame( event: Event, gameId: string) {
         </div>
       </template>
     </div>
-  </v-col>
 </template>
 
 <style scoped lang="scss">

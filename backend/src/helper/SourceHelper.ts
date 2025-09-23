@@ -13,7 +13,14 @@ export async function updateSourceFilters() {
     const gameInfo = getGameInfo()
     const obsClient = getOBSClient()
 
-    if(!obsClient.connected) return
+    if(!obsClient.connected) {
+        currentSourceFilters = {
+            background: null,
+            sources: []
+        }
+
+        return
+    }
     currentSourceFilters = (await fetchSourceFilters(gameInfo.data.game_id)).data
 
     getWebsocketServer().send('notify_source_update', currentSourceFilters)

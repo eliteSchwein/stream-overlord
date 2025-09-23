@@ -10,7 +10,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(useAppStore, ['getRestApi', 'isShieldActive', 'getSystemInfo', 'isThrottled', 'getConnections']),
+    ...mapState(useAppStore, ['getRestApi', 'isShieldActive', 'getSystemInfo', 'isThrottled', 'getConnections', 'getCurrentGame']),
     currentRouteName() {
       return this.$route.name;
     }
@@ -57,11 +57,11 @@ export default {
 
 <template>
   <v-app-bar
-    color="grey-darken-3"
     prominent
     rounded="0"
     density="compact"
     class="topbar"
+    :color="getCurrentGame?.theme?.color ?? 'grey-darken-3'"
   >
     <v-app-bar-nav-icon variant="text" @click.stop="rail = !rail"></v-app-bar-nav-icon>
 
@@ -163,12 +163,6 @@ export default {
         color=""
         @click.stop="rail = false"
         to="/channelPoints"></v-list-item>
-      <v-list-item
-        prepend-icon="mdi-controller"
-        title="/games"
-        color=""
-        @click.stop="rail = false"
-        to="/games"></v-list-item>
       <v-list-item
         prepend-icon="mdi-volume-high"
         title="/audio"
