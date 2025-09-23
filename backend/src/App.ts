@@ -55,8 +55,6 @@ async function init() {
 
     await fetchGameInfo()
 
-    await obsClient.reloadAllBrowserScenes()
-
     logRegular("connect tauonmb client")
     tauonmbClient = new TauonmbClient()
     await tauonmbClient.init()
@@ -68,9 +66,6 @@ async function init() {
 
     loadMacros()
 
-    logRegular('dump obs scenes and items')
-    await obsClient.getItems()
-
     logRegular('activate configured wled lamps')
     await setLedColor()
 
@@ -79,8 +74,6 @@ async function init() {
 
     logRegular("init system info")
     await updateSystemInfo()
-
-    await updateSourceFilters()
 
     watchConfig()
 

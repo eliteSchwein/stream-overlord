@@ -1,6 +1,8 @@
 import {getConfig} from "../../helper/ConfigHelper";
 import OBSWebSocket, {EventSubscription, OBSWebSocketError} from "obs-websocket-js";
-import {logCustom, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {logCustom, logDebug, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {updateSourceFilters} from "../../helper/SourceHelper";
+import {sleep} from "../../../../helper/GeneralHelper";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
@@ -23,13 +25,13 @@ export class OBSClient {
                 eventSubscriptions: EventSubscription.All
             })
         } catch (error) {
-            logWarn('obs connection failed:')
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-            logWarn('reconnect obs in 15 seconds...')
+            logDebug('obs connection failed:')
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logWarn('reconnect obs in 5 seconds...')
 
             setTimeout(async () => {
                 await this.connect()
-            }, 15_000)
+            }, 5_000)
 
             return
         }
@@ -39,6 +41,10 @@ export class OBSClient {
         this.connected = true
 
         await this.reloadAllBrowserScenes()
+
+        await this.getItems()
+
+        await updateSourceFilters()
 
         logSuccess('obs client is ready')
     }
@@ -56,6 +62,10 @@ export class OBSClient {
         logWarn(`obs disconnect: ${error.code} ${error.message}`)
 
         if(!this.connected) return
+
+        this.connected = false
+
+        await updateSourceFilters()
 
         logWarn('reconnect obs now...')
 

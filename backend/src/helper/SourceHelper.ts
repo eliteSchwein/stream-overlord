@@ -22,6 +22,7 @@ export async function updateSourceFilters() {
         getWebsocketServer().send('notify_source_update', currentSourceFilters)
         return
     }
+
     currentSourceFilters = (await fetchSourceFilters(gameInfo.data.game_id)).data
 
     getWebsocketServer().send('notify_source_update', currentSourceFilters)
