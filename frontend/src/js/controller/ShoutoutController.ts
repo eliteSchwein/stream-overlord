@@ -8,14 +8,8 @@ export default class ShoutoutController extends BaseController {
 
     static targets = ['channelname', 'iframe']
 
-    protected alertBoxHelper: AlertBoxHelper
-
     declare readonly channelnameTargets: HTMLElement[]
     declare readonly iframeTarget: HTMLIFrameElement
-
-    async postConnect() {
-        this.alertBoxHelper = new AlertBoxHelper(this.element.querySelector('.new-alert-box'))
-    }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if(method !== 'notify_shoutout_clip') return

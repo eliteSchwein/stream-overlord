@@ -2,11 +2,14 @@ import {Controller} from "@hotwired/stimulus";
 import {getWebsocketClient} from "../../App";
 import {Websocket, WebsocketEvent} from "websocket-ts";
 import WebsocketClient from "../client/WebsocketClient";
+import AlertBoxHelper from "../helper/AlertBoxHelper";
 
 export default class BaseController extends Controller<HTMLElement> {
     websocket: WebsocketClient;
     shieldActive = false;
     websocketEndpoints: string[] = [];
+
+    alertBoxHelper: AlertBoxHelper
 
     async register() {
         this.websocket = getWebsocketClient()
@@ -20,6 +23,7 @@ export default class BaseController extends Controller<HTMLElement> {
         await this.preConnect()
         await this.register()
         await this.postConnect()
+        //this.alertBoxHelper = new AlertBoxHelper(this.element.querySelector('.new-alert-box'))
     }
 
     async preConnect() {

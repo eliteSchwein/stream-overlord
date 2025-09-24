@@ -40,20 +40,19 @@ export default class AlertController extends BaseController {
             case 'show': {
                 if(data.dummy) return
 
-                if(this.element.style.opacity === "1") return
+                if(this.alertBoxHelper.isVisible()) return
 
-                this.element.style.opacity = '1'
-                this.element.style.height = null
+                this.alertBoxHelper.show()
                 this.videoTarget.style.opacity = '0'
 
                 if(data.video) {
                     this.videoTarget.style.display = null
                     //this.element.querySelector('canvas').style.opacity = '0'
-                    this.element.style.padding = '0 !important'
+                    //this.element.style.padding = '0 !important'
 
-                    if(!this.element.classList.contains('expand')) {
-                        this.element.classList.add('expand')
-                    }
+                    //if(!this.element.classList.contains('expand')) {
+                    //    this.element.classList.add('expand')
+                    //}
 
                     try {
                         this.videoTarget.muted = true
@@ -62,7 +61,7 @@ export default class AlertController extends BaseController {
 
                         await sleep(50)
 
-                        this.element.style.height = `${this.videoTarget.getBoundingClientRect().height}px`
+                        //this.element.style.height = `${this.videoTarget.getBoundingClientRect().height}px`
 
                         await sleep(50)
 
@@ -76,9 +75,9 @@ export default class AlertController extends BaseController {
                 }
                 if(data.sound) {
                     this.videoTarget.style.display = 'none'
-                    this.element.style.padding = null
+                    //this.element.style.padding = null
 
-                    this.element.classList.remove('expand')
+                    //this.element.classList.remove('expand')
 
                     try {
                         this.websocket.send('play_sound', {sound: data.sound, volume: data.volume})
@@ -90,7 +89,7 @@ export default class AlertController extends BaseController {
                     }
                 }
                 if(data.iframe) {
-                    this.element.classList.add('aspect')
+                    //this.element.classList.add('aspect')
                     this.iframeTarget.src = data.iframe
                     setTimeout(() => {
                         this.iframeTarget.classList.remove('d-none')
@@ -133,14 +132,16 @@ export default class AlertController extends BaseController {
                 if(!this.logoTarget.classList.contains('d-none'))
                     this.logoTarget.classList.add('d-none')
 
-                this.element.classList.remove('expand')
-                this.element.classList.remove('aspect')
-                this.element.style.height = null
+                //this.element.classList.remove('expand')
+                //this.element.classList.remove('aspect')
+                //this.element.style.height = null
 
-                this.element.style.opacity = '0'
+                //this.element.style.opacity = '0'
 
-                this.element.style.width = null
-                this.element.style.padding = null
+                //this.element.style.width = null
+                //this.element.style.padding = null
+
+                this.alertBoxHelper.hide()
 
                 await sleep(500)
 

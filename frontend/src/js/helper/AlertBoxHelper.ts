@@ -2,12 +2,14 @@ export default class AlertBoxHelper {
     protected element: HTMLElement
 
     public constructor(element: HTMLElement) {
+        if(!element) return
         this.element = element
 
         this.hide()
     }
 
     public hide() {
+        if(!this.element) return
         this.addDynamicClass()
 
         this.element.style.width = '0'
@@ -15,6 +17,7 @@ export default class AlertBoxHelper {
     }
 
     public show() {
+        if(!this.element) return
         this.addDynamicClass()
 
         const handleTransitionEnd = (event: TransitionEvent) => {
@@ -37,5 +40,9 @@ export default class AlertBoxHelper {
         }
 
         this.element.classList.add('dynamic')
+    }
+
+    public isVisible() {
+        return this.element.style.opacity === '1'
     }
 }
