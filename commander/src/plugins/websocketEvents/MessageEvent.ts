@@ -10,6 +10,7 @@ import NotifySystemInfoMessage from "@/plugins/websocketEvents/websocketMessage/
 import NotifySceneMessage from "@/plugins/websocketEvents/websocketMessage/NotifySceneMessage.ts";
 import NotifyConnectionMessage from "@/plugins/websocketEvents/websocketMessage/NotifyConnectionMessage.ts";
 import NotifyConfigUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyConfigUpdateMessage.ts";
+import NotifyObsSceneUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyObsSceneUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -27,5 +28,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifySceneMessage(this.webSocketClient).handleMessage(data)
     await new NotifyConnectionMessage(this.webSocketClient).handleMessage(data)
     await new NotifyConfigUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyObsSceneUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

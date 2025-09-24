@@ -3,6 +3,7 @@ import OBSWebSocket, {EventSubscription, OBSWebSocketError} from "obs-websocket-
 import {logCustom, logDebug, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {updateSourceFilters} from "../../helper/SourceHelper";
 import {sleep} from "../../../../helper/GeneralHelper";
+import getWebsocketServer from "../../App";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
@@ -42,7 +43,7 @@ export class OBSClient {
 
         await this.reloadAllBrowserScenes()
 
-        await this.getItems()
+        await this.fetchItems()
 
         await updateSourceFilters()
 
@@ -101,7 +102,7 @@ export class OBSClient {
         await this.obsWebsocket.call(method, data)
     }
 
-    public async getItems() {
+    public async fetchItems() {
         if(!this.connected) return
 
         logNotice('dump all obs scenes and items:')
@@ -138,6 +139,8 @@ export class OBSClient {
 
         // @ts-ignore
         this.sceneData = scenesData
+
+        getWebsocketServer().send('notify_obs_scene_update', this.sceneData)
 
         logNotice('end of obs dump')
     }

@@ -21,7 +21,8 @@ export const useAppStore = defineStore('app', {
     throttled: false,
     scene: {},
     connections: {},
-    backendConfig: ''
+    backendConfig: '',
+    obsSceneData: []
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -43,7 +44,8 @@ export const useAppStore = defineStore('app', {
     isThrottled: (state) => state.throttled,
     getScene: (state) => state.scene,
     getConnections: (state) => state.connections,
-    getBackendConfig: (state) => state.backendConfig
+    getBackendConfig: (state) => state.backendConfig,
+    getObsSceneData: (state) => state.obsSceneData
   },
   actions: {
     async fetchConfig() {
@@ -110,6 +112,10 @@ export const useAppStore = defineStore('app', {
     setBackendConfig(config: string) {
       this.backendConfig = config
       this.$patch(state => state.backendConfig = config)
+    },
+    setObsSceneData(obsSceneData: []) {
+      this.obsSceneData = obsSceneData
+      this.$patch(state => state.obsSceneData = obsSceneData)
     }
   }
 })

@@ -83,7 +83,7 @@ export async function saveSourceFilters() {
 
     if(!obsClient.connected) return
 
-    await obsClient.getItems()
+    await obsClient.fetchItems()
 
     for (const source of sources) {
         newSourceFilters[source.uuid] = {}

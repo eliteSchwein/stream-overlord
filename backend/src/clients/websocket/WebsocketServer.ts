@@ -8,7 +8,7 @@ import {getActiveChannelPoints} from "../../helper/ChannelPointHelper";
 import {getAudioData} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
-import {getTauonmbClient} from "../../App";
+import {getOBSClient, getTauonmbClient} from "../../App";
 import getGameInfo from "../../helper/GameHelper";
 import {getAllVisibleElements, toggleElementVisiblity} from "../../helper/VisibleHelper";
 
@@ -34,7 +34,8 @@ export default class WebsocketServer {
         'trigger_keyboard',
         'notify_visible_element',
         'notify_connection',
-        'notify_config_update'
+        'notify_config_update',
+        'notify_obs_scene_update'
     ]
     connectionEndpoints = {}
     
@@ -154,6 +155,7 @@ export default class WebsocketServer {
                 this.send("notify_source_update", getSourceFilters(), client)
                 this.send("notify_tauonmb_update", getTauonmbClient()?.getStatus(), client)
                 this.send("notify_connection", this.getConnections(), client)
+                this.send("notify_obs_scene_update", getOBSClient().getSceneData(), client)
                 this.send("notify_config_update", {data: getRawConfig()}, client)
 
                 for(const id in getAllVisibleElements()) {

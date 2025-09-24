@@ -12,7 +12,7 @@
           style="border-radius: 5px"
           aspect-ratio="16/9"
           cover
-          :src="getScene.background ?? noObs"
+          :src="getScene?.background ?? noObs"
         />
       </v-col>
 
