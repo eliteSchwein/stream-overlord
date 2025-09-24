@@ -69,7 +69,7 @@ export default class AlertController extends BaseController {
                         this.videoTarget.style.opacity = '1'
                         await this.videoTarget.play()
                         if(!data.sound)
-                            this.websocket.send('play_sound', {sound: data.video})
+                            this.websocket.send('play_sound', {sound: data.video, volume: data.volume})
                     } catch (e) {
                         console.error(e)
                     }
@@ -81,7 +81,7 @@ export default class AlertController extends BaseController {
                     this.element.classList.remove('expand')
 
                     try {
-                        this.websocket.send('play_sound', {sound: data.sound})
+                        this.websocket.send('play_sound', {sound: data.sound, volume: data.volume})
                         //this.soundTarget.querySelector('source').src = data.sound
                         //this.soundTarget.load()
                         //await this.soundTarget.play()
