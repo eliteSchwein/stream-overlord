@@ -61,11 +61,13 @@ export default {
     rounded="0"
     density="compact"
     class="topbar"
-    :color="getCurrentGame?.theme?.color ?? 'grey-darken-3'"
+    color="grey-darken-3"
+    extended
+    extension-height="10"
   >
     <v-app-bar-nav-icon variant="text" @click.stop="rail = !rail"></v-app-bar-nav-icon>
 
-    <v-toolbar-title>{{ currentRouteName }}</v-toolbar-title>
+    <v-app-bar-title>{{ currentRouteName }}</v-app-bar-title>
 
     <v-spacer></v-spacer>
 
@@ -144,6 +146,14 @@ export default {
         </v-list>
       </v-menu>
     </v-btn>
+
+    <template #extension>
+      <v-progress-linear
+        :model-value="100"
+        :color="getCurrentGame?.theme?.color ?? 'grey-darken-3'"
+        height="3"
+      />
+    </template>
   </v-app-bar>
   <v-navigation-drawer
     class="secondary"
