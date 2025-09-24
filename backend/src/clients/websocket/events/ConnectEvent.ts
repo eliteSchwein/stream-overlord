@@ -19,6 +19,7 @@ import SaveSourceMessage from "./messages/SaveSourceMessage";
 import {getTauonmbClient} from "../../../App";
 import RegisterMessage from "./messages/RegisterMessage";
 import DisconnectConnectionMessage from "./messages/DisconnectConnectionMessage";
+import UpdateConfigMessage from "./messages/UpdateConfigMessage";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -44,6 +45,7 @@ export default class ConnectEvent extends BaseEvent{
             await new RefreshSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new SaveSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new DisconnectConnectionMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new UpdateConfigMessage(this.webSocketServer, event, this.client).handleMessage(data)
         })
 
         event.on("close", (code, reason) => {

@@ -1,12 +1,14 @@
 import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
 import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
-import {watchFile} from "node:fs";
+import {watchFile, writeFileSync} from "node:fs";
 import loadMacros from "./MacroHelper";
-import {getTwitchClient} from "../App";
+import getWebsocketServer, {getTwitchClient} from "../App";
 import registerPermissions from "../clients/twitch/helper/PermissionHelper";
 import {fetchGameInfo} from "./GameHelper";
 import {initAudio} from "./AudioHelper";
+import {readFileSync} from "fs";
+import * as path from "node:path";
 
 let config = {}
 let primaryChannel = undefined
@@ -14,6 +16,14 @@ let primaryChannel = undefined
 export default function readConfig(standalone = false) {
     if(standalone) return parseConfig(`${__dirname}/../..`, ".env.conf")
     config = parseConfig(`${__dirname}/../..`, ".env.conf")
+}
+
+export function getRawConfig() {
+    return readFileSync(path.resolve(`${__dirname}/../..`, ".env.conf"), "utf8")
+}
+
+export function writeRawConfig(content: string) {
+    writeFileSync(path.resolve(`${__dirname}/../..`, ".env.conf"), content, "utf8")
 }
 
 export function getConfig(filter: RegExp|undefined = undefined, asObject = false) {
@@ -77,6 +87,8 @@ export function watchConfig() {
                 loadMacros()
                 await fetchGameInfo()
                 logSuccess('reload finished')
+
+                getWebsocketServer().send("notify_config_update", {data: getRawConfig()})
             } catch (error) {
                 logWarn(`reload failed:`)
                 logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))

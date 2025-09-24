@@ -191,6 +191,12 @@ export default {
         color=""
         @click.stop="rail = false"
         to="/connections"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-cog"
+        title="/editConfig"
+        color=""
+        @click.stop="rail = false"
+        to="/editConfig"></v-list-item>
     </v-list>
   </v-navigation-drawer>
 

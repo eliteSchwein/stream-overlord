@@ -1,5 +1,5 @@
 import {WebSocketServer} from "ws";
-import {getConfig} from "../../helper/ConfigHelper";
+import {getConfig, getRawConfig} from "../../helper/ConfigHelper";
 import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
@@ -33,7 +33,8 @@ export default class WebsocketServer {
         'notify_timer',
         'trigger_keyboard',
         'notify_visible_element',
-        'notify_connection'
+        'notify_connection',
+        'notify_config_update'
     ]
     connectionEndpoints = {}
     
@@ -153,6 +154,7 @@ export default class WebsocketServer {
                 this.send("notify_source_update", getSourceFilters(), client)
                 this.send("notify_tauonmb_update", getTauonmbClient()?.getStatus(), client)
                 this.send("notify_connection", this.getConnections(), client)
+                this.send("notify_config_update", {data: getRawConfig()}, client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]

@@ -20,7 +20,8 @@ export const useAppStore = defineStore('app', {
     systemInfo: {},
     throttled: false,
     scene: {},
-    connections: {}
+    connections: {},
+    backendConfig: ''
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -41,7 +42,8 @@ export const useAppStore = defineStore('app', {
     getSystemInfo: (state) => state.systemInfo,
     isThrottled: (state) => state.throttled,
     getScene: (state) => state.scene,
-    getConnections: (state) => state.connections
+    getConnections: (state) => state.connections,
+    getBackendConfig: (state) => state.backendConfig
   },
   actions: {
     async fetchConfig() {
@@ -104,6 +106,10 @@ export const useAppStore = defineStore('app', {
     setConnections(connections: {}) {
       this.connections = connections
       this.$patch(state => state.connections = connections)
+    },
+    setBackendConfig(config: string) {
+      this.backendConfig = config
+      this.$patch(state => state.backendConfig = config)
     }
   }
 })

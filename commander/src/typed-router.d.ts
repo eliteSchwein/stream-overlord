@@ -22,6 +22,7 @@ declare module 'vue-router/auto-routes' {
     '/audio': RouteRecordInfo<'/audio', '/audio', Record<never, never>, Record<never, never>>,
     '/channelPoints': RouteRecordInfo<'/channelPoints', '/channelPoints', Record<never, never>, Record<never, never>>,
     '/connections': RouteRecordInfo<'/connections', '/connections', Record<never, never>, Record<never, never>>,
+    '/editConfig': RouteRecordInfo<'/editConfig', '/editConfig', Record<never, never>, Record<never, never>>,
     '/games': RouteRecordInfo<'/games', '/games', Record<never, never>, Record<never, never>>,
     '/scene': RouteRecordInfo<'/scene', '/scene', Record<never, never>, Record<never, never>>,
   }
@@ -51,6 +52,10 @@ declare module 'vue-router/auto-routes' {
     }
     'src/pages/connections.vue': {
       routes: '/connections'
+      views: never
+    }
+    'src/pages/editConfig.vue': {
+      routes: '/editConfig'
       views: never
     }
     'src/pages/games.vue': {
