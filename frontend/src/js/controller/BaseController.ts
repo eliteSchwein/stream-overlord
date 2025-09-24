@@ -23,7 +23,7 @@ export default class BaseController extends Controller<HTMLElement> {
         await this.preConnect()
         await this.register()
         await this.postConnect()
-        //this.alertBoxHelper = new AlertBoxHelper(this.element.querySelector('.new-alert-box'))
+        this.alertBoxHelper = new AlertBoxHelper(this.element.querySelector('.new-alert-box'))
     }
 
     async preConnect() {
