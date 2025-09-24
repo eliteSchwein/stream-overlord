@@ -1,4 +1,4 @@
-import {getConfig} from "./ConfigHelper";
+import {getConfig, getFullConfig} from "./ConfigHelper";
 import {execute} from "./CommandHelper";
 import {logDebug, logWarn} from "./LogHelper";
 import {getAudioData} from "./AudioHelper";
@@ -7,7 +7,7 @@ const escapeRegex = /[\/'"]/
 
 export async function speak(message: string)
 {
-    const config = getConfig(/tts/g)[0]
+    const config = getFullConfig()['tts']
     const audioData = getAudioData()['tts']
 
     if(audioData.muted) {

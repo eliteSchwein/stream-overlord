@@ -37,6 +37,10 @@ export function getConfig(filter: RegExp|undefined = undefined, asObject = false
     return result
 }
 
+export function getFullConfig() {
+    return config
+}
+
 export function getAssetConfig(asset: string) {
     return getConfig(/asset /g, true)[asset]
 }
