@@ -22,11 +22,13 @@ export async function initAudio() {
 export async function setVolume(audioInterface: string, volume: number, sendUpdate = true) {
     const currentAudioData = audioData[audioInterface]
 
-    try {
-        await execute(`${currentAudioData.command} ${volume}`)
-    } catch (error) {
-        logWarn(`setting volume for ${audioInterface} failed:`)
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    if(currentAudioData.command) {
+        try {
+            await execute(`${currentAudioData.command} ${volume}`)
+        } catch (error) {
+            logWarn(`setting volume for ${audioInterface} failed:`)
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
     }
 
     if(volume === 0) {

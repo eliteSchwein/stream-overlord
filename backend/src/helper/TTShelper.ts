@@ -1,21 +1,28 @@
 import {getConfig} from "./ConfigHelper";
 import {execute} from "./CommandHelper";
 import {logDebug, logWarn} from "./LogHelper";
+import {getAudioData} from "./AudioHelper";
 
 const escapeRegex = /[\/'"]/
 
 export async function speak(message: string)
 {
     const config = getConfig(/tts/g)[0]
+    const audioData = getAudioData()['tts']
+
+    if(audioData.muted) {
+        logWarn(`TTS failed: muted`)
+        return
+    }
 
     message = message.replace(escapeRegex, '')
 
     try {
-        let command =  `bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output_file ${config.output_file} && ${config.play_command}"`
+        let playCommand = config.play_command
 
-        if(config.raw_command) {
-            command = `bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${config.play_command}"`
-        }
+        playCommand = playCommand.replace("${volume}", audioData['current_volume'])
+
+        const command = `bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${playCommand}"`
 
         logDebug(`TTS Command: ${command}`)
         await execute(command)

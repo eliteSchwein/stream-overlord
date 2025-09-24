@@ -1,11 +1,12 @@
 import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
-import {logNotice, logRegular, logSuccess} from "./LogHelper";
+import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
 import {watchFile} from "node:fs";
 import loadMacros from "./MacroHelper";
 import {getTwitchClient} from "../App";
 import registerPermissions from "../clients/twitch/helper/PermissionHelper";
 import {fetchGameInfo} from "./GameHelper";
+import {initAudio} from "./AudioHelper";
 
 let config = {}
 let primaryChannel = undefined
@@ -61,14 +62,21 @@ export function watchConfig() {
             interval: 100
         },
         async (curr, prev) => {
-            logNotice("config update detected")
-            config = readConfig(true)
+            try {
+                logNotice("config update detected")
+                config = readConfig(true)
 
-            await getTwitchClient().connect()
-            await registerPermissions(getTwitchClient().getBot())
-            loadMacros()
-            await fetchGameInfo()
-            logSuccess('reload finished')
+                await initAudio()
+
+                await getTwitchClient().connect()
+                await registerPermissions(getTwitchClient().getBot())
+                loadMacros()
+                await fetchGameInfo()
+                logSuccess('reload finished')
+            } catch (error) {
+                logWarn(`reload failed:`)
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            }
         }
     )
 }

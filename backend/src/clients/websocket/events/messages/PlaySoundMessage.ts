@@ -3,6 +3,7 @@ import {execute} from "../../../../helper/CommandHelper";
 import {getConfig} from "../../../../helper/ConfigHelper";
 import {logWarn} from "../../../../helper/LogHelper";
 import {getActiveSound, setActiveSound} from "../../../../helper/AlertHelper";
+import {getAudioData} from "../../../../helper/AudioHelper";
 
 export default class PlaySoundMessage extends BaseMessage {
     method = 'play_sound'
@@ -20,8 +21,19 @@ export default class PlaySoundMessage extends BaseMessage {
             setActiveSound(null)
         }, 250)
 
+        const audioData = getAudioData()['alert']
+
+        let volume = 1
+
+        if(audioData) {
+            volume = audioData.current_volume
+            if(audioData.muted) return
+        }
+
+        if(data.volume) volume = data.volume
+
         try {
-            await execute(`bash -c "cd ${assetDirectory} && ${config.play_command} ${data['sound']}"`)
+            await execute(`bash -c "cd ${assetDirectory} && ${config.play_command} -af "volume=${volume}" ${data['sound']}"`)
         } catch (error) {
             logWarn(`playing sound ${data['sound']} failed:`)
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
