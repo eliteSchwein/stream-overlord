@@ -46,6 +46,11 @@ export default class AlertController extends BaseController {
 
                 if((this.isDynamic && this.alertBoxHelper.isVisible()) || ((!this.isDynamic) && this.element.style.opacity === '1')) return
 
+                if(!this.isDynamic) {
+                    this.element.style.height = null
+                    this.element.style.opacity = '1'
+                }
+
                 this.alertBoxHelper.show()
                 this.videoTarget.style.opacity = '0'
 
