@@ -124,6 +124,11 @@ async function handleObs(method: string, data: any) {
 
     logRegular(`trigger obs: ${method}`)
 
+    if(method === 'reload_browser_sources') {
+        await obsClient.reloadAllBrowserScenes()
+        return
+    }
+
     await obsClient.send(method, data)
 }
 
