@@ -17,13 +17,14 @@ export default class BaseController extends Controller<HTMLElement> {
         this.websocket.registerEndpoints(this.websocketEndpoints)
 
         this.websocket.getWebsocket().addEventListener(WebsocketEvent.message, (websocket, event) => this.handleWebsocket(websocket, event))
+
+        this.alertBoxHelper = new AlertBoxHelper(this.element.querySelector('.new-alert-box'))
     }
 
     async connect() {
         await this.preConnect()
         await this.register()
         await this.postConnect()
-        this.alertBoxHelper = new AlertBoxHelper(this.element.querySelector('.new-alert-box'))
     }
 
     async preConnect() {

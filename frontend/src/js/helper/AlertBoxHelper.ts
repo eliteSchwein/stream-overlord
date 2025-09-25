@@ -45,4 +45,8 @@ export default class AlertBoxHelper {
     public isVisible() {
         return this.element.style.opacity === '1'
     }
+
+    public isPresent() {
+        return !!this.element;
+    }
 }
