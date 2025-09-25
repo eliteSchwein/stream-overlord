@@ -69,9 +69,9 @@ export default class ShieldPurgeChannelPoint extends BaseChannelPoint {
         }
 
         if(shipApiData.in_ship || shipApiData.in_srv) {
-            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['insert']})
+            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['delete']})
             await sleep(100)
-            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['insert']})
+            websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['delete']})
         } else if(shipApiData.on_foot) {
             websocketServer.send('trigger_keyboard', {'name': 'ship', 'keys': ['c']})
             await sleep(15_000)
