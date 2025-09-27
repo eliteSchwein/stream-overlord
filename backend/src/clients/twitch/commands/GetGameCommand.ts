@@ -3,8 +3,8 @@ import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
 
 export default class GetGameCommand extends BaseCommand{
-    command = 'get_game'
-    aliases = ['buy_game']
+    command = 'getgame'
+    aliases = ['buygame', 'game']
 
     async handle(params: any, context: BotCommandContext) {
         const gameData = await getGameInfoData()
