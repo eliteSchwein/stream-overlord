@@ -8,25 +8,31 @@
     <title>Music</title>
 </head>
 <body>
-    <div class="music" data-controller="tauonmb">
-        <div class="music-container font-orbitron row d-flex align-items-center flex-nowrap">
-            <div class="col col-music-image d-flex justify-content-center">
-                <img id="music-thumbnail" class="spin"/>
-            </div>
-
-            <!-- allow shrink so it doesn't push under the image -->
-            <div class="col" style="min-width:0;">
-                <div class="music-title-container">
-                    <div class="music-title-track">
-                        <span class="music-title-text">Loading</span>
+    <div class="music d-flex justify-content-start" data-controller="tauonmb">
+        <div class="new-alert-box dynamic" style="width: 100vw;height: 100vh;">
+            <div class="new-alert-container">
+                <div class="music-container">
+                    <div class="music-thumbnail-container">
+                        <div class="music-thumbnail">
+                            <img id="music-thumbnail" />
+                        </div>
+                    </div>
+                    <div class="music-info-container">
+                        <div class="music-progress">
+                            <div class="music-progress-container">
+                                <div class="music-progress-bar"></div>
+                            </div>
+                        </div>
+                        <div class="music-title-container">
+                            <div class="music-title-track">
+                                <span class="music-title-text">Loading</span>
+                            </div>
+                            <div class="music-artist-track">
+                                <span class="music-artist-text">Loading</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="music-progress">
-            <div class="music-progress-container">
-                <div class="music-progress-bar"></div>
             </div>
         </div>
     </div>

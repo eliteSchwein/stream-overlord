@@ -1,8 +1,9 @@
 import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
+import {sleep} from "../../../../helper/GeneralHelper";
 
 export default class TauonmbController extends BaseController {
-    websocketEndpoints = ['notify_tauonmb_update']
+    websocketEndpoints = ['notify_tauonmb_update', 'notify_tauonmb_show']
 
     protected image = {
         trackId: '',
@@ -14,8 +15,14 @@ export default class TauonmbController extends BaseController {
     protected imageElement = this.element.querySelector('#music-thumbnail') as HTMLImageElement|undefined
     protected barElement = this.element.querySelector('.music-progress-bar') as HTMLDivElement|undefined
     protected titleElement = this.element.querySelector('.music-title-text') as HTMLDivElement|undefined
+    protected artistElement = this.element.querySelector('.music-artist-text') as HTMLDivElement|undefined
+    protected showTimeout: any = -1
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
+        if(method === 'notify_tauonmb_show') {
+            void this.showPlayer()
+            return
+        }
         if(method !== 'notify_tauonmb_update') return
 
         if(this.image.trackId === '' && !data.image && !data.status) return
@@ -31,43 +38,60 @@ export default class TauonmbController extends BaseController {
             return
         }
 
-        this.status = data
-
-        if(this.status.status === 'playing' && this.imageElement && !this.imageElement.classList.contains("spin")) {
-            this.imageElement.classList.add("spin")
-        } else if(this.status.status !== 'playing' && this.imageElement && this.imageElement.classList.contains("spin")) {
-            this.imageElement.classList.remove("spin")
+        if(this.status.id !== data.id) {
+            void this.showPlayer()
         }
+
+        this.status = data
 
         if(this.barElement) {
             this.barElement.style.width = `${this.status.progress_percentage}%`
         }
 
-        if(this.titleElement && this.status.track.id !== this.currentTrackId) {
-            this.titleElement.innerHTML = this.status.title
-            const visibleWidth = this.titleElement.parentElement.clientWidth;
-            const fullWidth = this.titleElement.scrollWidth;
-            const titleContainerElement = this.titleElement.parentElement as HTMLDivElement;
+        if(this.status.track.id !== this.currentTrackId) {
+            if(this.titleElement) {
+                this.titleElement.innerHTML = this.status.title
+                this.addmarquee(this.titleElement)
+            }
 
-            if (fullWidth > visibleWidth) {
-                if(titleContainerElement.classList.contains('marquee')) {
-                    return
-                }
-                titleContainerElement.classList.add('marquee');
-            } else {
-                if(!titleContainerElement.classList.contains('marquee')) {
-                    return
-                }
-                titleContainerElement.classList.remove('marquee');
+            if(this.artistElement) {
+                this.artistElement.innerHTML = this.status.artist
+                this.addmarquee(this.artistElement)
             }
         }
 
         this.currentTrackId = this.status.track.id
     }
 
+    private addmarquee(targetElement: HTMLDivElement) {
+        const visibleWidth = targetElement.parentElement.clientWidth
+        const fullWidth = Math.ceil(targetElement.getBoundingClientRect().width)
+        const parentElement = targetElement.parentElement as HTMLDivElement;
+
+
+        if (fullWidth > visibleWidth) {
+            if(!parentElement.classList.contains('marquee')) {
+                parentElement.classList.add('marquee');
+            }
+        } else {
+            if(parentElement.classList.contains('marquee')) {
+                parentElement.classList.remove('marquee');
+            }
+        }
+    }
+
     async handleGameUpdate(websocket: Websocket, data: any) {
         if(this.element.hasAttribute("data-disable-theme")) return
         this.barElement.style.background = data.theme.color
         this.titleElement.style.color = data.theme.color
+    }
+
+    showPlayer() {
+        this.alertBoxHelper.show()
+        clearTimeout(this.showTimeout)
+
+        this.showTimeout = setTimeout(()=> {
+            this.alertBoxHelper.hide()
+        }, 15_000)
     }
 }

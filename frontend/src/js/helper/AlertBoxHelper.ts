@@ -30,7 +30,7 @@ export default class AlertBoxHelper {
 
         this.element.addEventListener("transitionend", handleTransitionEnd);
 
-        this.element.style.width = 'calc(100% - 50px)'
+        this.element.style.width = '100%'
         this.element.style.opacity = '1'
     }
 

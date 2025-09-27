@@ -62,3 +62,9 @@ body {
             var(--notch) 0
     );
 }
+
+.marquee {
+    display: inline-block;
+    will-change: transform;
+    animation: marquee 14s linear infinite;
+}

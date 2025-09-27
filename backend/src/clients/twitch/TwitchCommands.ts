@@ -10,6 +10,7 @@ import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
 import TTSCommand from "./commands/TTSCommand";
 import {getTwitchClient} from "../../App";
+import {triggerMacro} from "../../helper/MacroHelper";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -67,6 +68,7 @@ function buildConfigCommand(command: string, option: any) {
             if(context.broadcasterId !== primaryChannel.id) return
         }
 
-        void context.reply(option.message);
+        if(option.message) void context.reply(option.message);
+        if(option.macro) void triggerMacro(option.macro)
     }, {aliases: option.alias, userCooldown: option.userCooldown, globalCooldown: option.globalCooldown})
 }

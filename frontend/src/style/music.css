@@ -1,79 +1,83 @@
-.music {
-    top: 0;
-    left: 0;
-    position: absolute;
-    width: 100%;
+.music-container {
     height: 100%;
-    padding-bottom: 50px;
-    background: rgba(19, 19, 19, 0.89);
+    display: flex;
+
+    color: var(--theme-color);
+
+    font-family: Orbitron, sans-serif;
 }
 
-.music .music-container {
+.music-info-container {
     position: relative;
     width: 100%;
     height: 100%;
+    padding: 1.5rem 1rem 1rem;
+    max-width: 100%;
+    overflow: hidden;   /* hide the scrolling overflow */
 }
 
-.col-music-image {
-    max-width: 450px!important;
+.music-title-track {
+    font-size: 4rem;
+    white-space: nowrap;
 }
 
-#music-thumbnail {
-    position: relative;
-    overflow: hidden;
-    object-fit: cover;
-    height: 350px;
-    width: 350px;
-    border-radius: 50%;
+.music-artist-track {
+    font-size: 2rem;
+    white-space: nowrap;
 }
 
 .music-progress {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 50px;
-}
-
-.music-progress-container {
-    background: #474747;
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-.music-progress-bar {
-    background: #ffffff;
-    position: absolute;
-    height: 100%;
     top: 0;
     left: 0;
-
-    /* Match or exceed the update interval for smooth flow */
-    transition: width 0.25s linear;
-    will-change: width; /* Hint to browser for smoother animation */
+    width: 100%;
+    height: 1.5rem;
+    z-index: 3;
 }
 
+.music-progress-bar,
+.music-progress-container {
+    height: 100%;
+}
 
-.music-title-container {
+.music-thumbnail-container {
+    --notch: 0;
+    --right-inset: 3.75rem;
+    width: 300px;
+    min-width: 300px;
+    height: calc(100% + 10px);
+    padding: 10px;
+    padding-top: 0;
+    padding-left: 0;
+    margin-bottom: -10px;
+
+    clip-path: polygon(
+            100% 0,
+            100% calc(100% - var(--right-inset)),
+            calc(100% - var(--right-inset)) 100%,
+            0 100%,
+            0 var(--notch),
+            var(--notch) 0
+    );
+
+    background: var(--theme-color);
+}
+
+.music-thumbnail {
+    --notch: 0rem;
+    --right-inset: 3.5rem;
+
+    width: 100%;
+    height: 100%;
+
     position: relative;
-    max-width: 100%;
-    overflow: hidden;   /* hide the scrolling overflow */
-    margin-right: 20px;
-}
 
-.music-title-track {
-    white-space: nowrap;
-}
-
-.music-title-track.marquee {
-    display: inline-block;
-    will-change: transform;
-    animation: marquee 14s linear infinite;
-}
-
-.music-title-text {
-    color: white;
-    font-size: 90px;
-    line-height: 3;
+    clip-path: polygon(
+            100% 0,
+            100% calc(100% - var(--right-inset)),
+            calc(100% - var(--right-inset)) 100%,
+            0 100%,
+            0 var(--notch),
+            var(--notch) 0
+    );
 }

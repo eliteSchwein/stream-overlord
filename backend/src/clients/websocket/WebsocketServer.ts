@@ -35,7 +35,8 @@ export default class WebsocketServer {
         'notify_visible_element',
         'notify_connection',
         'notify_config_update',
-        'notify_obs_scene_update'
+        'notify_obs_scene_update',
+        'notify_tauonmb_show'
     ]
     connectionEndpoints = {}
     
