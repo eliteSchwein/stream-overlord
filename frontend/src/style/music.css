@@ -43,7 +43,7 @@
 .music-thumbnail-container {
     --notch: 0;
     --right-inset: 3.75rem;
-    width: 300px;
+    width: 100vh;
     min-width: 300px;
     height: calc(100% + 10px);
     padding: 10px;
