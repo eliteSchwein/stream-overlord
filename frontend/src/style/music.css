@@ -16,6 +16,11 @@
     overflow: hidden;   /* hide the scrolling overflow */
 }
 
+.music-title-container {
+    display: flex;
+    flex-direction: column;
+}
+
 .music-title-track {
     font-size: 4rem;
     white-space: nowrap;

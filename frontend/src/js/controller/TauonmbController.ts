@@ -48,16 +48,14 @@ export default class TauonmbController extends BaseController {
             this.barElement.style.width = `${this.status.progress_percentage}%`
         }
 
-        if(this.status.track.id !== this.currentTrackId) {
-            if(this.titleElement) {
-                this.titleElement.innerHTML = this.status.title
-                this.addmarquee(this.titleElement)
-            }
+        if(this.titleElement) {
+            this.titleElement.innerHTML = this.status.title
+            this.addmarquee(this.titleElement)
+        }
 
-            if(this.artistElement) {
-                this.artistElement.innerHTML = this.status.artist
-                this.addmarquee(this.artistElement)
-            }
+        if(this.artistElement) {
+            this.artistElement.innerHTML = this.status.artist
+            this.addmarquee(this.artistElement)
         }
 
         this.currentTrackId = this.status.track.id
