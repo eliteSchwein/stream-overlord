@@ -134,12 +134,14 @@ export default {
     }
   },
   mounted() {
-    eventBus.$on('websocket:connected', () => {
-      setTimeout(() => {
-        this.backendConfigText = this.getBackendConfig
-      }, 250)
-    })
     this.backendConfigText = this.getBackendConfig
+    if(this.backendConfigText === '') {
+      eventBus.$on('websocket:connected', () => {
+        setTimeout(() => {
+          this.backendConfigText = this.getBackendConfig
+        }, 250)
+      })
+    }
   },
   computed: {
     ...mapState(useAppStore, ['getBackendConfig', 'getObsSceneData', 'getScene']),
