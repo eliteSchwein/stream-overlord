@@ -3,7 +3,7 @@ import TwitchClient from "../clients/twitch/Client";
 import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
 import {watchFile, writeFileSync} from "node:fs";
 import loadMacros from "./MacroHelper";
-import getWebsocketServer, {getTwitchClient} from "../App";
+import getWebsocketServer, {getOBSClient, getTwitchClient} from "../App";
 import registerPermissions from "../clients/twitch/helper/PermissionHelper";
 import {fetchGameInfo} from "./GameHelper";
 import {initAudio} from "./AudioHelper";
@@ -86,6 +86,9 @@ export function watchConfig() {
                 await registerPermissions(getTwitchClient().getBot())
                 loadMacros()
                 await fetchGameInfo()
+                try {
+                    await getOBSClient().connect()
+                } catch (error) {}
                 logSuccess('reload finished')
 
                 getWebsocketServer().send("notify_config_update", {data: getRawConfig()})

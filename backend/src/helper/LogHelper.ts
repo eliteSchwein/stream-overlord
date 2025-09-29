@@ -46,3 +46,9 @@ function getTimeStamp() {
     const date = new Date()
     return `[${date.toISOString()}]`.grey
 }
+
+export function isDebug() {
+    return getConfig(/logging/g)[0].debug
+}
+
+export function getLogConfig() { return getConfig(/logging/g)[0] }

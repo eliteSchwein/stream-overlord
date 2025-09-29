@@ -1,14 +1,23 @@
 import {getConfig} from "../../helper/ConfigHelper";
 import OBSWebSocket, {EventSubscription, OBSWebSocketError} from "obs-websocket-js";
-import {logCustom, logDebug, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {
+    getLogConfig,
+    isDebug,
+    logCustom,
+    logDebug,
+    logNotice,
+    logRegular,
+    logSuccess,
+    logWarn
+} from "../../helper/LogHelper";
 import {updateSourceFilters} from "../../helper/SourceHelper";
-import {sleep} from "../../../../helper/GeneralHelper";
 import getWebsocketServer from "../../App";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
     connected = false
     sceneData: []
+    eventFetching = false
 
     public async connect() {
         const config = getConfig(/obs/g)[0]
@@ -16,9 +25,7 @@ export class OBSClient {
         this.connected = false
         this.sceneData = []
 
-        if(this.obsWebsocket) {
-            await this.obsWebsocket.disconnect()
-        }
+        await this.disconnect()
 
         try {
             this.obsWebsocket = new OBSWebSocket()
@@ -50,6 +57,12 @@ export class OBSClient {
         logSuccess('obs client is ready')
     }
 
+    public async disconnect() {
+        if(!this.obsWebsocket) return
+
+        await this.obsWebsocket.disconnect()
+    }
+
     public registerEvents() {
         this.obsWebsocket.on('ConnectionClosed', async (error: OBSWebSocketError) => {
             await this.handleOBSError(error)
@@ -57,6 +70,40 @@ export class OBSClient {
         this.obsWebsocket.on('ConnectionError', async (error: OBSWebSocketError) => {
             await this.handleOBSError(error)
         })
+
+        // Add all events that can affect your items list
+        const events = [
+            // Profiles / collections
+            "CurrentProfileChanged",
+            "CurrentSceneCollectionChanged",
+            "SceneCollectionListChanged",
+            "ProfileListChanged",
+
+            // Scene structure & names
+            "SceneCreated",
+            "SceneRemoved",
+            "SceneNameChanged",
+            "SceneListChanged",
+
+            // Scene item lifecycle & structure
+            "SceneItemCreated",
+            "SceneItemRemoved",
+            "SceneItemListReindexed",
+
+            // wtf, why is obs so stupid. this specific one is for source item AND audio
+            "InputNameChanged",
+        ];
+
+        events.forEach(event =>
+            // @ts-ignore
+            this.obsWebsocket.on(event, async () => {
+                if(this.eventFetching) return
+                this.eventFetching = true
+                await this.fetchItems()
+                this.eventFetching = false
+            })
+        );
+
     }
 
     private async handleOBSError(error: OBSWebSocketError) {
@@ -105,7 +152,13 @@ export class OBSClient {
     public async fetchItems() {
         if(!this.connected) return
 
-        logNotice('dump all obs scenes and items:')
+        const fullObsLog = getLogConfig().full_obs_log
+
+        if(fullObsLog) {
+            logNotice('dump all obs scenes and items:')
+        } else {
+            logNotice('dump all obs scenes and items')
+        }
 
         const {scenes} = await this.obsWebsocket.call('GetSceneList')
 
@@ -114,7 +167,9 @@ export class OBSClient {
         for(const scene of scenes) {
             // @ts-ignore
             const {sceneItems} = await this.obsWebsocket.call('GetSceneItemList', {sceneUuid: scene.sceneUuid})
-            logCustom(`sources for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
+            if(fullObsLog) {
+                logCustom(`sources for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
+            }
 
             const sceneData = {
                 index: scene.sceneIndex,
@@ -124,7 +179,9 @@ export class OBSClient {
             }
 
             for(const sceneItem of sceneItems) {
-                logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
+                if(fullObsLog) {
+                    logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
+                }
 
                 sceneData.items.push({
                     id: sceneItem.sceneItemId,
@@ -142,7 +199,9 @@ export class OBSClient {
 
         getWebsocketServer().send('notify_obs_scene_update', this.sceneData)
 
-        logNotice('end of obs dump')
+        if(fullObsLog) {
+            logNotice('end of obs dump')
+        }
     }
 
     public async reloadAllBrowserScenes() {

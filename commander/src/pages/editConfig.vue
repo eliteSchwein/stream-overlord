@@ -68,33 +68,39 @@
                       </tbody>
                     </v-table>
 
-                    <!-- nested panels for items -->
-                    <v-expansion-panels multiple class="mt-2">
-                      <v-expansion-panel
-                        color="grey-darken-3"
-                        v-for="obsItem in obsScene.items"
-                        :key="obsItem.uuid || obsItem.id"
-                      >
-                        <v-expansion-panel-title>
-                          {{ obsItem.name }}
-                        </v-expansion-panel-title>
 
-                        <v-expansion-panel-text class="pa-0">
-                          <v-table>
-                            <tbody>
-                            <tr>
-                              <td>UUID</td>
-                              <td>{{ obsItem.uuid }}</td>
-                            </tr>
-                            <tr>
-                              <td>ID</td>
-                              <td>{{ obsItem.id }}</td>
-                            </tr>
-                            </tbody>
-                          </v-table>
-                        </v-expansion-panel-text>
-                      </v-expansion-panel>
-                    </v-expansion-panels>
+                    <template v-if="obsScene.items === 0">
+
+                    </template>
+                    <template v-else>
+                      <!-- nested panels for items -->
+                      <v-expansion-panels multiple class="mt-2">
+                        <v-expansion-panel
+                          color="grey-darken-3"
+                          v-for="obsItem in obsScene.items"
+                          :key="obsItem.uuid || obsItem.id"
+                        >
+                          <v-expansion-panel-title>
+                            {{ obsItem.name }}
+                          </v-expansion-panel-title>
+
+                          <v-expansion-panel-text class="pa-0">
+                            <v-table>
+                              <tbody>
+                              <tr>
+                                <td>UUID</td>
+                                <td>{{ obsItem.uuid }}</td>
+                              </tr>
+                              <tr>
+                                <td>ID</td>
+                                <td>{{ obsItem.id }}</td>
+                              </tr>
+                              </tbody>
+                            </v-table>
+                          </v-expansion-panel-text>
+                        </v-expansion-panel>
+                      </v-expansion-panels>
+                    </template>
                   </v-expansion-panel-text>
                 </v-expansion-panel>
               </v-expansion-panels>
