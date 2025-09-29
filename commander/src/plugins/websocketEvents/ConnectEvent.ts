@@ -1,5 +1,6 @@
 import BaseEvent from "@/plugins/websocketEvents/BaseEvent";
 import {type Websocket, WebsocketEvent} from "websocket-ts";
+import eventBus from "@/eventBus.ts";
 
 export default class ConnectEvent extends BaseEvent {
   name = 'connect'
@@ -10,6 +11,8 @@ export default class ConnectEvent extends BaseEvent {
     this.store.setWebsocketConnecting(false)
 
     this.webSocketClient.send('register_endpoints', ['all'])
+
+    eventBus.$emit('websocket:connected', {})
     console.log('Connected to Websocket')
   }
 }

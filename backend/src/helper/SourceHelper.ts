@@ -31,6 +31,8 @@ export async function updateSourceFilters() {
         const databaseSource = currentSourceFilters.sources[sourceUuid]
         const sourceItemData = obsClient.getSceneItemByUuid(sourceUuid)
 
+        if(!sourceItemData) continue
+
         for(const filterName in databaseSource.filters) {
             const filter = databaseSource.filters[filterName];
             const config = JSON.parse(filter.config)
