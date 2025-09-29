@@ -86,3 +86,35 @@
             var(--notch) 0
     );
 }
+
+.music-volume {
+    transform: rotate(135deg);
+    position: absolute;
+    bottom: 6rem;
+    right: -4.5rem;
+    height: 2rem;
+    width: 22rem;
+}
+
+.music-volume-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.music-volume-bar {
+    position: absolute;
+    height: 100%;
+    width: 0%;
+    top: 0;
+    right: 0;
+    background: var(--theme-color);
+}
+
+.music-volume-text {
+    position: absolute;
+    right: 8px;
+    bottom: -45px;
+    transform: rotate(180deg);
+    font-size: 2rem;
+}

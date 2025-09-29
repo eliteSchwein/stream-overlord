@@ -119,4 +119,16 @@ export default class TauonmbClient {
 
         return await this.callEndpoint('back')
     }
+
+    public async setVolume(volume: number) {
+        if(this.disabled) return
+
+        return await this.callEndpoint(`setvolume/${volume}`)
+    }
+
+    public async setRelativeVolume(volume: number) {
+        if(this.disabled) return
+
+        return await this.callEndpoint(`setvolumerel/${volume}`)
+    }
 }

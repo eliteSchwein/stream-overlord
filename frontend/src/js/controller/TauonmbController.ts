@@ -16,6 +16,7 @@ export default class TauonmbController extends BaseController {
     protected barElement = this.element.querySelector('.music-progress-bar') as HTMLDivElement|undefined
     protected titleElement = this.element.querySelector('.music-title-text') as HTMLDivElement|undefined
     protected artistElement = this.element.querySelector('.music-artist-text') as HTMLDivElement|undefined
+    protected volumeElement = this.element.querySelector('.music-volume') as HTMLDivElement|undefined
     protected showTimeout: any = -1
     protected testMode = false
 
@@ -44,7 +45,7 @@ export default class TauonmbController extends BaseController {
             return
         }
 
-        if(this.status.id !== data.id) {
+        if(this.status.id !== data.id || this.status.volume !== data.volume) {
             void this.showPlayer()
         }
 
@@ -62,6 +63,19 @@ export default class TauonmbController extends BaseController {
         if(this.artistElement) {
             this.artistElement.innerHTML = this.status.artist
             this.addmarquee(this.artistElement)
+        }
+
+        if(this.volumeElement) {
+            const volumeBar = this.volumeElement.querySelector('.music-volume-bar') as HTMLDivElement|undefined
+            const volumeText = this.volumeElement.querySelector('.music-volume-text') as HTMLDivElement|undefined
+
+            if(volumeBar) {
+                volumeBar.style.width = `${data.volume.toFixed(0)}%`
+            }
+
+            if(volumeText) {
+                volumeText.innerHTML = `${data.volume.toFixed(0)}%`
+            }
         }
 
         this.currentTrackId = this.status.track.id
