@@ -8,7 +8,7 @@
     min-height="100%"
   >
     <v-row class="mx-3 my-2 mb-0 pb-0">
-      <v-col cols="8">
+      <v-col sm="12" md="8" xl="10">
         <v-textarea  style="min-height: calc(100vh - 90px)" v-model="backendConfigText" variant="outlined"></v-textarea>
       </v-col>
       <v-col>
@@ -85,7 +85,7 @@
                             </v-expansion-panel-title>
 
                             <v-expansion-panel-text class="pa-0">
-                              <v-table>
+                              <v-table class="wrap-anywhere">
                                 <tbody>
                                 <tr>
                                   <td>UUID</td>
@@ -158,6 +158,12 @@ export default {
 </script>
 
 <style lang="scss">
+.wrap-anywhere td,
+.wrap-anywhere th {
+  white-space: normal !important;
+  overflow-wrap: anywhere;      /* modern, nicest */
+  word-break: break-word;       /* Safari fallback */
+}
 .v-expansion-panel-text {
   &.pa-0 {
     .v-expansion-panel-text__wrapper {
