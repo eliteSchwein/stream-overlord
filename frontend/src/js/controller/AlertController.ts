@@ -34,9 +34,16 @@ export default class AlertController extends BaseController {
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
+        if(method === 'notify_test_mode') {
+            data.channel = this.channel
+            data.action = data.active ? 'show' : 'hide'
+            data.message = 'TEST TEST TEST TEST'
+            data.icon = 'test-tube'
+        }
+
         if(!data.channel || data.channel !== this.channel) return
 
-        if(method !== 'notify_alert') return
+        if(method !== 'notify_alert' && method !== 'notify_test_mode') return
 
         const action = data.action
 

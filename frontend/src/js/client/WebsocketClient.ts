@@ -24,7 +24,7 @@ export default class WebsocketClient {
 
         this.websocket.addEventListener(WebsocketEvent.open, () => {
             console.log("Websocket connected");
-            this.registerEndpoints(["notify_game_update", "notify_shield_mode"]);
+            this.registerEndpoints(["notify_game_update", "notify_shield_mode", "notify_test_mode"]);
 
             // If we just reconnected (after a close), reload once
             if (this.reconnecting && !this.hasReloadedAfterReconnect) {

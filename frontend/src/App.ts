@@ -66,7 +66,7 @@ async function init(){
 
     await sleep(250)
 
-    websocketClient.registerEndpoints(['notify_game_update', 'notify_shield_mode'])
+    websocketClient.registerEndpoints(['notify_game_update', 'notify_shield_mode', 'notify_test_mode'])
 }
 
 export function getWebsocketClient() {

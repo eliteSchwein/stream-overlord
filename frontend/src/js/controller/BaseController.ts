@@ -22,6 +22,7 @@ export default class BaseController extends Controller<HTMLElement> {
     }
 
     async connect() {
+        console.log('connect', this.element)
         await this.preConnect()
         await this.register()
         await this.postConnect()

@@ -173,6 +173,7 @@
 }
 .new-alert-container .alert-content .stack span {
     text-shadow: 0 0 15px black!important;
+    color: var(--theme-color);
 }
 .new-alert-container .alert-logo {
     position: unset;

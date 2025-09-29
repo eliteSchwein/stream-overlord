@@ -17,10 +17,16 @@ export default class TauonmbController extends BaseController {
     protected titleElement = this.element.querySelector('.music-title-text') as HTMLDivElement|undefined
     protected artistElement = this.element.querySelector('.music-artist-text') as HTMLDivElement|undefined
     protected showTimeout: any = -1
+    protected testMode = false
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if(method === 'notify_tauonmb_show') {
             void this.showPlayer()
+            return
+        }
+        if(method === 'notify_test_mode') {
+            this.testMode = data.active
+            this.showPlayer()
             return
         }
         if(method !== 'notify_tauonmb_update') return
@@ -89,6 +95,7 @@ export default class TauonmbController extends BaseController {
         clearTimeout(this.showTimeout)
 
         this.showTimeout = setTimeout(()=> {
+            if(this.testMode) return
             this.alertBoxHelper.hide()
         }, 15_000)
     }

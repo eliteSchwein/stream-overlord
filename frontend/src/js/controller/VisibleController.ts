@@ -9,10 +9,14 @@ export default class VisibleController extends BaseController {
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if(!data) return
+        if(method === 'notify_test_mode') {
+            data.target = this.id
+            data.state = data.active
+        }
         if(!data.target || data.target !== this.id) return
         if(data.state === undefined) return
 
-        if(method !== 'notify_visible_element') return
+        if(method !== 'notify_test_mode' && method !== 'notify_visible_element') return
 
         switch (data.state) {
             case true:
