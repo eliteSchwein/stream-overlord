@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Firefox Commander
+Comment=Open Stream Commander in kiosk mode
+# delay with 'sleep' before launching firefox
+Exec=sh -c 'sleep 5 && firefox --kiosk --no-remote --new-instance http://localhost:8105/commander'
+X-GNOME-Autostart-enabled=true
