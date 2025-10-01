@@ -17,7 +17,8 @@ ExecStartPre=/usr/bin/sleep 5
 ExecStart=/usr/bin/firefox --kiosk --no-remote --new-instance \
   http://localhost:8105/commander
 
-Restart=no
+Restart=on-failure
+RestartSec=5s
 Environment=NODE_ENV=production
 
 [Install]
