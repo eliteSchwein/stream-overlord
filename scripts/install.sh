@@ -5,6 +5,10 @@ mkdir -p ~/.config/systemd/user/
 cp stream-overlord.service ~/.config/systemd/user/
 cp firefox-commander.service ~/.config/systemd/user/
 
+systemctl --user daemon-reload
+systemctl --user enable stream-overlord
+systemctl --user enable firefox-commander
+
 sudo apt install -y evtest alsa-utils libespeak-ng1 espeak libespeak-dev
 
 bash migrateNode.sh
