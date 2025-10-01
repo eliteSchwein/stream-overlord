@@ -10,6 +10,7 @@ import {initAudio} from "./AudioHelper";
 import {readFileSync} from "fs";
 import * as path from "node:path";
 import {initGpio} from "./SystemHelper";
+import {downloadVoice} from "./TTShelper";
 
 let config = {}
 let primaryChannel = undefined
@@ -87,10 +88,15 @@ export function watchConfig() {
                 await registerPermissions(getTwitchClient().getBot())
                 loadMacros()
                 await fetchGameInfo()
+
                 try {
                     await getOBSClient().connect()
                 } catch (error) {}
+
                 initGpio()
+
+                await downloadVoice()
+
                 logSuccess('reload finished')
 
                 getWebsocketServer().send("notify_config_update", {data: getRawConfig()})

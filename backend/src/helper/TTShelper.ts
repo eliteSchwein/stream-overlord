@@ -3,7 +3,7 @@ import { execute } from "./CommandHelper";
 import { logDebug, logNotice, logWarn } from "./LogHelper";
 import { getAudioData } from "./AudioHelper";
 import { getArch, parsePath } from "./SystemHelper";
-import { createWriteStream, existsSync, rmSync, statSync } from "node:fs";
+import { createWriteStream, existsSync, rmSync } from "node:fs";
 import { mkdirSync } from "fs";
 import { promisify } from "node:util";
 import * as stream from "node:stream";
@@ -25,9 +25,7 @@ const finishedDownload = promisify(stream.finished);
 
 /** List repo tree (handles pagination via Link: rel="next"). */
 async function* hfListRepoTree(repo = HF_REPO, rev = HF_REV) {
-    let url = `https://huggingface.co/api/models/${encodeURIComponent(
-        repo
-    )}/tree/${encodeURIComponent(rev)}?recursive=1`;
+    let url = `https://huggingface.co/api/models/${encodeURIComponent(repo)}/tree/${encodeURIComponent(rev)}?recursive=1`;
 
     while (url) {
         const res = await axios.get(url, {
@@ -36,9 +34,7 @@ async function* hfListRepoTree(repo = HF_REPO, rev = HF_REV) {
             headers: { Accept: "application/json" },
         });
         if (res.status !== 200 || !Array.isArray(res.data)) {
-            throw new Error(
-                `HF tree fetch failed: ${res.status} ${res.statusText || ""}`
-            );
+            throw new Error(`HF tree fetch failed: ${res.status} ${res.statusText || ""}`);
         }
         for (const entry of res.data as HFEntry[]) yield entry;
 
@@ -53,119 +49,127 @@ async function* hfListRepoTree(repo = HF_REPO, rev = HF_REV) {
     }
 }
 
-/** Extract only the filename, e.g. 'en/en_US/joe/voice.onnx' -> 'voice.onnx' */
-function toFlatFilename(repoPath: string): string {
-    return path.basename(repoPath);
-}
-
 /** Download one file from HF /resolve endpoint to destFile. */
-async function hfDownloadFile(
-    repoPath: string,
-    destFile: string,
-    repo = HF_REPO,
-    rev = HF_REV
-) {
-    const src = `https://huggingface.co/${repo}/resolve/${encodeURIComponent(
-        rev
-    )}/${repoPath}`;
+async function hfDownloadFile(repoPath: string, destFile: string, repo = HF_REPO, rev = HF_REV) {
+    const src = `https://huggingface.co/${repo}/resolve/${encodeURIComponent(rev)}/${repoPath}`;
     const res = await axios.get(src, {
         responseType: "stream",
         validateStatus: () => true,
     });
     if (res.status !== 200) {
-        throw new Error(
-            `Download failed ${res.status} ${res.statusText} for ${repoPath}`
-        );
+        throw new Error(`Download failed ${res.status} ${res.statusText} for ${repoPath}`);
     }
     const writer = createWriteStream(destFile);
     res.data.pipe(writer);
     await finishedDownload(writer);
 }
 
-/** Very small promise pool. */
-async function promisePool<T, R>(
-    items: T[],
-    limit: number,
-    worker: (item: T) => Promise<R>
-) {
-    const results: Promise<R>[] = [];
-    const executing = new Set<Promise<R>>();
-    for (const item of items) {
-        const p = Promise.resolve().then(() => worker(item));
-        results.push(p);
-        executing.add(p);
-        const clean = () => executing.delete(p);
-        p.then(clean, clean);
-        if (executing.size >= limit) await Promise.race(executing);
+/** Resolve the repo paths for the desired voice .onnx and its .onnx.json sidecar. */
+async function resolveVoicePaths(modelSetting: string): Promise<{ onnxRepoPath: string; jsonRepoPath: string; basename: string }> {
+    const desiredBase = path.basename(modelSetting).endsWith(".onnx")
+        ? path.basename(modelSetting)
+        : `${path.basename(modelSetting)}.onnx`;
+
+    let explicitRepoPath: string | null = null;
+    if (modelSetting.includes("/")) {
+        // Caller provided a repo path; normalize to .onnx
+        const maybe = modelSetting.endsWith(".onnx") ? modelSetting : `${modelSetting}.onnx`;
+        explicitRepoPath = maybe.replace(/^\/+/, "");
     }
-    return Promise.allSettled(results);
-}
 
-/**
- * Download all Piper voices (.onnx and .onnx.json) into `${installPath}/models` (flat).
- * Skips files that already exist (by flattened filename).
- */
-export async function downloadAllPiperVoices(
-    installPath: string,
-    {
-        concurrency = 4,
-        dryRun = false,
-        include = [/\.onnx$/i, /\.onnx\.json$/i],
-        exclude = [/\.md$/i, /LICENSE/i],
-    }: {
-        concurrency?: number;
-        dryRun?: boolean;
-        include?: RegExp[];
-        exclude?: RegExp[];
-    } = {}
-) {
-    const modelsDir = `${installPath}/models`;
-    if (!existsSync(modelsDir)) mkdirSync(modelsDir, { recursive: true });
+    let foundOnnx: string | undefined;
+    let foundJson: string | undefined;
 
-    const candidates: { repoPath: string; outFile: string }[] = [];
     for await (const entry of hfListRepoTree()) {
         if (entry.type !== "file") continue;
-        const ok =
-            include.some((rx) => rx.test(entry.path)) &&
-            !exclude.some((rx) => rx.test(entry.path));
-        if (!ok) continue;
 
-        const outFile = `${modelsDir}/${toFlatFilename(entry.path)}`;
-        if (existsSync(outFile)) {
-            // Already present; skip.
-            continue;
+        if (explicitRepoPath) {
+            if (!foundOnnx && entry.path === explicitRepoPath) {
+                foundOnnx = entry.path;
+            }
+            // sidecar in same folder with same basename + ".json"
+            const folder = path.posix.dirname(explicitRepoPath);
+            const base = path.posix.basename(explicitRepoPath);
+            if (!foundJson && entry.path === path.posix.join(folder, `${base}.json`)) {
+                foundJson = entry.path;
+            }
+        } else {
+            // search by filename only (first match wins)
+            if (!foundOnnx && entry.path.endsWith(`/${desiredBase}`) || (!foundOnnx && entry.path === desiredBase)) {
+                foundOnnx = entry.path;
+            }
+            if (!foundJson && (entry.path.endsWith(`/${desiredBase}.json`) || entry.path === `${desiredBase}.json`)) {
+                foundJson = entry.path;
+            }
         }
-        candidates.push({ repoPath: entry.path, outFile });
+
+        if (foundOnnx && foundJson) break;
     }
 
-    if (candidates.length === 0) {
-        logNotice("No new Piper voice artifacts to download.");
+    if (!foundOnnx) {
+        throw new Error(
+            explicitRepoPath
+                ? `Voice model not found at '${explicitRepoPath}' in ${HF_REPO}@${HF_REV}`
+                : `Voice model '${desiredBase}' not found in ${HF_REPO}@${HF_REV}`
+        );
+    }
+
+    // If JSON not found yet, try derive by directory of foundOnnx
+    if (!foundJson) {
+        const dir = path.posix.dirname(foundOnnx);
+        const base = path.posix.basename(foundOnnx);
+        foundJson = path.posix.join(dir, `${base}.json`);
+        // We won't re-scan the tree here; download step will throw if missing.
+    }
+
+    return { onnxRepoPath: foundOnnx, jsonRepoPath: foundJson, basename: path.basename(foundOnnx) };
+}
+
+/** Download only the configured voice (config.model) into ${installPath}/models as flat files. */
+export async function downloadVoice() {
+    const cfg = getFullConfig()["tts"];
+    if (!cfg || !cfg.location || !cfg.model) return;
+
+    const installPath = parsePath(cfg.location);
+    const modelsDir = path.join(installPath, "models");
+    mkdirSync(modelsDir, { recursive: true });
+
+    // Resolve repo paths for .onnx and .onnx.json
+    const { onnxRepoPath, jsonRepoPath, basename } = await resolveVoicePaths(String(cfg.model));
+
+    const onnxDest = path.join(modelsDir, path.basename(basename)); // flat
+    const jsonDest = `${onnxDest}.json`; // flat
+
+    // Skip if already present
+    const needOnnx = !existsSync(onnxDest);
+    const needJson = !existsSync(jsonDest);
+
+    if (!needOnnx && !needJson) {
+        logNotice(`Voice already present: ${path.basename(onnxDest)} (+ .json)`);
         return;
     }
 
-    logNotice(`Downloading ${candidates.length} Piper voice files to ${modelsDir}...`);
-    if (dryRun) {
-        for (const c of candidates) logDebug(`Would download: ${c.repoPath} -> ${c.outFile}`);
-        return;
-    }
+    logNotice(`Downloading voice '${path.basename(onnxDest)}' to ${modelsDir}...`);
 
-    const results = await promisePool(
-        candidates,
-        concurrency,
-        async ({ repoPath, outFile }) => {
-            await hfDownloadFile(repoPath, outFile);
-            logDebug(`Downloaded: ${repoPath}`);
-            return outFile;
-        }
-    );
-
-    const failed = results.filter((r) => r.status === "rejected") as PromiseRejectedResult[];
-    if (failed.length) {
-        logWarn(`${failed.length} voice file(s) failed to download.`);
-        for (const f of failed) logWarn(String(f.reason));
+    if (needOnnx) {
+        await hfDownloadFile(onnxRepoPath, onnxDest);
+        logDebug(`Downloaded: ${onnxRepoPath} -> ${onnxDest}`);
     } else {
-        logNotice("All Piper voice files downloaded.");
+        logDebug(`Already exists: ${onnxDest}`);
     }
+
+    if (needJson) {
+        try {
+            await hfDownloadFile(jsonRepoPath, jsonDest);
+            logDebug(`Downloaded: ${jsonRepoPath} -> ${jsonDest}`);
+        } catch (e: any) {
+            logWarn(`Sidecar missing for '${path.basename(onnxDest)}': ${e?.message || e}`);
+        }
+    } else {
+        logDebug(`Already exists: ${jsonDest}`);
+    }
+
+    logNotice(`Voice download complete.`);
 }
 
 export async function installPiper() {
@@ -174,12 +178,9 @@ export async function installPiper() {
     const installPath = parsePath(config.location);
 
     if (existsSync(installPath) && existsSync(`${installPath}/piper`)) {
-        // Ensure models directory exists even if piper already present
         if (!existsSync(`${installPath}/models`)) mkdirSync(`${installPath}/models`, { recursive: true });
-        // Also ensure we have voices
-        await downloadAllPiperVoices(installPath).catch((e) =>
-            logWarn(`Voice download failed: ${e?.message || e}`)
-        );
+        // Only the configured voice
+        await downloadVoice().catch((e) => logWarn(`Voice download failed: ${e?.message || e}`));
         return;
     }
 
@@ -199,9 +200,7 @@ export async function installPiper() {
     });
 
     if (response.status !== 200) {
-        throw new Error(
-            `Piper binary download failed: ${response.status} ${response.statusText}`
-        );
+        throw new Error(`Piper binary download failed: ${response.status} ${response.statusText}`);
     }
 
     response.data.pipe(writer);
@@ -215,9 +214,8 @@ export async function installPiper() {
     await execute(`chmod +x ${installPath}/piper`);
     await execute(`mkdir -p ${installPath}/models`);
 
-    await downloadAllPiperVoices(installPath).catch((e) =>
-        logWarn(`Voice download failed: ${e?.message || e}`)
-    );
+    // Only the configured voice
+    await downloadVoice().catch((e) => logWarn(`Voice download failed: ${e?.message || e}`));
 }
 
 export async function speak(message: string) {
@@ -230,7 +228,6 @@ export async function speak(message: string) {
     }
 
     let piperAttributes = "";
-
     if (config.enable_cuda) {
         piperAttributes = "--cuda";
     }
@@ -241,11 +238,12 @@ export async function speak(message: string) {
         let playCommand = config.play_command;
         playCommand = playCommand.replace("${volume}", audioData["current_volume"]);
 
+        // Use only the filename placed in models/
+        const modelFile = path.basename(String(config.model));
+
         const command = `bash -c "cd ${parsePath(
             config.location
-        )} && echo '${message}' | ./piper ${piperAttributes} --model models/${
-            config.model
-        } --output-raw | ${playCommand}"`;
+        )} && echo '${message}' | ./piper ${piperAttributes} --model models/${modelFile} --output-raw | ${playCommand}"`;
 
         logDebug(`TTS Command: ${command}`);
         await execute(command);
