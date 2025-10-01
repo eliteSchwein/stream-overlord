@@ -9,6 +9,7 @@ import {fetchGameInfo} from "./GameHelper";
 import {initAudio} from "./AudioHelper";
 import {readFileSync} from "fs";
 import * as path from "node:path";
+import {initGpio} from "./SystemHelper";
 
 let config = {}
 let primaryChannel = undefined
@@ -89,6 +90,7 @@ export function watchConfig() {
                 try {
                     await getOBSClient().connect()
                 } catch (error) {}
+                initGpio()
                 logSuccess('reload finished')
 
                 getWebsocketServer().send("notify_config_update", {data: getRawConfig()})

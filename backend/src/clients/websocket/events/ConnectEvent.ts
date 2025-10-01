@@ -21,6 +21,7 @@ import RegisterMessage from "./messages/RegisterMessage";
 import DisconnectConnectionMessage from "./messages/DisconnectConnectionMessage";
 import UpdateConfigMessage from "./messages/UpdateConfigMessage";
 import ToggleTestModeMessage from "./messages/ToggleTestModeMessage";
+import HaltSystemMessage from "./messages/HaltSystemMessage";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -48,6 +49,7 @@ export default class ConnectEvent extends BaseEvent{
             await new DisconnectConnectionMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new UpdateConfigMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new ToggleTestModeMessage(this.webSocketServer, event, this.client).handleMessage(data)
+            await new HaltSystemMessage(this.webSocketServer, event, this.client).handleMessage(data)
         })
 
         event.on("close", (code, reason) => {

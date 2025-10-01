@@ -16,6 +16,7 @@ import loadMacros from "./helper/MacroHelper";
 import {updateSystemInfo} from "./helper/SystemInfoHelper";
 import {updateSourceFilters} from "./helper/SourceHelper";
 import TauonmbClient from "./clients/tauonmb/TauonmbClient";
+import {initGpio, killGpio} from "./helper/SystemHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -77,6 +78,8 @@ async function init() {
 
     watchConfig()
 
+    initGpio()
+
     logSuccess('backend is ready')
 }
 
@@ -99,3 +102,7 @@ export function getOBSClient() {
 export function getTauonmbClient() {
     return tauonmbClient
 }
+
+process.on('SIGINT', () => {
+    killGpio()
+})

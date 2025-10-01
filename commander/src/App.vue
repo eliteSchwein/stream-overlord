@@ -10,6 +10,7 @@
       </v-layout>
     </v-card>
     <ConnectDialog></ConnectDialog>
+    <PowerDialog></PowerDialog>
   </v-app>
 </template>
 

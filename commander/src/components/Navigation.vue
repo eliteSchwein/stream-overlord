@@ -2,6 +2,7 @@
 
 import {mapActions, mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
+import eventBus from "@/eventBus.js";
 
 export default {
   data () {
@@ -47,6 +48,9 @@ export default {
     },
     async reloadBrowserSources() {
       await fetch(`${this.getRestApi}/api/obs/reload_browsers`)
+    },
+    showPowerMenu() {
+      eventBus.$emit('dialog:show', 'power')
     },
     reloadCommander() {
       window.location.reload()
@@ -128,6 +132,7 @@ export default {
             @click="toggleFullscreen"
             prepend-icon="mdi-fullscreen"
           ></v-list-item>
+          <v-divider></v-divider>
           <v-list-item
             title="Reload Commander"
             @click="reloadCommander"
@@ -142,6 +147,12 @@ export default {
             title="Reload Browser Sources"
             @click="reloadBrowserSources"
             prepend-icon="mdi-restart"
+          ></v-list-item>
+          <v-divider></v-divider>
+          <v-list-item
+            title="Poweroff System"
+            @click="showPowerMenu"
+            prepend-icon="mdi-power"
           ></v-list-item>
         </v-list>
       </v-menu>

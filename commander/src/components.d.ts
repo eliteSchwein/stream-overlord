@@ -13,6 +13,7 @@ declare module 'vue' {
     CurrentGame: typeof import('./components/CurrentGame.vue')['default']
     Game: typeof import('./components/Game.vue')['default']
     Navigation: typeof import('./components/Navigation.vue')['default']
+    PowerDialog: typeof import('./components/dialogs/PowerDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

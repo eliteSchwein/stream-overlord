@@ -1,7 +1,5 @@
 import type {WebsocketClient} from "@/plugins/webSocketClient";
 import {getRandomInt} from "@/helper/GeneralHelper";
-import type {Store} from "pinia";
-import {useAppStore} from "@/stores/app";
 
 export default class BaseMessage {
   webSocketClient: WebsocketClient

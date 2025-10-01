@@ -12,6 +12,7 @@ import NotifyConnectionMessage from "@/plugins/websocketEvents/websocketMessage/
 import NotifyConfigUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyConfigUpdateMessage.ts";
 import NotifyObsSceneUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyObsSceneUpdateMessage.ts";
 import NotifyTestMode from "@/plugins/websocketEvents/websocketMessage/NotifyTestMode.ts";
+import NotifyPowerButtonMessage from "@/plugins/websocketEvents/websocketMessage/NotifyPowerButtonMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -31,5 +32,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyConfigUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyObsSceneUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyTestMode(this.webSocketClient).handleMessage(data)
+    await new NotifyPowerButtonMessage(this.webSocketClient).handleMessage(data)
   }
 }
