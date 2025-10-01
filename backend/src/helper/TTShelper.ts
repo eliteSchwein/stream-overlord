@@ -15,6 +15,12 @@ export async function speak(message: string)
         return
     }
 
+    let piperAttributes = ''
+
+    if(config.enable_cuda) {
+        piperAttributes = '--cuda'
+    }
+
     message = message.replace(escapeRegex, '')
 
     try {
@@ -22,7 +28,7 @@ export async function speak(message: string)
 
         playCommand = playCommand.replace("${volume}", audioData['current_volume'])
 
-        const command = `bash -c "cd ${config.location} && echo '${message}' | ./piper --model ${config.model} --output-raw | ${playCommand}"`
+        const command = `bash -c "cd ${config.location} && echo '${message}' | ./piper ${piperAttributes} --model ${config.model} --output-raw | ${playCommand}"`
 
         logDebug(`TTS Command: ${command}`)
         await execute(command)
