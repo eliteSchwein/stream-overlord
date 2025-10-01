@@ -7,6 +7,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 import * as fs from "node:fs";
 import { spawn, ChildProcessWithoutNullStreams } from "node:child_process";
+import {execSync} from "child_process";
 
 /* ------------------------------------------------------------------
    Power button interception via evtest --grab
@@ -35,20 +36,39 @@ function listEventCandidates(): Array<{ dev: string; name: string }> {
     return res.sort((a, b) => score(b.name) - score(a.name));
 }
 
+function hasEvtest(): string | null {
+    try {
+        // Check common path first
+        if (fs.existsSync("/usr/bin/evtest")) return "/usr/bin/evtest";
+        // Fallback: use which
+        const out = execSync("which evtest", { stdio: ["ignore", "pipe", "ignore"] })
+            .toString().trim();
+        return out || null;
+    } catch {
+        return null;
+    }
+}
+
 function startEvtestGrab(onPress: () => void) {
     if (evtestProc) return;
+
+    const evtestPath = hasEvtest();
+    if (!evtestPath) {
+        logWarn("evtest not installed or not in PATH. Install with `sudo apt install evtest` (Debian/Ubuntu/RPi).");
+        return;
+    }
 
     const candidates = listEventCandidates();
     const first = candidates[0] || { dev: "/dev/input/event0", name: "" };
 
-    evtestProc = spawn("evtest", ["--grab", first.dev], {
+    evtestProc = spawn(evtestPath, ["--grab", first.dev], {
         stdio: ["ignore", "pipe", "pipe"]
     });
 
     evtestProc.stdout.setEncoding("utf8");
     evtestProc.stderr.setEncoding("utf8");
 
-    logRegular(`Intercepting KEY_POWER on ${first.dev} using evtest --grab`);
+    logRegular(`Intercepting KEY_POWER on ${first.dev} using ${evtestPath} --grab`);
 
     evtestProc.stdout.on("data", (chunk: string) => {
         if (chunk.includes("code 116 (KEY_POWER)")) {

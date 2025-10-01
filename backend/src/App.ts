@@ -33,15 +33,18 @@ async function init() {
     logRegular('load config')
     readConfig()
 
-    twitchClient = new TwitchClient()
-    await twitchClient.connect()
-    await registerPermissions(twitchClient.getBot())
-    registerPermissionInterval(twitchClient.getBot())
-
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()
     logSuccess('websocket server is ready')
+
+    webServer = new WebServer()
+    webServer.initial()
+
+    twitchClient = new TwitchClient()
+    await twitchClient.connect()
+    await registerPermissions(twitchClient.getBot())
+    registerPermissionInterval(twitchClient.getBot())
 
     try {
         logRegular('connect obs')
@@ -51,9 +54,6 @@ async function init() {
         logWarn('obs client failed:')
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
-
-    webServer = new WebServer()
-    webServer.initial()
 
     await fetchGameInfo()
 
