@@ -6,190 +6,135 @@ import getWebsocketServer from "../App";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as fs from "node:fs";
+import {spawn, ChildProcessWithoutNullStreams} from "node:child_process";
 
-// ---------------------
-// Power button intercept (generic Linux via evdev)
-// ---------------------
+let powerButton: any = undefined;
+let gpioActive = false;
 
-// We import at runtime to avoid TS typing issues
-let evdevModule: any | null = null;
-let powerDevHandle: any | null = null;
-let powerGrabbed = false;
+// ---------- Power button intercept via `evtest --grab` ----------
+let evtestProc: ChildProcessWithoutNullStreams | null = null;
 
-const KEY_POWER = 116;
-
-function readProcBusInput(): Array<{event: string; name: string}> {
-    let text = "";
+function listEventCandidates(): Array<{dev: string; name: string}> {
+    // Parse /proc/bus/input/devices -> map event node -> device name
+    let txt = "";
     try {
-        text = fs.readFileSync("/proc/bus/input/devices", "utf8");
+        txt = fs.readFileSync("/proc/bus/input/devices", "utf8");
     } catch {
         return [];
     }
-    const blocks = text.split(/\n\n+/);
-    const out: Array<{event: string; name: string}> = [];
+    const blocks = txt.split(/\n\n+/);
+    const res: Array<{dev: string; name: string}> = [];
     for (const b of blocks) {
         const name = (b.match(/^N:\s*Name="([^"]+)"/m) || [])[1] || "";
         const handlers = (b.match(/^H:\s*Handlers=([^\n]+)/m) || [])[1] || "";
         const ev = handlers.split(/\s+/).find(h => /^event\d+$/.test(h));
-        if (ev) out.push({event: ev, name});
+        if (ev) res.push({dev: `/dev/input/${ev}`, name});
     }
-    return out;
-}
-
-function candidateEventNodes(): string[] {
-    const uniq = new Set<string>();
-
-    // Prefer stable symlinks if present
-    for (const dir of ["/dev/input/by-path", "/dev/input/by-id"]) {
-        try {
-            for (const f of fs.readdirSync(dir)) {
-                if (f.endsWith("-event")) uniq.add(path.join(dir, f));
-            }
-        } catch {}
-    }
-    // Fallback to raw event nodes
-    try {
-        for (const f of fs.readdirSync("/dev/input")) {
-            if (/^event\d+$/.test(f)) uniq.add(path.join("/dev/input", f));
-        }
-    } catch {}
-
-    return Array.from(uniq);
-}
-
-function rankByPowerRelevance(nodes: string[]): string[] {
-    const proc = readProcBusInput(); // [{event, name}]
-    const byEvent = new Map(proc.map(p => [p.event, p.name]));
-    const score = (name?: string) => {
-        if (!name) return 0;
-        const n = name.toLowerCase();
-        if (/\bpower\b/.test(n)) return 100;      // "Power Button", etc.
-        if (/gpio-keys/.test(n)) return 50;       // often includes power on SBCs
-        if (/acpi/.test(n)) return 40;            // ACPI power button
+    // Prefer names likely to contain the power key
+    const score = (n: string) => {
+        const s = n.toLowerCase();
+        if (/\bpower\b/.test(s)) return 100;   // "Power Button"
+        if (/gpio-keys/.test(s)) return 60;    // SBCs often expose power through this
+        if (/acpi/.test(s)) return 50;         // ACPI power button
         return 0;
     };
-    return nodes.sort((a, b) => {
-        const sa = score(byEvent.get(path.basename(a)));
-        const sb = score(byEvent.get(path.basename(b)));
-        return sb - sa; // higher score first
+    res.sort((a,b) => score(b.name) - score(a.name));
+    return res;
+}
+
+function startEvtestGrab(onPress: () => void) {
+    if (evtestProc) return;
+
+    const candidates = listEventCandidates();
+    const firstReadable = candidates.find(c => {
+        try { fs.accessSync(c.dev, fs.constants.R_OK); return true; } catch { return false; }
+    }) || {dev: "/dev/input/event0", name: ""};
+
+    // Spawn: evtest --grab <device>
+    // We parse lines like: "Event: time ..., type 1 (EV_KEY), code 116 (KEY_POWER), value 1"
+    evtestProc = spawn("evtest", ["--grab", firstReadable.dev], {
+        stdio: ["ignore", "pipe", "pipe"]
+    });
+
+    evtestProc.stdout.setEncoding("utf8");
+    evtestProc.stderr.setEncoding("utf8");
+
+    logRegular(`Intercepting KEY_POWER on ${firstReadable.dev} using evtest --grab`);
+
+    evtestProc.stdout.on("data", (chunk: string) => {
+        // Quick parse
+        // Looking for "type 1 (EV_KEY), code 116 (KEY_POWER), value X"
+        if (chunk.includes("code 116 (KEY_POWER)")) {
+            const m = chunk.match(/value\s+(\d)/);
+            const val = m ? Number(m[1]) : undefined;
+            if (val === 1) {
+                onPress();
+            }
+        }
+    });
+
+    evtestProc.stderr.on("data", (d: string) => {
+        // Helpful warnings if permission denied etc.
+        if (/Permission denied/i.test(d)) {
+            logWarn(`evtest: permission denied reading ${firstReadable.dev}. Run as root or add user to 'input' group.`);
+        } else {
+            logWarn(d.trim());
+        }
+    });
+
+    evtestProc.on("exit", (code, signal) => {
+        logRegular(`evtest exited (code=${code} signal=${signal || ""})`);
+        evtestProc = null;
     });
 }
 
-async function initPowerIntercept(exclusiveGrab = true) {
-    if (powerDevHandle) return; // already running
-
-    try {
-        // @ts-ignore
-        evdevModule = require("node-evdev");
-    } catch (e: any) {
-        logWarn("node-evdev not installed. Run `npm i node-evdev`.");
-        return;
-    }
-
-    const candidates = rankByPowerRelevance(candidateEventNodes());
-    if (candidates.length === 0) {
-        logWarn("No /dev/input event devices found to monitor for power key.");
-        return;
-    }
-
-    for (const dev of candidates) {
-        try {
-            const d = new evdevModule(dev);
-            await d.open();
-            if (exclusiveGrab) {
-                await d.grab(); // EVIOCGRAB — prevent others from seeing events
-                powerGrabbed = true;
-            } else {
-                powerGrabbed = false;
-            }
-
-            logRegular(`Intercepting KEY_POWER on ${dev}${powerGrabbed ? " (exclusive)" : ""}`);
-
-            d.on("EV_KEY", (e: any) => {
-                // e.code numeric; 116 == KEY_POWER; e.value: 1=down, 0=up, 2=repeat
-                if (e.code !== KEY_POWER) return;
-
-                // Your bot's action:
-                if (e.value === 1) {
-                    getWebsocketServer().send("notify_power_button");
-                    // Implement long/short press semantics here if you like
-                }
-            });
-
-            d.on("error", (err: any) => {
-                logWarn(`power intercept error on ${dev}: ${err?.message || err}`);
-            });
-
-            powerDevHandle = d;
-            return; // use first successful device
-        } catch (e: any) {
-            logWarn(`Failed to open/grab ${dev}: ${e?.message || e}`);
-            continue;
-        }
-    }
-
-    logWarn("Could not intercept any input device for KEY_POWER. Check permissions (root or input group).");
+function stopEvtestGrab() {
+    if (!evtestProc) return;
+    try { evtestProc.kill("SIGTERM"); } catch {}
+    evtestProc = null;
 }
 
-async function killPowerIntercept() {
-    if (!powerDevHandle) return;
-    try {
-        if (powerGrabbed && powerDevHandle.ungrab) await powerDevHandle.ungrab();
-    } catch {}
-    try {
-        await powerDevHandle.close();
-    } catch {}
-    powerDevHandle = null;
-    powerGrabbed = false;
-    logRegular("power-button interception stopped");
-}
-
-// ---------------------
-// Your existing code
-// ---------------------
-
-let powerButton: any = undefined
-let gpioActive = false
+// ---------- Your existing GPIO logic ----------
 
 export function initGpio() {
-    // Start intercepting the real power key (works on all Linux)
-    // Pass false if you only want to observe and keep OS default behavior
-    void initPowerIntercept(true);
+    const config = getConfig(/gpio/)[0];
 
-    const config = getConfig(/gpio/)[0]
-    if(!config) return
+    // Intercept the real power key for ALL Linux (works on desktops, laptops, SBCs)
+    startEvtestGrab(() => {
+        getWebsocketServer().send("notify_power_button");
+    });
 
-    gpioActive = true
-    killGpio()
+    if(!config) return;
 
-    logRegular('init gpio')
+    gpioActive = true;
+    killGpio(); // ensure clean state
 
-    // NOTE: This watches a GPIO pin you configured yourself.
-    // The physical "power button" on many systems is NOT a GPIO,
-    // hence the evdev interception above.
-    powerButton = new Gpio(config.power_button, 'in', 'both')
+    logRegular('init gpio');
+
+    // NOTE: This GPIO is for your own external button wiring.
+    // The built-in system power button is *not* usually on a GPIO pin.
+    powerButton = new Gpio(config.power_button, 'in', 'both');
 
     powerButton.watch((error: any, value) => {
         if (error) {
-            logWarn('power button watch failed:')
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-            return
+            logWarn('power button watch failed:');
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            return;
         }
-
-        if(value === 1) {
-            getWebsocketServer().send('notify_power_button')
+        if (value === 1) {
+            getWebsocketServer().send('notify_power_button');
         }
-    })
+    });
 }
 
 export function killGpio() {
-    // stop evdev interception
-    void killPowerIntercept();
+    // stop power-key interception
+    stopEvtestGrab();
 
-    if(!gpioActive) return
+    if(!gpioActive) return;
 
-    logRegular('clear up gpio Resources')
-    if(powerButton) powerButton.unexport()
+    logRegular('clear up gpio Resources');
+    if(powerButton) powerButton.unexport();
 }
 
 export function parsePath(filePath: string) {
@@ -200,17 +145,17 @@ export function parsePath(filePath: string) {
 }
 
 export function getArch() {
-    const realArch = process.arch
+    const realArch = process.arch;
 
     switch (realArch) {
         case "x64":
-            return "x86_64"
+            return "x86_64";
         case "arm64":
-            return "aarch64"
+            return "aarch64";
         default:
-            return "armv7"
+            return "armv7";
     }
 }
 
-export async function rebootSystem() { await execute('shutdown -r now') }
-export async function shutdownSystem() { await execute('shutdown -h now') }
+export async function rebootSystem() { await execute('shutdown -r now'); }
+export async function shutdownSystem() { await execute('shutdown -h now'); }
