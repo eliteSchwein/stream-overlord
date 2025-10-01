@@ -127,49 +127,54 @@ async function resolveVoicePaths(modelSetting: string): Promise<{ onnxRepoPath: 
 
 /** Download only the configured voice (config.model) into ${installPath}/models as flat files. */
 export async function downloadVoice() {
-    const cfg = getFullConfig()["tts"];
-    if (!cfg || !cfg.location || !cfg.model) return;
+    try {
+        const cfg = getFullConfig()["tts"];
+        if (!cfg || !cfg.location || !cfg.model) return;
 
-    const installPath = parsePath(cfg.location);
-    const modelsDir = path.join(installPath, "models");
-    mkdirSync(modelsDir, { recursive: true });
+        const installPath = parsePath(cfg.location);
+        const modelsDir = path.join(installPath, "models");
+        mkdirSync(modelsDir, { recursive: true });
 
-    // Resolve repo paths for .onnx and .onnx.json
-    const { onnxRepoPath, jsonRepoPath, basename } = await resolveVoicePaths(String(cfg.model));
+        // Resolve repo paths for .onnx and .onnx.json
+        const { onnxRepoPath, jsonRepoPath, basename } = await resolveVoicePaths(String(cfg.model));
 
-    const onnxDest = path.join(modelsDir, path.basename(basename)); // flat
-    const jsonDest = `${onnxDest}.json`; // flat
+        const onnxDest = path.join(modelsDir, path.basename(basename)); // flat
+        const jsonDest = `${onnxDest}.json`; // flat
 
-    // Skip if already present
-    const needOnnx = !existsSync(onnxDest);
-    const needJson = !existsSync(jsonDest);
+        // Skip if already present
+        const needOnnx = !existsSync(onnxDest);
+        const needJson = !existsSync(jsonDest);
 
-    if (!needOnnx && !needJson) {
-        logNotice(`Voice already present: ${path.basename(onnxDest)} (+ .json)`);
-        return;
-    }
-
-    logNotice(`Downloading voice '${path.basename(onnxDest)}' to ${modelsDir}...`);
-
-    if (needOnnx) {
-        await hfDownloadFile(onnxRepoPath, onnxDest);
-        logDebug(`Downloaded: ${onnxRepoPath} -> ${onnxDest}`);
-    } else {
-        logDebug(`Already exists: ${onnxDest}`);
-    }
-
-    if (needJson) {
-        try {
-            await hfDownloadFile(jsonRepoPath, jsonDest);
-            logDebug(`Downloaded: ${jsonRepoPath} -> ${jsonDest}`);
-        } catch (e: any) {
-            logWarn(`Sidecar missing for '${path.basename(onnxDest)}': ${e?.message || e}`);
+        if (!needOnnx && !needJson) {
+            logNotice(`Voice already present: ${path.basename(onnxDest)} (+ .json)`);
+            return;
         }
-    } else {
-        logDebug(`Already exists: ${jsonDest}`);
-    }
 
-    logNotice(`Voice download complete.`);
+        logNotice(`Downloading voice '${path.basename(onnxDest)}' to ${modelsDir}...`);
+
+        if (needOnnx) {
+            await hfDownloadFile(onnxRepoPath, onnxDest);
+            logDebug(`Downloaded: ${onnxRepoPath} -> ${onnxDest}`);
+        } else {
+            logDebug(`Already exists: ${onnxDest}`);
+        }
+
+        if (needJson) {
+            try {
+                await hfDownloadFile(jsonRepoPath, jsonDest);
+                logDebug(`Downloaded: ${jsonRepoPath} -> ${jsonDest}`);
+            } catch (e: any) {
+                logWarn(`Sidecar missing for '${path.basename(onnxDest)}': ${e?.message || e}`);
+            }
+        } else {
+            logDebug(`Already exists: ${jsonDest}`);
+        }
+
+        logNotice(`Voice download complete.`);
+    } catch (error) {
+        logWarn(`Voice Download failed:`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
 }
 
 export async function installPiper() {
@@ -213,9 +218,6 @@ export async function installPiper() {
     await execute(`rm -r ${installPath}/piper-extract`);
     await execute(`chmod +x ${installPath}/piper`);
     await execute(`mkdir -p ${installPath}/models`);
-
-    // Only the configured voice
-    await downloadVoice().catch((e) => logWarn(`Voice download failed: ${e?.message || e}`));
 }
 
 export async function speak(message: string) {
