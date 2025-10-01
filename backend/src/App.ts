@@ -33,13 +33,13 @@ async function init() {
     logRegular('load config')
     readConfig()
 
+    webServer = new WebServer()
+    webServer.initial()
+
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()
     logSuccess('websocket server is ready')
-
-    webServer = new WebServer()
-    webServer.initial()
 
     twitchClient = new TwitchClient()
     await twitchClient.connect()
