@@ -3,6 +3,8 @@ import {getConfig} from "./ConfigHelper";
 import {logRegular, logWarn} from "./LogHelper";
 import {Gpio} from "onoff";
 import getWebsocketServer from "../App";
+import * as path from "node:path";
+import * as os from "node:os";
 
 let powerButton: any = undefined
 let gpioActive = false
@@ -37,6 +39,26 @@ export function killGpio() {
 
     logRegular('clear up gpio Resources')
     if(powerButton) powerButton.unexport()
+}
+
+export function parsePath(filePath: string) {
+    if (filePath.startsWith("~")) {
+        return path.join(os.homedir(), filePath.slice(1));
+    }
+    return filePath;
+}
+
+export function getArch() {
+    const realArch = process.arch
+
+    switch (realArch) {
+        case "x64":
+            return "x86_64"
+        case "arm64":
+            return "aarch64"
+        default:
+            return "armv7"
+    }
 }
 
 export async function rebootSystem() { await execute('shutdown -r now') }

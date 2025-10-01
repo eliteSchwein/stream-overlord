@@ -17,6 +17,7 @@ import {updateSystemInfo} from "./helper/SystemInfoHelper";
 import {updateSourceFilters} from "./helper/SourceHelper";
 import TauonmbClient from "./clients/tauonmb/TauonmbClient";
 import {initGpio, killGpio} from "./helper/SystemHelper";
+import {installPiper} from "./helper/TTShelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -80,6 +81,8 @@ async function init() {
 
     initGpio()
 
+    await installPiper()
+
     logSuccess('backend is ready')
 }
 
@@ -105,4 +108,5 @@ export function getTauonmbClient() {
 
 process.on('SIGINT', () => {
     killGpio()
+    process.exit()
 })
