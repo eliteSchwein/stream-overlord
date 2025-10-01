@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Firefox Commander
+Comment=Open Stream Commander in fullscreen
+Exec=/usr/bin/firefox --kiosk --no-remote --new-instance http://localhost:8105/commander
+X-GNOME-Autostart-enabled=true
+# Delay in seconds before launch (many DEs honor this)
+#X-GNOME-Autostart-Delay=5
