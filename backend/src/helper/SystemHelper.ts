@@ -15,7 +15,7 @@ export function initGpio() {
     if(!config) return
 
     gpioActive = true
-    this.killGpio()
+    killGpio()
 
     logRegular('init gpio')
 
