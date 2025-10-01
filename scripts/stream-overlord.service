@@ -1,0 +1,17 @@
+[Unit]
+Description=Stream Controller for eliteSCHW31N
+#Wants=moonraker.service
+#After=moonraker.service
+StartLimitIntervalSec=500
+#StartLimitBurst=5
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5s
+#User=pi
+WorkingDirectory=%h/stream-overlord
+ExecStart=/usr/bin/npm run start:backend
+
+[Install]
+WantedBy=default.target
