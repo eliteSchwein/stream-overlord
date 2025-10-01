@@ -33,14 +33,6 @@ async function init() {
     logRegular('load config')
     readConfig()
 
-    webServer = new WebServer()
-    webServer.initial()
-
-    websocketServer = new WebsocketServer()
-    websocketServer.initial()
-    websocketServer.registerEvents()
-    logSuccess('websocket server is ready')
-
     twitchClient = new TwitchClient()
     await twitchClient.connect()
     await registerPermissions(twitchClient.getBot())
@@ -56,6 +48,14 @@ async function init() {
     }
 
     await fetchGameInfo()
+
+    websocketServer = new WebsocketServer()
+    websocketServer.initial()
+    websocketServer.registerEvents()
+    logSuccess('websocket server is ready')
+
+    webServer = new WebServer()
+    webServer.initial()
 
     logRegular("connect tauonmb client")
     tauonmbClient = new TauonmbClient()
