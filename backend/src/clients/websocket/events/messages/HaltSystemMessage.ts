@@ -12,7 +12,7 @@ export default class HaltSystemMessage extends BaseMessage {
             case 'reboot':
                 await rebootSystem()
                 break
-            case 'shutdown':
+            case 'halt':
                 await shutdownSystem()
                 break
             default:
