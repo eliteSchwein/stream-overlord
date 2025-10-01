@@ -1,69 +1,56 @@
-import {execute} from "./CommandHelper";
-import {getConfig} from "./ConfigHelper";
-import {logRegular, logWarn} from "./LogHelper";
-import {Gpio} from "onoff";
+import { execute } from "./CommandHelper";
+import { getConfig } from "./ConfigHelper";
+import { logRegular, logWarn } from "./LogHelper";
+import { Gpio } from "onoff";
 import getWebsocketServer from "../App";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as fs from "node:fs";
-import {spawn, ChildProcessWithoutNullStreams} from "node:child_process";
+import { spawn, ChildProcessWithoutNullStreams } from "node:child_process";
 
-let powerButton: any = undefined;
-let gpioActive = false;
+/* ------------------------------------------------------------------
+   Power button interception via evtest --grab
+   ------------------------------------------------------------------ */
 
-// ---------- Power button intercept via `evtest --grab` ----------
 let evtestProc: ChildProcessWithoutNullStreams | null = null;
 
-function listEventCandidates(): Array<{dev: string; name: string}> {
-    // Parse /proc/bus/input/devices -> map event node -> device name
+function listEventCandidates(): Array<{ dev: string; name: string }> {
     let txt = "";
-    try {
-        txt = fs.readFileSync("/proc/bus/input/devices", "utf8");
-    } catch {
-        return [];
-    }
+    try { txt = fs.readFileSync("/proc/bus/input/devices", "utf8"); } catch { return []; }
     const blocks = txt.split(/\n\n+/);
-    const res: Array<{dev: string; name: string}> = [];
+    const res: Array<{ dev: string; name: string }> = [];
     for (const b of blocks) {
         const name = (b.match(/^N:\s*Name="([^"]+)"/m) || [])[1] || "";
         const handlers = (b.match(/^H:\s*Handlers=([^\n]+)/m) || [])[1] || "";
         const ev = handlers.split(/\s+/).find(h => /^event\d+$/.test(h));
-        if (ev) res.push({dev: `/dev/input/${ev}`, name});
+        if (ev) res.push({ dev: `/dev/input/${ev}`, name });
     }
-    // Prefer names likely to contain the power key
     const score = (n: string) => {
         const s = n.toLowerCase();
-        if (/\bpower\b/.test(s)) return 100;   // "Power Button"
-        if (/gpio-keys/.test(s)) return 60;    // SBCs often expose power through this
-        if (/acpi/.test(s)) return 50;         // ACPI power button
+        if (/\bpower\b/.test(s)) return 100;
+        if (/gpio-keys/.test(s)) return 60;
+        if (/acpi/.test(s)) return 50;
         return 0;
     };
-    res.sort((a,b) => score(b.name) - score(a.name));
-    return res;
+    return res.sort((a, b) => score(b.name) - score(a.name));
 }
 
 function startEvtestGrab(onPress: () => void) {
     if (evtestProc) return;
 
     const candidates = listEventCandidates();
-    const firstReadable = candidates.find(c => {
-        try { fs.accessSync(c.dev, fs.constants.R_OK); return true; } catch { return false; }
-    }) || {dev: "/dev/input/event0", name: ""};
+    const first = candidates[0] || { dev: "/dev/input/event0", name: "" };
 
-    // Spawn: evtest --grab <device>
-    // We parse lines like: "Event: time ..., type 1 (EV_KEY), code 116 (KEY_POWER), value 1"
-    evtestProc = spawn("evtest", ["--grab", firstReadable.dev], {
+    evtestProc = spawn("evtest", ["--grab", first.dev], {
         stdio: ["ignore", "pipe", "pipe"]
     });
 
     evtestProc.stdout.setEncoding("utf8");
     evtestProc.stderr.setEncoding("utf8");
 
-    logRegular(`Intercepting KEY_POWER on ${firstReadable.dev} using evtest --grab`);
+    logRegular(`Intercepting KEY_POWER on ${first.dev} using evtest --grab`);
 
     evtestProc.stdout.on("data", (chunk: string) => {
-        // Quick parse
-        // Looking for "type 1 (EV_KEY), code 116 (KEY_POWER), value X"
         if (chunk.includes("code 116 (KEY_POWER)")) {
             const m = chunk.match(/value\s+(\d)/);
             const val = m ? Number(m[1]) : undefined;
@@ -74,9 +61,8 @@ function startEvtestGrab(onPress: () => void) {
     });
 
     evtestProc.stderr.on("data", (d: string) => {
-        // Helpful warnings if permission denied etc.
         if (/Permission denied/i.test(d)) {
-            logWarn(`evtest: permission denied reading ${firstReadable.dev}. Run as root or add user to 'input' group.`);
+            logWarn(`evtest: permission denied reading ${first.dev}. Run as root or add user to 'input' group.`);
         } else {
             logWarn(d.trim());
         }
@@ -94,35 +80,39 @@ function stopEvtestGrab() {
     evtestProc = null;
 }
 
-// ---------- Your existing GPIO logic ----------
+/* ------------------------------------------------------------------
+   GPIO watcher (your own external buttons)
+   ------------------------------------------------------------------ */
+
+let powerButton: any = undefined;
+let gpioActive = false;
 
 export function initGpio() {
     const config = getConfig(/gpio/)[0];
 
-    // Intercept the real power key for ALL Linux (works on desktops, laptops, SBCs)
+    // Always intercept the real system power button via evdev
     startEvtestGrab(() => {
         getWebsocketServer().send("notify_power_button");
     });
 
-    if(!config) return;
+    if (!config) return;
 
     gpioActive = true;
-    killGpio(); // ensure clean state
+    killGpio(); // clean up previous watchers
 
-    logRegular('init gpio');
+    logRegular("init gpio");
 
-    // NOTE: This GPIO is for your own external button wiring.
-    // The built-in system power button is *not* usually on a GPIO pin.
-    powerButton = new Gpio(config.power_button, 'in', 'both');
+    // NOTE: this is for your own wired GPIO pin, not the built-in system button
+    powerButton = new Gpio(config.power_button, "in", "both");
 
     powerButton.watch((error: any, value) => {
         if (error) {
-            logWarn('power button watch failed:');
+            logWarn("power button watch failed:");
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
             return;
         }
         if (value === 1) {
-            getWebsocketServer().send('notify_power_button');
+            getWebsocketServer().send("notify_power_button");
         }
     });
 }
@@ -131,11 +121,16 @@ export function killGpio() {
     // stop power-key interception
     stopEvtestGrab();
 
-    if(!gpioActive) return;
+    if (!gpioActive) return;
 
-    logRegular('clear up gpio Resources');
-    if(powerButton) powerButton.unexport();
+    logRegular("clear up gpio Resources");
+    if (powerButton) powerButton.unexport();
+    gpioActive = false;
 }
+
+/* ------------------------------------------------------------------
+   Utility helpers
+   ------------------------------------------------------------------ */
 
 export function parsePath(filePath: string) {
     if (filePath.startsWith("~")) {
@@ -146,16 +141,69 @@ export function parsePath(filePath: string) {
 
 export function getArch() {
     const realArch = process.arch;
-
     switch (realArch) {
-        case "x64":
-            return "x86_64";
-        case "arm64":
-            return "aarch64";
-        default:
-            return "armv7";
+        case "x64": return "x86_64";
+        case "arm64": return "aarch64";
+        default: return "armv7";
     }
 }
 
-export async function rebootSystem() { await execute('shutdown -r now'); }
-export async function shutdownSystem() { await execute('shutdown -h now'); }
+/* ------------------------------------------------------------------
+   Reboot / shutdown commands
+   ------------------------------------------------------------------ */
+
+function x(p: string) {
+    try { fs.accessSync(p, fs.constants.X_OK); return true; } catch { return false; }
+}
+
+async function runOneOf(cmds: string[]) {
+    let lastErr: unknown = null;
+    for (const cmd of cmds) {
+        try {
+            await execute(cmd);
+            return true;
+        } catch (e) {
+            lastErr = e;
+        }
+    }
+    if (lastErr) logWarn(String((lastErr as any)?.message ?? lastErr));
+    return false;
+}
+
+export async function rebootSystem() {
+    try {
+        const cmds: string[] = [];
+        if (x("/usr/bin/systemctl")) cmds.push("/usr/bin/systemctl reboot -i");
+        if (x("/usr/bin/loginctl"))  cmds.push("/usr/bin/loginctl reboot");
+        if (x("/sbin/shutdown"))     cmds.push("/sbin/shutdown -r now");
+        if (x("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -r now");
+        if (x("/sbin/reboot"))       cmds.push("/sbin/reboot");
+        if (x("/bin/busybox"))       cmds.push("/bin/busybox reboot");
+        cmds.push("reboot"); // fallback
+
+        const ok = await runOneOf(cmds);
+        if (ok) logRegular("Reboot command issued.");
+        else    logWarn("Reboot failed: no valid command found.");
+    } catch (e: any) {
+        logWarn(`Reboot failed: ${e?.message || e}`);
+    }
+}
+
+export async function shutdownSystem() {
+    try {
+        const cmds: string[] = [];
+        if (x("/usr/bin/systemctl")) cmds.push("/usr/bin/systemctl poweroff -i");
+        if (x("/usr/bin/loginctl"))  cmds.push("/usr/bin/loginctl poweroff");
+        if (x("/sbin/shutdown"))     cmds.push("/sbin/shutdown -h now");
+        if (x("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -h now");
+        if (x("/sbin/poweroff"))     cmds.push("/sbin/poweroff");
+        if (x("/bin/busybox"))       cmds.push("/bin/busybox poweroff");
+        cmds.push("poweroff"); // fallback
+
+        const ok = await runOneOf(cmds);
+        if (ok) logRegular("Shutdown command issued.");
+        else    logWarn("Shutdown failed: no valid command found.");
+    } catch (e: any) {
+        logWarn(`Shutdown failed: ${e?.message || e}`);
+    }
+}
