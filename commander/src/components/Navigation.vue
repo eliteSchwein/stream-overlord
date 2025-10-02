@@ -54,6 +54,12 @@ export default {
     },
     reloadCommander() {
       window.location.reload()
+    },
+    updateBot() {
+      eventBus.$emit('websocket:send', {
+        method: 'update',
+        params: {}
+      })
     }
   }
 }
@@ -149,6 +155,11 @@ export default {
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-divider></v-divider>
+          <v-list-item
+            title="Update Bot"
+            @click="updateBot"
+            prepend-icon="mdi-download"
+          ></v-list-item>
           <v-list-item
             title="Poweroff System"
             @click="showPowerMenu"

@@ -9,10 +9,6 @@ import * as fs from "node:fs";
 import { spawn, ChildProcessWithoutNullStreams } from "node:child_process";
 import {execSync} from "child_process";
 
-/* ------------------------------------------------------------------
-   Power button interception via evtest --grab
-   ------------------------------------------------------------------ */
-
 let evtestProc: ChildProcessWithoutNullStreams | null = null;
 
 function listEventCandidates(): Array<{ dev: string; name: string }> {
@@ -38,9 +34,7 @@ function listEventCandidates(): Array<{ dev: string; name: string }> {
 
 function hasEvtest(): string | null {
     try {
-        // Check common path first
         if (fs.existsSync("/usr/bin/evtest")) return "/usr/bin/evtest";
-        // Fallback: use which
         const out = execSync("which evtest", { stdio: ["ignore", "pipe", "ignore"] })
             .toString().trim();
         return out || null;
@@ -54,7 +48,7 @@ function startEvtestGrab(onPress: () => void) {
 
     const evtestPath = hasEvtest();
     if (!evtestPath) {
-        logWarn("evtest not installed or not in PATH. Install with `sudo apt install evtest` (Debian/Ubuntu/RPi).");
+        logWarn("evtest not installed or not in PATH");
         return;
     }
 
@@ -100,17 +94,12 @@ function stopEvtestGrab() {
     evtestProc = null;
 }
 
-/* ------------------------------------------------------------------
-   GPIO watcher (your own external buttons)
-   ------------------------------------------------------------------ */
-
 let powerButton: any = undefined;
 let gpioActive = false;
 
 export function initGpio() {
     const config = getConfig(/gpio/)[0];
 
-    // Always intercept the real system power button via evdev
     startEvtestGrab(() => {
         getWebsocketServer().send("notify_power_button");
     });
@@ -118,11 +107,10 @@ export function initGpio() {
     if (!config) return;
 
     gpioActive = true;
-    killGpio(); // clean up previous watchers
+    killGpio();
 
     logRegular("init gpio");
 
-    // NOTE: this is for your own wired GPIO pin, not the built-in system button
     powerButton = new Gpio(config.power_button, "in", "both");
 
     powerButton.watch((error: any, value) => {
@@ -138,7 +126,6 @@ export function initGpio() {
 }
 
 export function killGpio() {
-    // stop power-key interception
     stopEvtestGrab();
 
     if (!gpioActive) return;
@@ -147,10 +134,6 @@ export function killGpio() {
     if (powerButton) powerButton.unexport();
     gpioActive = false;
 }
-
-/* ------------------------------------------------------------------
-   Utility helpers
-   ------------------------------------------------------------------ */
 
 export function parsePath(filePath: string) {
     if (filePath.startsWith("~")) {
@@ -168,11 +151,7 @@ export function getArch() {
     }
 }
 
-/* ------------------------------------------------------------------
-   Reboot / shutdown commands
-   ------------------------------------------------------------------ */
-
-function x(p: string) {
+function checkFile(p: string) {
     try { fs.accessSync(p, fs.constants.X_OK); return true; } catch { return false; }
 }
 
@@ -193,12 +172,12 @@ async function runOneOf(cmds: string[]) {
 export async function rebootSystem() {
     try {
         const cmds: string[] = [];
-        if (x("/usr/bin/systemctl")) cmds.push("/usr/bin/systemctl reboot -i");
-        if (x("/usr/bin/loginctl"))  cmds.push("/usr/bin/loginctl reboot");
-        if (x("/sbin/shutdown"))     cmds.push("/sbin/shutdown -r now");
-        if (x("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -r now");
-        if (x("/sbin/reboot"))       cmds.push("/sbin/reboot");
-        if (x("/bin/busybox"))       cmds.push("/bin/busybox reboot");
+        if (checkFile("/usr/bin/systemctl")) cmds.push("/usr/bin/systemctl reboot -i");
+        if (checkFile("/usr/bin/loginctl"))  cmds.push("/usr/bin/loginctl reboot");
+        if (checkFile("/sbin/shutdown"))     cmds.push("/sbin/shutdown -r now");
+        if (checkFile("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -r now");
+        if (checkFile("/sbin/reboot"))       cmds.push("/sbin/reboot");
+        if (checkFile("/bin/busybox"))       cmds.push("/bin/busybox reboot");
         cmds.push("reboot"); // fallback
 
         const ok = await runOneOf(cmds);
@@ -212,12 +191,12 @@ export async function rebootSystem() {
 export async function shutdownSystem() {
     try {
         const cmds: string[] = [];
-        if (x("/usr/bin/systemctl")) cmds.push("/usr/bin/systemctl poweroff -i");
-        if (x("/usr/bin/loginctl"))  cmds.push("/usr/bin/loginctl poweroff");
-        if (x("/sbin/shutdown"))     cmds.push("/sbin/shutdown -h now");
-        if (x("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -h now");
-        if (x("/sbin/poweroff"))     cmds.push("/sbin/poweroff");
-        if (x("/bin/busybox"))       cmds.push("/bin/busybox poweroff");
+        if (checkFile("/usr/bin/systemctl")) cmds.push("/usr/bin/systemctl poweroff -i");
+        if (checkFile("/usr/bin/loginctl"))  cmds.push("/usr/bin/loginctl poweroff");
+        if (checkFile("/sbin/shutdown"))     cmds.push("/sbin/shutdown -h now");
+        if (checkFile("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -h now");
+        if (checkFile("/sbin/poweroff"))     cmds.push("/sbin/poweroff");
+        if (checkFile("/bin/busybox"))       cmds.push("/bin/busybox poweroff");
         cmds.push("poweroff"); // fallback
 
         const ok = await runOneOf(cmds);
@@ -226,4 +205,8 @@ export async function shutdownSystem() {
     } catch (e: any) {
         logWarn(`Shutdown failed: ${e?.message || e}`);
     }
+}
+
+export async function selfUpdate() {
+    await execute(`bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && systemctl restart --user stream-overlord"`)
 }
