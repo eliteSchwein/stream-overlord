@@ -10,6 +10,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     ChannelPoint: typeof import('./components/ChannelPoint.vue')['default']
     ConnectDialog: typeof import('./components/dialogs/ConnectDialog.vue')['default']
+    CopyButton: typeof import('./components/CopyButton.vue')['default']
     CurrentGame: typeof import('./components/CurrentGame.vue')['default']
     Game: typeof import('./components/Game.vue')['default']
     Navigation: typeof import('./components/Navigation.vue')['default']

@@ -24,6 +24,7 @@ export const useAppStore = defineStore('app', {
     backendConfig: '',
     obsSceneData: [],
     testMode: false,
+    voices: []
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -47,7 +48,8 @@ export const useAppStore = defineStore('app', {
     getConnections: (state) => state.connections,
     getBackendConfig: (state) => state.backendConfig,
     getObsSceneData: (state) => state.obsSceneData,
-    getTestMode: (state) => state.testMode
+    getTestMode: (state) => state.testMode,
+    getVoices: (state) => state.voices
   },
   actions: {
     async fetchConfig() {
@@ -122,6 +124,10 @@ export const useAppStore = defineStore('app', {
     setTestMode(testMode: boolean) {
       this.testMode = testMode
       this.$patch(state => state.testMode = testMode)
+    },
+    setVoices(voices: []) {
+      this.voices = voices
+      this.$patch(state => state.voices = voices)
     }
   }
 })

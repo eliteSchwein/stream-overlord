@@ -8,32 +8,32 @@
     min-height="100%"
   >
     <v-row class="mx-3 my-2 mb-0 pb-0">
-      <v-col sm="12" md="8" xl="10">
-        <v-textarea  style="min-height: calc(100vh - 90px)" v-model="backendConfigText" variant="outlined"></v-textarea>
+      <v-col cols="12" md="8" xl="10">
+        <v-card class="sticky pa-0" color="transparent" elevation="0">
+          <v-toolbar
+            flat
+            density="compact"
+          >
+            <v-toolbar-title class="d-flex align-center">
+              Bot Configuration
+            </v-toolbar-title>
+            <v-btn
+              prepend-icon="mdi-content-save"
+              color="grey-darken-3"
+              variant="flat"
+              elevation="0"
+              @click="saveConfig"
+            >
+              Save Config
+            </v-btn>
+          </v-toolbar>
+          <v-card-text class="pa-0">
+            <v-textarea class="my-0" style="min-height: calc(100vh - 110px);" v-model="backendConfigText" variant="outlined"></v-textarea>
+          </v-card-text>
+        </v-card>
       </v-col>
       <v-col>
-        <v-card class="px-4 py-3">
-          <v-row
-            align-content="center"
-            justify="center"
-            align="center"
-            dense
-          >
-            <v-col cols="12">
-              <v-btn
-                width="100%"
-                prepend-icon="mdi-content-save"
-                color="grey-darken-3"
-                variant="flat"
-                elevation="0"
-                @click="saveConfig"
-              >
-                Save Config
-              </v-btn>
-            </v-col>
-          </v-row>
-        </v-card>
-        <v-card class="mt-3" color="transparent" elevation="0">
+        <v-card color="transparent" elevation="0">
           <v-toolbar
             flat
             density="compact"
@@ -60,11 +60,11 @@
                         <tbody>
                         <tr>
                           <td>UUID</td>
-                          <td>{{ obsScene.uuid }}</td>
+                          <td>{{ obsScene.uuid }} <CopyButton :content="obsScene.uuid"/> </td>
                         </tr>
                         <tr>
                           <td>Index</td>
-                          <td>{{ obsScene.index }}</td>
+                          <td>{{ obsScene.index }} <CopyButton :content="obsScene.index"/> </td>
                         </tr>
                         </tbody>
                       </v-table>
@@ -89,11 +89,11 @@
                                 <tbody>
                                 <tr>
                                   <td>UUID</td>
-                                  <td>{{ obsItem.uuid }}</td>
+                                  <td>{{ obsItem.uuid }} <CopyButton :content="obsItem.uuid"/></td>
                                 </tr>
                                 <tr>
                                   <td>ID</td>
-                                  <td>{{ obsItem.id }}</td>
+                                  <td>{{ obsItem.id }} <CopyButton :content="obsItem.id"/></td>
                                 </tr>
                                 </tbody>
                               </v-table>
@@ -115,6 +115,37 @@
             </template>
           </v-card-text>
         </v-card>
+        <v-card class="mt-3" color="transparent" elevation="0">
+          <v-toolbar
+            flat
+            density="compact"
+          >
+            <v-toolbar-title class="d-flex align-center">
+              Available Voices
+            </v-toolbar-title>
+          </v-toolbar>
+          <v-card-text class="pa-0">
+            <v-expansion-panels color="grey-darken-4">
+              <v-expansion-panel
+                v-for="(voices, voiceLanguage) in getVoices"
+              >
+                <v-expansion-panel-title>
+                  {{ voiceLanguage }}
+                </v-expansion-panel-title>
+
+                <v-expansion-panel-text class="pa-0">
+                  <v-table class="wrap-anywhere">
+                    <tbody>
+                    <tr v-for="voice in voices">
+                      <td>{{ voice }} <CopyButton :content="voice"/></td>
+                    </tr>
+                    </tbody>
+                  </v-table>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
   </v-card>
@@ -131,6 +162,7 @@ export default {
     return {
       noObs,
       backendConfigText: '' as string,
+      voiceFilter: '' as string
     }
   },
   mounted() {
@@ -144,7 +176,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(useAppStore, ['getBackendConfig', 'getObsSceneData', 'getScene']),
+    ...mapState(useAppStore, ['getBackendConfig', 'getObsSceneData', 'getScene', 'getVoices']),
   },
   methods: {
     saveConfig() {
@@ -158,17 +190,4 @@ export default {
 </script>
 
 <style lang="scss">
-.wrap-anywhere td,
-.wrap-anywhere th {
-  white-space: normal !important;
-  overflow-wrap: anywhere;      /* modern, nicest */
-  word-break: break-word;       /* Safari fallback */
-}
-.v-expansion-panel-text {
-  &.pa-0 {
-    .v-expansion-panel-text__wrapper {
-      padding: 0 !important;
-    }
-  }
-}
 </style>

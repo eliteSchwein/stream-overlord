@@ -9,11 +9,14 @@ import { promisify } from "node:util";
 import * as stream from "node:stream";
 import axios from "axios";
 import * as path from "node:path";
+import getWebsocketServer from "../App";
 
 const escapeRegex = /[\/'"]/;
 
 const HF_REPO = "rhasspy/piper-voices";
 const HF_REV = "main";
+
+let voices: Record<string, string[]> = {}
 
 type HFEntry = {
     path: string;
@@ -95,7 +98,7 @@ async function resolveVoicePaths(modelSetting: string): Promise<{ onnxRepoPath: 
             }
         } else {
             // search by filename only (first match wins)
-            if (!foundOnnx && entry.path.endsWith(`/${desiredBase}`) || (!foundOnnx && entry.path === desiredBase)) {
+            if ((!foundOnnx && entry.path.endsWith(`/${desiredBase}`)) || (!foundOnnx && entry.path === desiredBase)) {
                 foundOnnx = entry.path;
             }
             if (!foundJson && (entry.path.endsWith(`/${desiredBase}.json`) || entry.path === `${desiredBase}.json`)) {
@@ -119,7 +122,7 @@ async function resolveVoicePaths(modelSetting: string): Promise<{ onnxRepoPath: 
         const dir = path.posix.dirname(foundOnnx);
         const base = path.posix.basename(foundOnnx);
         foundJson = path.posix.join(dir, `${base}.json`);
-        // We won't re-scan the tree here; download step will throw if missing.
+        // Download step will throw if this doesn't exist
     }
 
     return { onnxRepoPath: foundOnnx, jsonRepoPath: foundJson, basename: path.basename(foundOnnx) };
@@ -177,6 +180,36 @@ export async function downloadVoice() {
     }
 }
 
+export function getVoices(): Record<string, string[]> {
+    return voices;
+}
+
+export async function fetchVoices(): Promise<Record<string, string[]>> {
+    voices = {};
+
+    for await (const entry of hfListRepoTree()) {
+        if (entry.type !== "file") continue;
+
+        // Only .onnx, but exclude .onnx.json
+        if (/\.onnx$/i.test(entry.path) && !/\.onnx\.json$/i.test(entry.path)) {
+            const name = path.posix.basename(entry.path, ".onnx");
+            const lang = name.split("-")[0]; // e.g. "ar_JO" from "ar_JO-kareem-low"
+
+            if (!voices[lang]) voices[lang] = [];
+            voices[lang].push(name);
+        }
+    }
+
+    // Sort each language’s voices
+    for (const lang of Object.keys(voices)) {
+        voices[lang].sort((a, b) => a.localeCompare(b));
+    }
+
+    getWebsocketServer().send("notify_voice_list_update", { voices });
+
+    return voices;
+}
+
 export async function installPiper() {
     const config = getFullConfig()["tts"];
     if (!config || !config.location) return;
@@ -184,8 +217,6 @@ export async function installPiper() {
 
     if (existsSync(installPath) && existsSync(`${installPath}/piper`)) {
         if (!existsSync(`${installPath}/models`)) mkdirSync(`${installPath}/models`, { recursive: true });
-        // Only the configured voice
-        await downloadVoice().catch((e) => logWarn(`Voice download failed: ${e?.message || e}`));
         return;
     }
 
@@ -245,7 +276,7 @@ export async function speak(message: string) {
 
         const command = `bash -c "cd ${parsePath(
             config.location
-        )} && echo '${message}' | ./piper ${piperAttributes} --model models/${modelFile} --output-raw | ${playCommand}"`;
+        )} && echo '${message}' | ./piper ${piperAttributes} --model models/${modelFile}.onnx --output-raw | ${playCommand}"`;
 
         logDebug(`TTS Command: ${command}`);
         await execute(command);

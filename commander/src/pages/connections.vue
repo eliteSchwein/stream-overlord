@@ -79,11 +79,4 @@ export default {
 </script>
 
 <style lang="scss">
-.v-expansion-panel-text {
-  &.pa-0 {
-    .v-expansion-panel-text__wrapper {
-      padding: 0 !important;
-    }
-  }
-}
 </style>

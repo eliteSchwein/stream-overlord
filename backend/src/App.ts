@@ -17,7 +17,7 @@ import {updateSystemInfo} from "./helper/SystemInfoHelper";
 import {updateSourceFilters} from "./helper/SourceHelper";
 import TauonmbClient from "./clients/tauonmb/TauonmbClient";
 import {initGpio, killGpio} from "./helper/SystemHelper";
-import {downloadVoice, installPiper} from "./helper/TTShelper";
+import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -38,6 +38,14 @@ async function init() {
     await registerPermissions(twitchClient.getBot())
     registerPermissionInterval(twitchClient.getBot())
 
+    websocketServer = new WebsocketServer()
+    websocketServer.initial()
+    websocketServer.registerEvents()
+    logSuccess('websocket server is ready')
+
+    webServer = new WebServer()
+    webServer.initial()
+
     try {
         logRegular('connect obs')
         obsClient = new OBSClient()
@@ -48,14 +56,6 @@ async function init() {
     }
 
     await fetchGameInfo()
-
-    websocketServer = new WebsocketServer()
-    websocketServer.initial()
-    websocketServer.registerEvents()
-    logSuccess('websocket server is ready')
-
-    webServer = new WebServer()
-    webServer.initial()
 
     logRegular("connect tauonmb client")
     tauonmbClient = new TauonmbClient()
@@ -83,6 +83,7 @@ async function init() {
 
     await installPiper()
     await downloadVoice()
+    await fetchVoices()
 
     logSuccess('backend is ready')
 }
