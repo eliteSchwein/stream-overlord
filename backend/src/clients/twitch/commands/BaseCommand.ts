@@ -141,20 +141,25 @@ export default class BaseCommand {
         }
     }
 
-    private async replyParamSyntaxError(param: string[], context: BotCommandContext, index: number, type: string) {
+    protected async replyParamSyntaxError(param: string[], context: BotCommandContext, index: number, type: string) {
         logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
         await context.reply(`der Parameter ${index+1} ist ein ${type}!`)
     }
 
-    private async replyParamLengthError(param: string[], context: BotCommandContext) {
+    protected async replyParamLengthError(param: string[], context: BotCommandContext) {
         logWarn(`missing param by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
         await context.reply(`der Befehl hat ${this.params.length} Parameter!`)
     }
 
-    private async replyPermissionError(context: BotCommandContext) {
+    protected async replyPermissionError(context: BotCommandContext) {
         logWarn(`permission denied: ${context.userName} in ${context.broadcasterName}`)
         if(!isShowErrorMessage()) return
         await context.reply('du hast keine Berechtigung auf diesen Befehl!')
+    }
+
+    protected async replyCommandError(context: BotCommandContext, message: string) {
+        if(!isShowErrorMessage()) return
+        await context.reply(message)
     }
 
     async handle(params: any, context: BotCommandContext) {

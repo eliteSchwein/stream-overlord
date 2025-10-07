@@ -11,6 +11,7 @@ import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
 import TTSCommand from "./commands/TTSCommand";
 import {getTwitchClient} from "../../App";
 import {triggerMacro} from "../../helper/MacroHelper";
+import MacroCommand from "./commands/MacroCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -23,6 +24,7 @@ export default function buildCommands(bot: Bot) {
     commands = commands.concat(new GetGameCommand(bot).register())
     commands = commands.concat(new ToggleErrorMessageCommand(bot).register())
     commands = commands.concat(new TTSCommand(bot).register())
+    commands = commands.concat(new MacroCommand(bot).register())
 
     // configured commands
     commands = buildConfigCommands(commands)

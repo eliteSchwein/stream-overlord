@@ -17,6 +17,10 @@ export default function loadMacros() {
     }
 }
 
+export function isMacroPresent(name: string) {
+    return macros[name] !== undefined
+}
+
 export async function triggerMacro(name: string) {
     if(!macros[name]) {
         return false
