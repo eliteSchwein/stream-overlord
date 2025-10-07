@@ -6,7 +6,11 @@ export default class BackgroundController extends BaseController {
     protected imageExtensions = ['gif','png','jpg','webp']
 
     async handleGameUpdate(websocket: Websocket, data: any) {
-        const background = data.media.animated_background
+        let background = data.media.animated_background
+
+        if(!background) {
+            background = data.media.static_background
+        }
 
         this.element.innerHTML = ''
 
