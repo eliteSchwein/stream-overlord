@@ -12,6 +12,7 @@ import {getOBSClient, getTauonmbClient} from "../../App";
 import getGameInfo from "../../helper/GameHelper";
 import {getAllVisibleElements, isTestModeActive, toggleElementVisiblity} from "../../helper/VisibleHelper";
 import {getVoices} from "../../helper/TTShelper";
+import {getMacros} from "../../helper/MacroHelper";
 
 
 export default class WebsocketServer {
@@ -40,7 +41,8 @@ export default class WebsocketServer {
         'notify_tauonmb_show',
         'notify_test_mode',
         'notify_power_button',
-        'notify_voice_list_update'
+        'notify_voice_list_update',
+        'notify_macro_update'
     ]
     connectionEndpoints = {}
     
@@ -164,6 +166,7 @@ export default class WebsocketServer {
                 this.send("notify_config_update", {data: getRawConfig()}, client)
                 this.send("notify_test_mode", {active: isTestModeActive()}, client)
                 this.send("notify_voice_list_update", {voices: getVoices()}, client)
+                this.send("notify_macro_update", {macros: getMacros()}, client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]

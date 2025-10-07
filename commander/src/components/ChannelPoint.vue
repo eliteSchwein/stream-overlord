@@ -1,5 +1,4 @@
-no-gutters<script setup lang="ts">
-import {sleep} from "@/helper/GeneralHelper";
+<script setup lang="ts">
 import { useAppStore } from '@/stores/app';
 
 const appOption = useAppStore();

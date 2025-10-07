@@ -6,15 +6,22 @@ import {editGameTracker, getGameInfoData} from "../clients/website/WebsiteClient
 import {get} from "lodash";
 import {parsePlaceholders} from "./DataHelper";
 
-const macros = {}
+let macros = {}
 
 export default function loadMacros() {
     logRegular('load macros')
+    macros = {}
     const config = getConfig((/^macro /g), true)
 
     for(const macroName in config) {
         macros[macroName] = config[macroName];
     }
+
+    getWebsocketServer().send("notify_macro_update", { macros: macros })
+}
+
+export function getMacros() {
+    return macros
 }
 
 export function isMacroPresent(name: string) {

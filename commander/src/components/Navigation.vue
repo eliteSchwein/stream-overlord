@@ -202,7 +202,13 @@ export default {
         @click.stop="rail = false"
         to="/audio"></v-list-item>
       <v-list-item
-        prepend-icon="mdi-view-dashboard-variant"
+        prepend-icon="mdi-dialpad"
+        title="/macros"
+        color=""
+        @click.stop="rail = false"
+        to="/macros"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-image-outline"
         title="/scene"
         color=""
         @click.stop="rail = false"
