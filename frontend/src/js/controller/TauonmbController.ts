@@ -57,12 +57,10 @@ export default class TauonmbController extends BaseController {
 
         if(this.titleElement) {
             this.titleElement.innerHTML = this.status.title
-            this.addmarquee(this.titleElement)
         }
 
         if(this.artistElement) {
             this.artistElement.innerHTML = this.status.artist
-            this.addmarquee(this.artistElement)
         }
 
         if(this.volumeElement) {
@@ -79,23 +77,6 @@ export default class TauonmbController extends BaseController {
         }
 
         this.currentTrackId = this.status.track.id
-    }
-
-    private addmarquee(targetElement: HTMLDivElement) {
-        const visibleWidth = targetElement.parentElement.clientWidth
-        const fullWidth = Math.ceil(targetElement.getBoundingClientRect().width)
-        const parentElement = targetElement.parentElement as HTMLDivElement;
-
-
-        if (fullWidth > visibleWidth) {
-            if(!parentElement.classList.contains('marquee')) {
-                parentElement.classList.add('marquee');
-            }
-        } else {
-            if(parentElement.classList.contains('marquee')) {
-                parentElement.classList.remove('marquee');
-            }
-        }
     }
 
     async handleGameUpdate(websocket: Websocket, data: any) {
