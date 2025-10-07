@@ -40,13 +40,13 @@ async function toggleChannelPoint(channelPoint: any) {
 </script>
 
 <template>
-  <v-col class="mt-3" cols="4">
+  <v-col class="mt-3" cols="12" sm="6" md="4" xl="3" xxl="2">
     <v-card
       :color="getBackgroundColor(channelPoint)"
       @click.stop="toggleChannelPoint(channelPoint)"
       height="100%"
     >
-      <v-card-item style="height: 100%">
+      <v-card-item style="max-height: 100px">
         <v-row
           align-content="center"
           justify="center"
@@ -56,7 +56,7 @@ async function toggleChannelPoint(channelPoint: any) {
             <v-img
               :src="channelPoint.image"
               cover
-              :style="{ 'filter': channelPoint.active === true ? 'none' : 'grayscale(100%)' }"
+              :style="{ 'max-height': '90px', 'max-width': '90px', 'filter': channelPoint.active === true ? 'none' : 'grayscale(100%)' }"
             >
               <div class="d-flex align-center justify-center fill-height " :style="{ backdropFilter: loading ? 'blur(2px)' : 'none' }" v-if="loading">
                 <v-progress-circular
