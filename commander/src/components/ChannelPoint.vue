@@ -56,7 +56,7 @@ async function toggleChannelPoint(channelPoint: any) {
             <v-img
               :src="channelPoint.image"
               cover
-              :style="{ 'max-height': '90px', 'max-width': '90px', 'filter': channelPoint.active === true ? 'none' : 'grayscale(100%)' }"
+              :style="{ 'max-width': '80px', 'filter': channelPoint.active === true ? 'none' : 'grayscale(100%)' }"
             >
               <div class="d-flex align-center justify-center fill-height " :style="{ backdropFilter: loading ? 'blur(2px)' : 'none' }" v-if="loading">
                 <v-progress-circular
