@@ -21,6 +21,8 @@ import ToggleChannelPointApi from "./api/ChannelPoints/ToggleChannelPointApi";
 import TauonStatusApi from "./api/Tauonmb/TauonStatusApi";
 import TauonNextApi from "./api/Tauonmb/TauonNextApi";
 import TauonBackApi from "./api/Tauonmb/TauonBackApi";
+import CompressAssetsApi from "./api/Recovery/CompressAssetsApi";
+import ReloadApi from "./api/Recovery/ReloadApi";
 
 export default class WebServer {
     webServer: Express
@@ -93,6 +95,10 @@ export default class WebServer {
         new TauonStatusApi().register(this.webServer)
         new TauonNextApi().register(this.webServer)
         new TauonBackApi().register(this.webServer)
+
+        // Recovery API
+        new CompressAssetsApi().register(this.webServer)
+        new ReloadApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 

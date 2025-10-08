@@ -1,6 +1,6 @@
-import readConfig, {getConfig, watchConfig} from "./helper/ConfigHelper";
+import readConfig, {getConfig, getRawConfig, watchConfig} from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
-import {logRegular, logSuccess, logWarn} from "./helper/LogHelper";
+import {logNotice, logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
 import registerPermissions, {registerPermissionInterval} from "./clients/twitch/helper/PermissionHelper";
 import WebsocketServer from "./clients/websocket/WebsocketServer";
@@ -18,6 +18,7 @@ import {updateSourceFilters} from "./helper/SourceHelper";
 import TauonmbClient from "./clients/tauonmb/TauonmbClient";
 import {initGpio, killGpio} from "./helper/SystemHelper";
 import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
+import {compressAssets} from "./helper/AssetTuneHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -85,6 +86,8 @@ async function init() {
     await downloadVoice()
     await fetchVoices()
 
+    await compressAssets()
+
     logSuccess('backend is ready')
 }
 
@@ -106,6 +109,37 @@ export function getOBSClient() {
 
 export function getTauonmbClient() {
     return tauonmbClient
+}
+
+export async function reload() {
+    try {
+        logNotice('init reload')
+        readConfig()
+
+        await initAudio()
+
+        await getTwitchClient().connect()
+        await registerPermissions(getTwitchClient().getBot())
+        loadMacros()
+        await fetchGameInfo()
+
+        try {
+            await getOBSClient().connect()
+        } catch (error) {}
+
+        initGpio()
+
+        await downloadVoice()
+
+        await compressAssets()
+
+        logSuccess('reload finished')
+
+        getWebsocketServer().send("notify_config_update", {data: getRawConfig()})
+    } catch (error) {
+        logWarn(`reload failed:`)
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
 }
 
 process.on('SIGINT', () => {

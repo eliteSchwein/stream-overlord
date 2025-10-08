@@ -3,7 +3,7 @@ import TwitchClient from "../clients/twitch/Client";
 import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
 import {watchFile, writeFileSync} from "node:fs";
 import loadMacros from "./MacroHelper";
-import getWebsocketServer, {getOBSClient, getTwitchClient} from "../App";
+import getWebsocketServer, {getOBSClient, getTwitchClient, reload} from "../App";
 import registerPermissions from "../clients/twitch/helper/PermissionHelper";
 import {fetchGameInfo} from "./GameHelper";
 import {initAudio} from "./AudioHelper";
@@ -11,6 +11,7 @@ import {readFileSync} from "fs";
 import * as path from "node:path";
 import {initGpio} from "./SystemHelper";
 import {downloadVoice} from "./TTShelper";
+import {compressAssets} from "./AssetTuneHelper";
 
 let config = {}
 let primaryChannel = undefined
@@ -78,32 +79,8 @@ export function watchConfig() {
             interval: 100
         },
         async (curr, prev) => {
-            try {
-                logNotice("config update detected")
-                config = readConfig(true)
-
-                await initAudio()
-
-                await getTwitchClient().connect()
-                await registerPermissions(getTwitchClient().getBot())
-                loadMacros()
-                await fetchGameInfo()
-
-                try {
-                    await getOBSClient().connect()
-                } catch (error) {}
-
-                initGpio()
-
-                await downloadVoice()
-
-                logSuccess('reload finished')
-
-                getWebsocketServer().send("notify_config_update", {data: getRawConfig()})
-            } catch (error) {
-                logWarn(`reload failed:`)
-                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-            }
+            logNotice("config update detected")
+            await reload()
         }
     )
 }

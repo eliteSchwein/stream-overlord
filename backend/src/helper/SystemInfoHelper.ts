@@ -73,3 +73,11 @@ export function notifySystemInfo() {
 
     websocket.send('notify_system_info', getSystemInfo())
 }
+
+export async function getCpu() {
+    return await si.cpu()
+}
+
+export async function getGpu() {
+    return await si.graphics()
+}
