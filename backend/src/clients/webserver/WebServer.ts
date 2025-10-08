@@ -23,6 +23,7 @@ import TauonNextApi from "./api/Tauonmb/TauonNextApi";
 import TauonBackApi from "./api/Tauonmb/TauonBackApi";
 import CompressAssetsApi from "./api/Recovery/CompressAssetsApi";
 import ReloadApi from "./api/Recovery/ReloadApi";
+import SetSceneApi from "./api/Obs/SetSceneApi";
 
 export default class WebServer {
     webServer: Express
@@ -86,6 +87,7 @@ export default class WebServer {
         new ObsApi().register(this.webServer)
         new GetSceneDataApi().register(this.webServer)
         new ReloadBrowserScenesApi().register(this.webServer)
+        new SetSceneApi().register(this.webServer)
 
         // ChannelPoints API
         new GetChannelPointsApi().register(this.webServer)
