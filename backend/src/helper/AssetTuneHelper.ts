@@ -96,7 +96,7 @@ async function initFfmpeg(): Promise<FfmpegInit> {
 
     const nvencAllowed = !config?.disable_nv && haveNvenc && hasNvidiaGPU;
     const qsvAllowed   = !config?.disable_qsv && haveQsv && hasIntelGPU && vaapiDeviceOk;
-    const vaapiDisabled = (config as any)?.disable_vaapi ?? (config as any)?.disable_nvaapi;
+    const vaapiDisabled = (config as any)?.disable_vaapi ?? (config as any)?.disable_vaapi;
     const vaapiAllowed = !vaapiDisabled && haveVaapi && vaapiDeviceOk;
 
     let filterOptions: string;
