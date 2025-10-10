@@ -20,6 +20,12 @@ export default class MusicCommand extends BaseCommand {
                 },
                 {
                     name: 'volume'
+                },
+                {
+                    name: 'play'
+                },
+                {
+                    name: 'pause'
                 }
             ]
         },
@@ -44,6 +50,14 @@ export default class MusicCommand extends BaseCommand {
         }
 
         switch (params.control) {
+            case 'play':
+                await getTauonmbClient().play()
+                await context.reply("Der Song wird nun fortgesetzt.")
+                break
+            case 'pause':
+                await getTauonmbClient().pause()
+                await context.reply("Der Song wird nun pausiert.")
+                break
             case 'next':
                 await getTauonmbClient().next()
                 await context.reply("Der nächste Song wird nun gespielt.")

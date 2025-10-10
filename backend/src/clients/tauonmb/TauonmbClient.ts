@@ -114,6 +114,18 @@ export default class TauonmbClient {
         return await this.callEndpoint('next')
     }
 
+    public async play() {
+        if(this.disabled) return
+
+        return await this.callEndpoint('play')
+    }
+
+    public async pause() {
+        if(this.disabled) return
+
+        return await this.callEndpoint('pause')
+    }
+
     public async back() {
         if(this.disabled) return
 
