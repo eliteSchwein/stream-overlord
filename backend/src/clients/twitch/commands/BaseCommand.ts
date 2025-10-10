@@ -33,6 +33,16 @@ export default class BaseCommand {
     // },
     // {
     // name: string,
+    // type: subcommand,
+    // required: false,
+    // subcommands: [
+    //     {
+    //         name: string
+    //     }
+    // ]
+    // },
+    // {
+    // name: string,
     // type: user
     // }
 
@@ -76,57 +86,75 @@ export default class BaseCommand {
             return
         }
 
-        if(param.length < this.params.length) {
-            await this.replyParamLengthError(param, context)
-            return
+        const params = {}
+
+        for (const paramOptions of this.params) {
+            if (paramOptions.required === undefined) {
+                paramOptions.required = true
+            }
         }
 
-        const params = {}
+        const requiredParams = this.params.filter(p => p.required)
+        if (param.length < requiredParams.length) {
+            await this.replyMissingParamError(param, context, param.length)
+            return
+        }
 
         let paramIndex = 0
 
         const firstParamOptions = this.params[0]
 
-        if(firstParamOptions && firstParamOptions.type === 'all') {
+        if (firstParamOptions && firstParamOptions.type === 'all') {
             let data = ''
-            for(const paramPartial of param) {
+            for (const paramPartial of param) {
                 data = `${data} ${paramPartial}`
             }
             params[firstParamOptions.name] = data.substring(1)
         } else {
-            for(const paramPartial of param) {
+
+            for (const paramPartial of param) {
                 const paramOptions = this.params[paramIndex]
 
-                if(!paramOptions) continue
+                if (!paramOptions) continue
 
-                if(paramOptions.type === 'number') {
+                if (paramOptions.type === 'number') {
                     const number = Number(paramPartial)
                     if (isNaN(number)) {
                         await this.replyParamSyntaxError(param, context, paramIndex, 'Nummer')
                         return
                     }
-
                     params[paramOptions.name] = number
+                    paramIndex++
                     continue
                 }
 
-                if(paramOptions.type === 'user') {
+                if (paramOptions.type === 'user') {
                     let userName = paramPartial
-
-                    if(userName.startsWith('@')) userName = userName.substring(1)
+                    if (userName.startsWith('@')) userName = userName.substring(1)
 
                     const user = await this.bot.api.users.getUserByName(userName)
-                    if(user === null || user === undefined) {
+                    if (!user) {
                         await this.replyParamSyntaxError(param, context, paramIndex, 'Benutzer')
                         return
                     }
 
                     params[paramOptions.name] = user
+                    paramIndex++
                     continue
                 }
 
-                params[paramOptions.name] = paramPartial
+                if (paramOptions.type === 'subcommand') {
+                    const subcommand = paramPartial
+                    const validSubcommands = paramOptions.subcommands.map(s => s.name)
+                    const validSubcommand = validSubcommands.includes(subcommand)
 
+                    if (!validSubcommand) {
+                        await this.replyInvalidSubcommand(param, context, paramIndex, validSubcommands)
+                        return
+                    }
+                }
+
+                params[paramOptions.name] = paramPartial
                 paramIndex++
             }
         }
@@ -134,21 +162,26 @@ export default class BaseCommand {
         logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
 
         try {
-            await this.handle(params, context)
+            await this.handle(params, context, param)
         } catch (error) {
             logWarn(`command ${this.command} failed:`)
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
     }
 
+    protected async replyInvalidSubcommand(param: string[], context: BotCommandContext, index: number, validSubcommands: string[]) {
+        logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
+        await context.reply(`der Parameter ${index+1} ist ungültig, valide Unterbefehle sind: ${validSubcommands.join(', ')}`)
+    }
+
+    protected async replyMissingParamError(param: string[], context: BotCommandContext, index: number) {
+        logWarn(`missing param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
+        await context.reply(`der Parameter ${index+1} wird benötigt!`)
+    }
+
     protected async replyParamSyntaxError(param: string[], context: BotCommandContext, index: number, type: string) {
         logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
         await context.reply(`der Parameter ${index+1} ist ein ${type}!`)
-    }
-
-    protected async replyParamLengthError(param: string[], context: BotCommandContext) {
-        logWarn(`missing param by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
-        await context.reply(`der Befehl hat ${this.params.length} Parameter!`)
     }
 
     protected async replyPermissionError(context: BotCommandContext) {
@@ -162,7 +195,7 @@ export default class BaseCommand {
         await context.reply(message)
     }
 
-    async handle(params: any, context: BotCommandContext) {
+    async handle(params: any, context: BotCommandContext, rawParam: string[]) {
 
     }
 }

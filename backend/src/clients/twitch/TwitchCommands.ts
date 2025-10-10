@@ -14,6 +14,7 @@ import {triggerMacro} from "../../helper/MacroHelper";
 import MacroCommand from "./commands/MacroCommand";
 import ListScenesCommand from "./commands/ListScenesCommand";
 import SetSceneCommand from "./commands/SetSceneCommand";
+import MusicCommand from "./commands/MusicCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -29,6 +30,7 @@ export default function buildCommands(bot: Bot) {
     commands = commands.concat(new MacroCommand(bot).register())
     commands = commands.concat(new ListScenesCommand(bot).register())
     commands = commands.concat(new SetSceneCommand(bot).register())
+    commands = commands.concat(new MusicCommand(bot).register())
 
     // configured commands
     commands = buildConfigCommands(commands)
