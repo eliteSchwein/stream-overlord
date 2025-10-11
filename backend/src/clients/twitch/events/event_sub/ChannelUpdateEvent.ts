@@ -26,12 +26,11 @@ export default class ChannelUpdateEvent extends BaseEvent {
         await fetchGameInfo()
         pushGameInfo()
 
-        await editGameTracker(event.categoryId)
-        await sleep(250)
+        // await editGameTracker(event.categoryId)
         await updateSourceFilters()
 
         // idk why but this is needed
-        await sleep(250)
+        await sleep(1_000)
         await updateSourceFilters()
     }
 }
