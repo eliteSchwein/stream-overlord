@@ -5,7 +5,7 @@ export default class SetSceneCommand extends BaseCommand {
     command = 'setscene'
     requiresMod = true
     enforceSame = true
-    aliases = ['scene']
+    aliases = ['scene', 'szene']
     params = [
         {
             name: 'sceneName',

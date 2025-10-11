@@ -5,7 +5,7 @@ export default class ListScenesCommand extends BaseCommand {
     command = 'listscenes'
     requiresMod = true
     enforceSame = true
-    aliases = ['scenes']
+    aliases = ['scenes', 'szenen']
 
     async handle(params: any, context: any) {
         const sceneItems = getOBSClient().getSceneData()
