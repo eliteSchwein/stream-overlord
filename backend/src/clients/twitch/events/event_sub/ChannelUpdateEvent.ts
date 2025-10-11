@@ -29,5 +29,9 @@ export default class ChannelUpdateEvent extends BaseEvent {
         await editGameTracker(event.categoryId)
         await sleep(250)
         await updateSourceFilters()
+
+        // idk why but this is needed
+        await sleep(250)
+        await updateSourceFilters()
     }
 }
