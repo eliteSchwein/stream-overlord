@@ -88,6 +88,8 @@ async function init() {
 
     await compressAssets()
 
+    await updateSourceFilters()
+
     logSuccess('backend is ready')
 }
 
