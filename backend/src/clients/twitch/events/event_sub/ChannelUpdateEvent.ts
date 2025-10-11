@@ -5,6 +5,7 @@ import {logNotice} from "../../../../helper/LogHelper";
 import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {updateAdData} from "../../../../helper/SchedulerHelper";
 import {updateSourceFilters} from "../../../../helper/SourceHelper";
+import {sleep} from "../../../../../../helper/GeneralHelper";
 
 export default class ChannelUpdateEvent extends BaseEvent {
     name = 'ChannelUpdateEvent'
@@ -26,6 +27,7 @@ export default class ChannelUpdateEvent extends BaseEvent {
         pushGameInfo()
 
         await editGameTracker(event.categoryId)
+        await sleep(250)
         await updateSourceFilters()
     }
 }
