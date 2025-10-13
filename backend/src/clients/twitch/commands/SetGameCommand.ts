@@ -1,6 +1,6 @@
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
-import {getConfig, getPrimaryChannel} from "../../../helper/ConfigHelper";
+import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {logRegular} from "../../../helper/LogHelper";
 
 export default class SetGameCommand extends BaseCommand {

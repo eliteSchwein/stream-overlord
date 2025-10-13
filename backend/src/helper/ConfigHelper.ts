@@ -1,17 +1,10 @@
 import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
-import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
+import {logNotice, logRegular} from "./LogHelper";
 import {watchFile, writeFileSync} from "node:fs";
-import loadMacros from "./MacroHelper";
-import getWebsocketServer, {getOBSClient, getTwitchClient, reload} from "../App";
-import registerPermissions from "../clients/twitch/helper/PermissionHelper";
-import {fetchGameInfo} from "./GameHelper";
-import {initAudio} from "./AudioHelper";
+import {reload} from "../App";
 import {readFileSync} from "fs";
 import * as path from "node:path";
-import {initGpio} from "./SystemHelper";
-import {downloadVoice} from "./TTShelper";
-import {compressAssets} from "./AssetTuneHelper";
 
 let config = {}
 let primaryChannel = undefined

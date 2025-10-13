@@ -1,5 +1,5 @@
 import getGameInfo from "./GameHelper";
-import {fetchSourceFilters, generateBaseUrl, getSourceFilters, getSources} from "../clients/website/WebsiteClient";
+import {fetchSourceFilters, generateBaseUrl, getSources} from "../clients/website/WebsiteClient";
 import {logDebug, logWarn} from "./LogHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 

@@ -3,13 +3,7 @@ import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logError, logNotice, logRegular, logWarn} from "../../../../helper/LogHelper";
 import {getAssetConfig, getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import BoostChannelPoint from "../channel_points/BoostChannelPoint";
-import {
-    addEventToCooldown,
-    isEventFull,
-    isEventQueried,
-    queryEvent,
-    removeEventFromCooldown
-} from "../../helper/CooldownHelper";
+import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
@@ -18,7 +12,7 @@ import isShieldActive from "../../../../helper/ShieldHelper";
 import FAChannelPoint from "../channel_points/FAChannelPoint";
 import getWebsocketServer from "../../../../App";
 import HudChannelPoint from "../channel_points/HudChannelPoint";
-import {fetchChannelPointData, getKeyCombos, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
+import {getKeyCombos, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {getGameInfoData} from "../../../website/WebsiteClient";
 import {waitUntil} from "async-wait-until";
 import TTSChannelPoint from "../channel_points/TTSChannelPoint";

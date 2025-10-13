@@ -66,11 +66,6 @@ export async function updateTwitchData() {
     return await requestApi(`updateTwitch`)
 }
 
-export async function editGameTracker(gameId: string, mode: string = 'add') {
-    if(!(await getTwitchData()).stream) return
-    return await requestApi(`editGameTracker&game_id=${gameId}&mode=${mode}`)
-}
-
 export async function getSources() {
     return await requestApi(`source&mode=getSources`)
 }

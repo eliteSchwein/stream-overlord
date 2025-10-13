@@ -1,4 +1,4 @@
-import readConfig, {getConfig, getRawConfig, watchConfig} from "./helper/ConfigHelper";
+import readConfig, {getRawConfig, watchConfig} from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
 import {logNotice, logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";

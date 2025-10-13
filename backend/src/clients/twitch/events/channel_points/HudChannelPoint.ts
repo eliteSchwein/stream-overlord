@@ -5,7 +5,6 @@ import getWebsocketServer from "../../../../App";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
-import {isEventQueried} from "../../helper/CooldownHelper";
 
 export default class HudChannelPoint extends BaseChannelPoint {
     title = 'Hud Surge'

@@ -1,6 +1,4 @@
 import BaseMessage from "./BaseMessage";
-import {getAdData} from "../../../website/WebsiteClient";
-import {logWarn} from "../../../../helper/LogHelper";
 import {setTestModeActive} from "../../../../helper/VisibleHelper";
 
 export default class ToggleTestModeMessage extends BaseMessage {

@@ -3,7 +3,6 @@ import getWebsocketServer from "../App";
 import {getConfig} from "./ConfigHelper";
 import {setLedColor} from "./WledHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
-import {getRandomInt} from "../../../helper/GeneralHelper";
 
 const gameInfo = {
     data: {},

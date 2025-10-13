@@ -1,11 +1,10 @@
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
-import {getConfig, getPrimaryChannel} from "../../../helper/ConfigHelper";
+import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {addAlert, isAlertActive} from "../../../helper/AlertHelper";
 import getWebsocketServer from "../../../App";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
-import {isEventQueried} from "../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
 
 export default class ShoutoutCommand extends BaseCommand {

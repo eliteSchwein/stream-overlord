@@ -9,7 +9,7 @@ import {logError, logRegular} from "../../../../helper/LogHelper";
 import {v4 as uuidv4} from 'uuid';
 import {EventSubWsListener} from "@twurple/eventsub-ws";
 import {Bot} from "@twurple/easy-bot";
-import {getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
+import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 
 export default class BaseEvent {

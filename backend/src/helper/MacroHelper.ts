@@ -2,8 +2,6 @@ import {getConfig, getPrimaryChannel} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient, getTwitchClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
-import {editGameTracker, getGameInfoData} from "../clients/website/WebsiteClient";
-import {get} from "lodash";
 import {parsePlaceholders} from "./DataHelper";
 
 let macros = {}
@@ -114,17 +112,6 @@ async function handleFunction(method: string, data: any) {
             const primaryChannel = getPrimaryChannel()
 
             await getTwitchClient().getBot().api.chat.sendChatMessage(primaryChannel, data.content)
-            break
-        }
-        case 'track': {
-            const themeData = await getGameInfoData()
-            let mode = 'add'
-
-            if(data.mode) {
-                mode = data.mode
-            }
-
-            await editGameTracker(themeData.game_id, mode)
             break
         }
     }

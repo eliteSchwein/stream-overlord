@@ -1,4 +1,4 @@
-import {getConfig, getDefaultChannel, getPrimaryChannel} from "./ConfigHelper";
+import {getConfig, getPrimaryChannel} from "./ConfigHelper";
 import {triggerMacro} from "./MacroHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {pushGameInfo, setManualColor} from "./GameHelper";

@@ -1,12 +1,12 @@
-import { execute } from "./CommandHelper";
-import { getConfig } from "./ConfigHelper";
-import { logRegular, logWarn } from "./LogHelper";
-import { Gpio } from "onoff";
+import {execute} from "./CommandHelper";
+import {getConfig} from "./ConfigHelper";
+import {logRegular, logWarn} from "./LogHelper";
+import {Gpio} from "onoff";
 import getWebsocketServer from "../App";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as fs from "node:fs";
-import { spawn, ChildProcessWithoutNullStreams } from "node:child_process";
+import {ChildProcessWithoutNullStreams, spawn} from "node:child_process";
 import {execSync} from "child_process";
 
 let evtestProc: ChildProcessWithoutNullStreams | null = null;

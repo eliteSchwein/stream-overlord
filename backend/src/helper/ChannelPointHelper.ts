@@ -1,7 +1,7 @@
 import {getConfig, getPrimaryChannel} from "./ConfigHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
-import {logError, logRegular, logWarn} from "./LogHelper";
+import {logRegular, logWarn} from "./LogHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
 
 let channelPoints = {}

@@ -1,6 +1,6 @@
 import BaseApi from "../BaseApi";
 import {getTwitchClient} from "../../../../App";
-import {getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
+import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 
 export default class SetGameApi extends BaseApi {
     endpoint = 'game/set'

@@ -1,5 +1,10 @@
 import BaseEvent from "./BaseEvent";
-import {EventSubChannelPollBeginEvent, EventSubChannelPollEndEvent, EventSubChannelPredictionBeginEvent, EventSubChannelPredictionEndEvent} from "@twurple/eventsub-base";
+import {
+    EventSubChannelPollBeginEvent,
+    EventSubChannelPollEndEvent,
+    EventSubChannelPredictionBeginEvent,
+    EventSubChannelPredictionEndEvent
+} from "@twurple/eventsub-base";
 
 export default class PollPredictionEvent extends BaseEvent {
     name = 'PollPredictionEvent'

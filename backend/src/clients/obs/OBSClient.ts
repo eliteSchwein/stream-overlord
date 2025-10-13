@@ -1,15 +1,6 @@
 import {getConfig} from "../../helper/ConfigHelper";
 import OBSWebSocket, {EventSubscription, OBSWebSocketError} from "obs-websocket-js";
-import {
-    getLogConfig,
-    isDebug,
-    logCustom,
-    logDebug,
-    logNotice,
-    logRegular,
-    logSuccess,
-    logWarn
-} from "../../helper/LogHelper";
+import {getLogConfig, logCustom, logDebug, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {updateSourceFilters} from "../../helper/SourceHelper";
 import getWebsocketServer from "../../App";
 import RotatingSceneEvent from "./events/RotatingSceneEvent";

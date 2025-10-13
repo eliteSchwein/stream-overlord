@@ -1,4 +1,4 @@
-import { getGameInfoData } from "../../website/WebsiteClient";
+import {getGameInfoData} from "../../website/WebsiteClient";
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
 

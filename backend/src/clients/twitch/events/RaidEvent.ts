@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {RaidEvent as EasyEvent} from "@twurple/easy-bot/lib/events/RaidEvent";
-import {getAssetConfig, getConfig, getPrimaryChannel} from "../../../helper/ConfigHelper";
+import {getAssetConfig, getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {addAlert} from "../../../helper/AlertHelper";

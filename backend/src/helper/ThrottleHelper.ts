@@ -1,6 +1,6 @@
 import {logDebug, logWarn} from "./LogHelper";
-import { getConfig } from "./ConfigHelper";
-import { execSync } from "child_process";
+import {getConfig} from "./ConfigHelper";
+import {execSync} from "child_process";
 import getWebsocketServer from "../App";
 
 let throttleActive = false;

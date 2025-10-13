@@ -1,5 +1,4 @@
 import BaseMessage from "./BaseMessage";
-import {removeEventFromQuery} from "../../../twitch/helper/CooldownHelper";
 import {removeAlert} from "../../../../helper/AlertHelper";
 
 export default class RemoveAlertMessage extends BaseMessage {

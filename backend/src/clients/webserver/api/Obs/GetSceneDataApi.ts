@@ -1,5 +1,4 @@
 import BaseApi from "../BaseApi";
-import {getGameInfoData} from "../../../website/WebsiteClient";
 import {getOBSClient} from "../../../../App";
 
 export default class GetSceneDataApi extends BaseApi {

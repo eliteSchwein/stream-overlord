@@ -1,6 +1,5 @@
-
 import BaseEvent from "./BaseEvent";
-import registerPermissions, {addModeratorsToChannelFromExternal} from "../../helper/PermissionHelper";
+import {addModeratorsToChannelFromExternal} from "../../helper/PermissionHelper";
 import {logWarn} from "../../../../helper/LogHelper";
 import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 

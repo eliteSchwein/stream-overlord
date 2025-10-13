@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelShieldModeBeginEvent, EventSubChannelShieldModeEndEvent} from "@twurple/eventsub-base";
-import {getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
+import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {disableShield, enableShield} from "../../../../helper/ShieldHelper";
 
 export default class ShieldEvent extends BaseEvent {

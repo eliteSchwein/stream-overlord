@@ -1,5 +1,4 @@
 import BaseMessage from "./BaseMessage";
-import {pushGameInfo, setManualColor} from "../../../../helper/GameHelper";
 import {writeRawConfig} from "../../../../helper/ConfigHelper";
 
 export default class UpdateConfigMessage extends BaseMessage {

@@ -1,5 +1,4 @@
 import BaseApi from "../BaseApi";
-import {compressAssets} from "../../../../helper/AssetTuneHelper";
 import {reload} from "../../../../App";
 
 export default class ReloadApi extends BaseApi {
