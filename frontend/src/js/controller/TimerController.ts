@@ -5,7 +5,7 @@ import {sleep} from "../../../../helper/GeneralHelper";
 export default class TimerController extends BaseController {
     websocketEndpoints = ['notify_timer']
 
-    static targets = ['leadingMinute', 'lastMinute', 'leadingSecond', 'lastSecond']
+    static targets = ['leadingMinute', 'lastMinute', 'leadingSecond', 'lastSecond', 'progressBar']
 
     declare readonly leadingMinuteTargets: HTMLDivElement[]
     declare readonly lastMinuteTargets: HTMLDivElement[]
@@ -25,6 +25,8 @@ export default class TimerController extends BaseController {
         if(method !== 'notify_timer') return
 
         if(data.name !== this.name) return
+
+        this.alertBoxHelper.setTopBarProgress(data.progress)
 
         switch (data.action) {
             case "update":

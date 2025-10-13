@@ -31,20 +31,6 @@
     white-space: nowrap;
 }
 
-.music-progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 1.5rem;
-    z-index: 3;
-}
-
-.music-progress-bar,
-.music-progress-container {
-    height: 100%;
-}
-
 .music-thumbnail-container {
     --notch: 0;
     --right-inset: 3.75rem;

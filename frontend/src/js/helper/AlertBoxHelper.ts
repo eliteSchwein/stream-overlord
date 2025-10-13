@@ -49,4 +49,18 @@ export default class AlertBoxHelper {
     public isPresent() {
         return !!this.element;
     }
+
+    public setTopBarProgress(progress: number) {
+        if(progress < 0) progress = 0
+        if(progress > 100) progress = 100
+
+        if(!this.element) return
+        if(!this.isPresent()) return
+
+        const topBar = this.element.querySelector('.new-alert-top-bar-content') as HTMLDivElement
+
+        if(!topBar) return
+
+        topBar.style.width = `${progress}%`
+    }
 }

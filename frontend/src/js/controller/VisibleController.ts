@@ -20,9 +20,17 @@ export default class VisibleController extends BaseController {
 
         switch (data.state) {
             case true:
+                if(this.alertBoxHelper.isPresent()) {
+                    this.alertBoxHelper.show()
+                    break
+                }
                 this.element.style.display = null
                 break
             case false:
+                if(this.alertBoxHelper.isPresent()) {
+                    this.alertBoxHelper.hide()
+                    break
+                }
                 this.element.style.display = 'none'
                 break
         }

@@ -5,6 +5,10 @@ body {
     padding: 0;
 }
 
+.color-theme {
+    color: var(--theme-color);
+}
+
 .text-right {
     text-align: right;
 }

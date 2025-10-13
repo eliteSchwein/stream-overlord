@@ -51,9 +51,7 @@ export default class TauonmbController extends BaseController {
 
         this.status = data
 
-        if(this.barElement) {
-            this.barElement.style.width = `${this.status.progress_percentage}%`
-        }
+        this.alertBoxHelper.setTopBarProgress(this.status.progress_percentage)
 
         if(this.titleElement) {
             this.titleElement.innerHTML = this.status.title
