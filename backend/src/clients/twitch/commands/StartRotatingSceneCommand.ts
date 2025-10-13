@@ -19,6 +19,7 @@ export default class StartRotatingSceneCommand extends BaseCommand {
                 await context.reply('Es wurde keine Auto Szene gestartet.')
                 return
             }
+            await context.reply('Die Auto Szene wird nun gestoppt.')
             stopRotateScene()
             return
         }

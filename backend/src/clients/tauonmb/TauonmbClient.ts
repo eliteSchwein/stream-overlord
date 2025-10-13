@@ -74,6 +74,15 @@ export default class TauonmbClient {
         }
     }
 
+    public getSongCmd() {
+        if(!this.status) return ''
+
+        if(this.status.artist) {
+            return `${this.status.artist} - ${this.status.title}`
+        }
+
+        return this.status.title
+    }
 
     public getStatus() {
         return { ...this.status, image: this.image }

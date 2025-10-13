@@ -39,6 +39,7 @@ export default class MusicCommand extends BaseCommand {
     async handle(params: any, context: any, rawParams: string[]) {
         if(!params.control) {
             getWebsocketServer().send('notify_tauonmb_show', {})
+            await context.reply(getTauonmbClient().getSongCmd())
             return
         }
 
