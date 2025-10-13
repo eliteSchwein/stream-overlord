@@ -35,3 +35,11 @@ export async function parsePlaceholders(content: string, additional: any = {}) {
 
     return content
 }
+
+export function calcProgress(current: number, max: number) {
+    const total = max ?? 0
+    if (total <= 0) return 100
+    const done = total - (current ?? 0)
+    const pct = Math.round((done / total) * 100)
+    return Math.max(0, Math.min(100, pct))
+}

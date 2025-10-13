@@ -12,6 +12,7 @@ import {
 } from "../../helper/LogHelper";
 import {updateSourceFilters} from "../../helper/SourceHelper";
 import getWebsocketServer from "../../App";
+import RotatingSceneEvent from "./events/RotatingSceneEvent";
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
@@ -92,7 +93,7 @@ export class OBSClient {
 
             // wtf, why is obs so stupid. this specific one is for source item AND audio
             "InputNameChanged",
-        ];
+        ]
 
         events.forEach(event =>
             // @ts-ignore
@@ -102,7 +103,9 @@ export class OBSClient {
                 await this.fetchItems()
                 this.eventFetching = false
             })
-        );
+        )
+
+        new RotatingSceneEvent(this).register()
 
     }
 

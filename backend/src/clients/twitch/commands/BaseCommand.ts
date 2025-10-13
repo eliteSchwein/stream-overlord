@@ -110,6 +110,11 @@ export default class BaseCommand {
                 data = `${data} ${paramPartial}`
             }
             params[firstParamOptions.name] = data.substring(1)
+
+            if(data === '') {
+                await this.replyParamSyntaxError(param, context, paramIndex, 'Text')
+                return
+            }
         } else {
 
             for (const paramPartial of param) {
