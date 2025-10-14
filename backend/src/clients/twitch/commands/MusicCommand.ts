@@ -4,6 +4,7 @@ import {hasModerator} from "../helper/PermissionHelper";
 
 export default class MusicCommand extends BaseCommand {
     command = 'music'
+    enforceSame = true
     //globalCooldown = 25
     //userCooldown = 40
     params = [

@@ -3,7 +3,8 @@ import {isMacroPresent, triggerMacro} from "../../../helper/MacroHelper";
 
 export default class MacroCommand extends BaseCommand {
     command = 'macro'
-    requiresBroadcaster = true
+    requiresMod = true
+    enforceSame = true
     params = [
         {
             name: 'macro',
