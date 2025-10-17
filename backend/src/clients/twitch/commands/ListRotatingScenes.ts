@@ -19,6 +19,7 @@ export default class ListRotatingScenes extends BaseCommand {
             if(counter > 5) {
                 await context.reply(sceneList.trim().substring(3))
                 sceneList = ""
+                counter = 0
             }
             sceneList = `${sceneList} || ${scene}`
 

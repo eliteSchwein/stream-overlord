@@ -15,6 +15,7 @@ import SetSceneCommand from "./commands/SetSceneCommand";
 import MusicCommand from "./commands/MusicCommand";
 import ListRotatingScenes from "./commands/ListRotatingScenes";
 import StartRotatingSceneCommand from "./commands/StartRotatingSceneCommand";
+import {ListMacrosCommand} from "./commands/ListMacrosCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -33,6 +34,7 @@ export default function buildCommands(bot: Bot) {
     commands = commands.concat(new MusicCommand(bot).register())
     commands = commands.concat(new ListRotatingScenes(bot).register())
     commands = commands.concat(new StartRotatingSceneCommand(bot).register())
+    commands = commands.concat(new ListMacrosCommand(bot).register())
 
     // configured commands
     commands = buildConfigCommands(commands)
