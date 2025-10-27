@@ -15,6 +15,8 @@ import NotifyTestMode from "@/plugins/websocketEvents/websocketMessage/NotifyTes
 import NotifyPowerButtonMessage from "@/plugins/websocketEvents/websocketMessage/NotifyPowerButtonMessage.ts";
 import NotifyVoiceListUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyVoiceListUpdateMessage.ts";
 import NotifyMacroUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyMacroUpdateMessage.ts";
+import NotifyAutoMacrosUpdate from "@/plugins/websocketEvents/websocketMessage/NotifyAutoMacrosUpdate.ts";
+import NotifyVariableUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyVariableUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -37,5 +39,7 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyPowerButtonMessage(this.webSocketClient).handleMessage(data)
     await new NotifyVoiceListUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyMacroUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyAutoMacrosUpdate(this.webSocketClient).handleMessage(data)
+    await new NotifyVariableUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

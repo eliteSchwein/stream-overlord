@@ -13,6 +13,8 @@ import getGameInfo from "../../helper/GameHelper";
 import {getAllVisibleElements, isTestModeActive, toggleElementVisiblity} from "../../helper/VisibleHelper";
 import {getVoices} from "../../helper/TTShelper";
 import {getMacros} from "../../helper/MacroHelper";
+import {getAutoMacros} from "../../helper/AutoMacroHelper";
+import {getTemplateVariables} from "../../helper/TemplateHelper";
 
 
 export default class WebsocketServer {
@@ -42,7 +44,9 @@ export default class WebsocketServer {
         'notify_test_mode',
         'notify_power_button',
         'notify_voice_list_update',
-        'notify_macro_update'
+        'notify_macro_update',
+        'notify_auto_macros_update',
+        'notify_variables_update'
     ]
     connectionEndpoints = {}
     
@@ -167,6 +171,8 @@ export default class WebsocketServer {
                 this.send("notify_test_mode", {active: isTestModeActive()}, client)
                 this.send("notify_voice_list_update", {voices: getVoices()}, client)
                 this.send("notify_macro_update", {macros: getMacros()}, client)
+                this.send("notify_auto_macros_update", getAutoMacros(), client)
+                this.send("notify_variables_update", getTemplateVariables(), client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]

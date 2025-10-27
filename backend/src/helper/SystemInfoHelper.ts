@@ -7,6 +7,12 @@ import si = require('systeminformation');
 import _ = require("lodash");
 
 let currentSystemInfo = []
+const systemInformations = {
+    cpu: {},
+    gpu: {
+        controllers: []
+    }
+}
 
 export async function updateSystemInfo() {
     try {
@@ -74,10 +80,23 @@ export function notifySystemInfo() {
     websocket.send('notify_system_info', getSystemInfo())
 }
 
-export async function getCpu() {
-    return await si.cpu()
+export async function updateSystemComponents() {
+    logDebug('update system components')
+    systemInformations.cpu = await si.cpu()
+    systemInformations.gpu = await si.graphics()
+
+    delete systemInformations.cpu['flags']
+    logDebug(JSON.stringify(systemInformations))
 }
 
-export async function getGpu() {
-    return await si.graphics()
+export function getCpu() {
+    return systemInformations.cpu;
+}
+
+export function getGpu() {
+    return systemInformations.gpu
+}
+
+export function getSystemComponents() {
+    return systemInformations
 }

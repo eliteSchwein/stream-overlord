@@ -25,7 +25,9 @@ export const useAppStore = defineStore('app', {
     obsSceneData: [],
     testMode: false,
     voices: [],
-    macros: {}
+    macros: {},
+    autoMacros: [],
+    variables: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -51,7 +53,9 @@ export const useAppStore = defineStore('app', {
     getObsSceneData: (state) => state.obsSceneData,
     getTestMode: (state) => state.testMode,
     getVoices: (state) => state.voices,
-    getMacros: (state) => state.macros
+    getMacros: (state) => state.macros,
+    getAutoMacros: (state) => state.autoMacros,
+    getVariables: (state) => state.variables
   },
   actions: {
     async fetchConfig() {
@@ -134,6 +138,14 @@ export const useAppStore = defineStore('app', {
     setMacros(macros: {}) {
       this.macros = macros
       this.$patch(state => state.macros = macros)
+    },
+    setAutoMacros(autoMacros: []) {
+      this.autoMacros = autoMacros
+      this.$patch(state => state.autoMacros = autoMacros)
+    },
+    setVariables(variables: {}) {
+      this.variables = variables
+      this.$patch(state => state.variables = variables)
     }
   }
 })

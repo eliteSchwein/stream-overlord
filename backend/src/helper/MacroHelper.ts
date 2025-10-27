@@ -1,8 +1,10 @@
 import {getConfig, getPrimaryChannel} from "./ConfigHelper";
-import getWebsocketServer, {getOBSClient, getTwitchClient} from "../App";
+import getWebsocketServer, {getOBSClient, getTauonmbClient, getTwitchClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {parsePlaceholders} from "./DataHelper";
+import getGameInfo from "./GameHelper";
+import fillTemplate from "./TemplateHelper";
 
 let macros = {}
 
@@ -110,6 +112,8 @@ async function handleFunction(method: string, data: any) {
         }
         case 'send_message': {
             const primaryChannel = getPrimaryChannel()
+
+            data.content = fillTemplate(data.content, {})
 
             await getTwitchClient().getBot().api.chat.sendChatMessage(primaryChannel, data.content)
             break

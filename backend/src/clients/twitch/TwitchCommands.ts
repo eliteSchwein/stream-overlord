@@ -16,6 +16,7 @@ import MusicCommand from "./commands/MusicCommand";
 import ListRotatingScenes from "./commands/ListRotatingScenes";
 import StartRotatingSceneCommand from "./commands/StartRotatingSceneCommand";
 import {ListMacrosCommand} from "./commands/ListMacrosCommand";
+import fillTemplate from "../../helper/TemplateHelper";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -80,7 +81,7 @@ function buildConfigCommand(command: string, option: any) {
             if(context.broadcasterId !== primaryChannel.id) return
         }
 
-        if(option.message) void context.reply(option.message);
+        if(option.message) void context.reply(fillTemplate(option.message, {}));
         if(option.macro) void triggerMacro(option.macro)
     }, {aliases: option.alias, userCooldown: option.userCooldown, globalCooldown: option.globalCooldown})
 }

@@ -75,7 +75,7 @@ async function initFfmpeg(): Promise<FfmpegInit> {
         try { fs.accessSync(p, fs.constants.R_OK); return true; } catch { return false; }
     };
 
-    const gfx = await getGpu();
+    const gfx = getGpu();
     const controllers = gfx.controllers || [];
     const vendorStr = (v?: string) => (v || "").toLowerCase();
 

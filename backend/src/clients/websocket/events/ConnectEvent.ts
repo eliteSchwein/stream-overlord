@@ -16,6 +16,7 @@ import UpdateConfigMessage from "./messages/UpdateConfigMessage";
 import ToggleTestModeMessage from "./messages/ToggleTestModeMessage";
 import HaltSystemMessage from "./messages/HaltSystemMessage";
 import UpdateMessage from "./messages/UpdateMessage";
+import ToggleAutoMacroMessage from "./messages/ToggleAutoMacroMessage";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
@@ -31,6 +32,7 @@ export default class ConnectEvent extends BaseEvent{
 
             await new RegisterMessage(this.webSocketServer, event, this.client).handleMessage(data)
 
+            await new ToggleAutoMacroMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new AdMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new EditColorMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new RemoveEventMessage(this.webSocketServer, event, this.client).handleMessage(data)

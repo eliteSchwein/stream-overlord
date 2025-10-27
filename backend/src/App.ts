@@ -13,12 +13,13 @@ import initialSchedulers from "./helper/SchedulerHelper";
 import {setLedColor} from "./helper/WledHelper";
 import {initAudio} from "./helper/AudioHelper";
 import loadMacros from "./helper/MacroHelper";
-import {updateSystemInfo} from "./helper/SystemInfoHelper";
+import {updateSystemComponents, updateSystemInfo} from "./helper/SystemInfoHelper";
 import {updateSourceFilters} from "./helper/SourceHelper";
 import TauonmbClient from "./clients/tauonmb/TauonmbClient";
 import {initGpio, killGpio} from "./helper/SystemHelper";
 import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
 import {compressAssets} from "./helper/AssetTuneHelper";
+import {initAutoMacros} from "./helper/AutoMacroHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -33,6 +34,8 @@ async function init() {
 
     logRegular('load config')
     readConfig()
+
+    await updateSystemComponents()
 
     twitchClient = new TwitchClient()
     await twitchClient.connect()
@@ -90,6 +93,8 @@ async function init() {
 
     await updateSourceFilters()
 
+    initAutoMacros()
+
     logSuccess('backend is ready')
 }
 
@@ -134,6 +139,8 @@ export async function reload() {
         await downloadVoice()
 
         await compressAssets()
+
+        initAutoMacros()
 
         logSuccess('reload finished')
 
