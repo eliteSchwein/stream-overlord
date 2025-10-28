@@ -2,6 +2,7 @@ import {getPrimaryChannel} from "./ConfigHelper";
 import getGameInfo from "./GameHelper";
 import getWebsocketServer, {getTauonmbClient} from "../App";
 import {getSystemComponents} from "./SystemInfoHelper";
+import {getGiveaway} from "./GiveawayHelper";
 
 export default function fillTemplate(tpl: string, data: any) {
     const ctx = getTemplateVariables(data);
@@ -28,6 +29,7 @@ export function getTemplateVariables(data: any = {}) {
         musicinfo: getTauonmbClient().getStatus(),
         systeminfo: getSystemComponents(),
         musictext: getTauonmbClient().getSongCmd(),
+        giveaway: getGiveaway()
     };
 
     return ctx;

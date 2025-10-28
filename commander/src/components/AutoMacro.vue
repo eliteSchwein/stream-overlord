@@ -30,6 +30,8 @@ function toggleAutoMacro(autoMacro: any) {
       :model-value="100 / autoMacro.interval * autoMacro.current_interval"
       location="bottom"
       absolute
+      rounded
+      color="grey-darken-1"
     ></v-progress-linear>
     <template v-slot:append>
       <div class="d-flex ga-1 mr-3">

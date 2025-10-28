@@ -1,11 +1,11 @@
 import TwitchAuth from "./Auth";
-import {getConfig, loadPrimaryChannel} from "../../helper/ConfigHelper";
+import {getConfig, getPrimaryChannel, loadPrimaryChannel} from "../../helper/ConfigHelper";
 import {Bot} from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
 import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import {waitUntil} from "async-wait-until";
-import {logRegular, logSuccess} from "../../helper/LogHelper";
+import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
 import SubEvent from "./events/SubEvent";
 import CommunitySubEvent from "./events/CommunitySubEvent";
@@ -94,5 +94,23 @@ export default class TwitchClient {
 
     public getEventSub() {
         return this.eventSub
+    }
+
+    public async announce(message: string, color: string = 'primary') {
+        const primaryChannel = getPrimaryChannel()
+
+        try {
+            await this.bot.api.chat.sendAnnouncement(
+                primaryChannel.id,
+                {
+                    message: message,
+                    // @ts-ignore
+                    color: color // 'primary' | 'blue' | 'green' | 'orange' | 'purple'
+                }
+            )
+        } catch (error) {
+            logWarn('twitch announce failed:')
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
     }
 }

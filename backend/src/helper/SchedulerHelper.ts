@@ -6,6 +6,7 @@ import {checkThrottle} from "./ThrottleHelper";
 import {fetchVoices} from "./TTShelper";
 import {updateAutoMacros} from "./AutoMacroHelper";
 import {updateTemplateVariables} from "./TemplateHelper";
+import {updateGiveaway} from "./GiveawayHelper";
 
 export default function initialSchedulers() {
     void updateAdData()
@@ -30,6 +31,7 @@ export default function initialSchedulers() {
         await checkThrottle()
         await updateSystemComponents()
         await updateAutoMacros()
+        await updateGiveaway()
     }, 1_000)
 
     // fastest scheduler (250 ms)

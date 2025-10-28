@@ -27,7 +27,8 @@ export const useAppStore = defineStore('app', {
     voices: [],
     macros: {},
     autoMacros: [],
-    variables: {}
+    variables: {},
+    giveaway: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -55,7 +56,8 @@ export const useAppStore = defineStore('app', {
     getVoices: (state) => state.voices,
     getMacros: (state) => state.macros,
     getAutoMacros: (state) => state.autoMacros,
-    getVariables: (state) => state.variables
+    getVariables: (state) => state.variables,
+    getGiveaway: (state) => state.giveaway
   },
   actions: {
     async fetchConfig() {
@@ -146,6 +148,10 @@ export const useAppStore = defineStore('app', {
     setVariables(variables: {}) {
       this.variables = variables
       this.$patch(state => state.variables = variables)
+    },
+    setGiveaway(giveaway: {}) {
+      this.giveaway = giveaway
+      this.$patch(state => state.giveaway = giveaway)
     }
   }
 })

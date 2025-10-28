@@ -17,6 +17,7 @@ import ListRotatingScenes from "./commands/ListRotatingScenes";
 import StartRotatingSceneCommand from "./commands/StartRotatingSceneCommand";
 import {ListMacrosCommand} from "./commands/ListMacrosCommand";
 import fillTemplate from "../../helper/TemplateHelper";
+import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands = []
@@ -36,6 +37,7 @@ export default function buildCommands(bot: Bot) {
     commands = commands.concat(new ListRotatingScenes(bot).register())
     commands = commands.concat(new StartRotatingSceneCommand(bot).register())
     commands = commands.concat(new ListMacrosCommand(bot).register())
+    commands = commands.concat(new GiveawayEnterCommand(bot).register())
 
     // configured commands
     commands = buildConfigCommands(commands)

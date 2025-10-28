@@ -15,6 +15,7 @@ import {getVoices} from "../../helper/TTShelper";
 import {getMacros} from "../../helper/MacroHelper";
 import {getAutoMacros} from "../../helper/AutoMacroHelper";
 import {getTemplateVariables} from "../../helper/TemplateHelper";
+import {getGiveaway} from "../../helper/GiveawayHelper";
 
 
 export default class WebsocketServer {
@@ -46,7 +47,8 @@ export default class WebsocketServer {
         'notify_voice_list_update',
         'notify_macro_update',
         'notify_auto_macros_update',
-        'notify_variables_update'
+        'notify_variables_update',
+        'notify_giveaway_update'
     ]
     connectionEndpoints = {}
     
@@ -173,6 +175,7 @@ export default class WebsocketServer {
                 this.send("notify_macro_update", {macros: getMacros()}, client)
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
                 this.send("notify_variables_update", getTemplateVariables(), client)
+                this.send("notify_giveaway_update", getGiveaway(), client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]

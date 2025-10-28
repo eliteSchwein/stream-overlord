@@ -6,6 +6,7 @@
     elevation="0"
     color="transparent"
   >
+    <giveaway class="mt-5 mx-5"/>
     <template v-if="getAlerts.length === 0">
       <v-alert
         class="mt-5 mx-5"
@@ -48,8 +49,10 @@
 import {mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
 import eventBus from "@/eventBus";
+import Giveaway from "@/components/Giveaway.vue";
 
 export default {
+  components: {Giveaway},
   computed: {
     ...mapState(useAppStore, ['getAlerts', 'getAutoMacros']),
   },
