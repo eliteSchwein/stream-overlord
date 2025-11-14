@@ -64,6 +64,10 @@ export default class WebsocketServer {
         void new ConnectEvent(this.websocket, this).register()
     }
 
+    public getWebsocket() {
+        return this.websocket
+    }
+
     public send(method: string, data: any = {}, connection?: WebSocket) {
         if(method === 'notify_visible_element') {
             toggleElementVisiblity(data.target, data.state)

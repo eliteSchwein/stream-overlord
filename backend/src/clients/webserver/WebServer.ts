@@ -107,4 +107,8 @@ export default class WebServer {
         logWarn('enable test endpoints')
         new TestApi().register(this.webServer)
     }
+
+    public getExpress() {
+        return this.webServer
+    }
 }
