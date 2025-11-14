@@ -36,7 +36,6 @@ export default class ConnectEvent extends BaseEvent{
 
                 await new RegisterMessage(this.webSocketServer, event, this.client).handleMessage(data)
 
-                await new EditColorMessage(this.webSocketServer, event, this.client).handleMessage(data)
                 await new RemoveEventMessage(this.webSocketServer, event, this.client).handleMessage(data)
                 await new GetEffectMessage(this.webSocketServer, event, this.client).handleMessage(data)
                 await new RemoveAlertMessage(this.webSocketServer, event, this.client).handleMessage(data)
