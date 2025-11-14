@@ -20,6 +20,7 @@ import {initGpio, killGpio} from "./helper/SystemHelper";
 import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
 import {compressAssets} from "./helper/AssetTuneHelper";
 import {initAutoMacros} from "./helper/AutoMacroHelper";
+import * as apiModules from "./api";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -95,6 +96,8 @@ async function init() {
 
     initAutoMacros()
 
+    await registerApiEndpoints()
+
     logSuccess('backend is ready')
 }
 
@@ -118,10 +121,16 @@ export function getTauonmbClient() {
     return tauonmbClient
 }
 
-export function registerApiEndpoints() {
-    websocketServer.clearMessageEvents()
+export async function registerApiEndpoints() {
+    logRegular('register api endpoints')
+    websocketServer.clearMessageEvents();
 
-    
+    for(const ApiModule of Object.values(apiModules)) {
+        const apiModule = new (ApiModule as any)(websocketServer, webServer)
+        apiModule.registerEndpoints()
+    }
+
+    logSuccess(`${Object.values(apiModules).length} api endpoints registered`)
 }
 
 export async function reload() {

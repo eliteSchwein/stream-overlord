@@ -1,15 +1,14 @@
 import WebsocketServer from "../clients/websocket/WebsocketServer";
 import {WebSocketServer} from "ws";
-import getWebsocketServer, {getWebServer} from "../App";
 import {Express} from "express";
 import WebServer from "../clients/webserver/WebServer";
 import {getRandomInt} from "../../../helper/GeneralHelper";
-import {logError} from "../helper/LogHelper";
+import {logError, logRegular} from "../helper/LogHelper";
 
 export default class BaseApi {
-    restEndpoint: null|string = null
-    restPost: boolean = false
-    websocketMethod: null|string = null
+    restEndpoint: null|string
+    restPost: boolean
+    websocketMethod: null|string
 
     webSocketServer: WebSocketServer
     webSocket: WebSocket
@@ -19,18 +18,25 @@ export default class BaseApi {
     restServer: WebServer
     restExpress: Express
 
-    public constructor() {
-        this.webSocketClient = getWebsocketServer()
+    public constructor(
+        websocketServer: WebsocketServer,
+        restServer: WebServer
+    ) {
+        this.webSocketClient = websocketServer
         this.webSocketServer = this.webSocketClient.getWebsocket()
-        this.restServer = getWebServer()
+        this.restServer = restServer
         this.restExpress = this.restServer.getExpress()
+    }
 
+    public registerEndpoints() {
         this.registerRest()
         this.registerWebsocket()
     }
 
     private registerRest() {
         if(!this.restEndpoint) return
+
+        logRegular(`register rest endpoint: /api/${this.restEndpoint}`)
 
         if(this.restPost) {
             this.restExpress.post(`/api/${this.restEndpoint}`,
@@ -50,6 +56,8 @@ export default class BaseApi {
 
     private registerWebsocket() {
         if(!this.websocketMethod) return
+
+        logRegular(`register websocket method: ${this.websocketMethod}`)
 
         this.webSocketClient.addMessageEvent(this)
     }
