@@ -4,6 +4,7 @@ import getWebsocketServer, {getWebServer} from "../App";
 import {Express} from "express";
 import WebServer from "../clients/webserver/WebServer";
 import {getRandomInt} from "../../../helper/GeneralHelper";
+import {logError} from "../helper/LogHelper";
 
 export default class BaseApi {
     restEndpoint: null|string = null
@@ -61,10 +62,23 @@ export default class BaseApi {
         if(data.id) this.webSocketId = data.id
 
         const result = await this.handle(data.params)
+        const resultMethod = `result_${this.websocketMethod}`
+
+        if(!result) {
+            this.sendWebsocket(resultMethod, {status: 'okay'})
+            return
+        }
+
+        return this.sendWebsocket(resultMethod, data)
     }
 
     public sendWebsocket(method: string, data: any) {
-
+        try {
+            this.webSocket.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id: this.webSocketId}))
+        } catch (error) {
+            logError('request to a websocket client failed!')
+            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
     }
 
     private async handleRequest(data: any, rest: boolean = false): Promise<any> {
