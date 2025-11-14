@@ -53,6 +53,12 @@ export default class ConnectEvent extends BaseEvent{
             await new StartGiveawayMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new StopGiveawayMessage(this.webSocketServer, event, this.client).handleMessage(data)
             await new RemoveGiveawayUserMessage(this.webSocketServer, event, this.client).handleMessage(data)
+
+            for(const websocketMessage of this.client.getMessageEvents()) {
+                if(websocketMessage.getWebsocketMethod() !== data.method) continue
+
+                await websocketMessage.handleWebsocketEvent(data)
+            }
         })
 
         event.on("close", (code, reason) => {

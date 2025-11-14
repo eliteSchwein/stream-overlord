@@ -16,6 +16,7 @@ import {getMacros} from "../../helper/MacroHelper";
 import {getAutoMacros} from "../../helper/AutoMacroHelper";
 import {getTemplateVariables} from "../../helper/TemplateHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
+import BaseApi from "../../abstracts/BaseApi";
 
 
 export default class WebsocketServer {
@@ -51,6 +52,7 @@ export default class WebsocketServer {
         'notify_giveaway_update'
     ]
     connectionEndpoints = {}
+    messageEvents: BaseApi[] = []
     
     public initial() {
         const config = getConfig(/websocket/g)[0]
@@ -197,4 +199,11 @@ export default class WebsocketServer {
         return this.connectionEndpoints
     }
 
+    public addMessageEvent(event: BaseApi) {
+        this.messageEvents.push(event)
+    }
+
+    public getMessageEvents(): BaseApi[] {
+        return this.messageEvents
+    }
 }
