@@ -66,7 +66,8 @@ export default class BaseApi {
         return this.websocketMethod
     }
 
-    public async handleWebsocketEvent(data: any) {
+    public async handleWebsocketEvent(webSocket: WebSocket, data: any) {
+        this.webSocket = webSocket
         if(data.id) this.webSocketId = data.id
 
         const result = await this.handle(data.params)
@@ -77,10 +78,12 @@ export default class BaseApi {
             return
         }
 
-        return this.sendWebsocket(resultMethod, data)
+        return this.sendWebsocket(resultMethod, result)
     }
 
     public sendWebsocket(method: string, data: any) {
+        if(!this.webSocket) return
+
         try {
             this.webSocket.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id: this.webSocketId}))
         } catch (error) {
@@ -90,12 +93,17 @@ export default class BaseApi {
     }
 
     private async handleRequest(data: any, rest: boolean = false): Promise<any> {
-        const result = await this.handle(data)
+        let result: any = await this.handle(data)
 
         if(rest) {
-            result.status = 200
+            const restResult = {
+                data: result,
+                status: 200
+            }
 
-            if(result.error) result.status = 400
+            if(result.error) restResult.status = 400
+
+            result = restResult
         }
 
         return result

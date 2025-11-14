@@ -31,33 +31,36 @@ export default class ConnectEvent extends BaseEvent{
         const client = `${event._socket.remoteAddress}:${event._socket.remotePort}`
 
         event.on('message', async (message: any) => {
-            const data = JSON.parse(`${message}`);
+            try {
+                const data = JSON.parse(`${message}`);
 
-            await new RegisterMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new RegisterMessage(this.webSocketServer, event, this.client).handleMessage(data)
 
-            await new ToggleAutoMacroMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new AdMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new EditColorMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new RemoveEventMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new GetEffectMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new RemoveAlertMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new SetVolumeMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new PlaySoundMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new RefreshSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new SaveSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new DisconnectConnectionMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new UpdateConfigMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new ToggleTestModeMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new HaltSystemMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new UpdateMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new StartGiveawayMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new StopGiveawayMessage(this.webSocketServer, event, this.client).handleMessage(data)
-            await new RemoveGiveawayUserMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new EditColorMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new RemoveEventMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new GetEffectMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new RemoveAlertMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new SetVolumeMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new PlaySoundMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new RefreshSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new SaveSourceMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new DisconnectConnectionMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new UpdateConfigMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new ToggleTestModeMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new HaltSystemMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new UpdateMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new StartGiveawayMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new StopGiveawayMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new RemoveGiveawayUserMessage(this.webSocketServer, event, this.client).handleMessage(data)
 
-            for(const websocketMessage of this.client.getMessageEvents()) {
-                if(websocketMessage.getWebsocketMethod() !== data.method) continue
+                for(const websocketMessage of this.client.getMessageEvents()) {
+                    if(websocketMessage.getWebsocketMethod() !== data.method) continue
 
-                await websocketMessage.handleWebsocketEvent(data)
+                    await websocketMessage.handleWebsocketEvent(event, data)
+                }
+            } catch (error) {
+                logWarn('websocket message failed:')
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             }
         })
 
