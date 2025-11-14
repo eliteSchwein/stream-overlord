@@ -118,6 +118,12 @@ export function getTauonmbClient() {
     return tauonmbClient
 }
 
+export function registerApiEndpoints() {
+    websocketServer.clearMessageEvents()
+
+    
+}
+
 export async function reload() {
     try {
         logNotice('init reload')

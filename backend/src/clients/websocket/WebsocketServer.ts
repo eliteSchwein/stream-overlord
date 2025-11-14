@@ -206,4 +206,8 @@ export default class WebsocketServer {
     public getMessageEvents(): BaseApi[] {
         return this.messageEvents
     }
+
+    public clearMessageEvents() {
+        this.messageEvents = []
+    }
 }
