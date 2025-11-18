@@ -13,7 +13,7 @@ const loading = ref<boolean | undefined>(false);
 async function changeGame( event: Event, gameId: string) {
   loading.value = true
 
-  await fetch(`${appOption.getRestApi}/api/game/set`, {
+  await fetch(`${appOption.getRestApi}/api/games/set`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

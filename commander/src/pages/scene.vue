@@ -88,13 +88,13 @@ export default {
   methods: {
     saveItems() {
       eventBus.$emit('websocket:send', {
-        method: 'save_source',
+        method: 'save_sources',
         params: {}
       })
     },
     refreshitems() {
       eventBus.$emit('websocket:send', {
-        method: 'refresh_source',
+        method: 'refresh_sources',
         params: {}
       })
     },

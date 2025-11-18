@@ -67,40 +67,10 @@ export default class WebServer {
                 res.json(getConfig())
             })
 
-
-        // General API
-        new RestartApi().register(this.webServer)
-
-        // Scene API
-        new TimerApi().register(this.webServer)
-        new AlertApi().register(this.webServer)
-        new MacroApi().register(this.webServer)
-        new ShieldApi().register(this.webServer)
-        // new WebRequestApi().register(this.webServer)
-
-        // Games API
-        new CurrentGameApi().register(this.webServer)
-        new AllGamesApi().register(this.webServer)
-        new SetGameApi().register(this.webServer)
-
-        // OBS API
-        new ObsApi().register(this.webServer)
-        new GetSceneDataApi().register(this.webServer)
-        new ReloadBrowserScenesApi().register(this.webServer)
-        new SetSceneApi().register(this.webServer)
-
-        // ChannelPoints API
-        new GetChannelPointsApi().register(this.webServer)
-        new ToggleChannelPointApi().register(this.webServer)
-
         // Tauon API
         new TauonStatusApi().register(this.webServer)
         new TauonNextApi().register(this.webServer)
         new TauonBackApi().register(this.webServer)
-
-        // Recovery API
-        new CompressAssetsApi().register(this.webServer)
-        new ReloadApi().register(this.webServer)
 
         if(!twitchConfig.test_mode) return
 

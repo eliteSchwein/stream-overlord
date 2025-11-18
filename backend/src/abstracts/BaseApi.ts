@@ -95,6 +95,8 @@ export default class BaseApi {
     private async handleRequest(data: any, rest: boolean = false): Promise<any> {
         let result: any = await this.handle(data)
 
+        if(!result) {result = {status: 'okay'}}
+
         if(rest) {
             const restResult = {
                 data: result,

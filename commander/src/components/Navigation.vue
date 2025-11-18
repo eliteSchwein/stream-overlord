@@ -44,7 +44,7 @@ export default {
       }
     },
     async restartService() {
-      await fetch(`${this.getRestApi}/api/restart`)
+      await fetch(`${this.getRestApi}/api/system/restart`)
     },
     async reloadBrowserSources() {
       await fetch(`${this.getRestApi}/api/obs/reload_browsers`)

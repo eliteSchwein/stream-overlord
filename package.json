@@ -4,12 +4,13 @@
   "description": "My Twitch Overlay and Bot",
   "main": "dist/index.js",
   "scripts": {
+    "generate:backend-api-index": "node scripts/generate-backend-api-index.js",
     "start:backend": "node backend/dist/index.js --max-old-space-size=1024 --expose-gc",
     "start:backend:dev": "node backend/dist/index.js --max-old-space-size=1024 --expose-gc --trace_gc --trace-deprecation --trace-warnings --trace-uncaught --track-heap-objects --inspect=0.0.0.0:3000",
     "build": "npm run build:backend && npm run build:frontend && npm run build:commander",
-    "build:backend": "esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --external:onoff --outfile=backend/dist/index.js",
+    "build:backend": "npm run generate:backend-api-index && esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --external:onoff --outfile=backend/dist/index.js",
     "build:frontend": "rm -rf frontend/dist/* && esbuild frontend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --external:*.mp4 --external:*.svg --external:*.gif --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy --external:*.webp --platform=browser --asset-names=[name] --outfile=frontend/dist/app.js",
-    "build:backend:dev": "esbuild backend/src/App.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --external:onoff --outfile=backend/dist/index.js",
+    "build:backend:dev": "npm run generate:backend-api-index && esbuild backend/src/App.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --external:onoff --outfile=backend/dist/index.js",
     "build:frontend:dev": "rm -rf frontend/dist/* && esbuild --watch frontend/src/App.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=browser --external:*.mp4 --external:*.svg --external:*.gif --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy --external:*.webp --asset-names=[name] --outfile=frontend/dist/app.js",
     "build:commander": "cd commander && npm ci && npm run build",
     "build:commander:dev": "cd commander && npm i && npm run dev"
@@ -53,6 +54,7 @@
     "esbuild": "^0.27.0",
     "express": "^5.1.0",
     "form-data": "^4.0.4",
+    "glob": "^12.0.0",
     "js-conf-parser": "^1.0.3",
     "lodash": "^4.17.21",
     "node-fetch": "^3.3.2",

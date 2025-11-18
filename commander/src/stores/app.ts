@@ -70,7 +70,7 @@ export const useAppStore = defineStore('app', {
       })
     },
     async fetchGames() {
-      const request = await fetch(`${this.getRestApi}/api/game/all`)
+      const request = await fetch(`${this.getRestApi}/api/games/all`)
       const data = (await request.json()).data
 
       this.games = data

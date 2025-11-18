@@ -31,7 +31,7 @@ async function toggleChannelPoint(channelPoint: any) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({channel_point: channelPoint, method: method})
+    body: JSON.stringify({channel_point: channelPoint, state: method})
   })
 
   loading.value = false

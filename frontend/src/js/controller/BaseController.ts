@@ -39,6 +39,11 @@ export default class BaseController extends Controller<HTMLElement> {
     async handleWebsocket(websocket: Websocket, event: MessageEvent) {
         const data = JSON.parse(event.data)
 
+        if(data.params.error) {
+            console.warn(data)
+            return
+        }
+
         if(
             data.method === 'notify_game_update'
         ) {

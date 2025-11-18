@@ -26,6 +26,11 @@ export default class MessageEvent extends BaseEvent {
   async handle(websocket: Websocket, event:any) {
     const data = JSON.parse(event.data)
 
+    if(data.params.error) {
+      console.warn(data)
+      return
+    }
+
     await new NotifyAlertQueryMessage(this.webSocketClient).handleMessage(data)
     await new NotifyGameUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyShieldModeMessage(this.webSocketClient).handleMessage(data)
