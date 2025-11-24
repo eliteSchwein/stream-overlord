@@ -147,7 +147,7 @@ async function handleRest(method: string, endpoint: string, data: any) {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({method: method, data: data})
+        body: JSON.stringify({state: method, data: data})
     })
 }
 
