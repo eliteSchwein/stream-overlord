@@ -15,7 +15,10 @@ export default function readConfig(standalone = false) {
 }
 
 export function getRawConfig() {
-    return readFileSync(path.resolve(`${__dirname}/../..`, ".env.conf"), "utf8")
+    return {
+        raw: readFileSync(path.resolve(`${__dirname}/../..`, ".env.conf"), "utf8"),
+        parsed: config
+    }
 }
 
 export function writeRawConfig(content: string) {

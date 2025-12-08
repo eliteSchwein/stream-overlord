@@ -22,6 +22,7 @@ export const useAppStore = defineStore('app', {
     scene: {},
     connections: {},
     backendConfig: '',
+    parsedBackendConfig: {},
     obsSceneData: [],
     testMode: false,
     voices: [],
@@ -51,6 +52,7 @@ export const useAppStore = defineStore('app', {
     getScene: (state) => state.scene,
     getConnections: (state) => state.connections,
     getBackendConfig: (state) => state.backendConfig,
+    getParsedBackendConfig: (state) => state.parsedBackendConfig,
     getObsSceneData: (state) => state.obsSceneData,
     getTestMode: (state) => state.testMode,
     getVoices: (state) => state.voices,
@@ -121,9 +123,11 @@ export const useAppStore = defineStore('app', {
       this.connections = connections
       this.$patch(state => state.connections = connections)
     },
-    setBackendConfig(config: string) {
+    setBackendConfig(config: string, parsedConfig: any) {
       this.backendConfig = config
+      this.parsedBackendConfig = parsedConfig
       this.$patch(state => state.backendConfig = config)
+      this.$patch(state => state.parsedBackendConfig = parsedConfig)
     },
     setObsSceneData(obsSceneData: []) {
       this.obsSceneData = obsSceneData

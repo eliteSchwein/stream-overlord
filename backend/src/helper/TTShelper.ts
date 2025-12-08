@@ -1,6 +1,6 @@
 import {getFullConfig} from "./ConfigHelper"
 import {execute} from "./CommandHelper"
-import {logDebug, logNotice, logWarn} from "./LogHelper"
+import {logDebug, logError, logNotice, logWarn} from "./LogHelper"
 import {getAudioData} from "./AudioHelper"
 import {getArch, parsePath} from "./SystemHelper"
 import {createWriteStream, existsSync, rmSync} from "node:fs"
@@ -28,7 +28,7 @@ const finishedDownload = promisify(stream.finished)
 
 /** List repo tree (handles pagination via Link: rel="next"). */
 async function* hfListRepoTree(repo = HF_REPO, rev = HF_REV) {
-    let url = `https://huggingface.co/api/models/${encodeURIComponent(repo)}/tree/${encodeURIComponent(rev)}?recursive=1`
+    let url = `https://huggingface.co/api/models/${repo}/tree/${encodeURIComponent(rev)}?recursive=1`
 
     while (url) {
         const res = await axios.get(url, {
@@ -37,7 +37,9 @@ async function* hfListRepoTree(repo = HF_REPO, rev = HF_REV) {
             headers: { Accept: "application/json" },
         })
         if (res.status !== 200 || !Array.isArray(res.data)) {
-            throw new Error(`HF tree fetch failed: ${res.status} ${res.statusText || ""}`)
+            logError(`HF tree fetch failed: ${res.status} ${res.statusText || ""}`)
+            logDebug(`${url}`)
+            return
         }
         for (const entry of res.data as HFEntry[]) yield entry
 
@@ -60,7 +62,9 @@ async function hfDownloadFile(repoPath: string, destFile: string, repo = HF_REPO
         validateStatus: () => true,
     })
     if (res.status !== 200) {
-        throw new Error(`Download failed ${res.status} ${res.statusText} for ${repoPath}`)
+        logError(`Download failed ${res.status} ${res.statusText} for ${repoPath}`)
+        logDebug(`${src}`)
+        return
     }
     const writer = createWriteStream(destFile)
     res.data.pipe(writer)
@@ -110,11 +114,12 @@ async function resolveVoicePaths(modelSetting: string): Promise<{ onnxRepoPath: 
     }
 
     if (!foundOnnx) {
-        throw new Error(
+        logError(
             explicitRepoPath
                 ? `Voice model not found at '${explicitRepoPath}' in ${HF_REPO}@${HF_REV}`
                 : `Voice model '${desiredBase}' not found in ${HF_REPO}@${HF_REV}`
         )
+        return
     }
 
     // If JSON not found yet, try derive by directory of foundOnnx
@@ -236,7 +241,8 @@ export async function installPiper() {
     })
 
     if (response.status !== 200) {
-        throw new Error(`Piper binary download failed: ${response.status} ${response.statusText}`)
+        logError(`Piper binary download failed: ${response.status} ${response.statusText}`)
+        return
     }
 
     response.data.pipe(writer)

@@ -56,6 +56,7 @@ export default class TwitchClient {
 
         await waitUntil(() => botActive, {
             intervalBetweenAttempts: 250,
+            timeout: 30_000
         })
 
         await loadPrimaryChannel(this)

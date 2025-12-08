@@ -4,6 +4,6 @@ export default class NotifyConfigUpdateMessage extends BaseMessage {
   method = 'notify_config_update'
 
   async handle(data: any) {
-    this.store.setBackendConfig(data.data)
+    this.store.setBackendConfig(data.data.raw, data.data.parsed)
   }
 }
