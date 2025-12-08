@@ -14,6 +14,11 @@ export class OBSClient {
     public async connect() {
         const config = getConfig(/obs/g)[0]
 
+        if(!config || !config.ip) {
+            logDebug("OBS Config not found, disable OBS Client")
+            return
+        }
+
         this.connected = false
         this.sceneData = []
 
