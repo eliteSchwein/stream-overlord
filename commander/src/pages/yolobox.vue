@@ -1,15 +1,29 @@
 <template>
   <v-sheet height="100%">
 
-    <v-tabs
-      v-model="tab"
-      color="primary"
-      @update:model-value="setTab"
+    <v-toolbar
+      density="compact"
+      color="grey-darken-4"
     >
-      <v-tab value="source">Source</v-tab>
-      <v-tab value="overlay">Overlay</v-tab>
-      <v-tab value="audio">Audio</v-tab>
-    </v-tabs>
+      <v-tabs
+        v-model="tab"
+        color="primary"
+        @update:model-value="setTab"
+      >
+        <v-tab value="source">Source</v-tab>
+        <v-tab value="overlay">Overlay</v-tab>
+        <v-tab value="audio">Audio</v-tab>
+      </v-tabs>
+      <template v-slot:append>
+        <v-switch
+          label="Auto Refresh"
+          class="mt-6 mr-5"
+          density="compact"
+          :model-value="autoRefresh"
+          @click="toggleAutoRefresh()"
+        ></v-switch>
+      </template>
+    </v-toolbar>
 
     <v-divider></v-divider>
 
@@ -24,7 +38,7 @@
                     <v-img
                       :class="{'rounded': true, 'yolo-overlay-active-border': source.isSelected, 'yolo-overlay-inactive-border': !source.isSelected}"
                       cover
-                      :src="getYoloboxData.http+source.url"
+                      :src="getYoloboxData.http+source.previewUrl"
                       :lazy-src="loading"
                     ></v-img>
                     <div class="position-absolute bg-red-darken-1 pr-2 yolo-overlay-active" v-if="source.isSelected">
@@ -50,7 +64,7 @@
                     <v-img
                       class="rounded"
                       cover
-                      :src="getYoloboxData.http+material.url"
+                      :src="getYoloboxData.http+material.previewUrl"
                       :lazy-src="loading"
                     ></v-img>
                     <div class="position-absolute bg-red-darken-1 pr-2 yolo-overlay-active" v-if="material.isSelected">
@@ -84,9 +98,11 @@ export default {
   },
   data() {
     return {
+      autoRefreshInterval: null as any,
       loading,
+      autoRefresh: false as boolean,
       tab: 'source' as string,
-      tabMap: {'audio': 4, 'overlay': 1} as any,
+      tabMap: {'audio': 4, 'overlay': 1, 'source': 2} as any,
     }
   },
   methods: {
@@ -113,7 +129,36 @@ export default {
         method: 'execute_yolobox',
         params: {"data": {"id": id, "isSelected": true}, "orderID": "order_director_change"},
       })
+    },
+    toggleAutoRefresh() {
+      this.autoRefresh = !this.autoRefresh
     }
+  },
+  mounted() {
+    this.setTab(this.tab)
+    this.autoRefreshInterval = setInterval(() => {
+      if(!this.getYoloboxData.DirectorList) return
+      if(!this.autoRefresh) {
+        for(const source of this.getYoloboxData.DirectorList) {
+          if(source.previewUrl === source.url) continue;
+          source.previewUrl = `${source.url}`
+        }
+        for(const material of this.getYoloboxData.MaterialList) {
+          if(material.previewUrl === material.url) continue;
+          material.previewUrl = `${material.url}`
+        }
+        return
+      }
+      for(const source of this.getYoloboxData.DirectorList) {
+        source.previewUrl = `${source.url}&resolution=411x231&time=${Date.now()}`
+      }
+      for(const material of this.getYoloboxData.MaterialList) {
+        material.previewUrl = `${material.url}&resolution=411x231&time=${Date.now()}`
+      }
+    },1_000)
+  },
+  unmounted() {
+    clearInterval(this.autoRefreshInterval)
   }
 }
 </script>

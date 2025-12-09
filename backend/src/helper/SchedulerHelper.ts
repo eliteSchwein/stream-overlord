@@ -34,10 +34,14 @@ export default function initialSchedulers() {
         void updateGiveaway()
     }, 1_000)
 
+    // faster scheduler (500 ms)
+    setInterval(async () => {
+        void getYoloboxClient()?.checkConnection()
+    }, 500)
+
     // fastest scheduler (250 ms)
     setInterval(() => {
         void getTauonmbClient()?.sync()
-        void getYoloboxClient()?.checkConnection()
     }, 250)
 }
 

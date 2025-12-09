@@ -1,5 +1,5 @@
 import {getConfig, getPrimaryChannel} from "./ConfigHelper";
-import getWebsocketServer, {getOBSClient, getTauonmbClient, getTwitchClient} from "../App";
+import getWebsocketServer, {getOBSClient, getTauonmbClient, getTwitchClient, getYoloboxClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {parsePlaceholders} from "./DataHelper";
@@ -64,6 +64,10 @@ export async function triggerMacro(name: string) {
                     await handleWebhook(task.method, task.data)
                     break
                 }
+                case "yolobox": {
+                    await handleYolobox(task.method, task.data)
+                    break
+                }
             }
         } catch (error) {
             logWarn(`task failed:`)
@@ -72,6 +76,12 @@ export async function triggerMacro(name: string) {
     }
 
     return true
+}
+
+async function handleYolobox(method: string, data: any) {
+    logRegular(`send yolobox command: ${method}`)
+
+    getYoloboxClient()?.sendCommand({'data': data, 'orderID': method})
 }
 
 async function handleWebhook(method: string, data: any) {
