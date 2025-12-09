@@ -11,7 +11,15 @@ export default {
     }
   },
   computed: {
-    ...mapState(useAppStore, ['getRestApi', 'isShieldActive', 'getSystemInfo', 'isThrottled', 'getConnections', 'getCurrentGame']),
+    ...mapState(useAppStore, [
+      'getRestApi',
+      'isShieldActive',
+      'getSystemInfo',
+      'isThrottled',
+      'getConnections',
+      'getCurrentGame',
+      'getParsedBackendConfig'
+    ]),
     currentRouteName() {
       return this.$route.name;
     }
@@ -219,6 +227,13 @@ export default {
         color=""
         @click.stop="rail = false"
         to="/connections"></v-list-item>
+      <v-list-item
+        v-if="getParsedBackendConfig?.yolobox?.enable"
+        prepend-icon="mdi-video-box"
+        title="/yolobox"
+        color=""
+        @click.stop="rail = false"
+        to="/yolobox"></v-list-item>
       <v-list-item
         prepend-icon="mdi-cog"
         title="/editConfig"

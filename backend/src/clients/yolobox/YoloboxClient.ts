@@ -1,5 +1,5 @@
 import {getConfig} from "../../helper/ConfigHelper";
-import {logDebug, logSuccess} from "../../helper/LogHelper";
+import {logDebug, logSuccess, logWarn} from "../../helper/LogHelper";
 import {scanDeviceWithPort} from "../../helper/NetworkHelper";
 import {Websocket, WebsocketEvent} from "websocket-ts";
 import waitUntil from "async-wait-until";
@@ -20,7 +20,7 @@ export class YoloboxClient {
         "/remote/controller/getLiveStatus"
     ]
 
-    protected websocketConnections: Websocket[] = []
+    protected websocketConnections: any = {}
     protected commandConnection: Websocket = null
     protected heartbeatConnection: Websocket = null
 
@@ -35,13 +35,13 @@ export class YoloboxClient {
         this.data = {}
 
         if(this.commandConnection) {
-            for(const connection of this.websocketConnections) {
-                connection.close()
+            for(const index in this.websocketConnections) {
+                this.websocketConnections[index].close()
             }
             this.commandConnection.close()
             this.heartbeatConnection.close()
 
-            this.websocketConnections = []
+            this.websocketConnections = {}
             this.commandConnection = null
             this.heartbeatConnection = null
         }
@@ -69,7 +69,7 @@ export class YoloboxClient {
 
             if(!testConnection) continue
 
-            this.websocketConnections.push(testConnection)
+            this.websocketConnections[this.authEndpoint] = testConnection
             this.connectedDevice = device
             await this.initConnections()
         }
@@ -87,28 +87,42 @@ export class YoloboxClient {
 
     private async initConnections()
     {
-        this.websocketConnections.push(await this.connectEndpoint(this.authEndpoint))
         this.heartbeatConnection = await this.connectEndpoint(this.heartbeatEndpoint)
         this.commandConnection = await this.connectEndpoint(this.commandEndpoint)
 
         for(const targetEndpoint of this.dataEndpoints) {
-            const websocket = await this.connectEndpoint(targetEndpoint, this.connectedDevice, true)
-            websocket.addEventListener(WebsocketEvent.message, (ws, event) => {
-                const data = JSON.parse(event.data)
-                if(!data || data.code !== 200) return
-
-                const dataKey = data.data.api.replace('/remote/controller/get', '')
-
-                this.data.device = `${this.connectedDevice}:8887`
-                this.data[dataKey] = data.data.result
-
-                getWebsocketServer().send('notify_yolobox_update', this.data)
-            })
-
-            this.websocketConnections.push(websocket)
+            await this.initConnectionEndpoint(targetEndpoint)
         }
 
         this.connected = true
+    }
+
+    private async initConnectionEndpoint(targetEndpoint: string)
+    {
+        const websocket = await this.connectEndpoint(targetEndpoint, this.connectedDevice, true)
+        websocket.addEventListener(WebsocketEvent.message, (ws, event) => {
+            const data = JSON.parse(event.data)
+            if(!data || data.code !== 200) return
+
+            const dataKey = data.data.api.replace('/remote/controller/get', '')
+
+            this.data.http = `http://${this.connectedDevice}:8080`
+            this.data.ws = `ws://${this.connectedDevice}:8080`
+            this.data[dataKey] = data.data.result
+
+            getWebsocketServer().send('notify_yolobox_update', this.data)
+        })
+
+        websocket.addEventListener(WebsocketEvent.close, async () => {
+            logWarn(`connection lost with yolobox endpoint ${targetEndpoint}, reconnecting`)
+            void this.initConnectionEndpoint(targetEndpoint)
+        })
+        websocket.addEventListener(WebsocketEvent.error, async () => {
+            logWarn(`connection lost with yolobox endpoint ${targetEndpoint}, reconnecting`)
+            void this.initConnectionEndpoint(targetEndpoint)
+        })
+
+        this.websocketConnections[targetEndpoint] = websocket
     }
 
     public async checkConnection()
@@ -127,7 +141,7 @@ export class YoloboxClient {
         this.heartbeatConnection.send(JSON.stringify({alive: true}))
 
         try {
-            await waitUntil(() => heartbeat, {timeout: 250})
+            await waitUntil(() => heartbeat, {timeout: 100})
         } catch (e) {
 
         }
@@ -181,7 +195,7 @@ export class YoloboxClient {
         websocket.addEventListener(WebsocketEvent.message, handleMessage);
 
         try {
-            await waitUntil(() => isValid || isInvalid, {timeout: 1_000});
+            await waitUntil(() => isValid || isInvalid, {timeout: 2_000});
         } catch (e) {
 
         }

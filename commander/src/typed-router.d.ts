@@ -79,6 +79,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/yolobox': RouteRecordInfo<
+      '/yolobox',
+      '/yolobox',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
   }
 
   /**
@@ -137,6 +144,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/scene.vue': {
       routes:
         | '/scene'
+      views:
+        | never
+    }
+    'src/pages/yolobox.vue': {
+      routes:
+        | '/yolobox'
       views:
         | never
     }

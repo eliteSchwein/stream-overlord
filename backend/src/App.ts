@@ -160,6 +160,10 @@ export async function reload() {
             await getOBSClient().connect()
         } catch (error) {}
 
+        try {
+            await getYoloboxClient().connect()
+        } catch (error) {}
+
         initGpio()
 
         await downloadVoice()
