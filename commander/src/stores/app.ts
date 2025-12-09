@@ -29,7 +29,8 @@ export const useAppStore = defineStore('app', {
     macros: {},
     autoMacros: [],
     variables: {},
-    giveaway: {}
+    giveaway: {},
+    yoloboxData: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -59,7 +60,8 @@ export const useAppStore = defineStore('app', {
     getMacros: (state) => state.macros,
     getAutoMacros: (state) => state.autoMacros,
     getVariables: (state) => state.variables,
-    getGiveaway: (state) => state.giveaway
+    getGiveaway: (state) => state.giveaway,
+    getYoloboxData: (state) => state.yoloboxData
   },
   actions: {
     async fetchConfig() {
@@ -156,6 +158,10 @@ export const useAppStore = defineStore('app', {
     setGiveaway(giveaway: {}) {
       this.giveaway = giveaway
       this.$patch(state => state.giveaway = giveaway)
+    },
+    setYoloboxData(yoloboxData: {}) {
+      this.yoloboxData = yoloboxData
+      this.$patch(state => state.yoloboxData = yoloboxData)
     }
   }
 })

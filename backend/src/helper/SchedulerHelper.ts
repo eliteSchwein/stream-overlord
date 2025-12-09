@@ -1,6 +1,6 @@
 import {getAdData} from "../clients/website/WebsiteClient";
 import {logWarn} from "./LogHelper";
-import getWebsocketServer, {getTauonmbClient} from "../App";
+import getWebsocketServer, {getTauonmbClient, getYoloboxClient} from "../App";
 import {updateSystemComponents, updateSystemInfo} from "./SystemInfoHelper";
 import {checkThrottle} from "./ThrottleHelper";
 import {fetchVoices} from "./TTShelper";
@@ -27,16 +27,17 @@ export default function initialSchedulers() {
 
     // fast scheduler (1 sec)
     setInterval(async () => {
-        await updateSystemInfo()
-        await checkThrottle()
-        await updateSystemComponents()
-        await updateAutoMacros()
-        await updateGiveaway()
+        void updateSystemInfo()
+        void checkThrottle()
+        void updateSystemComponents()
+        void updateAutoMacros()
+        void updateGiveaway()
     }, 1_000)
 
     // fastest scheduler (250 ms)
     setInterval(() => {
         void getTauonmbClient()?.sync()
+        void getYoloboxClient()?.checkConnection()
     }, 250)
 }
 

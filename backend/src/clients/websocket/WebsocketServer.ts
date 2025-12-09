@@ -8,7 +8,7 @@ import {getActiveChannelPoints} from "../../helper/ChannelPointHelper";
 import {getAudioData} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
-import {getOBSClient, getTauonmbClient} from "../../App";
+import {getOBSClient, getTauonmbClient, getYoloboxClient} from "../../App";
 import getGameInfo from "../../helper/GameHelper";
 import {getAllVisibleElements, isTestModeActive, toggleElementVisiblity} from "../../helper/VisibleHelper";
 import {getVoices} from "../../helper/TTShelper";
@@ -49,7 +49,8 @@ export default class WebsocketServer {
         'notify_macro_update',
         'notify_auto_macros_update',
         'notify_variables_update',
-        'notify_giveaway_update'
+        'notify_giveaway_update',
+        'notify_yolobox_update'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -182,6 +183,7 @@ export default class WebsocketServer {
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
                 this.send("notify_variables_update", getTemplateVariables(), client)
                 this.send("notify_giveaway_update", getGiveaway(), client)
+                this.send("notify_yolobox_update", getYoloboxClient().getData(), client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]

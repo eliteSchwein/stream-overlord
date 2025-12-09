@@ -14,13 +14,13 @@ export class OBSClient {
     public async connect() {
         const config = getConfig(/obs/g)[0]
 
+        this.connected = false
+        this.sceneData = []
+
         if(!config || !config.ip) {
             logDebug("OBS Config not found, disable OBS Client")
             return
         }
-
-        this.connected = false
-        this.sceneData = []
 
         await this.disconnect()
 

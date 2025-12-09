@@ -21,12 +21,14 @@ import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
 import {compressAssets} from "./helper/AssetTuneHelper";
 import {initAutoMacros} from "./helper/AutoMacroHelper";
 import * as apiModules from "./api";
+import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
 let webServer: WebServer
 let obsClient: OBSClient
 let tauonmbClient: TauonmbClient
+let yoloboxClient: YoloboxClient
 
 void init()
 
@@ -57,6 +59,15 @@ async function init() {
         await obsClient.connect()
     } catch(error) {
         logWarn('obs client failed:')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
+
+    try {
+        logRegular('connect yolobox')
+        yoloboxClient = new YoloboxClient()
+        await yoloboxClient.connect()
+    } catch (error) {
+        logWarn('yolobox client failed:')
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
 
@@ -164,6 +175,10 @@ export async function reload() {
         logWarn(`reload failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
+}
+
+export function getYoloboxClient() {
+    return yoloboxClient
 }
 
 process.on('SIGINT', () => {

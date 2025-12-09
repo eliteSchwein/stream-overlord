@@ -18,6 +18,7 @@ import NotifyMacroUpdateMessage from "@/plugins/websocketEvents/websocketMessage
 import NotifyAutoMacrosUpdate from "@/plugins/websocketEvents/websocketMessage/NotifyAutoMacrosUpdate.ts";
 import NotifyVariableUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyVariableUpdateMessage.ts";
 import NotifyGiveawayUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyGiveawayUpdateMessage.ts";
+import NotifyYoloboxUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyYoloboxUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -48,5 +49,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyAutoMacrosUpdate(this.webSocketClient).handleMessage(data)
     await new NotifyVariableUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyGiveawayUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyYoloboxUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }
