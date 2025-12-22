@@ -4,12 +4,17 @@ import {getLogConfig, logCustom, logDebug, logNotice, logRegular, logSuccess, lo
 import {updateSourceFilters} from "../../helper/SourceHelper";
 import getWebsocketServer from "../../App";
 import RotatingSceneEvent from "./events/RotatingSceneEvent";
+import InputVolumeMetersEvent from "./events/InputVolumeMetersEvent";
+import InputUpdateEvent from "./events/InputUpdateEvent";
+import _ = require("lodash");
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
+    mixerObsWebsocket: OBSWebSocket
     connected = false
     sceneData: []
     eventFetching = false
+    audioData: {}
 
     public async connect() {
         const config = getConfig(/obs/g)[0]
@@ -41,6 +46,23 @@ export class OBSClient {
             return
         }
 
+        try {
+            this.mixerObsWebsocket = new OBSWebSocket()
+            await this.mixerObsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password, {
+                eventSubscriptions: EventSubscription.InputVolumeMeters
+            })
+        } catch (error) {
+            logDebug('obs connection failed:')
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logDebug('reconnect obs in 5 seconds...')
+
+            setTimeout(async () => {
+                await this.connect()
+            }, 5_000)
+
+            return
+        }
+
         this.registerEvents()
 
         this.connected = true
@@ -58,6 +80,7 @@ export class OBSClient {
         if(!this.obsWebsocket) return
 
         await this.obsWebsocket.disconnect()
+        await this.mixerObsWebsocket.disconnect()
     }
 
     public registerEvents() {
@@ -89,6 +112,16 @@ export class OBSClient {
 
             // wtf, why is obs so stupid. this specific one is for source item AND audio
             "InputNameChanged",
+
+            // Audio Sources
+            //"InputActiveStateChanged",
+            //"InputAudioBalanceChanged",
+            //"SceneItemCreated",
+            //"InputAudioSyncOffsetChanged",
+            //"InputAudioTracksChanged",
+            //"InputVolumeChanged",
+            //"InputMuteStateChanged",
+            //"InputShowStateChanged",
         ]
 
         events.forEach(event =>
@@ -102,6 +135,8 @@ export class OBSClient {
         )
 
         new RotatingSceneEvent(this).register()
+        //new InputVolumeMetersEvent(this).register()
+        new InputUpdateEvent(this).register()
 
     }
 
@@ -125,6 +160,10 @@ export class OBSClient {
 
     public getOBSWebSocket() {
         return this.obsWebsocket
+    }
+
+    public getMixerObsWebSocket() {
+        return this.mixerObsWebsocket
     }
 
     public getSceneItemByUuid(uuid: string) {
@@ -199,6 +238,36 @@ export class OBSClient {
         getWebsocketServer().send('notify_obs_scene_update', this.sceneData)
 
         if(fullObsLog) {
+            logNotice('dump all obs audio sources:')
+        } else {
+            logNotice('dump all obs audio sources')
+        }
+
+        const OBS_SOURCE_AUDIO = 1 << 1
+
+        this.audioData = {}
+
+        let { inputs } = await this.obsWebsocket.call("GetInputList")
+
+        inputs = inputs
+            .filter(i => (i.inputKindCaps & OBS_SOURCE_AUDIO) !== 0)
+
+        for(const input of inputs) {
+            try {
+                const volume = await this.obsWebsocket.call("GetInputVolume", {inputUuid: input.inputUuid})
+                const muted = await this.obsWebsocket.call("GetInputMute", {inputUuid: input.inputUuid})
+                const {inputAudioBalance} = await this.obsWebsocket.call("GetInputAudioBalance", {inputUuid: input.inputUuid})
+
+                input.volume = volume
+                input.muted = muted.inputMuted
+                input.balance = inputAudioBalance
+            } catch (error) {
+                continue
+            }
+            this.audioData[input.inputUuid] = input
+        }
+
+        if(fullObsLog) {
             logNotice('end of obs dump')
         }
     }
@@ -216,5 +285,11 @@ export class OBSClient {
                 propertyName: 'refreshnocache'
             })
         }
+    }
+
+    public updateAudio(inputUuid: string, data:any) {
+        _.merge(this.audioData[inputUuid], data)
+
+        console.log(this.audioData[inputUuid])
     }
 }

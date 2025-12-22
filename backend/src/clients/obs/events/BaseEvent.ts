@@ -16,11 +16,11 @@ export default abstract class BaseEvent {
 
         for(const eventType of this.eventTypes) {
             // @ts-ignore
-            this.obsClient.getOBSWebSocket().on(eventType, (data: any) => void this.handle(data))
+            this.obsClient.getOBSWebSocket().on(eventType, (data: any) => void this.handle(data, eventType))
         }
     }
 
-    async handle(data: any)
+    async handle(data: any, eventType: string = '')
     {
 
     }

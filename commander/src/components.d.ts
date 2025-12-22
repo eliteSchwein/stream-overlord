@@ -21,6 +21,7 @@ declare module 'vue' {
     Giveaway: typeof import('./components/Giveaway.vue')['default']
     Macro: typeof import('./components/Macro.vue')['default']
     Navigation: typeof import('./components/Navigation.vue')['default']
+    ObsAudio: typeof import('./components/obs/ObsAudio.vue')['default']
     OBSSettings: typeof import('./components/settings/OBSSettings.vue')['default']
     PowerDialog: typeof import('./components/dialogs/PowerDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

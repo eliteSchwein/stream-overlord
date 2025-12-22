@@ -66,6 +66,7 @@
     </v-row>
 
     <YoloboxAudio/>
+    <ObsAudio/>
   </v-card>
 </template>
 
