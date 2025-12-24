@@ -182,6 +182,9 @@ export default {
     ...mapState(useAppStore, ['getBackendConfig', 'getParsedBackendConfig', 'getObsSceneData', 'getVoices', 'getTestMode']),
   },
   methods: {
+    copyToClipboard(text: string) {
+      navigator.clipboard.writeText(text)
+    },
     saveConfig() {
       eventBus.$emit('websocket:send', {
         method: 'update_config',
