@@ -65,16 +65,16 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/macros': RouteRecordInfo<
-      '/macros',
-      '/macros',
+    '/gameScene': RouteRecordInfo<
+      '/gameScene',
+      '/gameScene',
       Record<never, never>,
       Record<never, never>,
       | never
     >,
-    '/scene': RouteRecordInfo<
-      '/scene',
-      '/scene',
+    '/macros': RouteRecordInfo<
+      '/macros',
+      '/macros',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -135,15 +135,15 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/macros.vue': {
+    'src/pages/gameScene.vue': {
       routes:
-        | '/macros'
+        | '/gameScene'
       views:
         | never
     }
-    'src/pages/scene.vue': {
+    'src/pages/macros.vue': {
       routes:
-        | '/scene'
+        | '/macros'
       views:
         | never
     }

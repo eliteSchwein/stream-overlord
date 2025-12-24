@@ -49,18 +49,6 @@
                 Reload Scene
               </v-btn>
             </v-col>
-            <v-col cols="12">
-              <v-btn
-                width="100%"
-                :prepend-icon="getTestMode ? 'mdi-test-tube' : 'mdi-test-tube-off'"
-                :color="getTestMode ? 'orange-darken-2' : 'grey-darken-3'"
-                variant="flat"
-                elevation="0"
-                @click="toggleTestMode"
-              >
-                Test Mode
-              </v-btn>
-            </v-col>
           </v-row>
         </v-card>
 
@@ -83,7 +71,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(useAppStore, ['getScene', 'getCurrentGame', 'getTestMode']),
+    ...mapState(useAppStore, ['getScene', 'getCurrentGame']),
   },
   methods: {
     saveItems() {
@@ -96,12 +84,6 @@ export default {
       eventBus.$emit('websocket:send', {
         method: 'refresh_sources',
         params: {}
-      })
-    },
-    toggleTestMode() {
-      eventBus.$emit('websocket:send', {
-        method: 'toggle_test_mode',
-        params: { active: !this.getTestMode }
       })
     }
   }

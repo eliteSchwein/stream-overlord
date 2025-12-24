@@ -1,5 +1,5 @@
 <template>
-  <v-card color="transparent" elevation="0">
+  <v-card class="mt-3" color="transparent" elevation="0">
     <v-toolbar
       flat
       density="compact"
@@ -85,8 +85,8 @@
 
 <script lang="ts">
 import {mapState} from "pinia";
-import {useAppStore} from "@/stores/app";
-import eventBus from "@/eventBus";
+import {useAppStore} from "@/stores/app.ts";
+import eventBus from "@/eventBus.ts";
 import noObs from "@/assets/no_obs.png"
 
 export default {

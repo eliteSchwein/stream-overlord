@@ -144,7 +144,7 @@ export default {
           source.previewUrl = `${source.url}`
         }
         for(const material of this.getYoloboxData.MaterialList) {
-          if(material.previewUrl === material.url) continue;
+          if(material.previewUrl) continue;
           material.previewUrl = `${material.url}`
         }
         return

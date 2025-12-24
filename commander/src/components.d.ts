@@ -22,10 +22,11 @@ declare module 'vue' {
     Macro: typeof import('./components/Macro.vue')['default']
     Navigation: typeof import('./components/Navigation.vue')['default']
     ObsAudio: typeof import('./components/obs/ObsAudio.vue')['default']
-    OBSSettings: typeof import('./components/settings/OBSSettings.vue')['default']
+    OBSSettings: typeof import('./components/obs/OBSSettings.vue')['default']
     PowerDialog: typeof import('./components/dialogs/PowerDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     YoloboxAudio: typeof import('./components/yolobox/YoloboxAudio.vue')['default']
+    YoloboxSettings: typeof import('./components/yolobox/YoloboxSettings.vue')['default']
   }
 }

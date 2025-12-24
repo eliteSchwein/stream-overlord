@@ -188,58 +188,69 @@ export default {
   <v-navigation-drawer
     class="secondary"
     :model-value="rail"
-    @click="rail = false"
   >
     <v-list color="transparent">
       <v-list-item
         prepend-icon="mdi-view-dashboard"
         title="/"
         color=""
-        @click.stop="rail = false"
         to="/"></v-list-item>
+      <v-divider></v-divider>
+      <v-list-subheader>Automations</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-motion-play-outline"
         title="/channelPoints"
         color=""
-        @click.stop="rail = false"
         to="/channelPoints"></v-list-item>
       <v-list-item
         prepend-icon="mdi-volume-high"
         title="/audio"
         color=""
-        @click.stop="rail = false"
         to="/audio"></v-list-item>
       <v-list-item
         prepend-icon="mdi-dialpad"
         title="/macros"
         color=""
-        @click.stop="rail = false"
         to="/macros"></v-list-item>
+      <v-divider></v-divider>
+      <v-list-subheader>Overlay</v-list-subheader>
       <v-list-item
-        prepend-icon="mdi-image-outline"
-        title="/scene"
+        prepend-icon="mdi-picture-in-picture-top-right"
+        title="/overlay"
         color=""
-        @click.stop="rail = false"
-        to="/scene"></v-list-item>
+        to="/overlay"></v-list-item>
       <v-list-item
-        prepend-icon="mdi-webhook"
-        title="/connections"
+        prepend-icon="mdi-multimedia"
+        title="/assets"
         color=""
-        @click.stop="rail = false"
-        to="/connections"></v-list-item>
+        to="/assets"></v-list-item>
+      <v-divider></v-divider>
+      <v-list-subheader>Streaming Services</v-list-subheader>
       <v-list-item
         v-if="getParsedBackendConfig?.yolobox?.enable"
         prepend-icon="mdi-video-box"
         title="/yolobox"
         color=""
-        @click.stop="rail = false"
         to="/yolobox"></v-list-item>
+      <v-divider></v-divider>
+      <v-list-subheader>System Utils</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-cog"
         title="/editConfig"
         color=""
-        @click.stop="rail = false"
         to="/editConfig"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-webhook"
+        title="/connections"
+        color=""
+        to="/connections"></v-list-item>
+      <v-divider></v-divider>
+      <v-list-subheader>SCHW31N Zone</v-list-subheader>
+      <v-list-item
+        prepend-icon="mdi-controller"
+        title="/gameScene"
+        color=""
+        to="/gameScene"></v-list-item>
     </v-list>
   </v-navigation-drawer>
 

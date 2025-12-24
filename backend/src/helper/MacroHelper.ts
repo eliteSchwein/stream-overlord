@@ -3,7 +3,6 @@ import getWebsocketServer, {getOBSClient, getTauonmbClient, getTwitchClient, get
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {parsePlaceholders} from "./DataHelper";
-import getGameInfo from "./GameHelper";
 import fillTemplate from "./TemplateHelper";
 
 let macros = {}
@@ -80,6 +79,21 @@ export async function triggerMacro(name: string) {
 
 async function handleYolobox(method: string, data: any) {
     logRegular(`send yolobox command: ${method}`)
+
+    const yoloboxData = getYoloboxClient().getData()
+
+    if(method === "order_material_change") {
+        for(const material of yoloboxData.MaterialList) {
+            if(data.id === 'all' && material.isSelected !== data.isSelected) {
+                getYoloboxClient()?.sendCommand({'data': {id: material.id, isSelected: data.isSelected}, 'orderID': 'order_material_change'})
+            }
+
+            if(material.id !== data.id) continue
+            if(material.isSelected === data.isSelected) return
+        }
+    }
+
+    if(data.id === 'all') return
 
     getYoloboxClient()?.sendCommand({'data': data, 'orderID': method})
 }
