@@ -30,7 +30,8 @@ export const useAppStore = defineStore('app', {
     autoMacros: [],
     variables: {},
     giveaway: {},
-    yoloboxData: {}
+    yoloboxData: {},
+    obsAudioData: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -61,7 +62,8 @@ export const useAppStore = defineStore('app', {
     getAutoMacros: (state) => state.autoMacros,
     getVariables: (state) => state.variables,
     getGiveaway: (state) => state.giveaway,
-    getYoloboxData: (state) => state.yoloboxData
+    getYoloboxData: (state) => state.yoloboxData,
+    getObsAudioData: (state) => state.obsAudioData
   },
   actions: {
     async fetchConfig() {
@@ -162,6 +164,10 @@ export const useAppStore = defineStore('app', {
     setYoloboxData(yoloboxData: {}) {
       this.yoloboxData = yoloboxData
       this.$patch(state => state.yoloboxData = yoloboxData)
+    },
+    setObsAudioData(obsAudioData: {}) {
+      this.obsAudioData = obsAudioData
+      this.$patch(state => state.obsAudioData = obsAudioData)
     }
   }
 })

@@ -42,6 +42,7 @@ export default class WebsocketServer {
         'notify_connection',
         'notify_config_update',
         'notify_obs_scene_update',
+        'notify_obs_audio_update',
         'notify_tauonmb_show',
         'notify_test_mode',
         'notify_power_button',
@@ -176,6 +177,7 @@ export default class WebsocketServer {
                 this.send("notify_tauonmb_update", getTauonmbClient()?.getStatus(), client)
                 this.send("notify_connection", this.getConnections(), client)
                 this.send("notify_obs_scene_update", getOBSClient().getSceneData(), client)
+                this.send("notify_obs_audio_update", getOBSClient().getAudioData(), client)
                 this.send("notify_config_update", {data: getRawConfig()}, client)
                 this.send("notify_test_mode", {active: isTestModeActive()}, client)
                 this.send("notify_voice_list_update", {voices: getVoices()}, client)

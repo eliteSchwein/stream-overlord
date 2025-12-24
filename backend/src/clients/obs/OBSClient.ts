@@ -135,7 +135,7 @@ export class OBSClient {
         )
 
         new RotatingSceneEvent(this).register()
-        //new InputVolumeMetersEvent(this).register()
+        // new InputVolumeMetersEvent(this).register()
         new InputUpdateEvent(this).register()
 
     }
@@ -164,6 +164,10 @@ export class OBSClient {
 
     public getMixerObsWebSocket() {
         return this.mixerObsWebsocket
+    }
+
+    public getAudioData() {
+        return this.audioData
     }
 
     public getSceneItemByUuid(uuid: string) {
@@ -267,6 +271,8 @@ export class OBSClient {
             this.audioData[input.inputUuid] = input
         }
 
+        getWebsocketServer().send('notify_obs_audio_update', this.audioData)
+
         if(fullObsLog) {
             logNotice('end of obs dump')
         }
@@ -290,6 +296,6 @@ export class OBSClient {
     public updateAudio(inputUuid: string, data:any) {
         _.merge(this.audioData[inputUuid], data)
 
-        console.log(this.audioData[inputUuid])
+        getWebsocketServer().send('notify_obs_audio_update', this.audioData)
     }
 }

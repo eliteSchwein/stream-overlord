@@ -8,7 +8,7 @@
     max-width="100%"
   >
     <v-row>
-      <v-col>
+      <v-col sm="12" md="12" lg="6" xl="4">
         <v-card>
           <v-card-title>Bot Audio Mixer</v-card-title>
           <v-card-item>
@@ -63,10 +63,13 @@
           </v-card-item>
         </v-card>
       </v-col>
+      <v-col v-if="getParsedBackendConfig.yolobox?.enable && getYoloboxData.MixerList" sm="12" md="12" lg="6" xl="4">
+        <YoloboxAudio/>
+      </v-col>
+      <v-col v-if="Object.keys(getObsAudioData).length > 0" sm="12" md="12" lg="6" xl="4">
+        <ObsAudio/>
+      </v-col>
     </v-row>
-
-    <YoloboxAudio/>
-    <ObsAudio/>
   </v-card>
 </template>
 
@@ -76,7 +79,7 @@ import {useAppStore} from "@/stores/app";
 import eventBus from "@/eventBus";
 export default {
   computed: {
-    ...mapState(useAppStore, ['getAudioData']),
+    ...mapState(useAppStore, ['getAudioData', 'getYoloboxData', 'getObsAudioData', 'getParsedBackendConfig']),
   },
   methods: {
     setVolume(audioInterface: string, volume: number) {
