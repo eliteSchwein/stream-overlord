@@ -17,7 +17,7 @@ export default {
       density="compact"
     >
       <v-toolbar-title class="d-flex align-center">
-        Current Active Game
+        Aktuell aktives Spiel
       </v-toolbar-title>
     </v-toolbar>
     <v-card-text>
@@ -30,7 +30,7 @@ export default {
             <tbody>
             <tr>
               <td>
-                Game Id
+                Spiel Id
               </td>
               <td>
                 {{getCurrentGame.game_id}}
@@ -38,7 +38,7 @@ export default {
             </tr>
             <tr>
               <td>
-                Deaths
+                Tote
               </td>
               <td>
                 {{getCurrentGame.deaths}}
@@ -54,7 +54,7 @@ export default {
             </tr>
             <tr>
               <td>
-                Channel Points
+                Kanalpunkte
               </td>
               <td>
                 {{ (getCurrentGame?.channel_points || []).map(a => a.name).join(', ') }}

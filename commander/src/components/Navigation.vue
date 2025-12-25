@@ -142,34 +142,34 @@ export default {
       <v-menu activator="parent">
         <v-list>
           <v-list-item
-            title="Toggle Fullscreen"
+            title="Vollbild umschalten"
             @click="toggleFullscreen"
             prepend-icon="mdi-fullscreen"
           ></v-list-item>
           <v-divider></v-divider>
           <v-list-item
-            title="Reload Commander"
+            title="Commander neuladen"
             @click="reloadCommander"
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-list-item
-            title="Restart Service"
+            title="Service neustarten"
             @click="restartService"
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-list-item
-            title="Reload Browser Sources"
+            title="Browser Quellen neuladen"
             @click="reloadBrowserSources"
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-divider></v-divider>
           <v-list-item
-            title="Update Bot"
+            title="Bot Updaten"
             @click="updateBot"
             prepend-icon="mdi-download"
           ></v-list-item>
           <v-list-item
-            title="Poweroff System"
+            title="System herunterfahren"
             @click="showPowerMenu"
             prepend-icon="mdi-power"
           ></v-list-item>
@@ -196,7 +196,7 @@ export default {
         color=""
         to="/"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>Automations</v-list-subheader>
+      <v-list-subheader>Automatisierungen</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-motion-play-outline"
         title="/channelPoints"
@@ -225,7 +225,7 @@ export default {
         color=""
         to="/assets"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>Streaming Services</v-list-subheader>
+      <v-list-subheader>Streaming Dienste</v-list-subheader>
       <v-list-item
         v-if="getParsedBackendConfig?.yolobox?.enable"
         prepend-icon="mdi-video-box"
@@ -233,7 +233,7 @@ export default {
         color=""
         to="/yolobox"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>System Utils</v-list-subheader>
+      <v-list-subheader>System Werkzeuge</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-cog"
         title="/editConfig"

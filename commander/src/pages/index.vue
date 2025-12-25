@@ -12,7 +12,7 @@
         class="mt-5 mx-5"
         type="info"
         color="gray-darken-3"
-        text="There are currently no alerts in the Query!"
+        text="Es sind derzeit keine Alerts!"
       ></v-alert>
     </template>
     <template v-else>
@@ -31,7 +31,7 @@
         class="mt-5 mx-5"
         type="info"
         color="gray-darken-3"
-        text="There are currently no auto macros!"
+        text="Es gibt aktuell keine automatischen Makros!"
       ></v-alert>
     </template>
     <template v-else>

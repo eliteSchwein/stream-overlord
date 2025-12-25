@@ -5,7 +5,7 @@
       density="compact"
     >
       <v-toolbar-title class="d-flex align-center">
-        OBS Scenes
+        OBS Szenen
       </v-toolbar-title>
     </v-toolbar>
 

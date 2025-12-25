@@ -15,7 +15,7 @@
             density="compact"
           >
             <v-toolbar-title class="d-flex align-center">
-              Bot Configuration
+              Bot Konfiguration
             </v-toolbar-title>
             <v-btn
               prepend-icon="mdi-content-save"
@@ -24,7 +24,7 @@
               elevation="0"
               @click="saveConfig"
             >
-              Save Config
+              Speichern
             </v-btn>
           </v-toolbar>
           <v-card-text class="pa-0">
@@ -39,7 +39,7 @@
             density="compact"
           >
             <v-toolbar-title class="d-flex align-center">
-              Misc Control
+              Diverse System Funktionen
             </v-toolbar-title>
           </v-toolbar>
           <v-card-text class="pa-0">
@@ -60,7 +60,7 @@
                   elevation="0"
                   @click="toggleTestMode"
                 >
-                  Test Mode
+                  Test Modus
                 </v-btn>
               </v-col>
 
@@ -73,7 +73,7 @@
             density="compact"
           >
             <v-toolbar-title class="d-flex align-center">
-              Generic Macros
+              Standart Makros
             </v-toolbar-title>
           </v-toolbar>
           <v-card-text class="pa-0">
@@ -94,7 +94,7 @@
                   elevation="0"
                   @click="copyToClipboard('- ' +JSON.stringify({channel: 'function', method: 'sleep', data:{time:250}}))"
                 >
-                  Sleep 250ms
+                  250ms Pause
                 </v-btn>
               </v-col>
               <v-col cols="12">
@@ -106,7 +106,7 @@
                   elevation="0"
                   @click="copyToClipboard('- ' +JSON.stringify({channel: 'function', method: 'sleep', data:{time:1000}}))"
                 >
-                  Sleep 1s
+                  1s Pause
                 </v-btn>
               </v-col>
 
@@ -125,7 +125,7 @@
             density="compact"
           >
             <v-toolbar-title class="d-flex align-center">
-              Available Voices
+              Verfügbare Stimmen
             </v-toolbar-title>
           </v-toolbar>
           <v-card-text class="pa-0">

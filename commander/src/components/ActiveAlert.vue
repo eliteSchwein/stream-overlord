@@ -29,7 +29,7 @@ function removeAlert(eventUuid: string) {
             Name
           </th>
           <th class="text-left">
-            Value
+            Wert
           </th>
         </tr>
         </thead>

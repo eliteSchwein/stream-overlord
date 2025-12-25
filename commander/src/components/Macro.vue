@@ -66,13 +66,13 @@ export default {
         <thead>
           <tr>
             <th class="text-left" style="width: 220px">
-              Channel
+              Kanal
             </th>
             <th class="text-left" style="width: 220px">
-              Method
+              Methode
             </th>
             <th class="text-left">
-              Data
+              Daten
             </th>
           </tr>
         </thead>

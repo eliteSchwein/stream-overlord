@@ -79,8 +79,8 @@ export class OBSClient {
     public async disconnect() {
         if(!this.obsWebsocket) return
 
-        await this.obsWebsocket.disconnect()
-        await this.mixerObsWebsocket.disconnect()
+        await this.obsWebsocket?.disconnect()
+        await this.mixerObsWebsocket?.disconnect()
     }
 
     public registerEvents() {

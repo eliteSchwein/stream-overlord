@@ -33,18 +33,18 @@ export default {
           color="warning"
         >
         <v-toolbar-title class="d-flex align-center" v-if="isWebsocketConnecting">
-          Reconnecting...
+          Verbinde neu...
         </v-toolbar-title>
         <v-toolbar-title class="d-flex align-center" v-else>
-          Connection Lost
+          Verbindung verloren
         </v-toolbar-title>
       </v-toolbar>
       <v-card-text v-if="!isWebsocketConnecting">
-        The Connection to the Stream Controller got lost, please reconnect.
+        Die Verbindung mit dem Bot Backend wurde verloren, neuverbinden?
       </v-card-text>
       <v-card-actions v-if="!isWebsocketConnecting">
-        <v-btn color="warning" @click="reloadCommander">Reload</v-btn>
-        <v-btn color="" @click="connectWebsocket">Reconnect</v-btn>
+        <v-btn color="warning" @click="reloadCommander">Neuladen</v-btn>
+        <v-btn color="" @click="connectWebsocket">Neu verbinden</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

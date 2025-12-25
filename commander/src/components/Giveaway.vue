@@ -79,7 +79,7 @@ export default {
       color="green-darken-2"
     >
       <v-toolbar-title class="d-flex align-center" style="font-size: 1rem">
-        gewinner: {{getGiveaway.winner.name}}
+        Gewinner: {{getGiveaway.winner.name}}
       </v-toolbar-title>
       <template v-slot:append>
         <div class="d-flex ga-1">

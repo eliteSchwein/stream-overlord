@@ -46,7 +46,7 @@ export default {
           density="compact"
         >
         <v-toolbar-title class="d-flex align-center">
-          Poweroff System?
+          System herunterfahren?
         </v-toolbar-title>
         <v-btn icon="mdi-close" @click="show = false"></v-btn>
       </v-toolbar>
@@ -60,7 +60,7 @@ export default {
               width="100%"
               @click="rebootSystem()"
             >
-              Reboot
+              Neustarten
             </v-btn>
           </v-col>
           <v-col>
@@ -71,7 +71,7 @@ export default {
               width="100%"
               @click="shutdownSystem()"
             >
-              Shutdown
+              Herunterfahren
             </v-btn>
           </v-col>
         </v-row>

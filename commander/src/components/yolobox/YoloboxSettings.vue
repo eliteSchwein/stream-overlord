@@ -6,7 +6,7 @@
         density="compact"
       >
         <v-toolbar-title class="d-flex align-center">
-          Yolobox Macros
+          Yolobox Makros
         </v-toolbar-title>
       </v-toolbar>
 
@@ -14,14 +14,14 @@
         <v-expansion-panels color="grey-darken-4">
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Video Sources
+              Video Quellen
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
               <v-table>
                 <thead>
                   <tr>
                     <th>Name</th>
-                    <th style="width: 100px">Actions</th>
+                    <th style="width: 100px">Aktionen</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -34,7 +34,7 @@
                         size="x-small"
                         @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_director_change', data:{id:director.id,isSelected:true}}))"
                         elevation="0"
-                        v-tooltip="'Switch to this Video Source'"
+                        v-tooltip="'Zu dieser Video Quelle wechseln'"
                       />
                     </div>
                   </td>
@@ -45,10 +45,10 @@
           </v-expansion-panel>
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Overlay Sources
+              Overlay Quellen
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
-              <v-alert text="The order of activation is important!" type="warning" variant="outlined" class="mb-2"></v-alert>
+              <v-alert text="Die Reihenfolgen der Aktivierung ist wichtig!" type="warning" variant="outlined" class="mb-2"></v-alert>
               <v-row>
                 <v-col cols="4" v-for="material in getYoloboxData.MaterialList">
                   <div class="position-relative">
@@ -64,7 +64,7 @@
                         size="x-small"
                         @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:true}}))"
                         elevation="0"
-                        v-tooltip="'Enable this Overlay Source'"
+                        v-tooltip="'Dieses Overlay aktivieren'"
                       />
                       <v-btn
                         class="ml-1"
@@ -72,7 +72,7 @@
                         size="x-small"
                         @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:false}}))"
                         elevation="0"
-                        v-tooltip="'Disable this Overlay Source'"
+                        v-tooltip="'Dieses Overlay deaktivieren'"
                       />
                     </div>
                   </div>
@@ -83,23 +83,22 @@
                     size="small"
                     @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:'all',isSelected:false}}))"
                     elevation="0"
-                    v-tooltip="'Disable all Overlay Sources'"
-                  >Disable all Overlay Sources<v-icon class="ml-2" icon="mdi-content-copy"/> </v-btn>
+                  >Alle Overlays deaktivieren<v-icon class="ml-2" icon="mdi-content-copy"/> </v-btn>
                 </v-col>
               </v-row>
             </v-expansion-panel-text>
           </v-expansion-panel>
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Audio Sources
+              Audio Quellen
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
-              <v-alert text="Volume Range is from 0 to 1, 0.5 is for example 50%" type="warning" variant="outlined" class="mb-2"></v-alert>
+              <v-alert text="Die Lautstärke geht von 0 bis 1, 0.5 sind 50%. Wichtig, ein Punkt verwenden und nicht ein komma!" type="warning" variant="outlined" class="mb-2"></v-alert>
               <v-table>
                 <thead>
                 <tr>
                   <th>Name</th>
-                  <th style="width: 130px">Actions</th>
+                  <th style="width: 130px">Aktionen</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -112,21 +111,21 @@
                         size="x-small"
                         @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:false}}))"
                         elevation="0"
-                        v-tooltip="'Mute this Audio Source'"
+                        v-tooltip="'Diese Audio Quelle stummen'"
                       />
                       <v-btn
                         icon="mdi-volume-source"
                         size="x-small"
                         @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:true}}))"
                         elevation="0"
-                        v-tooltip="'Unmute this Audio Source'"
+                        v-tooltip="'Diese Audio Quelle entstummen'"
                       />
                       <v-btn
                         icon="mdi-content-copy"
                         size="x-small"
                         @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,volume:mixer.volume}}))"
                         elevation="0"
-                        v-tooltip="'Copy the current Volume of this Audio Source'"
+                        v-tooltip="'Die Lautstärke kopieren von dieser Audio Quelle kopieren'"
                       />
                     </div>
                   </td>
@@ -137,7 +136,7 @@
           </v-expansion-panel>
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Generic
+              Generelle Befehle
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
 
@@ -157,7 +156,7 @@
                     elevation="0"
                     @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'start'}}))"
                   >
-                    Go Live
+                    Live gehen
                   </v-btn>
                 </v-col>
                 <v-col cols="12">
@@ -169,7 +168,7 @@
                     elevation="0"
                     @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'stop'}}))"
                   >
-                    Stop Stream
+                    Stream stoppen
                   </v-btn>
                 </v-col>
 
