@@ -49,7 +49,9 @@ export async function compressAssets(
 
     const { ffmpegBin, hwAccel, filterOptions } = await initFfmpeg();
 
-    if (force) logWarn("Force compressing assets");
+    if (force) logWarn("Force compressing assets")
+
+    if(file) force = true
 
     // Helper to ensure output folder exists
     const ensureParentDir = (outPath: string) => {

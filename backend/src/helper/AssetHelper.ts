@@ -27,7 +27,7 @@ export function initAssetWatcher() {
 
         if(!existsSync(`${assetPath}/${filename}`)) return
 
-        await compressAssets(true, `${assetPath}/${filename}`)
+        await compressAssets(false, `${assetPath}/${filename}`)
 
         readAssetFolder()
     })
