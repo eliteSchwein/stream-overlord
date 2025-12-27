@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import {execFileSync} from "node:child_process";
 import {getGpu} from "./SystemInfoHelper";
 import {isDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper";
+import {imageRegex, videoRegex} from "./AssetHelper";
 
 type FfmpegInit = {
     ffmpegBin: string;
@@ -16,29 +17,30 @@ export async function compressAssets(
     force: boolean = false,
     file?: string
 ) {
+    const config = getConfig(/asset_tune/g)[0];
+
     const assetDirectory = path.resolve(__dirname, "../../assets");
     const compressedAssetDirectory = path.resolve(__dirname, "../../compressed_assets");
-
-    const imageRegex = /\.(jpe?g|png)$/i;
-    const videoRegex = /\.mp4$/i;
 
     // Decide inputs
     let videoAssets: string[] = [];
     let imageAssets: string[] = [];
 
     if (file) {
-
         if (!fs.existsSync(file)) {
-            throw new Error(`File not found: ${file}`);
+            logWarn(`File not found: ${file}`)
+            return
         }
         if (!file.startsWith(assetDirectory)) {
-            throw new Error(`File must be inside assets directory: ${assetDirectory}`);
+            logWarn(`File must be inside assets directory: ${assetDirectory}`)
+            return
         }
 
         if (videoRegex.test(file)) videoAssets = [file];
         else if (imageRegex.test(file)) imageAssets = [file];
         else {
-            throw new Error(`Unsupported file type: ${file} (expected .mp4, .jpg, .jpeg, .png)`);
+            logWarn(`Unsupported file type: ${file} (expected .mp4, .jpg, .jpeg, .png)`)
+            return
         }
     } else {
         videoAssets = getAssetFiles(".mp4", assetDirectory);
@@ -106,8 +108,8 @@ export async function compressAssets(
         const args = [
             "-i", imageAsset,
             "-c:v", "libwebp",
-            "-q:v", "80",
-            "-compression_level", "6",
+            "-q:v", `${config.image_compress_percent}`,
+            "-compression_level", `${config.image_compress_level}`,
             targetImageAsset,
         ].filter(Boolean);
 
