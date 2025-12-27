@@ -22,6 +22,7 @@ import {compressAssets} from "./helper/AssetTuneHelper";
 import {initAutoMacros} from "./helper/AutoMacroHelper";
 import * as apiModules from "./api";
 import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
+import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -93,7 +94,10 @@ async function init() {
     logRegular("init system info")
     await updateSystemInfo()
 
+    readAssetFolder()
+
     watchConfig()
+    initAssetWatcher()
 
     initGpio()
 
@@ -167,6 +171,8 @@ export async function reload() {
         initGpio()
 
         await downloadVoice()
+
+        readAssetFolder()
 
         await compressAssets()
 

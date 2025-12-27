@@ -1,7 +1,6 @@
 import {getConfig} from "./ConfigHelper";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import {unlinkSync} from "node:fs";
 import {execFileSync} from "node:child_process";
 import {getGpu} from "./SystemInfoHelper";
 import {isDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper";
@@ -13,46 +12,115 @@ type FfmpegInit = {
     vaapiDevice: string;
 };
 
-export async function compressAssets(force: boolean = false) {
+export async function compressAssets(
+    force: boolean = false,
+    file?: string
+) {
     const assetDirectory = path.resolve(__dirname, "../../assets");
+    const compressedAssetDirectory = path.resolve(__dirname, "../../compressed_assets");
 
-    const videoAssets = getAssetFiles(".mp4", assetDirectory);
+    const imageRegex = /\.(jpe?g|png)$/i;
+    const videoRegex = /\.mp4$/i;
 
-    const { ffmpegBin, hwAccel, filterOptions } = await initFfmpeg(); // now async
+    // Decide inputs
+    let videoAssets: string[] = [];
+    let imageAssets: string[] = [];
 
-    if(force) {
-        logWarn("Force compressing assets")
-    }
-    logRegular(`Compressing ${videoAssets.length} video assets...`)
+    if (file) {
 
-    for(const videoAsset of videoAssets) {
-        const targetVideoAsset = videoAsset.replace(/\.mp4$/i, ".webm")
-
-        if(fs.existsSync(targetVideoAsset) && !force) continue
-        if(fs.existsSync(targetVideoAsset) && force) {
-            unlinkSync(targetVideoAsset)
+        if (!fs.existsSync(file)) {
+            throw new Error(`File not found: ${file}`);
+        }
+        if (!file.startsWith(assetDirectory)) {
+            throw new Error(`File must be inside assets directory: ${assetDirectory}`);
         }
 
-        logNotice(`Compressing ${videoAsset} to ${targetVideoAsset}`)
+        if (videoRegex.test(file)) videoAssets = [file];
+        else if (imageRegex.test(file)) imageAssets = [file];
+        else {
+            throw new Error(`Unsupported file type: ${file} (expected .mp4, .jpg, .jpeg, .png)`);
+        }
+    } else {
+        videoAssets = getAssetFiles(".mp4", assetDirectory);
+        imageAssets = getAssetFiles(imageRegex, assetDirectory);
+    }
+
+    const { ffmpegBin, hwAccel, filterOptions } = await initFfmpeg();
+
+    if (force) logWarn("Force compressing assets");
+
+    // Helper to ensure output folder exists
+    const ensureParentDir = (outPath: string) => {
+        fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    };
+
+    // ---- Videos (.mp4 -> .webm) ----
+    if (videoAssets.length) logRegular(`Compressing ${videoAssets.length} video asset(s)...`);
+
+    for (const videoAsset of videoAssets) {
+        const targetVideoAsset = videoAsset
+            .replace(videoRegex, ".webm")
+            .replace(assetDirectory, compressedAssetDirectory);
+
+        ensureParentDir(targetVideoAsset);
+
+        if (fs.existsSync(targetVideoAsset) && !force) continue;
+        if (fs.existsSync(targetVideoAsset) && force) fs.unlinkSync(targetVideoAsset);
+
+        logNotice(`Compressing ${videoAsset} to ${targetVideoAsset}`);
 
         const args = [
-         ...splitArgs(hwAccel),
-         "-i", videoAsset,
-         ...splitArgs(filterOptions),
-         targetVideoAsset,
-        ].filter(Boolean)
+            ...splitArgs(hwAccel),
+            "-i", videoAsset,
+            ...splitArgs(filterOptions),
+            targetVideoAsset,
+        ].filter(Boolean);
+
         try {
             execFileSync(ffmpegBin, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
         } catch (error: any) {
-            if(isDebug()) {
-                logError(`Compressing ${videoAsset} failed:`)
-                logError(error.stderr?.toString())
-                continue
+            if (isDebug()) {
+                logError(`Compressing ${videoAsset} failed:`);
+                logError(error.stderr?.toString());
+                continue;
             }
-
-            logError(`Compressing ${videoAsset} failed`)
+            logError(`Compressing ${videoAsset} failed`);
         }
+    }
 
+    // ---- Images (.jpg/.jpeg/.png -> .webp) ----
+    if (imageAssets.length) logRegular(`Compressing ${imageAssets.length} image asset(s)...`);
+
+    for (const imageAsset of imageAssets) {
+        const targetImageAsset = imageAsset
+            .replace(imageRegex, ".webp")
+            .replace(assetDirectory, compressedAssetDirectory);
+
+        ensureParentDir(targetImageAsset);
+
+        if (fs.existsSync(targetImageAsset) && !force) continue;
+        if (fs.existsSync(targetImageAsset) && force) fs.unlinkSync(targetImageAsset);
+
+        logNotice(`Compressing ${imageAsset} to ${targetImageAsset}`);
+
+        const args = [
+            "-i", imageAsset,
+            "-c:v", "libwebp",
+            "-q:v", "80",
+            "-compression_level", "6",
+            targetImageAsset,
+        ].filter(Boolean);
+
+        try {
+            execFileSync(ffmpegBin, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+        } catch (error: any) {
+            if (isDebug()) {
+                logError(`Compressing ${imageAsset} failed:`);
+                logError(error.stderr?.toString());
+                continue;
+            }
+            logError(`Compressing ${imageAsset} failed`);
+        }
     }
 }
 
@@ -137,18 +205,36 @@ function splitArgs(s: string): string[] {
         : [];
 }
 
-function getAssetFiles(
-    extension: string,
+// TODO: move this to the new assets helper
+export function getAssetFiles(
+    query: string | string[] | RegExp,
     dir: string = path.resolve(__dirname, "../../assets")
 ): string[] {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    const matches = (filename: string): boolean => {
+        if (query instanceof RegExp) return query.test(filename);
+
+        const exts = Array.isArray(query) ? query : [query];
+        // normalize and compare case-insensitively
+        return exts.some((ext) =>
+            filename.toLowerCase().endsWith(ext.toLowerCase())
+        );
+    };
+
     return entries.flatMap((entry) => {
         const fullPath = path.join(dir, entry.name);
+
         if (entry.isDirectory()) {
-            return getAssetFiles(extension, fullPath);
-        } else if (entry.isFile() && entry.name.endsWith(extension)) {
+            return getAssetFiles(query, fullPath);
+        }
+
+        if (entry.isFile() && matches(entry.name)) {
             return [fullPath];
         }
+
         return [];
     });
 }
+
+// TODO: add function to delete all compressed assets

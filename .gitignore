@@ -7,3 +7,5 @@ assets/*
 !assets/ytdl_blacklist.json
 music
 !music/placeholder
+compressed_assets
+!compressed_assets/placeholder

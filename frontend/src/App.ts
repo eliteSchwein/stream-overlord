@@ -36,6 +36,7 @@ import TauonmbController from "./js/controller/TauonmbController";
 import VisibleController from "./js/controller/VisibleController";
 import {sleep} from "../../helper/GeneralHelper";
 import MarqueeController from "./js/controller/MarqueeController";
+import ContenController from "./js/controller/ContenController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -52,6 +53,7 @@ async function init(){
     await websocketClient.connect()
 
     const stimulus = Application.start()
+    stimulus.register('content', ContenController)
     stimulus.register('background', BackgroundController)
     stimulus.register('badge', BadgeController)
     stimulus.register('alert', AlertController)
