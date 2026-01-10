@@ -10,8 +10,9 @@ import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { execSync } from "child_process";
 
 /**
- * We may need to grab multiple event devices that emit KEY_POWER,
- * otherwise the desktop can still see the power key via another node.
+ * We keep multiple evtest processes because KEY_POWER can be emitted
+ * by more than one /dev/input/eventX node. If we only grab one, the
+ * desktop may still see it via another node and show the menu.
  */
 let evtestProcs: ChildProcessWithoutNullStreams[] = [];
 let lastPowerPressMs = 0;
@@ -22,19 +23,30 @@ function listEventCandidates(): Array<{ dev: string; name: string }> {
     try { txt = fs.readFileSync("/proc/bus/input/devices", "utf8"); } catch { return []; }
     const blocks = txt.split(/\n\n+/);
     const res: Array<{ dev: string; name: string }> = [];
+
     for (const b of blocks) {
         const name = (b.match(/^N:\s*Name="([^"]+)"/m) || [])[1] || "";
         const handlers = (b.match(/^H:\s*Handlers=([^\n]+)/m) || [])[1] || "";
         const ev = handlers.split(/\s+/).find(h => /^event\d+$/.test(h));
         if (ev) res.push({ dev: `/dev/input/${ev}`, name });
     }
+
     const score = (n: string) => {
-        const s = n.toLowerCase();
-        if (/\bpower\b/.test(s)) return 100;
-        if (/gpio-keys/.test(s)) return 60;
-        if (/acpi/.test(s)) return 50;
-        return 0;
+        const s = (n || "").toLowerCase();
+        let v = 0;
+        if (s.includes("gpio-keys")) v += 80;
+        if (s.includes("pwr")) v += 60;
+        if (/\bpower\b/.test(s)) v += 50;
+        if (s.includes("acpi")) v += 30;
+
+        // de-prioritize common non-physical sources
+        if (s.includes("consumer control")) v -= 60;
+        if (s.includes("audio")) v -= 30;
+        if (s.includes("keyboard")) v -= 10;
+
+        return v;
     };
+
     return res.sort((a, b) => score(b.name) - score(a.name));
 }
 
@@ -49,37 +61,56 @@ function hasEvtest(): string | null {
     }
 }
 
-function supportsKeyPower(evtestPath: string, dev: string): boolean {
+/**
+ * Detect whether an input device supports a given key code by reading:
+ *   /sys/class/input/eventX/device/capabilities/key
+ *
+ * The file contains space-separated hex words, where the *rightmost* word
+ * contains the lowest bits (0..31), next word to the left is 32..63, etc.
+ */
+function sysfsSupportsKeyCode(dev: string, keyCode: number): boolean {
     try {
-        // prints "1" if supported, "0" if not
-        const out = execSync(`${evtestPath} --query ${dev} EV_KEY KEY_POWER`, {
-            stdio: ["ignore", "pipe", "ignore"]
-        }).toString().trim();
-        return out === "1";
+        const ev = path.basename(dev); // eventX
+        const capPath = `/sys/class/input/${ev}/device/capabilities/key`;
+        const raw = fs.readFileSync(capPath, "utf8").trim();
+        if (!raw) return false;
+
+        const words = raw.split(/\s+/);
+        // LSB word is at the rightmost position
+        const wordIndex = Math.floor(keyCode / 32);
+        const bitIndex = keyCode % 32;
+        const fromRight = words.length - 1 - wordIndex;
+        if (fromRight < 0) return false;
+
+        const word = parseInt(words[fromRight], 16);
+        if (Number.isNaN(word)) return false;
+
+        return ((word >>> bitIndex) & 1) === 1;
     } catch {
         return false;
     }
 }
 
 function listPowerKeyDevices(evtestPath: string): Array<{ dev: string; name: string }> {
-    // Start with what /proc reports (usually enough)
-    const fromProc = listEventCandidates();
-    const hits: Array<{ dev: string; name: string }> = [];
+    // Prefer candidates from /proc parsing (nice names), but validate via sysfs caps
+    const candidates = listEventCandidates();
+    let hits = candidates.filter(c => sysfsSupportsKeyCode(c.dev, 116)); // 116 = KEY_POWER
 
-    for (const c of fromProc) {
-        if (supportsKeyPower(evtestPath, c.dev)) hits.push(c);
-    }
-
-    // Fallback: scan /dev/input/event* directly if proc parsing missed it
+    // Fallback: if proc parsing missed it, scan /dev/input/event*
     if (hits.length === 0) {
         try {
             const devs = fs.readdirSync("/dev/input")
                 .filter(f => /^event\d+$/.test(f))
-                .map(f => `/dev/input/${f}`);
+                .map(f => `/dev/input/${f}`)
+                .sort((a, b) => {
+                    const na = Number(path.basename(a).replace("event", ""));
+                    const nb = Number(path.basename(b).replace("event", ""));
+                    return na - nb;
+                });
 
             for (const dev of devs) {
-                if (!supportsKeyPower(evtestPath, dev)) continue;
-                const ev = path.basename(dev); // eventX
+                if (!sysfsSupportsKeyCode(dev, 116)) continue;
+                const ev = path.basename(dev);
                 const namePath = `/sys/class/input/${ev}/device/name`;
                 const name = fs.existsSync(namePath) ? fs.readFileSync(namePath, "utf8").trim() : "";
                 hits.push({ dev, name });
@@ -89,27 +120,29 @@ function listPowerKeyDevices(evtestPath: string): Array<{ dev: string; name: str
         }
     }
 
-    // Prefer likely physical power-button sources
+    // De-dupe by dev path
+    const seen = new Set<string>();
+    hits = hits.filter(h => (seen.has(h.dev) ? false : (seen.add(h.dev), true)));
+
+    // Sort likely physical sources first (for nicer logs)
     const score = (n: string) => {
         const s = (n || "").toLowerCase();
         let v = 0;
-        if (s.includes("gpio-keys")) v += 50;
-        if (s.includes("pwr")) v += 40;
-        if (s.includes("power button")) v += 40;
-        if (s.includes("power")) v += 20;
-
-        // de-prioritize common non-physical “power” sources
-        if (s.includes("consumer control")) v -= 30;
-        if (s.includes("audio")) v -= 20;
-        if (s.includes("keyboard")) v -= 10;
+        if (s.includes("gpio-keys")) v += 80;
+        if (s.includes("pwr")) v += 60;
+        if (s.includes("power button")) v += 60;
+        if (s.includes("power")) v += 30;
+        if (s.includes("consumer control")) v -= 60;
+        if (s.includes("audio")) v -= 30;
         return v;
     };
+    hits.sort((a, b) => score(b.name) - score(a.name));
 
-    // De-dupe by dev path
-    const seen = new Set<string>();
-    const deduped = hits.filter(h => (seen.has(h.dev) ? false : (seen.add(h.dev), true)));
+    // NOTE: evtestPath is currently unused here but kept in signature
+    // in case you later want to add an evtest-header fallback.
+    void evtestPath;
 
-    return deduped.sort((a, b) => score(b.name) - score(a.name));
+    return hits;
 }
 
 function startEvtestGrab(onPress: () => void) {
@@ -123,7 +156,7 @@ function startEvtestGrab(onPress: () => void) {
 
     const targets = listPowerKeyDevices(evtestPath);
     if (!targets.length) {
-        logWarn("No input devices report KEY_POWER support (evtest --query).");
+        logWarn("No /dev/input/event* devices advertise KEY_POWER (code 116) in sysfs capabilities.");
         return;
     }
 
@@ -140,7 +173,7 @@ function startEvtestGrab(onPress: () => void) {
         p.stdout.setEncoding("utf8");
         p.stderr.setEncoding("utf8");
 
-        // line-buffer stdout to avoid chunk-splitting issues
+        // Buffer by line to avoid chunk splitting issues
         let buf = "";
         p.stdout.on("data", (chunk: string) => {
             buf += chunk;
@@ -156,7 +189,7 @@ function startEvtestGrab(onPress: () => void) {
                 if (!m) continue;
 
                 const val = Number(m[1]);
-                if (val !== 1) continue; // 1 = key down
+                if (val !== 1) continue; // 1 = keydown/press
 
                 const now = Date.now();
                 if (now - lastPowerPressMs < POWER_DEBOUNCE_MS) continue;
@@ -173,7 +206,7 @@ function startEvtestGrab(onPress: () => void) {
             if (/Permission denied/i.test(msg)) {
                 logWarn(
                     `evtest: permission denied grabbing ${t.dev}. ` +
-                    `Run as root or ensure your user has write access to /dev/input/event* (often via group 'input').`
+                    `You need write access to /dev/input/event* for --grab (often run as root or via group rules).`
                 );
             } else {
                 logWarn(msg);
@@ -203,15 +236,19 @@ let gpioActive = false;
 export function initGpio() {
     const config = getConfig(/gpio/)[0];
 
+    // IMPORTANT: clear old resources FIRST.
+    // Your previous ordering started evtest and then immediately stopped it via killGpio().
+    killGpio();
+
+    // Always try to intercept the onboard power key (if available)
     startEvtestGrab(() => {
         getWebsocketServer().send("notify_power_button");
     });
 
+    // Optional: external GPIO power button (your config-driven one)
     if (!config) return;
 
     gpioActive = true;
-    killGpio();
-
     logRegular("init gpio");
 
     powerButton = new Gpio(config.power_button, "in", "both");
@@ -235,6 +272,7 @@ export function killGpio() {
 
     logRegular("clear up gpio Resources");
     if (powerButton) powerButton.unexport();
+    powerButton = undefined;
     gpioActive = false;
 }
 
@@ -311,5 +349,7 @@ export async function shutdownSystem() {
 }
 
 export async function selfUpdate() {
-    await execute(`bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && systemctl restart --user stream-overlord"`);
+    await execute(
+        `bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && systemctl restart --user stream-overlord"`
+    );
 }
