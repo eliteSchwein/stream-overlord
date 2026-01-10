@@ -52,8 +52,10 @@ function startEvtestGrab(onPress: () => void) {
         return;
     }
 
+    const config = getConfig(/system_event/g)[0]
+
     const candidates = listEventCandidates();
-    const first = candidates[0] || { dev: "/dev/input/event0", name: "" };
+    const first = candidates[0] || { dev: `/dev/input/${config.power_event_device}`, name: "" };
 
     evtestProc = spawn(evtestPath, ["--grab", first.dev], {
         stdio: ["ignore", "pipe", "pipe"]
