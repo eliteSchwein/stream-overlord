@@ -10,9 +10,8 @@ import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { execSync } from "child_process";
 
 /**
- * We keep multiple evtest processes because KEY_POWER can be emitted
- * by more than one /dev/input/eventX node. If we only grab one, the
- * desktop may still see it via another node and show the menu.
+ * We may need to grab multiple event devices that emit KEY_POWER.
+ * If we only grab one, the desktop can still see it via another event node.
  */
 let evtestProcs: ChildProcessWithoutNullStreams[] = [];
 let lastPowerPressMs = 0;
@@ -23,7 +22,6 @@ function listEventCandidates(): Array<{ dev: string; name: string }> {
     try { txt = fs.readFileSync("/proc/bus/input/devices", "utf8"); } catch { return []; }
     const blocks = txt.split(/\n\n+/);
     const res: Array<{ dev: string; name: string }> = [];
-
     for (const b of blocks) {
         const name = (b.match(/^N:\s*Name="([^"]+)"/m) || [])[1] || "";
         const handlers = (b.match(/^H:\s*Handlers=([^\n]+)/m) || [])[1] || "";
@@ -31,19 +29,16 @@ function listEventCandidates(): Array<{ dev: string; name: string }> {
         if (ev) res.push({ dev: `/dev/input/${ev}`, name });
     }
 
+    // Just a rough preference ordering for logs/fallbacks
     const score = (n: string) => {
         const s = (n || "").toLowerCase();
         let v = 0;
-        if (s.includes("gpio-keys")) v += 80;
-        if (s.includes("pwr")) v += 60;
-        if (/\bpower\b/.test(s)) v += 50;
-        if (s.includes("acpi")) v += 30;
-
-        // de-prioritize common non-physical sources
-        if (s.includes("consumer control")) v -= 60;
-        if (s.includes("audio")) v -= 30;
-        if (s.includes("keyboard")) v -= 10;
-
+        if (s.includes("pwr_button")) v += 1000;
+        if (s.includes("gpio-keys")) v += 200;
+        if (s.includes("power")) v += 80;
+        if (s.includes("acpi")) v += 40;
+        if (s.includes("consumer control")) v -= 200;
+        if (s.includes("audio")) v -= 100;
         return v;
     };
 
@@ -65,8 +60,9 @@ function hasEvtest(): string | null {
  * Detect whether an input device supports a given key code by reading:
  *   /sys/class/input/eventX/device/capabilities/key
  *
- * The file contains space-separated hex words, where the *rightmost* word
- * contains the lowest bits (0..31), next word to the left is 32..63, etc.
+ * The file is a bitmap printed as hex words of "unsigned long".
+ * On 64-bit kernels, unsigned long is 64-bit; on 32-bit kernels, 32-bit.
+ * Lowest bits are in the RIGHTMOST word.
  */
 function sysfsSupportsKeyCode(dev: string, keyCode: number): boolean {
     try {
@@ -76,27 +72,56 @@ function sysfsSupportsKeyCode(dev: string, keyCode: number): boolean {
         if (!raw) return false;
 
         const words = raw.split(/\s+/);
-        // LSB word is at the rightmost position
-        const wordIndex = Math.floor(keyCode / 32);
-        const bitIndex = keyCode % 32;
+
+        const bitsPerWord =
+            (process.arch === "arm64" || process.arch === "x64") ? 64 : 32;
+
+        const wordIndex = Math.floor(keyCode / bitsPerWord);
+        const bitIndex = keyCode % bitsPerWord;
+
+        // LSB word is rightmost
         const fromRight = words.length - 1 - wordIndex;
         if (fromRight < 0) return false;
 
-        const word = parseInt(words[fromRight], 16);
-        if (Number.isNaN(word)) return false;
-
-        return ((word >>> bitIndex) & 1) === 1;
+        const word = BigInt("0x" + words[fromRight]);
+        return ((word >> BigInt(bitIndex)) & 1n) === 1n;
     } catch {
         return false;
     }
 }
 
-function listPowerKeyDevices(evtestPath: string): Array<{ dev: string; name: string }> {
-    // Prefer candidates from /proc parsing (nice names), but validate via sysfs caps
-    const candidates = listEventCandidates();
-    let hits = candidates.filter(c => sysfsSupportsKeyCode(c.dev, 116)); // 116 = KEY_POWER
+/**
+ * Fallback detection: run evtest briefly and parse its header output.
+ * This matches what you pasted:
+ *   Event code 116 (KEY_POWER)
+ *
+ * We don't need the process to keep running; a short timeout is enough.
+ */
+function evtestHeaderSupportsKey(evtestPath: string, dev: string, keyName: string): boolean {
+    try {
+        execSync(`${evtestPath} ${dev}`, {
+            stdio: ["ignore", "pipe", "ignore"],
+            timeout: 200
+        });
+        return false;
+    } catch (e: any) {
+        const out = (e?.stdout ? e.stdout.toString() : "");
+        return out.includes(`(${keyName})`);
+    }
+}
 
-    // Fallback: if proc parsing missed it, scan /dev/input/event*
+function findKeyPowerDevices(evtestPath: string): Array<{ dev: string; name: string }> {
+    const candidates = listEventCandidates();
+
+    // 116 = KEY_POWER
+    let hits = candidates.filter(c => sysfsSupportsKeyCode(c.dev, 116));
+
+    // If sysfs gives nothing, parse evtest header (works on your event2 for sure)
+    if (hits.length === 0) {
+        hits = candidates.filter(c => evtestHeaderSupportsKey(evtestPath, c.dev, "KEY_POWER"));
+    }
+
+    // Still nothing? brute scan /dev/input/event*
     if (hits.length === 0) {
         try {
             const devs = fs.readdirSync("/dev/input")
@@ -109,7 +134,12 @@ function listPowerKeyDevices(evtestPath: string): Array<{ dev: string; name: str
                 });
 
             for (const dev of devs) {
-                if (!sysfsSupportsKeyCode(dev, 116)) continue;
+                const ok =
+                    sysfsSupportsKeyCode(dev, 116) ||
+                    evtestHeaderSupportsKey(evtestPath, dev, "KEY_POWER");
+
+                if (!ok) continue;
+
                 const ev = path.basename(dev);
                 const namePath = `/sys/class/input/${ev}/device/name`;
                 const name = fs.existsSync(namePath) ? fs.readFileSync(namePath, "utf8").trim() : "";
@@ -120,27 +150,22 @@ function listPowerKeyDevices(evtestPath: string): Array<{ dev: string; name: str
         }
     }
 
-    // De-dupe by dev path
+    // Dedup by dev path
     const seen = new Set<string>();
     hits = hits.filter(h => (seen.has(h.dev) ? false : (seen.add(h.dev), true)));
 
-    // Sort likely physical sources first (for nicer logs)
+    // Prefer pwr_button first
     const score = (n: string) => {
         const s = (n || "").toLowerCase();
         let v = 0;
-        if (s.includes("gpio-keys")) v += 80;
-        if (s.includes("pwr")) v += 60;
-        if (s.includes("power button")) v += 60;
-        if (s.includes("power")) v += 30;
-        if (s.includes("consumer control")) v -= 60;
-        if (s.includes("audio")) v -= 30;
+        if (s.includes("pwr_button")) v += 1000;
+        if (s.includes("gpio-keys")) v += 200;
+        if (s.includes("power")) v += 80;
+        if (s.includes("consumer control")) v -= 200;
+        if (s.includes("audio")) v -= 100;
         return v;
     };
     hits.sort((a, b) => score(b.name) - score(a.name));
-
-    // NOTE: evtestPath is currently unused here but kept in signature
-    // in case you later want to add an evtest-header fallback.
-    void evtestPath;
 
     return hits;
 }
@@ -154,9 +179,9 @@ function startEvtestGrab(onPress: () => void) {
         return;
     }
 
-    const targets = listPowerKeyDevices(evtestPath);
+    const targets = findKeyPowerDevices(evtestPath);
     if (!targets.length) {
-        logWarn("No /dev/input/event* devices advertise KEY_POWER (code 116) in sysfs capabilities.");
+        logWarn("Could not find any KEY_POWER-capable input devices.");
         return;
     }
 
@@ -173,7 +198,7 @@ function startEvtestGrab(onPress: () => void) {
         p.stdout.setEncoding("utf8");
         p.stderr.setEncoding("utf8");
 
-        // Buffer by line to avoid chunk splitting issues
+        // line buffer to avoid chunk-splitting issues
         let buf = "";
         p.stdout.on("data", (chunk: string) => {
             buf += chunk;
@@ -183,13 +208,11 @@ function startEvtestGrab(onPress: () => void) {
                 const line = buf.slice(0, idx).trimEnd();
                 buf = buf.slice(idx + 1);
 
-                // Example:
-                // Event: time ... type 1 (EV_KEY), code 116 (KEY_POWER), value 1
                 const m = line.match(/code\s+116\s+\(KEY_POWER\),\s+value\s+(\d+)/);
                 if (!m) continue;
 
                 const val = Number(m[1]);
-                if (val !== 1) continue; // 1 = keydown/press
+                if (val !== 1) continue; // 1 = press/down
 
                 const now = Date.now();
                 if (now - lastPowerPressMs < POWER_DEBOUNCE_MS) continue;
@@ -206,7 +229,7 @@ function startEvtestGrab(onPress: () => void) {
             if (/Permission denied/i.test(msg)) {
                 logWarn(
                     `evtest: permission denied grabbing ${t.dev}. ` +
-                    `You need write access to /dev/input/event* for --grab (often run as root or via group rules).`
+                    `For --grab you typically need to run as root or have write permissions on /dev/input/event*.`
                 );
             } else {
                 logWarn(msg);
@@ -236,19 +259,17 @@ let gpioActive = false;
 export function initGpio() {
     const config = getConfig(/gpio/)[0];
 
-    // IMPORTANT: clear old resources FIRST.
-    // Your previous ordering started evtest and then immediately stopped it via killGpio().
+    // FIX: clear old resources FIRST (your previous code started evtest, then immediately stopped it)
     killGpio();
 
-    // Always try to intercept the onboard power key (if available)
     startEvtestGrab(() => {
         getWebsocketServer().send("notify_power_button");
     });
 
-    // Optional: external GPIO power button (your config-driven one)
     if (!config) return;
 
     gpioActive = true;
+
     logRegular("init gpio");
 
     powerButton = new Gpio(config.power_button, "in", "both");
@@ -349,7 +370,5 @@ export async function shutdownSystem() {
 }
 
 export async function selfUpdate() {
-    await execute(
-        `bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && systemctl restart --user stream-overlord"`
-    );
+    await execute(`bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && systemctl restart --user stream-overlord"`);
 }
