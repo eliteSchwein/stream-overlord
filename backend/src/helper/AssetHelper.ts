@@ -1,9 +1,11 @@
 import {existsSync, readdirSync, unlinkSync, watch} from "node:fs";
 import {logRegular} from "./LogHelper";
 import {join, resolve} from "node:path";
-import {compressAssets} from "./AssetTuneHelper";
+import {compressAssets, getAssetFile} from "./AssetTuneHelper";
+import getWebsocketServer from "../App";
 
 let files = []
+let assetFiles = []
 
 const assetPath = resolve(`${__dirname}/../../assets`)
 const compressedPath = resolve(`${__dirname}/../../compressed_assets`)
@@ -11,12 +13,18 @@ const compressedPath = resolve(`${__dirname}/../../compressed_assets`)
 export const imageRegex = /\.(jpe?g|png)$/i
 export const videoRegex = /\.mp4$/i
 
+export function getParsedAssetFiles() {
+    return assetFiles
+}
+
 export function readAssetFolder() {
     logRegular("reading assets folder")
     files = []
+    assetFiles = []
 
     readdirSync(assetPath).forEach((file) => {
         files.push(`${assetPath}/${file}`)
+        assetFiles.push(getAssetFile(file))
     })
 }
 
@@ -30,6 +38,8 @@ export function initAssetWatcher() {
         await compressAssets(false, `${assetPath}/${filename}`)
 
         readAssetFolder()
+
+        getWebsocketServer().send("notify_assets_update", getParsedAssetFiles())
     })
 }
 

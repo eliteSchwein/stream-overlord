@@ -5,6 +5,7 @@ import {execFileSync} from "node:child_process";
 import {getGpu} from "./SystemInfoHelper";
 import {isDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper";
 import {imageRegex, videoRegex} from "./AssetHelper";
+import {existsSync} from "node:fs";
 
 type FfmpegInit = {
     ffmpegBin: string;
@@ -207,6 +208,21 @@ function splitArgs(s: string): string[] {
     return s
         ? s.match(/'[^']*'|"[^"]*"|\S+/g)?.map((t) => t.replace(/^['"]|['"]$/g, "")) || []
         : [];
+}
+
+export function getAssetFile(file: string) {
+    if(!file) return '';
+
+    if(!videoRegex.test(file) && !imageRegex.test(file)) return file
+
+    const compressedAssetDirectory = path.resolve(__dirname, "../../compressed_assets")
+
+    const compressedFile = file
+        .replace(imageRegex, '.webp')
+        .replace(videoRegex, '.webm')
+
+    if(existsSync(`${compressedAssetDirectory}/${compressedFile}`)) return `compressed/${compressedFile}`
+    return file
 }
 
 // TODO: move this to the new assets helper

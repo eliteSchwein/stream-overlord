@@ -20,6 +20,7 @@ import NotifyVariableUpdateMessage from "@/plugins/websocketEvents/websocketMess
 import NotifyGiveawayUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyGiveawayUpdateMessage.ts";
 import NotifyYoloboxUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyYoloboxUpdateMessage.ts";
 import NotifyObsAudioUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyObsAudioUpdateMessage.ts";
+import NotifyAssetsUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAssetsUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -52,5 +53,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyGiveawayUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyYoloboxUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyObsAudioUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyAssetsUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

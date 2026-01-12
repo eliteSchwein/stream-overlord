@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
+    assets: [],
     config: {
       websocketPort: 8100,
       webserverPort: 8105
@@ -63,7 +64,8 @@ export const useAppStore = defineStore('app', {
     getVariables: (state) => state.variables,
     getGiveaway: (state) => state.giveaway,
     getYoloboxData: (state) => state.yoloboxData,
-    getObsAudioData: (state) => state.obsAudioData
+    getObsAudioData: (state) => state.obsAudioData,
+    getAssets: (state) => state.assets
   },
   actions: {
     async fetchConfig() {
@@ -168,6 +170,10 @@ export const useAppStore = defineStore('app', {
     setObsAudioData(obsAudioData: {}) {
       this.obsAudioData = obsAudioData
       this.$patch(state => state.obsAudioData = obsAudioData)
+    },
+    setAssets(assets: []) {
+      this.assets = assets
+      this.$patch(state => state.assets = assets)
     }
   }
 })

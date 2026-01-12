@@ -51,6 +51,11 @@ export default class WebServer {
         this.webServer.use(express.static(path.join(__dirname, '../../frontend/dist')))
         this.webServer.use(express.static(path.join(__dirname, '../../frontend/src/html')))
         this.webServer.use(express.static(path.join(__dirname, '../../assets')))
+        this.webServer.use(
+            '/compressed',
+            express.static(path.join(__dirname, '../../compressed_assets'))
+        )
+
         this.webServer.use(bodyParser.json())
 
         this.webServer.use('/commander', express.static(path.join(__dirname, '../../commander/dist')));

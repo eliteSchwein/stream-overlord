@@ -17,6 +17,7 @@ import {getAutoMacros} from "../../helper/AutoMacroHelper";
 import {getTemplateVariables} from "../../helper/TemplateHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
 import BaseApi from "../../abstracts/BaseApi";
+import {getParsedAssetFiles} from "../../helper/AssetHelper";
 
 
 export default class WebsocketServer {
@@ -24,6 +25,7 @@ export default class WebsocketServer {
     validEndpoints: string[] = [
         'notify_alert',
         'notify_alert_query',
+        'notify_assets_update',
         'notify_ads',
         'notify_effect',
         'notify_toggle_element',
@@ -186,6 +188,7 @@ export default class WebsocketServer {
                 this.send("notify_variables_update", getTemplateVariables(), client)
                 this.send("notify_giveaway_update", getGiveaway(), client)
                 this.send("notify_yolobox_update", getYoloboxClient().getData(), client)
+                this.send("notify_assets_update", getParsedAssetFiles(), client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]
