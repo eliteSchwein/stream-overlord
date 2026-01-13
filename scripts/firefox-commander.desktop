@@ -3,4 +3,4 @@ Type=Application
 Name=Firefox Commander
 Comment=Open Stream Commander in kiosk mode
 X-GNOME-Autostart-enabled=true
-Exec=/bin/sh -c 'i=0; while ! /usr/bin/nc -z 127.0.0.1 8105 >/dev/null 2>&1; do i=$((i+1)); [ $i -ge 300 ] && break; sleep 0.1; done; sleep 0.25; exec /usr/bin/firefox-esr --kiosk --no-remote --new-instance http://127.0.0.1:8105/commander'
+Exec=/bin/sh -c 'i=0; while ! /usr/bin/nc -z 127.0.0.1 8105 >/dev/null 2>&1; do i=$((i+1)); [ $i -ge 300 ] && break; sleep 0.1; done; sleep 0.25; exec /usr/bin/firefox --kiosk --no-remote --new-instance http://127.0.0.1:8105/commander'
