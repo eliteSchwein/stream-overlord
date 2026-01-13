@@ -2,5 +2,5 @@
 Type=Application
 Name=Firefox Commander
 Comment=Open Stream Commander in kiosk mode
-Exec=sh -c 'while ! curl -fs http://localhost:8105/commander >/dev/null 2>&1; do sleep 0.5; done; firefox --kiosk --no-remote --new-instance http://localhost:8105/commander'
+Exec=sh -c 'while ! curl -fs http://127.0.0.1:8105/commander >/dev/null 2>&1; do sleep 0.5; done; sleep 0.5 && firefox --kiosk --no-remote --new-instance http://127.0.0.1:8105/commander'
 X-GNOME-Autostart-enabled=true
