@@ -3,6 +3,7 @@
 import {mapActions, mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
 import eventBus from "@/eventBus.js";
+import {sleep} from "@/helper/GeneralHelper.ts";
 
 export default {
   data () {
@@ -18,7 +19,8 @@ export default {
       'isThrottled',
       'getConnections',
       'getCurrentGame',
-      'getParsedBackendConfig'
+      'getParsedBackendConfig',
+      'getObsAudioData'
     ]),
     currentRouteName() {
       return this.$route.name;
@@ -62,12 +64,32 @@ export default {
     },
     reloadCommander() {
       window.location.reload()
-    },
-    updateBot() {
-      eventBus.$emit('websocket:send', {
-        method: 'update',
-        params: {}
-      })
+    },async updateBot() {
+      eventBus.$emit("websocket:send", { method: "update", params: {} })
+
+      // wait until /api/status is NOT reachable (connection lost)
+      for (;;) {
+        try {
+          const r = await fetch(`${this.getRestApi}/api/status`, { cache: "no-store" })
+          if (!r.ok) break
+        } catch {
+          break
+        }
+        await sleep(500)
+      }
+
+      // wait until /api/status is reachable again (connection back)
+      for (;;) {
+        try {
+          const r = await fetch(`${this.getRestApi}/api/status`, { cache: "no-store" })
+          if (r.ok) break
+        } catch {
+          // still down
+        }
+        await sleep(500)
+      }
+
+      window.location.reload()
     }
   }
 }
@@ -148,20 +170,22 @@ export default {
           ></v-list-item>
           <v-divider></v-divider>
           <v-list-item
-            title="Commander neuladen"
+            title="Seite neuladen"
             @click="reloadCommander"
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-list-item
-            title="Service neustarten"
+            title="Bot neustarten"
             @click="restartService"
-            prepend-icon="mdi-restart"
+            prepend-icon="mdi-robot"
           ></v-list-item>
-          <v-list-item
-            title="Browser Quellen neuladen"
-            @click="reloadBrowserSources"
-            prepend-icon="mdi-restart"
-          ></v-list-item>
+          <template v-if="Object.keys(getObsAudioData).length > 0">
+            <v-list-item
+              title="Browser Quellen neuladen"
+              @click="reloadBrowserSources"
+              prepend-icon="mdi-application-outline"
+            ></v-list-item>
+          </template>
           <v-divider></v-divider>
           <v-list-item
             title="Bot Updaten"

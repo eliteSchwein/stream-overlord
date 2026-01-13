@@ -10,9 +10,6 @@ export default {
   methods: {
     connectWebsocket() {
       eventBus.$emit('websocket:reconnect', {})
-    },
-    reloadCommander() {
-      window.location.reload()
     }
   }
 }
@@ -43,7 +40,6 @@ export default {
         Die Verbindung mit dem Bot Backend wurde verloren, neuverbinden?
       </v-card-text>
       <v-card-actions v-if="!isWebsocketConnecting">
-        <v-btn color="warning" @click="reloadCommander">Neuladen</v-btn>
         <v-btn color="" @click="connectWebsocket">Neu verbinden</v-btn>
       </v-card-actions>
     </v-card>

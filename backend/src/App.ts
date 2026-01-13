@@ -31,20 +31,17 @@ let obsClient: OBSClient
 let tauonmbClient: TauonmbClient
 let yoloboxClient: YoloboxClient
 
+let ready = false
+let stage = 'Unknown'
+
 void init()
 
 async function init() {
+    ready = false
     logSuccess(`Starting ${packageConfig.name} ${packageConfig.version} backend...`)
 
     logRegular('load config')
     readConfig()
-
-    await updateSystemComponents()
-
-    twitchClient = new TwitchClient()
-    await twitchClient.connect()
-    await registerPermissions(twitchClient.getBot())
-    registerPermissionInterval(twitchClient.getBot())
 
     websocketServer = new WebsocketServer()
     websocketServer.initial()
@@ -54,8 +51,23 @@ async function init() {
     webServer = new WebServer()
     webServer.initial()
 
+    await registerApiEndpoints()
+
+    stage = 'loading system components...'
+
+    await updateSystemComponents()
+
+    stage = 'starting twitch bot...'
+
+    twitchClient = new TwitchClient()
+    await twitchClient.connect()
+    await registerPermissions(twitchClient.getBot())
+    registerPermissionInterval(twitchClient.getBot())
+
     try {
-        logRegular('connect obs')
+        stage = 'OBS connection'
+
+        logRegular('connecting obs...')
         obsClient = new OBSClient()
         await obsClient.connect()
     } catch(error) {
@@ -64,6 +76,7 @@ async function init() {
     }
 
     try {
+        stage = 'connecting Yolobox...'
         logRegular('connect yolobox')
         yoloboxClient = new YoloboxClient()
         await yoloboxClient.connect()
@@ -72,48 +85,63 @@ async function init() {
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
 
+    stage = 'Fetching Game Info'
+
     await fetchGameInfo()
 
+    stage = 'connecting tauonmb...'
     logRegular("connect tauonmb client")
     tauonmbClient = new TauonmbClient()
     await tauonmbClient.init()
 
+    stage = 'starting schedulers...'
     logRegular('initial schedulers')
     initialTimers()
     initialAlerts()
     initialSchedulers()
 
+    stage = 'initial macros...'
     loadMacros()
 
+    stage = 'sending default wled colors...'
     logRegular('activate configured wled lamps')
     await setLedColor()
 
+    stage = 'starting audio...'
     logRegular('load audio outputs')
     await initAudio()
 
+    stage = 'update system informations...'
     logRegular("init system info")
     await updateSystemInfo()
 
+    stage = 'reading assets folder...'
     readAssetFolder()
 
+    stage = 'starting watchers...'
     watchConfig()
     initAssetWatcher()
 
+    stage = 'starting gpio...'
     initGpio()
 
+    stage = 'starting tts...'
     await installPiper()
     await downloadVoice()
     await fetchVoices()
 
+    stage = 'compressing assets...'
     await compressAssets()
 
+    stage = 'update obs filters...'
     await updateSourceFilters()
 
+    stage = 'starting auto macros...'
     initAutoMacros()
 
-    await registerApiEndpoints()
-
     logSuccess('backend is ready')
+    ready = true
+    stage = 'Finished'
 }
 
 export default function getWebsocketServer() {
@@ -195,3 +223,10 @@ process.on('SIGINT', () => {
     killGpio()
     process.exit()
 })
+
+export function isBackendReady() {
+    return ready
+}
+export function getStartupStage() {
+    return stage
+}

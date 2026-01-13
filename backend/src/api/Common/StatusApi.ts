@@ -1,4 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
+import {getStartupStage, isBackendReady} from "../../App";
 
 export default class StatusApi extends BaseApi {
     restEndpoint = 'status'
@@ -7,7 +8,8 @@ export default class StatusApi extends BaseApi {
     async handle(data: any): Promise<any>
     {
         return {
-            status: 'ok'
+            bootup_stage: getStartupStage(),
+            ready: isBackendReady()
         }
     }
 }

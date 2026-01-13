@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 export const useAppStore = defineStore('app', {
   state: () => ({
     assets: [],
+    status: {},
     config: {
       websocketPort: 8100,
       webserverPort: 8105
@@ -65,11 +66,12 @@ export const useAppStore = defineStore('app', {
     getGiveaway: (state) => state.giveaway,
     getYoloboxData: (state) => state.yoloboxData,
     getObsAudioData: (state) => state.obsAudioData,
-    getAssets: (state) => state.assets
+    getAssets: (state) => state.assets,
+    getStatus: (state) => state.status
   },
   actions: {
     async fetchConfig() {
-      const request = await fetch(`/config.json`)
+      const request = await fetch(`/config.json`, { cache: "no-store" })
       const config = await request.json()
 
       this.$patch(state => state.config = {
@@ -78,7 +80,7 @@ export const useAppStore = defineStore('app', {
       })
     },
     async fetchGames() {
-      const request = await fetch(`${this.getRestApi}/api/games/all`)
+      const request = await fetch(`${this.getRestApi}/api/games/all`, { cache: "no-store" })
       const data = (await request.json()).data
 
       this.games = data
@@ -174,6 +176,16 @@ export const useAppStore = defineStore('app', {
     setAssets(assets: []) {
       this.assets = assets
       this.$patch(state => state.assets = assets)
+    },
+    setStatus(status: any) {
+      this.status = status
+      this.$patch(state => state.status = status)
+    },
+    async fetchStatus(): Promise<any> {
+      const status = (await (await fetch(`${this.getRestApi}/api/status`, { cache: "no-store" })).json()).data
+
+      this.setStatus(status)
+      return status
     }
   }
 })

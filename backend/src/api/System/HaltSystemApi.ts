@@ -1,6 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
 import {rebootSystem, shutdownSystem} from "../../helper/SystemHelper";
-import {logWarn} from "../../helper/LogHelper";
 
 export default class HaltSystemApi extends BaseApi {
     restEndpoint = 'system/halt'
