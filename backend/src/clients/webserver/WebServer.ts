@@ -48,7 +48,10 @@ export default class WebServer {
             next()
         });
 
-        this.webServer.use(express.static(path.join(__dirname, '../../frontend/dist')))
+        this.webServer.use(
+            '/dist',
+            express.static(path.join(__dirname, '../../frontend/dist'))
+        )
         this.webServer.use(express.static(path.join(__dirname, '../../frontend/src/html')))
         this.webServer.use(express.static(path.join(__dirname, '../../assets')))
         this.webServer.use(
