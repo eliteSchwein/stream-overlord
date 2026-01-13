@@ -211,7 +211,7 @@ function splitArgs(s: string): string[] {
 }
 
 export function getAssetFile(file: string) {
-    if(!file) return '';
+    if(!file) return null;
 
     if(!videoRegex.test(file) && !imageRegex.test(file)) return file
 
@@ -221,8 +221,14 @@ export function getAssetFile(file: string) {
         .replace(imageRegex, '.webp')
         .replace(videoRegex, '.webm')
 
-    if(existsSync(`${compressedAssetDirectory}/${compressedFile}`)) return `compressed/${compressedFile}`
-    return file
+    if(existsSync(`${compressedAssetDirectory}/${compressedFile}`)) return {
+        original: file,
+        compressed: `compressed/${compressedFile}`
+    }
+    return {
+        original: file,
+        compressed: null
+    }
 }
 
 // TODO: move this to the new assets helper

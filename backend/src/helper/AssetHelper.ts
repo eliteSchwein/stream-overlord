@@ -24,10 +24,7 @@ export function readAssetFolder() {
 
     readdirSync(assetPath).forEach((file) => {
         files.push(`${assetPath}/${file}`)
-        assetFiles.push({
-            original: file,
-            compressed: getAssetFile(file),
-        })
+        assetFiles.push(getAssetFile(file))
     })
 }
 
