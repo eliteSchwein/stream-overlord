@@ -3,4 +3,4 @@ Type=Application
 Name=Firefox Commander
 Comment=Open Stream Commander in kiosk mode
 X-GNOME-Autostart-enabled=true
-Exec=sh -c 'until nc -z 127.0.0.1 8105 >/dev/null 2>&1; do sleep 0.1; done; exec firefox --kiosk --no-remote --new-instance http://127.0.0.1:8105/commander'
+Exec=bash -lc 'LOG=/tmp/firefox-commander.log; URL="http://127.0.0.1:8105/commander"; echo "[$(date)] autostart" >>"$LOG"; for i in $(seq 1 600); do (echo >/dev/tcp/127.0.0.1/8105) >/dev/null 2>&1 && break; sleep 0.1; done; echo "[$(date)] launching firefox" >>"$LOG"; FF=firefox; command -v firefox >/dev/null 2>&1 || FF=firefox-esr; exec "$FF" --kiosk --no-remote --new-instance "$URL" >>"$LOG" 2>&1'
