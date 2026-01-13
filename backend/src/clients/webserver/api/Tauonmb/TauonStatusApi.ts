@@ -6,7 +6,7 @@ export default class TauonStatusApi extends BaseApi {
 
     async handle(req: Request) {
         const tauonmbClient = getTauonmbClient()
-        const data = tauonmbClient.getStatus()
+        const data = tauonmbClient?.getStatus()
 
         return {
             status: 200,

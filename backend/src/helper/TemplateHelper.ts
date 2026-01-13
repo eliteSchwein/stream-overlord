@@ -26,9 +26,9 @@ export function getTemplateVariables(data: any = {}) {
         data,
         primarychannel: getPrimaryChannel(),
         gameinfo: getGameInfo(),
-        musicinfo: getTauonmbClient().getStatus(),
+        musicinfo: getTauonmbClient()?.getStatus(),
         systeminfo: getSystemComponents(),
-        musictext: getTauonmbClient().getSongCmd(),
+        musictext: getTauonmbClient()?.getSongCmd(),
         giveaway: getGiveaway()
     };
 
