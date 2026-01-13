@@ -370,5 +370,5 @@ export async function shutdownSystem() {
 }
 
 export async function selfUpdate() {
-    await execute(`bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && systemctl restart --user stream-overlord"`);
+    await execute(`bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && sudo rm -rf node_modules && npm ci && systemctl restart --user stream-overlord"`);
 }
