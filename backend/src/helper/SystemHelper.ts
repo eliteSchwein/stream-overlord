@@ -1,7 +1,6 @@
 import { execute } from "./CommandHelper";
 import { getConfig } from "./ConfigHelper";
 import { logRegular, logWarn } from "./LogHelper";
-import { Gpio } from "onoff";
 import getWebsocketServer from "../App";
 import * as path from "node:path";
 import * as os from "node:os";
@@ -253,48 +252,25 @@ function stopEvtestGrab() {
     evtestProcs = [];
 }
 
-let powerButton: any = undefined;
-let gpioActive = false;
-
+/**
+ * GPIO removed: initGpio/killGpio now only manage evtest interception.
+ * Keeping the function names avoids breaking other imports/call-sites.
+ */
 export function initGpio() {
-    const config = getConfig(/gpio/)[0];
-
-    // FIX: clear old resources FIRST (your previous code started evtest, then immediately stopped it)
+    // Clear any old processes first
     killGpio();
 
+    // Start power-button interception (not GPIO)
     startEvtestGrab(() => {
         getWebsocketServer().send("notify_power_button");
     });
 
-    if (!config) return;
-
-    gpioActive = true;
-
-    logRegular("init gpio");
-
-    powerButton = new Gpio(config.power_button, "in", "both");
-
-    powerButton.watch((error: any, value) => {
-        if (error) {
-            logWarn("power button watch failed:");
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-            return;
-        }
-        if (value === 1) {
-            getWebsocketServer().send("notify_power_button");
-        }
-    });
+    // We intentionally ignore any gpio config now.
+    // const config = getConfig(/gpio/)[0];
 }
 
 export function killGpio() {
     stopEvtestGrab();
-
-    if (!gpioActive) return;
-
-    logRegular("clear up gpio Resources");
-    if (powerButton) powerButton.unexport();
-    powerButton = undefined;
-    gpioActive = false;
 }
 
 export function parsePath(filePath: string) {
