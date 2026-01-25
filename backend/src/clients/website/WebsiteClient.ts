@@ -1,5 +1,5 @@
 import {getConfig} from "../../helper/ConfigHelper";
-import {logDebug} from "../../helper/LogHelper";
+import {logDebug, logWarn} from "../../helper/LogHelper";
 
 let adData = {}
 
@@ -7,7 +7,13 @@ export async function requestApi(slug: string)
 {
     const url = generateBaseUrl(slug);
     logDebug(`request website api: ${url}`)
-    return await (await fetch(url)).json()
+    try {
+        return await (await fetch(url)).json()
+    } catch (error) {
+        logWarn('api request failed:')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        return null
+    }
 }
 
 export function generateBaseUrl(slug: string) {

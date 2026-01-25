@@ -20,15 +20,24 @@ import ToggleAutoMacroMessage from "./messages/ToggleAutoMacroMessage";
 import StartGiveawayMessage from "./messages/StartGiveawayMessage";
 import StopGiveawayMessage from "./messages/StopGiveawayMessage";
 import RemoveGiveawayUserMessage from "./messages/RemoveGiveawayUserMessage";
+import {isBackendReady} from "../../../App";
 
 export default class ConnectEvent extends BaseEvent{
     name = 'connect'
     eventTypes = ['connection']
 
     async handle(event: any) {
-        logNotice(`new client connected: ${event._socket.remoteAddress}:${event._socket.remotePort}`)
-
         const client = `${event._socket.remoteAddress}:${event._socket.remotePort}`
+
+        if(!isBackendReady()) {
+            await sleep(25)
+            event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_disconnect', params: {reason: 'backend is not ready!'}, id: getRandomInt(10_000)}))
+            event.close()
+            logDebug(`connection denied, backend not ready: ${client}`)
+            return
+        }
+
+        logNotice(`new client connected: ${client}`)
 
         event.on('message', async (message: any) => {
             try {
@@ -59,6 +68,7 @@ export default class ConnectEvent extends BaseEvent{
         if(event.readyState === WebSocket.CLOSED) return
 
         if(!this.client.isConnectionRegistered(client)) {
+            await sleep(25)
             event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_disconnect', params: {reason: 'not registered in time!'}, id: getRandomInt(10_000)}))
             event.close()
 

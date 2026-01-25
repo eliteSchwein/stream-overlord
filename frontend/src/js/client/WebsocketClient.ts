@@ -1,6 +1,6 @@
-import { Websocket, WebsocketEvent } from "websocket-ts";
-import { getConfig } from "../helper/ConfigHelper";
-import { getRandomInt, sleep } from "../../../../helper/GeneralHelper";
+import {Websocket, WebsocketEvent} from "websocket-ts";
+import {getConfig} from "../helper/ConfigHelper";
+import {getRandomInt, sleep} from "../../../../helper/GeneralHelper";
 
 export default class WebsocketClient {
     private websocket!: Websocket;
@@ -9,7 +9,7 @@ export default class WebsocketClient {
     // reconnect/backoff settings
     private reconnecting = false;
     private hasReloadedAfterReconnect = false;
-    private baseDelayMs = 500;    // initial backoff
+    private baseDelayMs = 1_000;    // initial backoff
     private maxDelayMs = 30_000;  // cap backoff at 30s
 
     public async connect() {
