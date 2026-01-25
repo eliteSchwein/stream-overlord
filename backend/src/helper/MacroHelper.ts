@@ -80,7 +80,12 @@ export async function triggerMacro(name: string) {
 async function handleYolobox(method: string, data: any) {
     logRegular(`send yolobox command: ${method}`)
 
-    const yoloboxData = getYoloboxClient().getData()
+    const yoloboxData = getYoloboxClient()?.getData()
+
+    if(!yoloboxData) {
+        logWarn(`yolobox is currently not connected`)
+        return
+    }
 
     if(method === "order_material_change") {
         for(const material of yoloboxData.MaterialList) {

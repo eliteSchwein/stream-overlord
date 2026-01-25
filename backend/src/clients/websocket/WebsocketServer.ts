@@ -187,7 +187,7 @@ export default class WebsocketServer {
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
                 this.send("notify_variables_update", getTemplateVariables(), client)
                 this.send("notify_giveaway_update", getGiveaway(), client)
-                this.send("notify_yolobox_update", getYoloboxClient().getData(), client)
+                this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)
                 this.send("notify_assets_update", getParsedAssetFiles(), client)
 
                 for(const id in getAllVisibleElements()) {
