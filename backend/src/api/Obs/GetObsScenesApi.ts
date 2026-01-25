@@ -7,6 +7,6 @@ export default class GetObsScenesApi extends BaseApi {
 
     async handle(data: any): Promise<any>
     {
-        return getOBSClient().getSceneData()
+        return getOBSClient()?.getSceneData()
     }
 }

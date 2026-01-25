@@ -15,9 +15,9 @@ export default class SetSceneCommand extends BaseCommand {
 
     async handle(params: any, context: any) {
         const obsClient = getOBSClient()
-        const sceneItems = obsClient.getSceneData()
+        const sceneItems = obsClient?.getSceneData()
 
-        if(sceneItems.length === 0) {
+        if(!sceneItems || sceneItems.length === 0) {
             await this.replyCommandError(context, "Es wurde keine OBS Verbindung gefunden.")
             return
         }
