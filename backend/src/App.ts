@@ -142,6 +142,8 @@ async function init() {
     logSuccess('backend is ready')
     ready = true
     stage = 'Finished'
+
+    await obsClient?.reloadAllBrowserScenes()
 }
 
 export default function getWebsocketServer() {
@@ -209,6 +211,8 @@ export async function reload() {
         logSuccess('reload finished')
 
         getWebsocketServer().send("notify_config_update", {data: getRawConfig()})
+
+        await obsClient?.reloadAllBrowserScenes()
     } catch (error) {
         logWarn(`reload failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
