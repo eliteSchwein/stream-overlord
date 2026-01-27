@@ -110,7 +110,8 @@ export default class ChannelPointsEvent extends BaseEvent {
                     'message': (asset.message) ? asset.message : '',
                     'event-uuid': `alert-${configChannelPoint.label}_${uuidv4()}`,
                     'video': (asset.video) ? asset.video : '',
-                    'lamp_color': asset.lamp_color
+                    'lamp_color': asset.lamp_color,
+                    'volume': asset.volume,
                 })
             }
 
@@ -204,7 +205,8 @@ export default class ChannelPointsEvent extends BaseEvent {
                     'message': `${event.userDisplayName} löst ${event.rewardTitle} aus`,
                     'event-uuid': comboUuid,
                     'video': theme.video,
-                    'lamp_color': theme.lamp_color
+                    'lamp_color': theme.lamp_color,
+                    'volume': theme.volume,
                 })
 
                 await waitUntil(() => isAlertActive(comboUuid), {timeout: 600_000})

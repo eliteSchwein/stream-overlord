@@ -58,7 +58,7 @@ export default class ShoutoutCommand extends BaseCommand {
             'duration': 30,
             'icon': '',
             'message': ``,
-            'event-uuid': `shoutout_${uuidv4()}`
+            'event-uuid': `shoutout_${uuidv4()}`,
         })
     }
 }

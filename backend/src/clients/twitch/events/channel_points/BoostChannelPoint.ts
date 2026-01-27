@@ -65,7 +65,8 @@ export default class BoostChannelPoint extends BaseChannelPoint {
                 'message': `OVERCHARGE`,
                 'event-uuid': this.eventUuid,
                 'video': theme.video,
-                'lamp_color': theme.lamp_color
+                'lamp_color': theme.lamp_color,
+                'volume': theme.volume,
             })
 
             if(!isActive) {
@@ -90,7 +91,8 @@ export default class BoostChannelPoint extends BaseChannelPoint {
             'message': `BOOOST`,
             'event-uuid': this.eventUuid,
             'video': theme.video,
-            'lamp_color': theme.lamp_color
+            'lamp_color': theme.lamp_color,
+            'volume': theme.volume,
         })
 
         if(!isActive) {

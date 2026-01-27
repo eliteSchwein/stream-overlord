@@ -284,6 +284,8 @@ export async function speak(message: string) {
             config.location
         )} && echo '${message}' | ./piper ${piperAttributes} --model models/${modelFile}.onnx --output-raw | ${playCommand}"`
 
+        console.log(command)
+
         logDebug(`TTS Command: ${command}`)
         await execute(command)
     } catch (error: any) {

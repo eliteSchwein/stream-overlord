@@ -29,7 +29,8 @@ export default class RaidEvent extends BaseEvent {
             'message': `${event.userDisplayName} raidet mit ${event.viewerCount}. Leuten`,
             'event-uuid': this.eventUuid,
             'video': theme.video,
-            'lamp_color': theme.lamp_color
+            'lamp_color': theme.lamp_color,
+            'volume': theme.volume,
         })
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})

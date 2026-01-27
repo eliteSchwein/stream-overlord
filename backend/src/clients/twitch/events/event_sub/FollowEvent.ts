@@ -35,7 +35,8 @@ export default class FollowEvent extends BaseEvent {
             'message': `${event.userDisplayName} folgt nun`,
             'event-uuid': this.eventUuid,
             'video': theme.video,
-            'lamp_color': theme.lamp_color
+            'lamp_color': theme.lamp_color,
+            'volume': theme.volume,
         })
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})

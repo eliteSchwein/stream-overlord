@@ -55,7 +55,8 @@ export default class FAChannelPoint extends BaseChannelPoint {
             'message': message,
             'event-uuid': this.eventUuid,
             'video': theme.video,
-            'lamp_color': theme.lamp_color
+            'lamp_color': theme.lamp_color,
+            'volume': theme.volume,
         })
 
         if(!isActive) {

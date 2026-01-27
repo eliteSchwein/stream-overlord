@@ -20,7 +20,7 @@ export default class TTSChannelPoint extends BaseChannelPoint {
             'icon': '',
             'message': message,
             'event-uuid': this.eventUuid,
-            'speak': true
+            'speak': true,
         })
     }
 }
