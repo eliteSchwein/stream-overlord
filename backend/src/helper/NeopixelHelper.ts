@@ -158,7 +158,6 @@ export async function initNeopixels() {
     logRegular("init neopixels");
 
     const raw = getConfig(/^neopixel /g, true) as any;
-    console.log(raw);
 
     strips.clear();
     heartbeatLeds.length = 0;
