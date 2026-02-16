@@ -5,11 +5,7 @@ USER_NAME="$USER"
 WRAPPER="/usr/local/bin/stream-overlord-neopixel"
 POLKIT_RULE="/etc/polkit-1/rules.d/49-stream-overlord-power.rules"
 
-echo "[1/3] Installing polkit (if missing)..."
-sudo apt update
-sudo apt install -y policykit-1
-
-echo "[2/3] Writing polkit rule: $POLKIT_RULE"
+echo "[1/2] Writing polkit rule: $POLKIT_RULE"
 sudo tee "$POLKIT_RULE" >/dev/null <<EOF
 /**
  * Stream Overlord polkit rules:
@@ -46,7 +42,7 @@ polkit.addRule(function(action, subject) {
 });
 EOF
 
-echo "[3/3] Restarting polkit..."
+echo "[2/2] Restarting polkit..."
 sudo systemctl restart polkit || true
 
 echo "Done."
