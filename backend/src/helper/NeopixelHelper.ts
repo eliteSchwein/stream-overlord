@@ -1,18 +1,16 @@
 // NeopixelHelper.ts
 //
-// Replaces piixel usage with a pkexec + Python CLI backend.
-// It calls your root wrapper: /usr/local/bin/stream-overlord-neopixel
-// (which runs /home/pi/stream-overlord/backend/helper/neopixel_cli.py inside the venv)
+// Uses pkexec + Python CLI backend (no piixel).
+// Calls root wrapper: /usr/local/bin/stream-overlord-neopixel
+// which runs: /home/pi/stream-overlord/backend/helper/neopixel_cli.py (inside venv).
 //
-// IMPORTANT for "single LED update preserves other LEDs":
-// This helper renders a FULL frame using `--frame` (comma-separated RRGGBB list).
-// If your current neopixel_cli.py does NOT yet support `--frame`, this helper will
-// automatically fall back to the simpler `--index/--color` mode (but that may blank
-// other LEDs depending on how the Python lib initializes pixels).
+// This helper keeps an in-memory frame per strip and tries to render a FULL frame via `--frame`.
+// If your neopixel_cli.py doesn't support `--frame`, it falls back to `--index/--color`
+// (but mixed colors can't be preserved without `--frame` support).
 
 import { getConfig } from "./ConfigHelper";
 import { sleep } from "../../../helper/GeneralHelper";
-import {isDebug, logRegular, logWarn} from "./LogHelper";
+import { isDebug, logRegular, logWarn } from "./LogHelper";
 import { spawn } from "node:child_process";
 
 type NeoCfg = {
@@ -25,7 +23,7 @@ type StripState = {
     name: string;
     gpio: number;
     amount: number;
-    pixels: Uint32Array; // packed 0xRRGGBB (our internal representation)
+    pixels: Uint32Array; // packed 0xRRGGBB
 };
 
 export type HeartbeatLedRef = { name: string; index: number };
@@ -53,7 +51,6 @@ function parseColor(input: string): { r: number; g: number; b: number } {
     const s0 = input.trim().toLowerCase();
     const s = (NAMED_COLORS[s0] ?? s0).replace(/^#/, "");
 
-    // RRGGBB
     if (/^[0-9a-f]{6}$/i.test(s)) {
         return {
             r: parseInt(s.slice(0, 2), 16),
@@ -62,7 +59,6 @@ function parseColor(input: string): { r: number; g: number; b: number } {
         };
     }
 
-    // RGB
     if (/^[0-9a-f]{3}$/i.test(s)) {
         return {
             r: parseInt(s[0] + s[0], 16),
@@ -76,7 +72,7 @@ function parseColor(input: string): { r: number; g: number; b: number } {
     );
 }
 
-// Packed as 0xRRGGBB
+// 0xRRGGBB
 function packColor(r: number, g: number, b: number): number {
     return ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
 }
@@ -92,6 +88,7 @@ function toHex6(rgb: number): string {
 function runPkexec(args: string[]): Promise<{ code: number; stderr: string; stdout: string }> {
     return new Promise((resolve) => {
         const p = spawn("pkexec", [WRAPPER, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+
         let stdout = "";
         let stderr = "";
 
@@ -105,17 +102,8 @@ function runPkexec(args: string[]): Promise<{ code: number; stderr: string; stdo
     });
 }
 
-/**
- * Render the FULL pixel frame for a strip (preserves other LEDs).
- * Requires neopixel_cli.py to support:
- *   --frame "rrggbb,rrggbb,..."
- *
- * If the python script doesn't support --frame yet, we fall back to:
- *   - if all pixels are the same -> --color <x>
- *   - else -> best-effort: set-only-index (may blank others)
- */
+// Render full frame; falls back if --frame unsupported
 async function renderStrip(strip: StripState): Promise<void> {
-    // Preferred: full frame
     const frame = Array.from(strip.pixels, toHex6).join(",");
 
     let res = await runPkexec([
@@ -129,7 +117,6 @@ async function renderStrip(strip: StripState): Promise<void> {
 
     if (res.code === 0) return;
 
-    // If --frame is not supported by the python CLI, try a compatibility fallback
     const looksLikeUnknownArg =
         /unrecognized arguments:.*--frame/i.test(res.stderr) ||
         /unknown option.*--frame/i.test(res.stderr);
@@ -139,9 +126,10 @@ async function renderStrip(strip: StripState): Promise<void> {
         return;
     }
 
-    // Fallback: if all pixels are same color, we can use --color <hex> (set all)
+    // If all pixels are same, we can use --color <hex> (set all)
     const first = strip.pixels[0] ?? 0;
     const allSame = strip.pixels.every((v) => v === first);
+
     if (allSame) {
         const hex = toHex6(first);
         res = await runPkexec([
@@ -152,55 +140,104 @@ async function renderStrip(strip: StripState): Promise<void> {
             "--color",
             hex,
         ]);
-        if (res.code !== 0) logWarn(`neopixel fallback(all) failed: ${res.stderr.trim() || res.code}`);
+        if (res.code !== 0) {
+            logWarn(`neopixel fallback(all) failed: ${res.stderr.trim() || `exit ${res.code}`}`);
+        }
         return;
     }
 
-    // Last resort fallback: cannot preserve mixed colors without --frame
     logWarn(
         "neopixel_cli.py does not support --frame; mixed-color updates cannot be preserved without it.",
     );
 }
 
+// --- Config normalization ---
+// Your getConfig currently prints like: [ pad7_status: {...} ]
+// That is an Array with length 0 but with named properties.
+// We normalize into [ [name, cfg], ... ] for all supported shapes.
+function isNumericKey(k: string) {
+    return /^[0-9]+$/.test(k);
+}
+
+function normalizeNeoConfig(raw: any): Array<[string, NeoCfg]> {
+    const pairs: Array<[string, NeoCfg]> = [];
+
+    if (Array.isArray(raw)) {
+        if (raw.length > 0) {
+            // expected: [ { name: cfg }, ... ]
+            for (const obj of raw) {
+                if (!obj || typeof obj !== "object") continue;
+                for (const [name, cfg] of Object.entries(obj)) {
+                    pairs.push([name, cfg as NeoCfg]);
+                }
+            }
+        } else {
+            // array with named props (your case)
+            for (const [name, cfg] of Object.entries(raw)) {
+                if (isNumericKey(name)) continue;
+                pairs.push([name, cfg as NeoCfg]);
+            }
+        }
+    } else if (raw && typeof raw === "object") {
+        // object: { name: cfg, ... }
+        for (const [name, cfg] of Object.entries(raw)) {
+            pairs.push([name, cfg as NeoCfg]);
+        }
+    }
+
+    return pairs;
+}
+
 export async function initNeopixels() {
-    logRegular("init neopixels")
-    const config = getConfig(/^neopixel /g, true) as Array<Record<string, NeoCfg>>;
-    console.log(config)
+    logRegular("init neopixels");
+
+    const raw = getConfig(/^neopixel /g, true) as any;
+    if (isDebug) {
+        console.log(raw);
+        console.log("neopixel config shape:", Array.isArray(raw), raw?.length, Object.keys(raw ?? {}));
+    } else {
+        console.log(raw);
+    }
 
     strips.clear();
     heartbeatLeds.length = 0;
     configured = false;
 
-    if (!Array.isArray(config) || config.length === 0) return;
+    const pairs = normalizeNeoConfig(raw);
 
-    for (const obj of config) {
-        for (const [name, cfg] of Object.entries(obj)) {
-            if (!cfg || typeof cfg.gpio !== "number" || typeof cfg.amount !== "number") continue;
+    if (pairs.length === 0) {
+        logWarn("No neopixel config entries found.");
+        return;
+    }
 
-            const strip: StripState = {
-                name,
-                gpio: cfg.gpio,
-                amount: cfg.amount,
-                pixels: new Uint32Array(cfg.amount), // black
-            };
-            strips.set(name, strip);
+    for (const [name, cfg] of pairs) {
+        if (!cfg || typeof cfg.gpio !== "number" || typeof cfg.amount !== "number") continue;
 
-            if (
-                typeof cfg.heartbeat_index === "number" &&
-                Number.isInteger(cfg.heartbeat_index) &&
-                cfg.heartbeat_index >= 0 &&
-                cfg.heartbeat_index < cfg.amount
-            ) {
-                heartbeatLeds.push({ name, index: cfg.heartbeat_index });
-            }
+        const strip: StripState = {
+            name,
+            gpio: cfg.gpio,
+            amount: cfg.amount,
+            pixels: new Uint32Array(cfg.amount), // black
+        };
+        strips.set(name, strip);
+
+        if (
+            typeof cfg.heartbeat_index === "number" &&
+            Number.isInteger(cfg.heartbeat_index) &&
+            cfg.heartbeat_index >= 0 &&
+            cfg.heartbeat_index < cfg.amount
+        ) {
+            heartbeatLeds.push({ name, index: cfg.heartbeat_index });
         }
     }
 
     configured = strips.size > 0;
-    if (!configured) return;
+    if (!configured) {
+        logWarn("Neopixel config parsed but no valid strips were created.");
+        return;
+    }
 
     // Set all strips to black on init
-    // @ts-ignore
     for (const strip of strips.values()) {
         strip.pixels.fill(0);
         await renderStrip(strip);
@@ -249,7 +286,6 @@ export async function colorNeopixel(name: string, color: string, index: number |
  * Never throws; returns if not configured.
  */
 export async function pulseHeartbeatLeds() {
-    console.log(configured)
     if (!configured) return;
 
     const green = packColor(0, 255, 0);
@@ -261,7 +297,6 @@ export async function pulseHeartbeatLeds() {
         if (h.index < 0 || h.index >= strip.amount) continue;
         strip.pixels[h.index] = green;
     }
-    // render all affected strips
     for (const strip of strips.values()) {
         await renderStrip(strip);
     }
