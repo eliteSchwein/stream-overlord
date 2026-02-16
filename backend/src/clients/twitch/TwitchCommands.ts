@@ -44,6 +44,8 @@ export default function buildCommands(bot: Bot) {
 
     commands.push(buildOverviewCommand(commands))
 
+    console.log(commands)
+
     return commands
 }
 
@@ -51,7 +53,6 @@ function buildOverviewCommand(commands: any[]) {
     let commandList = ''
 
     for (const command of commands) {
-        console.log(command)
         if(!command || !command.name) continue
         commandList = `${commandList}, ${command.name}`
     }
