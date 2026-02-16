@@ -26,7 +26,7 @@ export async function updateChannelPoints() {
     const bot = getTwitchClient().getBot()
     const primaryChannel = getPrimaryChannel()
 
-    const defaultChannelPoints = getConfig(/defaults/g)[0]['channel_points']
+    const defaultChannelPoints = getConfig(/defaults/g)?.[0]?.['channel_points'] ?? []
 
     gameKeyCombos = {}
 
