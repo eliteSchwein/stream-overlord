@@ -19,8 +19,12 @@ export default function getGameInfo() {
         clonedGameInfo.data['color'] = '#'+clonedGameInfo.manual
     }
 
-    if(clonedGameInfo.data['color'] === '' || !clonedGameInfo.data['color']) {
+    if(clonedGameInfo.data['color'] === '') {
         clonedGameInfo.data['color'] = '#'+config.default_color
+    }
+
+    if(!clonedGameInfo.data['color']) {
+        clonedGameInfo.manual = '#'+config.default_color
     }
 
     console.log(clonedGameInfo)
