@@ -15,6 +15,7 @@ export default class BaseCommand {
     globalCooldown = 5
     userCooldown = 10
     enforceSame = false
+    registerCommand = true
 
     bot: Bot
 
@@ -47,6 +48,10 @@ export default class BaseCommand {
     // }
 
     public register() {
+        this.preRegister()
+
+        if(!this.registerCommand) return
+
         const commands = []
 
         logRegular(`register command: ${this.command}`)
@@ -203,4 +208,6 @@ export default class BaseCommand {
     async handle(params: any, context: BotCommandContext, rawParam: string[]) {
 
     }
+
+    preRegister() {}
 }

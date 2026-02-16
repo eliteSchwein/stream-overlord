@@ -24,11 +24,11 @@ export function generateBaseUrl(slug: string): string|null {
 }
 
 export async function getGameInfoData() {
-    return (await requestApi('getGame')).data
+    return (await requestApi('getGame'))?.data
 }
 
 export async function getGamesInfoData() {
-    return (await requestApi('getGames')).data
+    return (await requestApi('getGames'))?.data
 }
 
 export async function getAdData(forceUpdate = false) {

@@ -30,7 +30,7 @@ export async function updateChannelPoints() {
 
     gameKeyCombos = {}
 
-    const gameChannelPoints = gameData.channel_points
+    const gameChannelPoints = gameData.channel_points ?? {}
     const gameChannelPointNames = gameChannelPoints.map(point => point.name)
 
     for(const channelPoint of gameChannelPoints) {
