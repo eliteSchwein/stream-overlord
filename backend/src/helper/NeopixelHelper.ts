@@ -12,7 +12,7 @@
 
 import { getConfig } from "./ConfigHelper";
 import { sleep } from "../../../helper/GeneralHelper";
-import { isDebug, logWarn } from "./LogHelper";
+import {isDebug, logRegular, logWarn} from "./LogHelper";
 import { spawn } from "node:child_process";
 
 type NeoCfg = {
@@ -163,6 +163,7 @@ async function renderStrip(strip: StripState): Promise<void> {
 }
 
 export async function initNeopixels() {
+    logRegular("init neopixels")
     const config = getConfig(/^neopixel /g, true) as Array<Record<string, NeoCfg>>;
     console.log(config)
 
