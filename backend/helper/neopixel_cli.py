@@ -7,7 +7,6 @@ import time
 import board
 import neopixel
 
-
 NAMED = {
     "black":  "#000000",
     "red":    "#ff0000",
@@ -21,7 +20,6 @@ NAMED = {
     "purple": "#800080",
 }
 
-
 def parse_color(s: str):
     s = s.strip().lower()
     s = NAMED.get(s, s)
@@ -32,10 +30,9 @@ def parse_color(s: str):
         return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
 
     if len(s) == 3 and all(c in "0123456789abcdef" for c in s):
-        return (int(s[0] * 2, 16), int(s[1] * 2, 16), int(s[2] * 2, 16))
+        return (int(s[0]*2, 16), int(s[1]*2, 16), int(s[2]*2, 16))
 
-    raise ValueError(f'Invalid color "{s}" (use name like "red" or hex like "#ff00aa")')
-
+    raise ValueError(f'Invalid color "{s}"')
 
 def gpio_to_board_pin(gpio: int):
     attr = f"D{gpio}"
@@ -43,10 +40,8 @@ def gpio_to_board_pin(gpio: int):
         raise ValueError(f"board has no attribute {attr} (gpio={gpio})")
     return getattr(board, attr)
 
-
 def state_path(state_dir: str, gpio: int, count: int) -> str:
     return os.path.join(state_dir, f"gpio{gpio}_count{count}.json")
-
 
 def load_state(state_dir: str, gpio: int, count: int):
     p = state_path(state_dir, gpio, count)
@@ -56,47 +51,39 @@ def load_state(state_dir: str, gpio: int, count: int):
         if isinstance(data, list) and len(data) == count:
             out = []
             for item in data:
-                if (
-                    isinstance(item, list)
-                    and len(item) == 3
-                    and all(isinstance(x, int) for x in item)
-                ):
+                if isinstance(item, list) and len(item) == 3 and all(isinstance(x, int) for x in item):
                     out.append((item[0], item[1], item[2]))
                 else:
-                    return [(0, 0, 0)] * count
+                    return [(0,0,0)] * count
             return out
     except FileNotFoundError:
         pass
     except Exception:
         pass
-    return [(0, 0, 0)] * count
-
+    return [(0,0,0)] * count
 
 def save_state(state_dir: str, gpio: int, count: int, state):
     os.makedirs(state_dir, exist_ok=True)
     p = state_path(state_dir, gpio, count)
     tmp = p + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        json.dump([[r, g, b] for (r, g, b) in state], f)
+        json.dump([[r,g,b] for (r,g,b) in state], f)
     os.replace(tmp, p)
 
-
 def main():
-    ap = argparse.ArgumentParser(description="NeoPixel CLI (stateful per gpio+count)")
+    ap = argparse.ArgumentParser(description="NeoPixel CLI (index colors from index->end)")
     ap.add_argument("--gpio", type=int, required=True, help="GPIO number, e.g. 17")
-    ap.add_argument("--count", type=int, default=1, help="LED count (default 1)")
+    ap.add_argument("--count", type=int, default=1, help="LED amount / strip length (default 1)")
     ap.add_argument("--color", type=str, required=True, help='Color name or hex, e.g. "red" or "#00ff00"')
-    ap.add_argument("--index", type=int, default=None, help="0-based LED index. If omitted, set ALL LEDs.")
+    ap.add_argument("--index", type=int, default=None, help="Start index (0-based). If omitted, color all LEDs.")
     ap.add_argument("--brightness", type=float, default=0.3, help="0.0..1.0 (default 0.3)")
     ap.add_argument("--order", type=str, default="GRB",
-                    choices=["GRB", "RGB", "BRG", "RBG", "GBR", "BGR"],
-                    help="Pixel order (default GRB)")
-    ap.add_argument("--hold-ms", type=int, default=0, help="Optional hold time in ms before exit")
-    ap.add_argument("--state-dir", type=str, default="/run/stream-overlord-neopixel",
-                    help="Where to store state files (default /run/stream-overlord-neopixel)")
-    ap.add_argument("--no-save", action="store_true", help="Do not save state (stateless mode)")
+                    choices=["GRB","RGB","BRG","RBG","GBR","BGR"])
+    ap.add_argument("--hold-ms", type=int, default=0)
+    ap.add_argument("--state-dir", type=str, default="/run/stream-overlord-neopixel")
+    ap.add_argument("--no-save", action="store_true")
     ap.add_argument("--deinit", action="store_true",
-                    help="If set, call pixels.deinit() on exit (may turn LEDs off)")
+                    help="If set, call pixels.deinit() on exit (often turns LEDs off)")
 
     args = ap.parse_args()
 
@@ -108,16 +95,20 @@ def main():
     rgb = parse_color(args.color)
     pin = gpio_to_board_pin(args.gpio)
 
-    # Load previous state so index updates don't clear other LEDs
+    # Load previous state so we don't wipe LEDs before index
     state = load_state(args.state_dir, args.gpio, args.count)
 
-    # Apply update to state
+    # Apply update:
     if args.index is None:
-        state = [rgb] * args.count
+        # color all LEDs
+        for i in range(args.count):
+            state[i] = rgb
     else:
         if args.index < 0 or args.index >= args.count:
             raise SystemExit(f"--index out of range (0..{args.count-1})")
-        state[args.index] = rgb
+        # color from index -> end
+        for i in range(args.index, args.count):
+            state[i] = rgb
 
     pixels = neopixel.NeoPixel(
         pin,
@@ -128,7 +119,7 @@ def main():
     )
 
     try:
-        # Write full frame every time
+        # Always write the full frame
         for i in range(args.count):
             pixels[i] = state[i]
         pixels.show()
@@ -141,7 +132,6 @@ def main():
     finally:
         if args.deinit:
             pixels.deinit()
-
 
 if __name__ == "__main__":
     main()
