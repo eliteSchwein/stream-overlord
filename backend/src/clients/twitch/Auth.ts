@@ -197,11 +197,24 @@ export default class TwitchAuth {
         app.get("/callback", async (req: Request, res: Response) => {
             const code = req.query.code as string | undefined;
             const state = req.query.state;
+            const error = req.query.error as string | undefined;
+            const errorDescription = req.query.error_description as string | undefined;
 
             const origin = this.safeOriginFromState(state);
 
             if (!code) {
-                res.status(400).send("Missing code");
+                logError(
+                    `OAuth callback without code. ` +
+                    `error=${error ?? "none"} ` +
+                    `error_description=${errorDescription ?? "none"}`
+                );
+
+                res.status(400).send(`
+                  <h1>OAuth failed</h1>
+                  <p><b>error:</b> ${error ?? "(none)"}</p>
+                  <p><b>description:</b> ${errorDescription ?? "(none)"}</p>
+                  <p><a href="${origin}">Back</a></p>
+                `);
                 return;
             }
 
