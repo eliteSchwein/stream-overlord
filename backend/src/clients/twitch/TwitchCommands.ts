@@ -51,6 +51,7 @@ function buildOverviewCommand(commands: any[]) {
     let commandList = ''
 
     for (const command of commands) {
+        if(!command.name) continue
         commandList = `${commandList}, ${command.name}`
     }
 
