@@ -29,6 +29,7 @@ export { default as TimerApi } from "./Overlay/TimerApi";
 export { default as ToggleElementApi } from "./Overlay/ToggleElementApi";
 export { default as ToggleTestOverlayModeApi } from "./Overlay/ToggleTestOverlayModeApi";
 export { default as CompressAssetsApi } from "./Recovery/CompressAssetsApi";
+export { default as DeleteAuthApi } from "./Recovery/DeleteAuthApi";
 export { default as ReloadApi } from "./Recovery/ReloadApi";
 export { default as RemoveEventApi } from "./Recovery/RemoveEventApi";
 export { default as ShieldApi } from "./Security/ShieldApi";

@@ -33,10 +33,12 @@ let yoloboxClient: YoloboxClient
 
 let ready = false
 let stage = 'Unknown'
+let unreadyMessage = 'backend loading'
 
 void init()
 
 async function init() {
+    unreadyMessage = 'Backend Loading'
     ready = false
     logSuccess(`Starting ${packageConfig.name} ${packageConfig.version} backend...`)
 
@@ -231,4 +233,10 @@ export function isBackendReady() {
 }
 export function getStartupStage() {
     return stage
+}
+export function setUnreadyMessage(message: string) {
+    unreadyMessage = message
+}
+export function getUnreadyMessage() {
+    return unreadyMessage
 }

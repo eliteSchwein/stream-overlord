@@ -182,7 +182,12 @@ export const useAppStore = defineStore('app', {
       this.$patch(state => state.status = status)
     },
     async fetchStatus(): Promise<any> {
-      const status = (await (await fetch(`${this.getRestApi}/api/status`, { cache: "no-store" })).json()).data
+      let status = 'Unknown'
+      try {
+        status = (await (await fetch(`${this.getRestApi}/api/status`, { cache: "no-store" })).json()).data
+      } catch (error) {
+        console.warn(error)
+      }
 
       this.setStatus(status)
       return status

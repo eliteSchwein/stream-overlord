@@ -21,6 +21,7 @@ import NotifyGiveawayUpdateMessage from "@/plugins/websocketEvents/websocketMess
 import NotifyYoloboxUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyYoloboxUpdateMessage.ts";
 import NotifyObsAudioUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyObsAudioUpdateMessage.ts";
 import NotifyAssetsUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAssetsUpdateMessage.ts";
+import NotifyDisconnectMessage from "@/plugins/websocketEvents/websocketMessage/NotifyDisconnectMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -34,6 +35,7 @@ export default class MessageEvent extends BaseEvent {
       return
     }
 
+    await new NotifyDisconnectMessage(this.webSocketClient).handleMessage(data)
     await new NotifyAlertQueryMessage(this.webSocketClient).handleMessage(data)
     await new NotifyGameUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyShieldModeMessage(this.webSocketClient).handleMessage(data)

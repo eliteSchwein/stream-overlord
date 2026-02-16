@@ -268,6 +268,11 @@ export default {
         title="/connections"
         color=""
         to="/connections"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-heart-cog"
+        title="/recovery"
+        color=""
+        to="/recovery"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>SCHW31N Zone</v-list-subheader>
       <v-list-item

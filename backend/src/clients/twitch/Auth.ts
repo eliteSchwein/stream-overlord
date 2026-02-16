@@ -9,7 +9,7 @@ import axios from "axios";
 import * as querystring from "node:querystring";
 import crypto from "crypto";
 import http from "http";
-import { getWebServer } from "../../App";
+import {getWebServer, setUnreadyMessage} from "../../App";
 
 export default class TwitchAuth {
     protected tokensPath = `${__dirname}/../../twitchTokens.json`;
@@ -176,6 +176,8 @@ export default class TwitchAuth {
         logWarn(`please configure ${callbackAddress} in your twitch application`);
         logEmpty();
 
+        setUnreadyMessage('auth in progress')
+
         /**
          * IMPORTANT:
          * Use ONE express app. Right now your code creates `const app = express()`
@@ -194,11 +196,16 @@ export default class TwitchAuth {
         // Build auth redirects that remember the route
         app.get("/", (req: Request, res: Response) => {
             res.redirect(this.buildAuthUrl(clientId, callbackAddress, "/"));
-        });
+        })
 
-        app.get("/commander", (req: Request, res: Response) => {
-            res.redirect(this.buildAuthUrl(clientId, callbackAddress, "/commander"));
-        });
+        app.get(/^\/commander(?:\/.*)?$/, (req: Request, res: Response) => {
+            res.redirect(this.buildAuthUrl(clientId, callbackAddress, req.originalUrl));
+        })
+
+        app.get('/config.json',
+            (req, res) => {
+                res.json(getConfig())
+            })
 
         app.get("/callback", async (req: Request, res: Response) => {
             const code = req.query.code as string | undefined;
@@ -239,6 +246,8 @@ export default class TwitchAuth {
                 delete this.tempTokenData['expires_in'];
                 delete this.tempTokenData['access_token'];
                 delete this.tempTokenData['refresh_token'];
+
+                setUnreadyMessage('backend loading')
 
                 res.on("finish", async () => {
                     // 1) close the auth server

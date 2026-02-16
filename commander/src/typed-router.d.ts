@@ -86,6 +86,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/recovery': RouteRecordInfo<
+      '/recovery',
+      '/recovery',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/yolobox': RouteRecordInfo<
       '/yolobox',
       '/yolobox',
@@ -157,6 +164,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/macros.vue': {
       routes:
         | '/macros'
+      views:
+        | never
+    }
+    'src/pages/recovery.vue': {
+      routes:
+        | '/recovery'
       views:
         | never
     }
