@@ -49,9 +49,7 @@ async function init() {
     logSuccess('websocket server is ready')
 
     webServer = new WebServer()
-    webServer.initial()
-
-    await registerApiEndpoints()
+    await webServer.initial()
 
     stage = 'loading system components...'
 

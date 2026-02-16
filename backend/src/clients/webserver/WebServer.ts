@@ -5,88 +5,85 @@ import express, {Express} from "express";
 import * as path from "node:path";
 import TestApi from "./api/TestApi";
 import * as bodyParser from "body-parser";
-import TimerApi from "./api/TimerApi";
-import AlertApi from "./api/AlertApi";
-import MacroApi from "./api/MacroApi";
-import ObsApi from "./api/ObsApi";
-import ShieldApi from "./api/ShieldApi";
-import CurrentGameApi from "./api/Games/CurrentGameApi";
-import AllGamesApi from "./api/Games/AllGamesApi";
-import GetSceneDataApi from "./api/Obs/GetSceneDataApi";
-import ReloadBrowserScenesApi from "./api/Obs/ReloadBrowserScenesApi";
-import RestartApi from "./api/RestartApi";
-import SetGameApi from "./api/Games/SetGameApi";
-import GetChannelPointsApi from "./api/ChannelPoints/GetChannelPointsApi";
-import ToggleChannelPointApi from "./api/ChannelPoints/ToggleChannelPointApi";
 import TauonStatusApi from "./api/Tauonmb/TauonStatusApi";
 import TauonNextApi from "./api/Tauonmb/TauonNextApi";
 import TauonBackApi from "./api/Tauonmb/TauonBackApi";
-import CompressAssetsApi from "./api/Recovery/CompressAssetsApi";
-import ReloadApi from "./api/Recovery/ReloadApi";
-import SetSceneApi from "./api/Obs/SetSceneApi";
+import {registerApiEndpoints} from "../../App";
+import {Server} from "node:http";
 
 export default class WebServer {
-    webServer: Express
+    app: Express
+    webServer: Server
 
-    public initial() {
+    public async initial() {
         const config = getConfig(/webserver/g)[0]
         const twitchConfig = getConfig(/twitch/g)[0]
 
         logRegular(`initial web server`)
 
-        this.webServer = express();
+        if(this.webServer) {
+            this.webServer.close()
+        }
 
-        this.webServer.use(cors({
+        this.app = express();
+
+        this.app.use(cors({
             origin: '*', // Allow all origins
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow all HTTP methods
             allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'], // Allow all common headers
             credentials: true, // Optional: Allow cookies to be included in requests
         }));
 
-        this.webServer.use((req, res, next) => {
+        this.app.use((req, res, next) => {
             logDebug(`webserver request: ${req.url}`)
             next()
         });
 
-        this.webServer.use(
+        this.app.use(
             '/dist',
             express.static(path.join(__dirname, '../../frontend/dist'))
         )
-        this.webServer.use(express.static(path.join(__dirname, '../../frontend/src/html')))
-        this.webServer.use(express.static(path.join(__dirname, '../../assets')))
-        this.webServer.use(
+        this.app.use(express.static(path.join(__dirname, '../../frontend/src/html')))
+        this.app.use(express.static(path.join(__dirname, '../../assets')))
+        this.app.use(
             '/compressed',
             express.static(path.join(__dirname, '../../compressed_assets'))
         )
 
-        this.webServer.use(bodyParser.json())
+        this.app.use(bodyParser.json())
 
-        this.webServer.use('/commander', express.static(path.join(__dirname, '../../commander/dist')));
-        this.webServer.get(/^\/commander(\/.*)?$/, (req, res) => {
+        this.app.use('/commander', express.static(path.join(__dirname, '../../commander/dist')));
+        this.app.get(/^\/commander(\/.*)?$/, (req, res) => {
             res.sendFile(path.join(__dirname, '../../commander/dist/index.html'));
         });
 
-        this.webServer.listen(config.port, '0.0.0.0', () => {
+        this.webServer = this.app.listen(config.port, '0.0.0.0', () => {
             logSuccess('web server is ready')
         })
 
-        this.webServer.get('/config.json',
+        this.app.get('/config.json',
             (req, res) => {
                 res.json(getConfig())
             })
 
         // Tauon API
-        new TauonStatusApi().register(this.webServer)
-        new TauonNextApi().register(this.webServer)
-        new TauonBackApi().register(this.webServer)
+        new TauonStatusApi().register(this.app)
+        new TauonNextApi().register(this.app)
+        new TauonBackApi().register(this.app)
+
+        await registerApiEndpoints()
 
         if(!twitchConfig.test_mode) return
 
         logWarn('enable test endpoints')
-        new TestApi().register(this.webServer)
+        new TestApi().register(this.app)
     }
 
     public getExpress() {
+        return this.app
+    }
+
+    public getExpressServer() {
         return this.webServer
     }
 }
