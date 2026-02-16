@@ -9,7 +9,7 @@ cp firefox-commander.desktop ~/.config/autostart/
 systemctl --user daemon-reload
 systemctl --user enable stream-overlord
 
-sudo apt install -y evtest alsa-utils libespeak-ng1 espeak libespeak-dev curl liblgpio-dev build-essential
+sudo apt install -y evtest alsa-utils libespeak-ng1 espeak libespeak-dev curl liblgpio-dev build-essential liblgpio1
 
 bash install_neopixel.sh
 
