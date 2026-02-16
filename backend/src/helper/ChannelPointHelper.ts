@@ -30,8 +30,13 @@ export async function updateChannelPoints() {
 
     gameKeyCombos = {}
 
-    const gameChannelPoints = gameData?.channel_points ?? {}
-    const gameChannelPointNames = gameChannelPoints.map(point => point.name)
+    const gameChannelPoints = Array.isArray(gameData?.channel_points)
+        ? gameData!.channel_points
+        : [];
+
+    const gameChannelPointNames = gameChannelPoints
+        .map((point: any) => point?.name)
+        .filter((n: any): n is string => typeof n === "string" && n.length > 0);
 
     for(const channelPoint of gameChannelPoints) {
         if(!gameKeyCombos[channelPoint.name]) {
