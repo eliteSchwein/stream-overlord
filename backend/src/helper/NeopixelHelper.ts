@@ -106,17 +106,21 @@ function runPkexec(args: string[]): Promise<{ code: number; stderr: string; stdo
 async function renderStrip(strip: StripState): Promise<void> {
     const frame = Array.from(strip.pixels, toHex6).join(",");
 
+    // Always include --color to satisfy current argparse requirement
     let res = await runPkexec([
         "--gpio",
         String(strip.gpio),
         "--count",
         String(strip.amount),
+        "--color",
+        "000000",
         "--frame",
         frame,
     ]);
 
     if (res.code === 0) return;
 
+    // If --frame is not supported by python CLI, try a compatibility fallback
     const looksLikeUnknownArg =
         /unrecognized arguments:.*--frame/i.test(res.stderr) ||
         /unknown option.*--frame/i.test(res.stderr);
@@ -126,10 +130,9 @@ async function renderStrip(strip: StripState): Promise<void> {
         return;
     }
 
-    // If all pixels are same, we can use --color <hex> (set all)
+    // Fallback: if all pixels are same color, we can use --color <hex> (set all)
     const first = strip.pixels[0] ?? 0;
     const allSame = strip.pixels.every((v) => v === first);
-
     if (allSame) {
         const hex = toHex6(first);
         res = await runPkexec([
@@ -140,9 +143,7 @@ async function renderStrip(strip: StripState): Promise<void> {
             "--color",
             hex,
         ]);
-        if (res.code !== 0) {
-            logWarn(`neopixel fallback(all) failed: ${res.stderr.trim() || `exit ${res.code}`}`);
-        }
+        if (res.code !== 0) logWarn(`neopixel fallback(all) failed: ${res.stderr.trim() || res.code}`);
         return;
     }
 
