@@ -47,7 +47,6 @@ export default function buildCommands(bot: Bot) {
     // purge undefined (and null)
     commands = commands.filter((c) => c != null);
 
-    console.log(commands);
     return commands;
 }
 
