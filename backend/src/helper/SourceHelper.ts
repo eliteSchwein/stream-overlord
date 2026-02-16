@@ -23,7 +23,7 @@ export async function updateSourceFilters() {
         return
     }
 
-    currentSourceFilters = (await fetchSourceFilters(gameInfo.data.game_id)).data
+    currentSourceFilters = (await fetchSourceFilters(gameInfo.data?.game_id)).data
 
     getWebsocketServer().send('notify_source_update', currentSourceFilters)
 
@@ -105,7 +105,7 @@ export async function saveSourceFilters() {
         }
     }
 
-    const url = generateBaseUrl(`source&game_id=${gameInfo.data.game_id}&mode=updateFilters`)
+    const url = generateBaseUrl(`source&game_id=${gameInfo.data?.game_id}&mode=updateFilters`)
     if(!url) return
     logDebug(`request website post api: ${url}`)
 

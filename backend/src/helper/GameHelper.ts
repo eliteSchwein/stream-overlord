@@ -33,7 +33,7 @@ export function getCurrentGameId() {
 export async function fetchGameInfo() {
     logRegular('fetch theme from website')
     gameInfo.data = await getGameInfoData()
-    currentGameId = gameInfo.data.game_id
+    currentGameId = gameInfo.data?.game_id
 }
 
 export function pushGameInfo(websocket?: WebSocket) {
