@@ -164,7 +164,7 @@ export default class TwitchAuth {
 
     private async startAuthapp(clientId: string, clientSecret: string) {
         const config = getConfig(/webserver/g)[0];
-        const address = 'localhost';
+        const address = '127.0.0.1';
         const port = config.port;
         const app = express()
 
