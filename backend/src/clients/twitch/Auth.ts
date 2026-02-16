@@ -143,6 +143,7 @@ export default class TwitchAuth {
         url.searchParams.set("response_type", "code");
         url.searchParams.set("scope", this.scopes.join(" ")); // space-separated is standard
         url.searchParams.set("state", state);
+        url.searchParams.set("force_verify", "true");
 
         return url.toString();
     }
