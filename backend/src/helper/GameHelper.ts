@@ -5,7 +5,9 @@ import {setLedColor} from "./WledHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
 
 const gameInfo = {
-    data: {},
+    data: {
+        'theme': {}
+    },
     manual: ''
 }
 
@@ -16,19 +18,19 @@ export default function getGameInfo() {
     const clonedGameInfo = structuredClone(gameInfo)
 
     if(clonedGameInfo.manual !== '') {
+        clonedGameInfo.data['theme']['color'] = '#'+clonedGameInfo.manual
         clonedGameInfo.data['color'] = '#'+clonedGameInfo.manual
     }
 
-    if(clonedGameInfo.data['color'] === '') {
+    if(clonedGameInfo.data['theme']['color'] === '') {
+        clonedGameInfo.data['theme']['color'] = '#'+config.default_color
+        clonedGameInfo.data['color'] = '#'+clonedGameInfo.manual
+    }
+
+    if(!clonedGameInfo.data['theme']['color']) {
+        clonedGameInfo.data['theme']['color'] = '#'+config.default_color
         clonedGameInfo.data['color'] = '#'+config.default_color
     }
-
-    if(!clonedGameInfo.data['color']) {
-        clonedGameInfo.manual = '#'+config.default_color
-    }
-
-    console.log(clonedGameInfo)
-    console.log(config)
 
     return clonedGameInfo
 }
