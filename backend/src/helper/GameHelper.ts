@@ -23,6 +23,9 @@ export default function getGameInfo() {
         clonedGameInfo.data['color'] = '#'+config.default_color
     }
 
+    console.log(clonedGameInfo)
+    console.log(config)
+
     return clonedGameInfo
 }
 
