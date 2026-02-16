@@ -7,6 +7,7 @@ import {fetchVoices} from "./TTShelper";
 import {updateAutoMacros} from "./AutoMacroHelper";
 import {updateTemplateVariables} from "./TemplateHelper";
 import {updateGiveaway} from "./GiveawayHelper";
+import {pulseHeartbeatLeds} from "./NeopixelHelper";
 
 export default function initialSchedulers() {
     void updateAdData()
@@ -32,6 +33,7 @@ export default function initialSchedulers() {
         void updateSystemComponents()
         void updateAutoMacros()
         void updateGiveaway()
+        void pulseHeartbeatLeds()
     }, 1_000)
 
     // faster scheduler (500 ms)

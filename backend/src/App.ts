@@ -23,6 +23,7 @@ import {initAutoMacros} from "./helper/AutoMacroHelper";
 import * as apiModules from "./api";
 import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
 import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
+import {initNeopixels} from "./helper/NeopixelHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -125,6 +126,9 @@ async function init() {
     stage = 'starting gpio...'
     initGpio()
 
+    stage = 'starting neopixel...'
+    await initNeopixels()
+
     stage = 'starting tts...'
     await installPiper()
     await downloadVoice()
@@ -199,6 +203,8 @@ export async function reload() {
         } catch (error) {}
 
         initGpio()
+
+        await initNeopixels()
 
         await downloadVoice()
 
