@@ -164,7 +164,7 @@ async function renderStrip(strip: StripState): Promise<void> {
 
 export async function initNeopixels() {
     const config = getConfig(/^neopixel /g, true) as Array<Record<string, NeoCfg>>;
-    if (isDebug) console.log(config);
+    console.log(config)
 
     strips.clear();
     heartbeatLeds.length = 0;
