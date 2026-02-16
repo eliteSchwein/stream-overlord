@@ -1,6 +1,8 @@
 import BaseCommand from "./BaseCommand";
 import getWebsocketServer, {getTauonmbClient} from "../../../App";
 import {hasModerator} from "../helper/PermissionHelper";
+import {generateBaseUrl} from "../../website/WebsiteClient";
+import {getConfig} from "../../../helper/ConfigHelper";
 
 export default class MusicCommand extends BaseCommand {
     command = 'music'
@@ -36,6 +38,14 @@ export default class MusicCommand extends BaseCommand {
             required: false,
         }
     ]
+
+    preRegister() {
+        const config = getConfig(/api tauonmb/g)[0]
+
+        if (config) return
+
+        this.registerCommand = false
+    }
 
     async handle(params: any, context: any, rawParams: string[]) {
         if(!params.control) {
