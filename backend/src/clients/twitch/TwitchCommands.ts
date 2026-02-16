@@ -20,33 +20,35 @@ import fillTemplate from "../../helper/TemplateHelper";
 import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
 
 export default function buildCommands(bot: Bot) {
-    let commands = []
+    let commands: any[] = [];
 
     // coded commands
-    commands = commands.concat(new InfoCommand(bot).register())
-    commands = commands.concat(new SetGameCommand(bot).register())
-    commands = commands.concat(new ShoutoutCommand(bot).register())
-    commands = commands.concat(new ClipCommand(bot).register())
-    commands = commands.concat(new GetGameCommand(bot).register())
-    commands = commands.concat(new ToggleErrorMessageCommand(bot).register())
-    commands = commands.concat(new TTSCommand(bot).register())
-    commands = commands.concat(new MacroCommand(bot).register())
-    commands = commands.concat(new ListScenesCommand(bot).register())
-    commands = commands.concat(new SetSceneCommand(bot).register())
-    commands = commands.concat(new MusicCommand(bot).register())
-    commands = commands.concat(new ListRotatingScenes(bot).register())
-    commands = commands.concat(new StartRotatingSceneCommand(bot).register())
-    commands = commands.concat(new ListMacrosCommand(bot).register())
-    commands = commands.concat(new GiveawayEnterCommand(bot).register())
+    commands = commands.concat(new InfoCommand(bot).register());
+    commands = commands.concat(new SetGameCommand(bot).register());
+    commands = commands.concat(new ShoutoutCommand(bot).register());
+    commands = commands.concat(new ClipCommand(bot).register());
+    commands = commands.concat(new GetGameCommand(bot).register());
+    commands = commands.concat(new ToggleErrorMessageCommand(bot).register());
+    commands = commands.concat(new TTSCommand(bot).register());
+    commands = commands.concat(new MacroCommand(bot).register());
+    commands = commands.concat(new ListScenesCommand(bot).register());
+    commands = commands.concat(new SetSceneCommand(bot).register());
+    commands = commands.concat(new MusicCommand(bot).register());
+    commands = commands.concat(new ListRotatingScenes(bot).register());
+    commands = commands.concat(new StartRotatingSceneCommand(bot).register());
+    commands = commands.concat(new ListMacrosCommand(bot).register());
+    commands = commands.concat(new GiveawayEnterCommand(bot).register());
 
     // configured commands
-    commands = buildConfigCommands(commands)
+    commands = buildConfigCommands(commands);
 
-    commands.push(buildOverviewCommand(commands))
+    commands.push(buildOverviewCommand(commands));
 
-    console.log(commands)
+    // purge undefined (and null)
+    commands = commands.filter((c) => c != null);
 
-    return commands
+    console.log(commands);
+    return commands;
 }
 
 function buildOverviewCommand(commands: any[]) {
