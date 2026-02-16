@@ -248,6 +248,7 @@ export async function colorNeopixel(name: string, color: string, index: number |
  * Never throws; returns if not configured.
  */
 export async function pulseHeartbeatLeds() {
+    console.log(configured)
     if (!configured) return;
 
     const green = packColor(0, 255, 0);
