@@ -17,12 +17,53 @@ export default class TwitchAuth {
     protected authProvider!: RefreshingAuthProvider;
 
     protected scopes = [
+        "bits:read",
+        "channel:bot",
+        "channel:edit:commercial",
+        "channel:manage:ads",
+        "channel:manage:broadcast",
+        "channel:manage:extensions",
+        "channel:manage:moderators",
+        "channel:manage:polls",
+        "channel:manage:predictions",
+        "channel:manage:raids",
+        "channel:manage:redemptions",
+        "channel:manage:schedule",
+        "channel:manage:videos",
+        "channel:manage:vips",
+        "channel:moderate",
+        "channel:read:ads",
+        "channel:read:charity",
+        "channel:read:editors",
+        "channel:read:goals",
+        "channel:read:hype_train",
+        "channel:read:polls",
+        "channel:read:predictions",
+        "channel:read:redemptions",
+        "channel:read:subscriptions",
+        "channel:read:vips",
+        "chat:edit",
+        "chat:read",
+        "clips:edit",
+        "moderation:read",
+        "moderator:manage:announcements",
+        "moderator:manage:banned_users",
+        "moderator:manage:chat_messages",
+        "moderator:manage:chat_settings",
+        "moderator:manage:shield_mode",
+        "moderator:manage:shoutouts",
+        "moderator:manage:unban_requests",
+        "moderator:read:chat_settings",
+        "moderator:read:chatters",
+        "moderator:read:followers",
+        "moderator:read:shield_mode",
+        "moderator:read:shoutouts",
+        "moderator:read:unban_requests",
         "user:bot",
         "user:edit",
         "user:edit:broadcast",
         "user:edit:follows",
         "user:manage:blocked_users",
-        "user:manage:chat_color",
         "user:manage:whispers",
         "user:read:blocked_users",
         "user:read:broadcast",
@@ -89,7 +130,6 @@ export default class TwitchAuth {
         url.searchParams.set("response_type", "code");
         url.searchParams.set("scope", this.scopes.join(" ")); // space-separated is standard
         url.searchParams.set("state", state);
-        url.searchParams.set("force_verify", "true");
 
         return url.toString();
     }
