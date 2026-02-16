@@ -37,7 +37,7 @@ export default class ChannelPointsEvent extends BaseEvent {
         const rewardNames = presentChannelPoints.map(reward => reward.title)
         const configChannelPoints = getConfig(/channel_point /g)
         const gameData = await getGameInfoData()
-        const gameChannelPoints = gameData.channel_points ?? {}
+        const gameChannelPoints = gameData?.channel_points ?? {}
 
         for(const channelPoint of this.channelPoints) {
             const channelPointTitle = channelPoint.getTitle()
