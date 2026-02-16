@@ -106,6 +106,7 @@ export async function saveSourceFilters() {
     }
 
     const url = generateBaseUrl(`source&game_id=${gameInfo.data.game_id}&mode=updateFilters`)
+    if(!url) return
     logDebug(`request website post api: ${url}`)
 
     await fetch(url, {

@@ -6,6 +6,7 @@ let adData = {}
 export async function requestApi(slug: string)
 {
     const url = generateBaseUrl(slug);
+    if(!url) return null
     logDebug(`request website api: ${url}`)
     try {
         return await (await fetch(url)).json()
@@ -16,8 +17,9 @@ export async function requestApi(slug: string)
     }
 }
 
-export function generateBaseUrl(slug: string) {
+export function generateBaseUrl(slug: string): string|null {
     const config = getConfig(/api website/g)[0]
+    if(!config || !config.url || !config.api_slug || !config.token) return null
     return `${config.url}${config.api_slug}&token=${config.token}&method=${slug}`
 }
 
