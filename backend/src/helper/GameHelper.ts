@@ -15,6 +15,8 @@ export default function getGameInfo() {
     const config = getConfig(/theme/g)[0]
     const clonedGameInfo = structuredClone(gameInfo)
 
+    if(!clonedGameInfo.data) return null
+
     if(clonedGameInfo.manual !== '') {
         clonedGameInfo.data['color'] = '#'+clonedGameInfo.manual
     }
