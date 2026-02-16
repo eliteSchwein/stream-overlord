@@ -18,6 +18,7 @@ export { default as StartGiveawayApi } from "./Giveaway/StartGiveawayApi";
 export { default as StopGiveawayApi } from "./Giveaway/StopGiveawayApi";
 export { default as ToggleAutoMacroApi } from "./Macros/ToggleAutoMacroApi";
 export { default as TriggerMacroApi } from "./Macros/TriggerMacroApi";
+export { default as ColorNeopixelApi } from "./Neopixel/ColorNeopixelApi";
 export { default as GetObsScenesApi } from "./Obs/GetObsScenesApi";
 export { default as ReloadObsBrowserScenesApi } from "./Obs/ReloadObsBrowserScenesApi";
 export { default as SetObsSceneApi } from "./Obs/SetObsSceneApi";

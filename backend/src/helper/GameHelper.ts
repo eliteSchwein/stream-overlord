@@ -15,8 +15,6 @@ export default function getGameInfo() {
     const config = getConfig(/theme/g)[0]
     const clonedGameInfo = structuredClone(gameInfo)
 
-    if(!clonedGameInfo.data) return null
-
     if(clonedGameInfo.manual !== '') {
         clonedGameInfo.data['color'] = '#'+clonedGameInfo.manual
     }
@@ -34,7 +32,10 @@ export function getCurrentGameId() {
 
 export async function fetchGameInfo() {
     logRegular('fetch theme from website')
-    gameInfo.data = await getGameInfoData()
+    const newGameInfo = await getGameInfoData()
+    if(newGameInfo) {
+        gameInfo.data = newGameInfo
+    }
     currentGameId = gameInfo.data?.game_id
 }
 

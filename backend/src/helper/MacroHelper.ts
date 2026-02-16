@@ -4,6 +4,7 @@ import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {parsePlaceholders} from "./DataHelper";
 import fillTemplate from "./TemplateHelper";
+import {colorNeopixel} from "./NeopixelHelper";
 
 let macros = {}
 
@@ -65,6 +66,10 @@ export async function triggerMacro(name: string) {
                 }
                 case "yolobox": {
                     await handleYolobox(task.method, task.data)
+                    break
+                }
+                case "neopixel": {
+                    await handleNeopixel(task.method, task.data)
                     break
                 }
             }
@@ -178,6 +183,23 @@ async function handleRest(method: string, endpoint: string, data: any) {
         },
         body: JSON.stringify({state: method, data: data})
     })
+}
+
+async function handleNeopixel(method: string, data: any) {
+    if(method !== "color") {
+        logWarn(`invalid neopixel method`)
+        return
+    }
+    if(!data.name) {
+        logWarn(`neopixel name missing`)
+        return
+    }
+    if(!data.color) {
+        logWarn(`neopixel color missing`)
+        return
+    }
+
+    await colorNeopixel(data.name, data.color, data.index)
 }
 
 function handleWebsocket(method: string, data: any) {
