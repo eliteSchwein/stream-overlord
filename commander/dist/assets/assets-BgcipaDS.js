@@ -1,0 +1,1 @@
+import{F as t,G as a,aQ as e,k as s,o,aV as r}from"./index-Cf3JRyCJ.js";const c={computed:{...t(a,["getAssets"])},methods:{}};function n(p,m,d,u,_,f){return o(),s(r,{class:"overflow-auto mx-auto","max-height":"100%",elevation:"0",color:"transparent","max-width":"100%"})}const l=e(c,[["render",n]]);export{l as default};

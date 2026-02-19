@@ -13,7 +13,7 @@
 
 import { getConfig } from "./ConfigHelper";
 import { sleep } from "../../../helper/GeneralHelper";
-import { isDebug, logRegular, logWarn } from "./LogHelper";
+import {isDebug, logDebug, logRegular, logWarn} from "./LogHelper";
 import { spawn } from "node:child_process";
 
 type NeoCfg = {
@@ -111,10 +111,7 @@ async function callPythonSet(
 
     const res = await runPkexec(args);
     if (res.code !== 0) {
-        logWarn(`neopixel call failed: ${res.stderr.trim() || `exit ${res.code}`}`);
-    } else if (isDebug && res.stderr.trim()) {
-        // some libs print warnings to stderr even on success
-        console.log(res.stderr.trim());
+        logDebug(`neopixel call failed: ${res.stderr.trim() || `exit ${res.code}`}`);
     }
 }
 

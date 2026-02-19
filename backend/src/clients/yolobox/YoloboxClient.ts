@@ -203,4 +203,8 @@ export class YoloboxClient {
 
         return websocket;
     }
+
+    public getIp() {
+        return this.connectedDevice
+    }
 }

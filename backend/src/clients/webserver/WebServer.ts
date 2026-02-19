@@ -10,6 +10,7 @@ import TauonNextApi from "./api/Tauonmb/TauonNextApi";
 import TauonBackApi from "./api/Tauonmb/TauonBackApi";
 import {registerApiEndpoints} from "../../App";
 import {Server} from "node:http";
+import YoloboxPreviewApi from "./api/Yolobox/YoloboxPreviewApi";
 
 export default class WebServer {
     app: Express
@@ -70,6 +71,9 @@ export default class WebServer {
         new TauonStatusApi().register(this.app)
         new TauonNextApi().register(this.app)
         new TauonBackApi().register(this.app)
+
+        // Yolobox API
+        new YoloboxPreviewApi().register(this.app)
 
         await registerApiEndpoints()
 

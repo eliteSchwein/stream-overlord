@@ -35,12 +35,12 @@
               <v-col cols="12" sm="6" md="4" xl="3" xxl="2">
                 <v-card class="cursor-pointer" @click="toggleSource(source.id)">
                   <div class="position-relative rounded pa-0">
-                    <v-img
+                    <YoloboxPreview
                       :class="{'rounded': true, 'yolo-overlay-active-border': source.isSelected, 'yolo-overlay-inactive-border': !source.isSelected}"
                       cover
-                      :src="getYoloboxData.http+source.previewUrl"
+                      :src="source.previewUrl"
                       :lazy-src="loading"
-                    ></v-img>
+                    ></YoloboxPreview>
                     <div class="position-absolute bg-red-darken-1 pr-2 yolo-overlay-active" v-if="source.isSelected">
                       <v-icon icon="mdi-check" size="sm"></v-icon>
                     </div>
@@ -61,12 +61,12 @@
               <v-col cols="12" sm="6" md="4" xl="3" xxl="2">
                 <v-card class="cursor-pointer" @click="toggleOverlay(material.id)">
                   <div class="position-relative">
-                    <v-img
+                    <YoloboxPreview
                       class="rounded"
                       cover
-                      :src="getYoloboxData.http+material.previewUrl"
+                      :src="material.previewUrl"
                       :lazy-src="loading"
-                    ></v-img>
+                    ></YoloboxPreview>
                     <div class="position-absolute bg-red-darken-1 pr-2 yolo-overlay-active" v-if="material.isSelected">
                       <v-icon icon="mdi-check" size="sm"></v-icon>
                     </div>

@@ -27,6 +27,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     YoloboxAudio: typeof import('./components/yolobox/YoloboxAudio.vue')['default']
+    YoloboxPreview: typeof import('./components/yolobox/YoloboxPreview.vue')['default']
     YoloboxSettings: typeof import('./components/yolobox/YoloboxSettings.vue')['default']
   }
 }

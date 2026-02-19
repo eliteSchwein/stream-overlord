@@ -52,12 +52,12 @@
               <v-row>
                 <v-col cols="4" v-for="material in getYoloboxData.MaterialList">
                   <div class="position-relative">
-                    <v-img
+                    <YoloboxPreview
                       class="rounded"
                       cover
-                      :src="getYoloboxData.http+material.url"
+                      :src="material.url"
                       :lazy-src="loading"
-                    ></v-img>
+                    ></YoloboxPreview>
                     <div class="position-absolute pa-1 yolobox-image-actions">
                       <v-btn
                         icon="mdi-power-on"
