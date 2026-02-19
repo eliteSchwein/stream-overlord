@@ -24,6 +24,7 @@ export default function initialSchedulers() {
     // moderate scheduler (15 sec)
     setInterval(async () => {
         updateTemplateVariables()
+        void pulseHeartbeatLeds()
     }, 15_000)
 
     // fast scheduler (1 sec)
@@ -33,7 +34,6 @@ export default function initialSchedulers() {
         void updateSystemComponents()
         void updateAutoMacros()
         void updateGiveaway()
-        void pulseHeartbeatLeds()
     }, 1_000)
 
     // faster scheduler (500 ms)
