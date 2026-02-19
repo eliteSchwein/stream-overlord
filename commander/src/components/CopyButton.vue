@@ -1,9 +1,11 @@
 <script setup lang="ts">
 
+import eventBus from "@/eventBus.ts";
+
 defineProps(['content'])
 
 function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text)
+  eventBus.$emit('config:write', text)
 }
 </script>
 

@@ -32,7 +32,7 @@
                       <v-btn
                         icon="mdi-video-check"
                         size="x-small"
-                        @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_director_change', data:{id:director.id,isSelected:true}}))"
+                        @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_director_change', data:{id:director.id,isSelected:true}}))"
                         elevation="0"
                         v-tooltip="'Zu dieser Video Quelle wechseln'"
                       />
@@ -62,7 +62,7 @@
                       <v-btn
                         icon="mdi-power-on"
                         size="x-small"
-                        @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:true}}))"
+                        @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:true}}))"
                         elevation="0"
                         v-tooltip="'Dieses Overlay aktivieren'"
                       />
@@ -70,7 +70,7 @@
                         class="ml-1"
                         icon="mdi-power-off"
                         size="x-small"
-                        @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:false}}))"
+                        @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:false}}))"
                         elevation="0"
                         v-tooltip="'Dieses Overlay deaktivieren'"
                       />
@@ -81,7 +81,7 @@
                   <v-btn
                     class="ml-1 mb-2"
                     size="small"
-                    @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:'all',isSelected:false}}))"
+                    @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:'all',isSelected:false}}))"
                     elevation="0"
                   >Alle Overlays deaktivieren<v-icon class="ml-2" icon="mdi-content-copy"/> </v-btn>
                 </v-col>
@@ -109,21 +109,21 @@
                       <v-btn
                         icon="mdi-volume-variant-off"
                         size="x-small"
-                        @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:false}}))"
+                        @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:false}}))"
                         elevation="0"
                         v-tooltip="'Diese Audio Quelle stummen'"
                       />
                       <v-btn
                         icon="mdi-volume-source"
                         size="x-small"
-                        @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:true}}))"
+                        @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:true}}))"
                         elevation="0"
                         v-tooltip="'Diese Audio Quelle entstummen'"
                       />
                       <v-btn
                         icon="mdi-content-copy"
                         size="x-small"
-                        @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,volume:mixer.volume}}))"
+                        @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,volume:mixer.volume}}))"
                         elevation="0"
                         v-tooltip="'Die Lautstärke kopieren von dieser Audio Quelle kopieren'"
                       />
@@ -154,7 +154,7 @@
                     color="grey-darken-3"
                     variant="flat"
                     elevation="0"
-                    @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'start'}}))"
+                    @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'start'}}))"
                   >
                     Live gehen
                   </v-btn>
@@ -166,7 +166,7 @@
                     color="grey-darken-3"
                     variant="flat"
                     elevation="0"
-                    @click="copyToClipboard('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'stop'}}))"
+                    @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'stop'}}))"
                   >
                     Stream stoppen
                   </v-btn>
@@ -185,6 +185,7 @@
 import {mapState} from "pinia";
 import {useAppStore} from "@/stores/app.ts";
 import noObs from "@/assets/no_obs.png"
+import eventBus from "@/eventBus.ts";
 
 export default {
   data() {
@@ -196,8 +197,8 @@ export default {
     ...mapState(useAppStore, ['getYoloboxData', 'getParsedBackendConfig']),
   },
   methods: {
-    copyToClipboard(text: string) {
-      navigator.clipboard.writeText(text)
+    writeToConfig(text: string) {
+      eventBus.$emit('config:write', text)
     }
   },
   mounted() {
