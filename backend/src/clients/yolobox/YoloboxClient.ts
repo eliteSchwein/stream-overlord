@@ -135,7 +135,7 @@ export class YoloboxClient {
 
         logDebug("check heartbeat yolobox")
 
-        this.heartbeatConnection.removeEventListener(WebsocketEvent.message, handleData)
+        this.heartbeatConnection?.removeEventListener(WebsocketEvent.message, handleData)
 
         if(!heartbeat) {
             void this.connect()
@@ -180,10 +180,10 @@ export class YoloboxClient {
             if (data) isValid = true;
         };
 
-        websocket.addEventListener(WebsocketEvent.open, handleOpen);
-        websocket.addEventListener(WebsocketEvent.error, handleError);
-        websocket.addEventListener(WebsocketEvent.close, handleClose);
-        websocket.addEventListener(WebsocketEvent.message, handleMessage);
+        websocket?.addEventListener(WebsocketEvent.open, handleOpen);
+        websocket?.addEventListener(WebsocketEvent.error, handleError);
+        websocket?.addEventListener(WebsocketEvent.close, handleClose);
+        websocket?.addEventListener(WebsocketEvent.message, handleMessage);
 
         try {
             await waitUntil(() => isValid || isInvalid, {timeout: 2_000});
@@ -191,10 +191,10 @@ export class YoloboxClient {
 
         }
 
-        websocket.removeEventListener(WebsocketEvent.open, handleOpen);
-        websocket.removeEventListener(WebsocketEvent.error, handleError);
-        websocket.removeEventListener(WebsocketEvent.close, handleClose);
-        websocket.removeEventListener(WebsocketEvent.message, handleMessage);
+        websocket?.removeEventListener(WebsocketEvent.open, handleOpen);
+        websocket?.removeEventListener(WebsocketEvent.error, handleError);
+        websocket?.removeEventListener(WebsocketEvent.close, handleClose);
+        websocket?.removeEventListener(WebsocketEvent.message, handleMessage);
 
         if (isInvalid && !isConnected) {
             websocket.close();
