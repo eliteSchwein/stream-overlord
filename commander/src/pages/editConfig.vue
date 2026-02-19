@@ -104,7 +104,7 @@
                   color="grey-darken-3"
                   variant="flat"
                   elevation="0"
-                  @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:250}}))"
+                  @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:250}}) +'\n')"
                 >
                   250ms Pause
                 </v-btn>
@@ -117,7 +117,7 @@
                   color="grey-darken-3"
                   variant="flat"
                   elevation="0"
-                  @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:1000}}))"
+                  @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:1000}}) +'\n')"
                 >
                   1s Pause
                 </v-btn>
