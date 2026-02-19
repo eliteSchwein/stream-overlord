@@ -253,7 +253,7 @@ export async function pulseHeartbeatLeds() {
         await callPythonSet(strip.gpio, strip.amount, "green", h.index);
     }
 
-    await sleep(100);
+    await sleep(25);
 
     // OFF
     for (const h of heartbeatLeds) {
