@@ -20,6 +20,10 @@ export default class WebsocketClient {
     }
 
     private openWebsocket() {
+        if(window.websocket) {
+            this.websocket = window.websocket
+            return
+        }
         this.websocket = new Websocket(this.url);
 
         this.websocket.addEventListener(WebsocketEvent.open, () => {
@@ -51,6 +55,8 @@ export default class WebsocketClient {
             // Errors will usually be followed by a close; log for visibility.
             console.warn("Websocket error", event);
         });
+
+        window.websocket = this.websocket;
     }
 
     private async tryReconnect() {

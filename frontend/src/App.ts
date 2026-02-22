@@ -37,6 +37,7 @@ import VisibleController from "./js/controller/VisibleController";
 import {sleep} from "../../helper/GeneralHelper";
 import MarqueeController from "./js/controller/MarqueeController";
 import ContenController from "./js/controller/ContenController";
+import IFrameController from "./js/controller/IFrameController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -68,6 +69,7 @@ async function init(){
     stimulus.register('tauonmb', TauonmbController)
     stimulus.register('visible', VisibleController)
     stimulus.register('marquee', MarqueeController)
+    stimulus.register('iframe', IFrameController)
 
     await sleep(250)
 
