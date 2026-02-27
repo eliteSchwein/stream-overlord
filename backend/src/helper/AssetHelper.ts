@@ -11,7 +11,7 @@ const assetPath = resolve(`${__dirname}/../../assets`)
 const compressedPath = resolve(`${__dirname}/../../compressed_assets`)
 
 export const imageRegex = /\.(jpe?g|png)$/i
-export const videoRegex = /\.mp4$/i
+export const videoRegex = /\.(mp4|webm)$/i
 
 export function getParsedAssetFiles() {
     return assetFiles

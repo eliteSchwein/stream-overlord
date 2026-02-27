@@ -44,7 +44,7 @@ export async function compressAssets(
             return
         }
     } else {
-        videoAssets = getAssetFiles(".mp4", assetDirectory);
+        videoAssets = getAssetFiles(videoRegex, assetDirectory);
         imageAssets = getAssetFiles(imageRegex, assetDirectory);
     }
 
