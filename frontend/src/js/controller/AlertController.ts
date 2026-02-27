@@ -6,15 +6,15 @@ import {sleep} from "../../../../helper/GeneralHelper";
 export default class AlertController extends BaseController {
     websocketEndpoints = ['notify_alert']
 
-    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer', 'logo', 'iframe', 'delayed']
+    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer', 'logo', 'iframe', 'delayed', 'image']
 
-    declare readonly iconTarget: HTMLElement
-    declare readonly soundTarget: HTMLAudioElement
+    declare readonly iconTarget: HTMLElement|null
     declare readonly contentTargets: HTMLDivElement[]
     declare readonly delayedTargets: HTMLDivElement[]
     declare readonly contentContainerTarget: HTMLDivElement
     declare readonly videoTarget: HTMLVideoElement
     declare readonly logoTarget: HTMLImageElement
+    declare readonly imageTarget: HTMLImageElement
     declare readonly iframeTarget: HTMLIFrameElement
 
     protected channel: string
@@ -102,9 +102,6 @@ export default class AlertController extends BaseController {
 
                     try {
                         this.websocket.send('play_sound', {sound: data.sound, volume: data.volume})
-                        //this.soundTarget.querySelector('source').src = data.sound
-                        //this.soundTarget.load()
-                        //await this.soundTarget.play()
                     } catch (e) {
                         console.error(e)
                     }
@@ -117,6 +114,10 @@ export default class AlertController extends BaseController {
                     setTimeout(() => {
                         this.iframeTarget.classList.remove('d-none')
                     }, 2_000)
+                }
+                if(data.image) {
+                    this.imageTarget.classList.remove('d-none')
+                    this.imageTarget.src = `/compressed/${data.image}.webp`
                 }
                 if(data.logo) {
                     this.logoTarget.classList.remove('d-none')
@@ -133,14 +134,13 @@ export default class AlertController extends BaseController {
                     }
                 }, 250)
 
-                this.iconTarget.setAttribute('class', `alert-logo mdi mdi-${data.icon}`)
+                this.iconTarget?.setAttribute('class', `alert-logo mdi mdi-${data.icon}`)
                 return
             }
             case 'hide': {
                 if(data.dummy) return
 
                 try {
-                    this.soundTarget.pause()
                     this.videoTarget.pause()
                 } catch (e) {
                     console.error(e)
@@ -154,6 +154,9 @@ export default class AlertController extends BaseController {
 
                 if(!this.logoTarget.classList.contains('d-none'))
                     this.logoTarget.classList.add('d-none')
+
+                if(!this.imageTarget.classList.contains('d-none'))
+                    this.imageTarget.classList.add('d-none')
 
                 if(!this.isDynamic) {
                     this.element.classList.remove('expand')
@@ -178,7 +181,7 @@ export default class AlertController extends BaseController {
                     delayedElement.style.display = 'none'
                 }
 
-                this.iconTarget.setAttribute('class', `alert-logo mdi`)
+                this.iconTarget?.setAttribute('class', `alert-logo mdi`)
                 return
             }
         }
@@ -186,6 +189,8 @@ export default class AlertController extends BaseController {
 
     async handleGameUpdate(websocket: Websocket, data: any) {
         if(this.element.hasAttribute("data-disable-theme")) return
-        this.iconTarget.style.color = data.theme.color
+        if(this.iconTarget) {
+            this.iconTarget.style.color = data.theme.color
+        }
     }
 }

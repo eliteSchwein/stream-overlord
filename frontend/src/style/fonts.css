@@ -8,12 +8,21 @@
     src: url(../fonts/Orbitron/static/Orbitron-Regular.ttf);
 }
 
+@font-face {
+    font-family: Lobster;
+    src: url(../fonts/Lobster/Lobster-Regular.ttf);
+}
+
 .font-silkscreen {
     font-family: Silkscreen, sans-serif;
 }
 
 .font-orbitron {
     font-family: Orbitron, sans-serif;
+}
+
+.font-lobster {
+    font-family: Lobster, sans-serif;
 }
 
 .font-size-1 { font-size: 5rem; }

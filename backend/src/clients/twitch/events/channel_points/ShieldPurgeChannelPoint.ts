@@ -63,6 +63,7 @@ export default class ShieldPurgeChannelPoint extends BaseChannelPoint {
             'video': theme.video,
             'lamp_color': theme.lamp_color,
             'volume': theme.volume,
+            'image': theme.image,
         })
 
         if(!isActive) {

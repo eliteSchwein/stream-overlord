@@ -112,6 +112,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                     'video': (asset.video) ? asset.video : '',
                     'lamp_color': asset.lamp_color,
                     'volume': asset.volume,
+                    'image': asset.image,
                 })
             }
 
@@ -207,6 +208,8 @@ export default class ChannelPointsEvent extends BaseEvent {
                     'video': theme.video,
                     'lamp_color': theme.lamp_color,
                     'volume': theme.volume,
+                    'image': theme.image,
+                    'channel': theme.channel,
                 })
 
                 await waitUntil(() => isAlertActive(comboUuid), {timeout: 600_000})
