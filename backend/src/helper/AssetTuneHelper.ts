@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import {execFileSync} from "node:child_process";
 import {getGpu} from "./SystemInfoHelper";
-import {isDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper";
+import {isDebug, logDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper";
 import {imageRegex, videoRegex} from "./AssetHelper";
 import {existsSync} from "node:fs";
 
@@ -80,6 +80,8 @@ export async function compressAssets(
             ...splitArgs(filterOptions),
             targetVideoAsset,
         ].filter(Boolean);
+
+        logDebug(`${ffmpegBin} ${args}`)
 
         try {
             execFileSync(ffmpegBin, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
