@@ -8,6 +8,14 @@ export default class ClipCommand extends BaseCommand{
     globalCooldown = 10
     userCooldown = 15
 
+    preRegister() {
+        const config = getConfig(/api clip_url/g)[0]
+
+        if (config) return
+
+        this.registerCommand = false
+    }
+
     async handle(params: any, context: BotCommandContext) {
         const primaryChannel = getPrimaryChannel()
         const webhookUrl = getConfig(/api clip_url/g)[0]
