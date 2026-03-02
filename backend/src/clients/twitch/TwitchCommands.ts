@@ -1,7 +1,7 @@
 import {getConfig, getPrimaryChannel} from "../../helper/ConfigHelper";
-import {Bot, createBotCommand} from "@twurple/easy-bot";
+import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
 import InfoCommand from "./commands/InfoCommand";
-import {logRegular} from "../../helper/LogHelper";
+import {logRegular, logWarn} from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
 import ShoutoutCommand from "./commands/ShoutoutCommand";
 import ClipCommand from "./commands/ClipCommand";
@@ -18,6 +18,8 @@ import StartRotatingSceneCommand from "./commands/StartRotatingSceneCommand";
 import {ListMacrosCommand} from "./commands/ListMacrosCommand";
 import fillTemplate from "../../helper/TemplateHelper";
 import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
+import {hasModerator, hasVip} from "./helper/PermissionHelper";
+import {isShowErrorMessage} from "../../helper/CommandHelper";
 
 export default function buildCommands(bot: Bot) {
     let commands: any[] = [];
@@ -80,14 +82,38 @@ function buildConfigCommands(commands: any[]) {
 }
 
 function buildConfigCommand(command: string, option: any) {
-    return createBotCommand(command, (params, context) => {
+    return createBotCommand(command, async (params, context) => {
         if(option.enforce_primary) {
             const primaryChannel = getPrimaryChannel()
 
             if(context.broadcasterId !== primaryChannel.id) return
         }
 
+        if(this.requiresBroadcaster && context.broadcasterId !== context.userId) {
+            await replyPermissionError(context)
+            return
+        }
+
+        if(option.requiresMod &&
+            !hasModerator(context.broadcasterName, context.userId) &&
+            context.broadcasterId !== context.userId) {
+            await replyPermissionError(context)
+            return
+        }
+        if(option.requiresVip &&
+            !hasVip(context.broadcasterName, context.userId) &&
+            context.broadcasterId !== context.userId) {
+            await replyPermissionError(context)
+            return
+        }
+
         if(option.message) void context.reply(fillTemplate(option.message, {}));
         if(option.macro) void triggerMacro(option.macro)
     }, {aliases: option.alias, userCooldown: option.userCooldown, globalCooldown: option.globalCooldown})
+}
+
+async function replyPermissionError(context: BotCommandContext) {
+    logWarn(`permission denied: ${context.userName} in ${context.broadcasterName}`)
+    if(!isShowErrorMessage()) return
+    await context.reply('du hast keine Berechtigung auf diesen Befehl!')
 }
