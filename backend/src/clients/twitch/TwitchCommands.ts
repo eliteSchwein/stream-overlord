@@ -89,7 +89,7 @@ function buildConfigCommand(command: string, option: any) {
             if(context.broadcasterId !== primaryChannel.id) return
         }
 
-        if(this.requiresBroadcaster && context.broadcasterId !== context.userId) {
+        if(option.requiresBroadcaster && context.broadcasterId !== context.userId) {
             await replyPermissionError(context)
             return
         }
