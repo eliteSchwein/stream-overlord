@@ -5,7 +5,7 @@ export class ListMacrosCommand extends BaseCommand {
     command = 'listmacros'
     requiresMod = true
     enforceSame = true
-    aliases = ['macros']
+    aliases = ['macros', 'makros']
 
     async handle(params: any, context: any) {
         const macros = getMacros()

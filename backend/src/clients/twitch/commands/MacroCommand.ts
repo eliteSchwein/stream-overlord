@@ -11,6 +11,7 @@ export default class MacroCommand extends BaseCommand {
             type: 'string'
         }
     ]
+    aliases = ['makro']
 
     async handle(params: any, context: any) {
         const targetMacro = params.macro
