@@ -15,11 +15,7 @@ export default class TwitchAuth {
     protected tempTokenData: any = null;
     protected authProvider!: RefreshingAuthProvider;
 
-    /**
-     * Full scope set: try this first.
-     * This matches the broad scope request pattern already in your file.
-     */
-    protected readonly affiliateScopes = [
+    protected readonly fullScopes = [
         "bits:read",
         "channel:bot",
         "channel:edit:commercial",
@@ -81,11 +77,7 @@ export default class TwitchAuth {
         "whispers:read"
     ];
 
-    /**
-     * Reduced scope set: use this if Twitch says the broadcaster
-     * must have partner or affiliate status.
-     */
-    protected readonly nonAffiliateScopes = [
+    protected readonly limitedScopes = [
         "channel:bot",
         "channel:manage:broadcast",
         "channel:manage:extensions",
@@ -134,107 +126,32 @@ export default class TwitchAuth {
         "whispers:read"
     ];
 
-    /**
-     * The scope set currently used by the OAuth web flow.
-     * Starts with the full/affiliate-capable set.
-     */
-    protected currentScopes = [...this.affiliateScopes];
-
-    private getIntents(scopes: string[]) {
-        return [...scopes, "chat"];
+    protected get useNonAffiliateScopes(): boolean {
+        return process.env.NON_AFFLIATE === "1";
     }
 
-    private createAuthProvider(clientId: string, clientSecret: string) {
-        const authProvider = new RefreshingAuthProvider({ clientId, clientSecret });
-
-        authProvider.onRefresh(async (_clientId, newTokenData) => {
-            await fs.writeFile(this.tokensPath, JSON.stringify(newTokenData, null, 4), 'utf-8');
-        });
-
-        return authProvider;
+    protected get scopes(): string[] {
+        return this.useNonAffiliateScopes ? this.limitedScopes : this.fullScopes;
     }
 
-    private isAffiliateOnlyError(error: unknown): boolean {
-        const message =
-            axios.isAxiosError(error)
-                ? `${error.response?.data?.message ?? ""} ${error.message ?? ""}`
-                : error instanceof Error
-                    ? error.message
-                    : String(error);
-
-        return /partner or affiliate status/i.test(message);
-    }
-
-    private formatError(error: unknown): string {
-        if (axios.isAxiosError(error)) {
-            return JSON.stringify({
-                status: error.response?.status,
-                data: error.response?.data,
-                message: error.message
-            }, null, 4);
-        }
-
-        if (error instanceof Error) {
-            return JSON.stringify({
-                message: error.message,
-                stack: error.stack
-            }, null, 4);
-        }
-
-        return JSON.stringify(error, null, 4);
-    }
-
-    private async deleteStoredTokenIfExists() {
-        if (existsSync(this.tokensPath)) {
-            await fs.unlink(this.tokensPath);
-        }
-    }
-
-    private async initWithScopes(
-        clientId: string,
-        clientSecret: string,
-        scopes: string[],
-        forceReauth = false
-    ) {
-        this.currentScopes = [...scopes];
-
-        if (forceReauth) {
-            this.tempTokenData = null;
-            await this.deleteStoredTokenIfExists();
-        }
-
-        const tokenData = await this.readTokenFile(clientId, clientSecret);
-        const authProvider = this.createAuthProvider(clientId, clientSecret);
-
-        await authProvider.addUserForToken(tokenData, this.getIntents(scopes));
-
-        this.authProvider = authProvider;
-        return authProvider;
+    protected get intends(): string[] {
+        return this.scopes.concat(["chat"]);
     }
 
     public async getAuthCode() {
         const config = getConfig(/twitch/g)[0];
         const clientId = config['client_id'];
         const clientSecret = config['client_secret'];
+        const tokenData = await this.readTokenFile(clientId, clientSecret);
 
-        try {
-            return await this.initWithScopes(clientId, clientSecret, this.affiliateScopes);
-        } catch (error) {
-            if (!this.isAffiliateOnlyError(error)) {
-                logError(`Twitch auth error: ${this.formatError(error)}`);
-                throw error;
-            }
+        this.authProvider = new RefreshingAuthProvider({ clientId, clientSecret });
 
-            logWarn("Twitch rejected affiliate/partner-only scopes. Falling back to non-affiliate scopes.");
-            logWarn("Stored Twitch token will be replaced. Please complete the browser auth again.");
+        this.authProvider.onRefresh(async (_clientId, newTokenData) => {
+            await fs.writeFile(this.tokensPath, JSON.stringify(newTokenData, null, 4), 'utf-8');
+        });
 
-            try {
-                return await this.initWithScopes(clientId, clientSecret, this.nonAffiliateScopes, true);
-            } catch (fallbackError) {
-                logError(`Fallback Twitch auth error: ${this.formatError(fallbackError)}`);
-                throw fallbackError;
-            }
-        }
+        await this.authProvider.addUserForToken(tokenData, this.intends);
+        return this.authProvider;
     }
 
     public getAuthProvider() {
@@ -243,7 +160,6 @@ export default class TwitchAuth {
 
     private async readTokenFile(clientId: string, clientSecret: string) {
         if (!existsSync(this.tokensPath)) {
-            this.tempTokenData = null;
             await this.startAuthapp(clientId, clientSecret);
             await waitUntil(() => this.tempTokenData !== null, { timeout: WAIT_FOREVER });
             await fs.writeFile(this.tokensPath, JSON.stringify(this.tempTokenData, null, 4), 'utf-8');
@@ -266,7 +182,7 @@ export default class TwitchAuth {
         url.searchParams.set("client_id", clientId);
         url.searchParams.set("redirect_uri", callbackAddress);
         url.searchParams.set("response_type", "code");
-        url.searchParams.set("scope", this.currentScopes.join(" "));
+        url.searchParams.set("scope", this.scopes.join(" "));
         url.searchParams.set("state", state);
 
         return url.toString();
@@ -298,7 +214,11 @@ export default class TwitchAuth {
 
         logEmpty();
         logWarn(`please configure ${callbackAddress} in your twitch application`);
-        logWarn(`requesting scopes: ${this.currentScopes.join(", ")}`);
+        logWarn(
+            this.useNonAffiliateScopes
+                ? "NON_AFFLIATE=1 detected, using limited non-affiliate scopes"
+                : "NON_AFFLIATE not set, using full scopes"
+        );
         logEmpty();
 
         setUnreadyMessage('auth in progress');
@@ -384,8 +304,8 @@ description: ${errorDescription ?? "(none)"}
                         try {
                             await getWebServer().initial();
                             logSuccess("twitch auth successfully!");
-                        } catch (restartError) {
-                            logError(`Failed to restart normal server: ${this.formatError(restartError)}`);
+                        } catch (e) {
+                            logError(`Failed to restart normal server: ${JSON.stringify(e, null, 2)}`);
                         }
                     });
                 });
@@ -397,8 +317,8 @@ Auth successful. Restarting server...
 
 If you are not redirected, <a href="${origin}">click here</a>.
 `);
-            } catch (callbackError) {
-                logError(`Auth callback error: ${this.formatError(callbackError)}`);
+            } catch (error) {
+                logError(`Auth Error: ${JSON.stringify(error, null, 4)}`);
                 res.status(500).send('Auth Error!');
             }
         });
