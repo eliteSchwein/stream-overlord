@@ -91,6 +91,10 @@ const ready = ref<boolean | undefined>(false)
 const updating = ref<boolean | undefined>(false)
 const stage = ref<string | undefined>('Unknown')
 
+if(window.location.hostname === 'localhost') {
+  ready.value = true
+}
+
 eventBus.$on('websocket:reconnect', () => {
   if (!websocket) return
   void websocket.connect()
@@ -98,7 +102,6 @@ eventBus.$on('websocket:reconnect', () => {
 
 eventBus.$on('websocket:send', (data) => {
   if(data.method === 'update') {
-    console.log(data.method)
     updating.value = true // this doesnt seem to trigger?
   }
   websocket?.send(data.method, data.params)
@@ -107,14 +110,16 @@ eventBus.$on('websocket:send', (data) => {
 onMounted(async () => {
   await appOption.fetchConfig()
 
-  let isReady = (await appOption.fetchStatus()).ready
-  if (!isReady) {
-    do {
-      const status = await appOption.fetchStatus()
-      stage.value = status.bootup_stage
-      isReady = status.ready
-      await sleep(250)
-    } while (!isReady)
+  if(window.location.hostname !== 'localhost') {
+    let isReady = (await appOption.fetchStatus()).ready
+    if (!isReady) {
+      do {
+        const status = await appOption.fetchStatus()
+        stage.value = status.bootup_stage
+        isReady = status.ready
+        await sleep(250)
+      } while (!isReady)
+    }
   }
 
   await appOption.fetchGames()

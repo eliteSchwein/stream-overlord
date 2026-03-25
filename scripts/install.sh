@@ -4,7 +4,9 @@ mkdir -p ~/.config/systemd/user/
 mkdir -p ~/.config/autostart
 
 cp stream-overlord.service ~/.config/systemd/user/
-cp firefox-commander.desktop ~/.config/autostart/
+cp touch-autostart.desktop ~/.config/autostart/
+
+rm -rf ~/.config/autostart/firefox-commander.desktop
 
 systemctl --user daemon-reload
 systemctl --user enable stream-overlord
@@ -16,3 +18,5 @@ bash install_neopixel.sh
 bash install_polkit.sh
 
 bash migrateNode.sh
+
+sudo apt install ../touch/src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/stream-overlord-touch_0.1.0_arm64.deb

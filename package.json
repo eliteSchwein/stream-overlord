@@ -12,8 +12,10 @@
     "build:frontend": "rm -rf frontend/dist && esbuild frontend/src/App.ts --bundle --minify --tree-shaking=true --target=es2020 --platform=browser --format=esm --splitting --outdir=frontend/dist --entry-names=app --chunk-names=chunks/[name]-[hash] --asset-names=static/[name]-[hash] --public-path=/dist --color=true --external:*.mp4 --external:*.svg --external:*.gif --external:*.webp --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy",
     "build:backend:dev": "npm run generate:backend-api-index && esbuild backend/src/App.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --external:onoff --outfile=backend/dist/index.js",
     "build:frontend:dev": "rm -rf frontend/dist/* && esbuild --watch frontend/src/App.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=browser --external:*.mp4 --external:*.svg --external:*.gif --loader:.woff=copy --loader:.woff2=copy --loader:.eot=copy --loader:.ttf=copy --external:*.webp --asset-names=[name] --outfile=frontend/dist/app.js",
+    "build:touch:dev": "cd touch && npm run tauri dev",
     "build:commander": "cd commander && npm ci && npm run build",
-    "build:commander:dev": "cd commander && npm i && npm run dev"
+    "build:commander:dev": "cd commander && npm i && npm run dev",
+    "build:touch": "cd touch && bash build.sh"
   },
   "repository": {
     "type": "git",
