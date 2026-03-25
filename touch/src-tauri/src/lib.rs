@@ -1,4 +1,4 @@
-use tauri::Manager;
+use tauri::{Manager, PhysicalSize, Size};
 use tauri_plugin_cli::CliExt;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -23,9 +23,19 @@ pub fn run() {
                 .unwrap_or(false);
 
             if fullscreen {
-                // assuming your main window label is "main"
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_fullscreen(true);
+                    if let Ok(Some(monitor)) = window.current_monitor() {
+                        let size = monitor.size();
+
+                        let _ = window.set_fullscreen(false);
+                        let _ = window.set_decorations(false);
+                        let _ = window.set_resizable(false);
+                        let _ = window.set_size(Size::Physical(PhysicalSize {
+                            width: size.width,
+                            height: size.height,
+                        }));
+                        let _ = window.set_focus();
+                    }
                 }
             }
 

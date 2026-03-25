@@ -190,7 +190,7 @@ iframe {
 .boot-card {
   width: min(620px, 92vw);
   border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(18, 18, 22, 0.65);
+  background: rgba(18, 18, 22, 0.8);
   backdrop-filter: blur(14px);
 }
 </style>

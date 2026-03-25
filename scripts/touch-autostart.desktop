@@ -3,4 +3,4 @@ Type=Application
 Name=Firefox Commander
 Comment=Open Stream Commander in kiosk mode
 X-GNOME-Autostart-enabled=true
-Exec=/bin/sh -c 'GDK_BACKEND=x11 stream-overlord-touch --fullscreen'
+Exec=/bin/sh -c 'WEBKIT_DISABLE_COMPOSITING_MODE=1 stream-overlord-touch --fullscreen'
