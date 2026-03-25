@@ -18,9 +18,9 @@ export default class InfoCommand extends BaseCommand{
             }
 
             systemInfoMessage = systemInfoMessage.substring(0, systemInfoMessage.length - config.message_spacer.length)
-            await context.reply(systemInfoMessage)
+            //await context.reply(systemInfoMessage)
         }
 
-        await context.reply("Ich nutze ein selbst geschriebenen Bot welcher open source ist: https://github.com/eliteSchwein/stream-overlord/")
+        await context.reply("Der Bot wurde von eliteSCHW31N geschrieben und ist open source: https://github.com/eliteSchwein/stream-overlord/")
     }
 }
