@@ -5,8 +5,6 @@
         <v-layout class="boot-layout">
           <!-- background -->
           <div class="boot-bg" aria-hidden="true">
-            <div class="orb" />
-            <div class="grid" />
           </div>
 
           <!-- content -->
@@ -45,8 +43,6 @@
         <v-layout class="boot-layout">
           <!-- background -->
           <div class="boot-bg" aria-hidden="true">
-            <div class="orb" />
-            <div class="grid" />
           </div>
 
           <!-- content -->
@@ -156,60 +152,28 @@ html {
   position: absolute;
   inset: 0;
   pointer-events: none;
-}
-
-.orb {
-  position: absolute;
-  width: 820px;
-  height: 820px;
-  border-radius: 999px;
-
-  background: radial-gradient(circle at 30% 30%,
-  rgba(255, 80, 80, 0.55),
-  rgba(255, 80, 80, 0.20) 40%,
-  transparent 70%
-  );
-
-  left: 50%;
-  top: 50%;
-  opacity: 0.65;
-
-  filter: blur(72px) saturate(2) hue-rotate(0deg);
-
-  animation:
-    orb-hue 10s linear infinite,
-    orb-roam 25s ease-in-out infinite;
-}
-
-.orb::after {
-  content: "";
-  position: absolute;
-  inset: -18%;
-  border-radius: 999px;
-
-  background: radial-gradient(circle at 70% 45%,
-  rgba(255, 80, 80, 0.35),
-  transparent 62%
-  );
-
-  opacity: 0.8;
-  filter: blur(92px) saturate(2.2);
-
-  animation: orb-roam-2 28s ease-in-out infinite;
-}
-
-.grid {
-  position: absolute;
-  inset: -2px;
-  opacity: 0.14;
   background:
-    linear-gradient(to right, rgba(255,255,255,0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(circle at 50% 46%,
-  rgba(0,0,0,0.9),
-  rgba(0,0,0,0.25) 60%,
-  transparent 78%);
+    radial-gradient(circle at top left, transparent 9%, #3A0045 10%, #3A0045 15%, transparent 16%),
+    radial-gradient(circle at bottom left, transparent 9%, #3A0045 10%, #3A0045 15%, transparent 16%),
+    radial-gradient(circle at top right, transparent 9%, #3A0045 10%, #3A0045 15%, transparent 16%),
+    radial-gradient(circle at bottom right, transparent 9%, #3A0045 10%, #3A0045 15%, transparent 16%),
+    radial-gradient(circle, transparent 25%, #000000 26%),
+    linear-gradient(45deg, transparent 46%, #3A0045 47%, #3A0045 52%, transparent 53%),
+    linear-gradient(135deg, transparent 46%, #3A0045 47%, #3A0045 52%, transparent 53%);
+  background-size: 3em 3em;
+  background-color: #000000;
+  opacity: 1;
+
+  animation: rainbow-cycle 12s linear infinite;
+}
+
+@keyframes rainbow-cycle {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
 }
 
 /* Card */
@@ -218,28 +182,5 @@ html {
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(18, 18, 22, 0.65);
   backdrop-filter: blur(14px);
-}
-
-/* Animate the hue variable */
-@keyframes orb-hue {
-  0%   { filter: blur(72px) saturate(2) hue-rotate(0deg); }
-  100% { filter: blur(72px) saturate(2) hue-rotate(360deg); }
-}
-
-/* Roam across the whole viewport (big vh travel) */
-@keyframes orb-roam {
-  0%   { transform: translate3d(-50%, -50%, 0) translate3d(  0vw,   0vh, 0) scale(1.02); }
-  16%  { transform: translate3d(-50%, -50%, 0) translate3d(-45vw, -40vh, 0) scale(1.10); }
-  34%  { transform: translate3d(-50%, -50%, 0) translate3d( 46vw, -42vh, 0) scale(1.06); }
-  52%  { transform: translate3d(-50%, -50%, 0) translate3d( 48vw,  42vh, 0) scale(1.12); }
-  70%  { transform: translate3d(-50%, -50%, 0) translate3d(-46vw,  44vh, 0) scale(1.07); }
-  100% { transform: translate3d(-50%, -50%, 0) translate3d(  0vw,   0vh, 0) scale(1.02); }
-}
-
-@keyframes orb-roam-2 {
-  0%   { transform: translate3d(-50%, -50%, 0) translate3d( 18vw, -20vh, 0) scale(1.12); }
-  33%  { transform: translate3d(-50%, -50%, 0) translate3d(-34vw,  38vh, 0) scale(1.22); }
-  66%  { transform: translate3d(-50%, -50%, 0) translate3d( 40vw,  10vh, 0) scale(1.14); }
-  100% { transform: translate3d(-50%, -50%, 0) translate3d( 18vw, -20vh, 0) scale(1.12); }
 }
 </style>
