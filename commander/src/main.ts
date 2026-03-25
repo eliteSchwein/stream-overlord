@@ -8,6 +8,7 @@
 import vuetify from '@/plugins/vuetify'
 import router from '@/router'
 import {createPinia} from "pinia";
+import "@fontsource/ubuntu-mono"
 
 // Components
 import App from './App.vue'

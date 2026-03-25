@@ -19,7 +19,10 @@ export const useAppStore = defineStore('app', {
     currentGame: {},
     channelPoints: [],
     audioData: {},
-    systemInfo: {},
+    systemInfo: {
+      components: {},
+      config: {},
+    },
     throttled: false,
     scene: {},
     connections: {},
@@ -119,7 +122,7 @@ export const useAppStore = defineStore('app', {
       this.throttled = throttled
       this.$patch(state => state.throttled = throttled)
     },
-    setSystemInfo(systemInfo: {}) {
+    setSystemInfo(systemInfo: any) {
       this.systemInfo = systemInfo
       this.$patch(state => state.systemInfo = systemInfo)
     },

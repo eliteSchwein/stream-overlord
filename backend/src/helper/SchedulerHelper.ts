@@ -1,7 +1,7 @@
 import {getAdData} from "../clients/website/WebsiteClient";
 import {logWarn} from "./LogHelper";
 import getWebsocketServer, {getTauonmbClient, getYoloboxClient} from "../App";
-import {updateSystemComponents, updateSystemInfo} from "./SystemInfoHelper";
+import {updateSystemInfo} from "./SystemInfoHelper";
 import {checkThrottle} from "./ThrottleHelper";
 import {fetchVoices} from "./TTShelper";
 import {updateAutoMacros} from "./AutoMacroHelper";
@@ -31,7 +31,6 @@ export default function initialSchedulers() {
     setInterval(async () => {
         void updateSystemInfo()
         void checkThrottle()
-        void updateSystemComponents()
         void updateAutoMacros()
         void updateGiveaway()
     }, 1_000)

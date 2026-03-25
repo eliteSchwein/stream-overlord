@@ -94,11 +94,28 @@ export default {
       active-class=""
     >
       <v-icon icon="mdi-webhook"></v-icon>
-      <p class="ml-2">{{ Object.keys(getConnections).length }}</p>
+      <p class="ml-2 ubuntu-mono">{{ Object.keys(getConnections).length }}</p>
     </v-btn>
 
+    <v-btn
+      class="mr-1"
+      color="grey-darken-4"
+      variant="flat"
+      style="min-width: 175px;"
+    >
+      <span class="py-0 my-0 cpu-entry ubuntu-mono">
+        <v-icon icon="mdi-cpu-64-bit"></v-icon>
+        <span class="ml-1 mr-2">{{ Math.round(getSystemInfo?.components?.load?.currentLoad) }} %</span>
+      </span>
+      <span class="py-0 my-0 cpu-entry ubuntu-mono">
+        <v-icon icon="mdi-thermometer"></v-icon>
+        <span class="ml-1 mr-1">{{ Math.round(getSystemInfo?.components?.cpu?.temp?.main)}} °C</span>
+      </span>
+    </v-btn>
+
+    <!--
     <template v-if="!isThrottled && !isShieldActive">
-      <template v-for="(systemInfo) in getSystemInfo" :key="systemInfo.short">
+      <template v-for="(systemInfo) in getSystemInfo?.config" :key="systemInfo.short">
         <v-btn
           class="mr-1"
           color="grey-darken-4"
@@ -110,6 +127,7 @@ export default {
         </v-btn>
       </template>
     </template>
+    -->
 
     <v-btn
       class="mr-1"
@@ -255,5 +273,14 @@ export default {
 </template>
 
 <style scoped lang="scss">
+.cpu-entry {
+  width: 65px;
+  max-width: 65px;
+  display: flex;
+  align-items: flex-start;
 
+  span {
+    margin-top: 2px;
+  }
+}
 </style>

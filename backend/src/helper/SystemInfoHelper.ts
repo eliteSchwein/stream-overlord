@@ -8,14 +8,18 @@ import _ = require("lodash");
 
 let currentSystemInfo = []
 const systemInformations = {
-    cpu: {},
+    cpu: {
+        temp: undefined
+    },
     gpu: {
         controllers: []
-    }
+    },
+    load: {}
 }
 
 export async function updateSystemInfo() {
     try {
+        await updateSystemComponents()
         const config = Object.assign({}, getConfig(/systeminfo/g)[0].entries)
         const newSystemInfo = []
 
@@ -71,7 +75,7 @@ export async function updateSystemInfo() {
 }
 
 export function getSystemInfo() {
-    return currentSystemInfo;
+    return {config: currentSystemInfo, components: systemInformations};
 }
 
 export function notifySystemInfo() {
@@ -85,7 +89,13 @@ export async function updateSystemComponents() {
     systemInformations.cpu = await si.cpu()
     systemInformations.gpu = await si.graphics()
 
+    systemInformations.cpu.temp = await si.cpuTemperature()
+
+    systemInformations.load = await si.currentLoad()
+
     delete systemInformations.cpu['flags']
+    delete systemInformations.load['cpus']
+
     logDebug(JSON.stringify(systemInformations))
 }
 
