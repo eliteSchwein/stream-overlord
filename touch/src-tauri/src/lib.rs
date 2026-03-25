@@ -27,7 +27,7 @@ pub fn run() {
                     if let Ok(Some(monitor)) = window.current_monitor() {
                         let size = monitor.size();
 
-                        let _ = window.set_fullscreen(false);
+                        let _ = window.set_fullscreen(true);
                         let _ = window.set_decorations(false);
                         let _ = window.set_resizable(false);
                         let _ = window.set_size(Size::Physical(PhysicalSize {
