@@ -1,11 +1,11 @@
 import TwitchAuth from "./Auth";
-import {getConfig, getPrimaryChannel, loadPrimaryChannel} from "../../helper/ConfigHelper";
-import {Bot} from "@twurple/easy-bot";
+import { getConfig, getPrimaryChannel, loadPrimaryChannel } from "../../helper/ConfigHelper";
+import { Bot } from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
-import {EventSubWsListener} from "@twurple/eventsub-ws";
+import { EventSubWsListener } from "@twurple/eventsub-ws";
 import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
-import {waitUntil} from "async-wait-until";
-import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import { waitUntil } from "async-wait-until";
+import { logRegular, logSuccess, logWarn } from "../../helper/LogHelper";
 import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
 import SubEvent from "./events/SubEvent";
 import CommunitySubEvent from "./events/CommunitySubEvent";
@@ -20,85 +20,111 @@ import ChannelSharedChatSession from "./events/event_sub/ChannelSharedChatSessio
 import PollPredictionEvent from "./events/event_sub/PollPredictionEvent";
 
 export default class TwitchClient {
-    protected auth: TwitchAuth
-    protected bot: Bot
-    protected eventSub: EventSubWsListener
+    protected auth: TwitchAuth;
+    protected bot: Bot;
+    protected eventSub: EventSubWsListener;
+
+    protected get useNonAffiliateMode(): boolean {
+        return process.env.NON_AFFLIATE === "1";
+    }
 
     public async connect() {
         if (this.bot?.chat) {
-            logRegular("disconnect twitch")
-            this.bot.chat.quit()
-            this.bot = undefined
+            logRegular("disconnect twitch");
+            this.bot.chat.quit();
+            this.bot = undefined;
         }
 
         if (this.eventSub) {
-            logRegular("disconnect eventsub")
-            this.eventSub.stop()
-            this.eventSub = undefined
+            logRegular("disconnect eventsub");
+            this.eventSub.stop();
+            this.eventSub = undefined;
         }
 
-        logRegular('connect twitch')
+        logRegular("connect twitch");
 
-        this.auth = new TwitchAuth()
-        let botActive = false
+        this.auth = new TwitchAuth();
 
-        const config = getConfig(/twitch/g)[0]
+        let botActive = false;
+        const config = getConfig(/twitch/g)[0];
+        const authProvider = await this.auth.getAuthCode();
 
-        const authProvider = await this.auth.getAuthCode()
-
-        const tempBot = new Bot({ authProvider, channels: config.channels})
+        const tempBot = new Bot({
+            authProvider,
+            channels: config.channels
+        });
 
         const commands = buildCommands(tempBot);
 
-        this.bot = new Bot({ authProvider, channels: config.channels, chatClientOptions: null, commands })
+        this.bot = new Bot({
+            authProvider,
+            channels: config.channels,
+            chatClientOptions: null,
+            commands
+        });
 
-        this.bot.onConnect(() => {botActive = true})
+        this.bot.onConnect(() => {
+            botActive = true;
+        });
 
         await waitUntil(() => botActive, {
             intervalBetweenAttempts: 250,
             timeout: 30_000
-        })
+        });
 
-        await loadPrimaryChannel(this)
+        await loadPrimaryChannel(this);
 
-        logRegular('connect eventsub')
+        logRegular("connect eventsub");
 
-        this.eventSub = new EventSubWsListener({ apiClient: this.bot.api, logger: { minLevel: 'ERROR' } })
-        this.eventSub.start()
+        this.eventSub = new EventSubWsListener({
+            apiClient: this.bot.api,
+            logger: { minLevel: "ERROR" }
+        });
 
-        await this.registerEvents()
-        logSuccess('twitch client is ready')
+        this.eventSub.start();
+
+        await this.registerEvents();
+
+        logSuccess("twitch client is ready");
     }
 
     public async registerEvents() {
         // regular events
-        new SubEvent(this.bot).register()
-        new CommunitySubEvent(this.bot).register()
-        new SubGiftEvent(this.bot).register()
-        new RaidEvent(this.bot).register()
+        new SubEvent(this.bot).register();
+        new CommunitySubEvent(this.bot).register();
+        new SubGiftEvent(this.bot).register();
+        new RaidEvent(this.bot).register();
 
-        // eventsub events
-        await new FollowEvent(this.eventSub, this.bot).register()
-        await new ChannelPointsEvent(this.eventSub, this.bot).register()
-        await new ChannelUpdateEvent(this.eventSub, this.bot).register()
-        await new BitEvent(this.eventSub, this.bot).register()
-        await new ShieldEvent(this.eventSub, this.bot).register()
-        await new ChannelPointEditEvent(this.eventSub, this.bot).register()
-        await new ChannelSharedChatSessionEnd(this.eventSub, this.bot).register()
-        await new ChannelSharedChatSession(this.eventSub, this.bot).register()
-        await new PollPredictionEvent(this.eventSub, this.bot).register()
+        // eventsub events that work in both modes
+        await new FollowEvent(this.eventSub, this.bot).register();
+        await new ChannelUpdateEvent(this.eventSub, this.bot).register();
+        await new ShieldEvent(this.eventSub, this.bot).register();
+        await new ChannelSharedChatSessionEnd(this.eventSub, this.bot).register();
+        await new ChannelSharedChatSession(this.eventSub, this.bot).register();
+
+        if (this.useNonAffiliateMode) {
+            logWarn("NON_AFFLIATE=1 detected - skipping affiliate/full-scope Twitch features");
+            logWarn("Skipped: Channel Points, reward updates, Bits cheers, polls/predictions EventSub");
+            return;
+        }
+
+        // eventsub events that require full scopes / affiliate-capable setup
+        await new ChannelPointsEvent(this.eventSub, this.bot).register();
+        await new BitEvent(this.eventSub, this.bot).register();
+        await new ChannelPointEditEvent(this.eventSub, this.bot).register();
+        await new PollPredictionEvent(this.eventSub, this.bot).register();
     }
 
     public getBot() {
-        return this.bot
+        return this.bot;
     }
 
     public getEventSub() {
-        return this.eventSub
+        return this.eventSub;
     }
 
-    public async announce(message: string, color: string = 'primary') {
-        const primaryChannel = getPrimaryChannel()
+    public async announce(message: string, color: string = "primary") {
+        const primaryChannel = getPrimaryChannel();
 
         try {
             await this.bot.api.chat.sendAnnouncement(
@@ -108,10 +134,10 @@ export default class TwitchClient {
                     // @ts-ignore
                     color: color // 'primary' | 'blue' | 'green' | 'orange' | 'purple'
                 }
-            )
+            );
         } catch (error) {
-            logWarn('twitch announce failed:')
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logWarn("twitch announce failed:");
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
         }
     }
 }
