@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     file \
     pkg-config \
     build-essential \
+    clang \
+    mold \
     libwebkit2gtk-4.1-dev \
     libxdo-dev \
     libssl-dev \
@@ -18,6 +20,7 @@ RUN apt-get update && apt-get install -y \
  && rm -rf /var/lib/apt/lists/*
 
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
- && rustup default stable
+ && rustup default stable \
+ && rustup target add aarch64-unknown-linux-gnu
 
 WORKDIR /app
