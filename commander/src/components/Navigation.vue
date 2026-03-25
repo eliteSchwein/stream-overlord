@@ -27,32 +27,6 @@ export default {
     }
   },
   methods: {
-    toggleFullscreen() {
-      const target = document.documentElement;
-
-      if (!document.fullscreenElement) {
-        if (target.requestFullscreen) {
-          target.requestFullscreen();
-        } else if (target.mozRequestFullScreen) { // Firefox
-          target.mozRequestFullScreen();
-        } else if (target.webkitRequestFullscreen) { // Safari
-          target.webkitRequestFullscreen();
-        } else if (target.msRequestFullscreen) { // IE/Edge
-          target.msRequestFullscreen();
-        }
-        return
-      }
-
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) { // Firefox
-        document.mozCancelFullScreen();
-      } else if (document.webkitExitFullscreen) { // Safari
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) { // IE/Edge
-        document.msExitFullscreen();
-      }
-    },
     async restartService() {
       await fetch(`${this.getRestApi}/api/system/restart`)
     },
@@ -163,12 +137,6 @@ export default {
       <v-icon icon="mdi-dots-vertical"></v-icon>
       <v-menu activator="parent">
         <v-list>
-          <v-list-item
-            title="Vollbild umschalten"
-            @click="toggleFullscreen"
-            prepend-icon="mdi-fullscreen"
-          ></v-list-item>
-          <v-divider></v-divider>
           <v-list-item
             title="Seite neuladen"
             @click="reloadCommander"
