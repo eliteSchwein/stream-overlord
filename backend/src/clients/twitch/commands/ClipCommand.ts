@@ -22,12 +22,9 @@ export default class ClipCommand extends BaseCommand{
 
         const clipId = await this.bot.api.clips.createClip({channel: primaryChannel, createAfterDelay: false})
 
-        await sleep(5_000)
+        await sleep(35_000)
 
         const clip = await this.bot.api.clips.getClipById(clipId)
-
-        console.log(clipId)
-        console.log(clip)
 
         await context.say(`created clip: ${clip.url}`)
 
