@@ -26,6 +26,7 @@ export default class ClipCommand extends BaseCommand{
 
         const clip = await this.bot.api.clips.getClipById(clipId)
 
+        console.log(clipId)
         console.log(clip)
 
         await context.say(`created clip: ${clip.url}`)
