@@ -101,7 +101,9 @@ void init()
       </v-card>
     </template>
     <template v-else-if="ready">
-      <iframe :src="`${targetAddress}/commander`"></iframe>
+      <div class="iframe-container">
+        <iframe :src="`${targetAddress}/commander`"></iframe>
+      </div>
     </template>
     <template v-else>
       <v-card color="transparent" rounded="0" flat class="boot-root">
@@ -141,8 +143,11 @@ void init()
 
 
 <style scoped>
+.iframe-container {
+  height: 100%;
+}
 iframe {
-  height: 100vh;
+  height: calc(100% - 6px);
   width: 100%;
   border: none;
 }

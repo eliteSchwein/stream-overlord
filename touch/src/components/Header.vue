@@ -15,7 +15,6 @@ type SettingsPanelExposed = {
   open: () => void
   close: () => void
   toggle: () => void
-  handleActivatorPointerDown: (event: PointerEvent) => void
 }
 
 const settingsPanel = ref<SettingsPanelExposed | null>(null)
@@ -43,10 +42,6 @@ const wifiIcon = computed(() => {
   if (signal >= 50) return 'mdi-wifi-strength-3'
   if (signal >= 25) return 'mdi-wifi-strength-2'
   return 'mdi-wifi-strength-1'
-})
-
-const ethernetIcon = computed(() => {
-  return 'mdi-ethernet'
 })
 
 const wifiTitle = computed(() => {
@@ -86,8 +81,8 @@ async function refreshPrimaryIp() {
   }
 }
 
-function onBarPointerDown(event: PointerEvent) {
-  settingsPanel.value?.handleActivatorPointerDown(event)
+function toggleSettings() {
+  settingsPanel.value?.toggle()
 }
 
 onMounted(() => {
@@ -109,31 +104,34 @@ onUnmounted(() => {
 
 <template>
   <v-app-bar
+      height="28"
       density="compact"
       class="header-bar"
-      @pointerdown="onBarPointerDown"
+      @click="toggleSettings"
   >
-    <v-app-bar-title class="header-title">
-      {{ headerTitle }}
-    </v-app-bar-title>
-
-    <v-spacer />
-
-    <div class="network-icons">
-      <div
-          class="network-icon"
-          :class="{ 'network-icon--inactive': !network?.ethernetConnected }"
-          :title="ethernetTitle"
-      >
-        <v-icon :icon="ethernetIcon" size="20" />
+    <div class="header-content">
+      <div class="header-title-slot">
+        <div class="header-title" :title="headerTitle">
+          {{ headerTitle }}
+        </div>
       </div>
 
-      <div
-          class="network-icon"
-          :class="{ 'network-icon--inactive': !network?.wifiConnected }"
-          :title="wifiTitle"
-      >
-        <v-icon :icon="wifiIcon" size="20" />
+      <div class="network-icons">
+        <div
+            class="network-icon"
+            :class="{ 'network-icon--inactive': !network?.ethernetConnected }"
+            :title="ethernetTitle"
+        >
+          <v-icon icon="mdi-ethernet" size="16" />
+        </div>
+
+        <div
+            class="network-icon"
+            :class="{ 'network-icon--inactive': !network?.wifiConnected }"
+            :title="wifiTitle"
+        >
+          <v-icon :icon="wifiIcon" size="16" />
+        </div>
       </div>
     </div>
   </v-app-bar>
@@ -143,21 +141,49 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .header-bar {
-  touch-action: none;
+  position: relative !important;
   user-select: none;
+  cursor: pointer;
+}
+
+.header-bar :deep(.v-toolbar__content) {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px 0 10px;
+}
+
+.header-title-slot {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 6px;
 }
 
 .header-title {
+  display: block;
+  width: 100%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1;
+  font-size: 0.72rem;
+  font-weight: 500;
 }
 
 .network-icons {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-right: 14px;
+  gap: 6px;
+  flex: 0 0 auto;
   color: white;
 }
 
@@ -165,6 +191,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 16px;
+  height: 16px;
 }
 
 .network-icon--inactive {

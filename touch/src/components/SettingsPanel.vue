@@ -1,112 +1,31 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import WifiSettingsCard from './WifiSettingsCard.vue'
 import WiredSettingsCard from './WiredSettingsCard.vue'
 
-const panelHeight = ref(window.innerHeight)
-const OPEN_THRESHOLD = 110
-
-const panelOffset = ref(-panelHeight.value)
-const dragging = ref(false)
-
-let activePointerId: number | null = null
-let dragStartY = 0
-let dragStartOffset = -panelHeight.value
-
-const isOpen = computed(() => panelOffset.value === 0)
+const isOpen = ref(false)
 
 const panelStyle = computed(() => ({
-  transform: `translateY(${panelOffset.value}px)`,
-  transition: dragging.value ? 'none' : 'transform 220ms ease',
+  transform: isOpen.value ? 'translateY(0)' : 'translateY(-100%)',
+  transition: 'transform 220ms ease',
 }))
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
 function open() {
-  dragging.value = false
-  panelOffset.value = 0
+  isOpen.value = true
 }
 
 function close() {
-  dragging.value = false
-  panelOffset.value = -panelHeight.value
+  isOpen.value = false
 }
 
 function toggle() {
-  if (panelOffset.value === 0) {
-    close()
-  } else {
-    open()
-  }
+  isOpen.value = !isOpen.value
 }
-
-function startDrag(event: PointerEvent) {
-  activePointerId = event.pointerId
-  dragging.value = true
-  dragStartY = event.clientY
-  dragStartOffset = panelOffset.value
-}
-
-function handleActivatorPointerDown(event: PointerEvent) {
-  if (event.pointerType === 'mouse' && event.button !== 0) return
-  startDrag(event)
-}
-
-function handleFooterPointerDown(event: PointerEvent) {
-  if (event.pointerType === 'mouse' && event.button !== 0) return
-  startDrag(event)
-}
-
-function onGlobalPointerMove(event: PointerEvent) {
-  if (!dragging.value || event.pointerId !== activePointerId) return
-
-  const deltaY = event.clientY - dragStartY
-  panelOffset.value = clamp(dragStartOffset + deltaY, -panelHeight.value, 0)
-}
-
-function onGlobalPointerUp(event: PointerEvent) {
-  if (event.pointerId !== activePointerId) return
-
-  const openedAmount = panelHeight.value + panelOffset.value
-
-  dragging.value = false
-  activePointerId = null
-
-  if (openedAmount > OPEN_THRESHOLD) {
-    open()
-  } else {
-    close()
-  }
-}
-
-function onResize() {
-  const wasOpen = panelOffset.value === 0
-  panelHeight.value = window.innerHeight
-  panelOffset.value = wasOpen ? 0 : -panelHeight.value
-  dragStartOffset = panelOffset.value
-}
-
-onMounted(() => {
-  window.addEventListener('pointermove', onGlobalPointerMove)
-  window.addEventListener('pointerup', onGlobalPointerUp)
-  window.addEventListener('pointercancel', onGlobalPointerUp)
-  window.addEventListener('resize', onResize)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('pointermove', onGlobalPointerMove)
-  window.removeEventListener('pointerup', onGlobalPointerUp)
-  window.removeEventListener('pointercancel', onGlobalPointerUp)
-  window.removeEventListener('resize', onResize)
-})
 
 defineExpose({
   open,
   close,
   toggle,
-  handleActivatorPointerDown,
 })
 </script>
 
@@ -127,10 +46,7 @@ defineExpose({
         </v-container>
       </div>
 
-      <div
-          class="settings-panel__footer"
-          @pointerdown="handleFooterPointerDown"
-      >
+      <div class="settings-panel__footer">
         <v-btn
             block
             variant="tonal"
@@ -192,7 +108,6 @@ defineExpose({
   bottom: 0;
   height: 56px;
   background: rgb(var(--v-theme-surface));
-  touch-action: none;
 }
 
 .settings-panel__footer-btn {
