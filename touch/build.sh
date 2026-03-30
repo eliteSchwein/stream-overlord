@@ -11,7 +11,7 @@ docker buildx create \
   --name tauri-multi \
   --driver docker-container \
   --driver-opt network=host \
-  --use >/dev/null
+  --use >/dev/null || docker buildx use tauri-multi
 
 docker buildx inspect --bootstrap >/dev/null
 
@@ -23,6 +23,7 @@ docker buildx build \
 
 docker run --rm \
   --platform linux/arm64 \
+  --network host \
   -v "$PWD":/app \
   -v tauri_arm64_node_modules:/app/node_modules \
   -v tauri_arm64_dist:/app/dist \
@@ -30,4 +31,4 @@ docker run --rm \
   -w /app \
   -e CARGO_TARGET_DIR=/app/target \
   tauri-arm64 \
-  bash -lc "rm -rf /app/dist/* && npm ci && npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb"
+  bash -lc 'set -eux; rm -rf /app/dist/*; npm ci; npm run tauri build -- --target aarch64-unknown-linux-gnu --bundles deb'

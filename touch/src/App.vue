@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import Header from "./components/Header.vue";
 //import { invoke } from "@tauri-apps/api/core";
 
 //const greetMsg = ref("");
@@ -72,6 +73,7 @@ void init()
 
 <template>
   <v-app>
+    <Header/>
     <template v-if="updating">
       <v-card color="transparent" rounded="0" flat class="boot-root">
         <v-layout class="boot-layout">
@@ -86,7 +88,7 @@ void init()
                 <div class="d-flex align-center ga-4">
 
                   <div>
-                    <div class="text-h5 font-weight-bold">System Updating</div>
+                    <div class="text-h5 font-weight-bold">Bot Updating</div>
                     <div class="text-body-2 text-medium-emphasis">
                       Please wait while the system is updating…
                     </div>
@@ -115,7 +117,7 @@ void init()
                 <div class="d-flex align-center ga-4">
 
                   <div>
-                    <div class="text-h5 font-weight-bold">System Booting</div>
+                    <div class="text-h5 font-weight-bold">Bot starting</div>
                     <div class="text-body-2 text-medium-emphasis">
                       Please wait while services initialize…
                     </div>
