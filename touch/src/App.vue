@@ -1,162 +1,194 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import Header from "./components/Header.vue";
-//import { invoke } from "@tauri-apps/api/core";
 
-//const greetMsg = ref("");
-//const name = ref("");
+const targetAddress = ref("http://localhost:8105");
 
-const targetAddress = ref<string>("http://localhost:8105");
+const ready = ref(false);
+const updating = ref(false);
+const stage = ref("Unknown");
 
-const ready = ref<boolean | undefined>(false)
-const updating = ref<boolean | undefined>(false)
-const stage = ref<string | undefined>('Unknown')
-
-//async function greet() {
-//  // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-//  greetMsg.value = await invoke("greet", { name: name.value });
-//}
+let watchdogId: number | null = null;
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function fetchStatus() {
   let status = {
-    bootup_stage: 'Unknown',
+    bootup_stage: "Unknown",
     ready: false,
-  }
+    updating: false,
+  };
 
   try {
-    status = (await (await fetch(`${targetAddress.value}/api/status`, { cache: "no-store" })).json()).data
+    const response = await fetch(`${targetAddress.value}/api/status`, {
+      cache: "no-store",
+    });
+
+    const json = await response.json();
+    status = {
+      bootup_stage: json?.data?.bootup_stage ?? "Unknown",
+      ready: json?.data?.ready ?? false,
+      updating: json?.data?.updating ?? false,
+    };
   } catch (e) {
-    console.warn(e)
+    console.warn(e);
   }
 
-  return status
-}
-
-async function init() {
-  // watchdog if bot running
-  setInterval(async () => {
-    if(!ready.value) return
-
-    const isPresent = (await fetchStatus()).ready ?? false
-
-    if(isPresent) return
-
-    ready.value = false
-    await bootupSequence()
-  }, 1_000)
-  await bootupSequence()
+  return status;
 }
 
 async function bootupSequence() {
-  stage.value = 'Unknown'
+  stage.value = "Unknown";
+  ready.value = false;
 
-  let isReady = (await fetchStatus()).ready ?? false
-  if(!isReady) {
-    ready.value = false
-    do {
-      const status = await fetchStatus()
-      stage.value = status.bootup_stage
-      isReady = status.ready
-      await sleep(250)
-    } while (!isReady)
+  let status = await fetchStatus();
+  updating.value = status.updating ?? false;
+
+  while (!status.ready) {
+    stage.value = status.bootup_stage ?? "Unknown";
+    updating.value = status.updating ?? false;
+
+    await sleep(250);
+    status = await fetchStatus();
   }
 
-  ready.value = true
+  updating.value = status.updating ?? false;
+  ready.value = true;
 }
 
-void init()
+async function init() {
+  await bootupSequence();
+
+  watchdogId = window.setInterval(async () => {
+    if (!ready.value) return;
+
+    const status = await fetchStatus();
+
+    if (status.ready) return;
+
+    ready.value = false;
+    updating.value = status.updating ?? false;
+    await bootupSequence();
+  }, 1000);
+}
+
+onMounted(() => {
+  void init();
+});
+
+onBeforeUnmount(() => {
+  if (watchdogId !== null) {
+    clearInterval(watchdogId);
+  }
+});
 </script>
 
 <template>
-  <v-app>
-    <Header/>
-    <template v-if="updating">
-      <v-card color="transparent" rounded="0" flat class="boot-root">
-        <v-layout class="boot-layout">
-          <!-- background -->
-          <div class="boot-bg" aria-hidden="true">
-          </div>
+  <v-app style="overflow: hidden">
+    <div class="app-shell">
+      <Header />
 
-          <!-- content -->
-          <v-card class="boot-card" rounded="xl" elevation="12">
-            <v-card-text class="pa-8 pa-md-10">
-              <div class="d-flex align-center justify-space-between">
-                <div class="d-flex align-center ga-4">
+      <div class="app-content">
+        <template v-if="updating">
+          <v-card color="transparent" rounded="0" flat class="boot-root">
+            <v-layout class="boot-layout">
+              <div class="boot-bg" aria-hidden="true" />
 
-                  <div>
-                    <div class="text-h5 font-weight-bold">Bot Updating</div>
-                    <div class="text-body-2 text-medium-emphasis">
-                      Please wait while the system is updating…
+              <v-card class="boot-card" rounded="xl" elevation="12">
+                <v-card-text class="pa-8 pa-md-10">
+                  <div class="d-flex align-center justify-space-between">
+                    <div class="d-flex align-center ga-4">
+                      <div>
+                        <div class="text-h5 font-weight-bold">Bot Updating</div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          Please wait while the system is updating…
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </v-card-text>
+                </v-card-text>
+              </v-card>
+            </v-layout>
           </v-card>
-        </v-layout>
-      </v-card>
-    </template>
-    <template v-else-if="ready">
-      <div class="iframe-container">
-        <iframe :src="`${targetAddress}/commander`"></iframe>
+        </template>
+
+        <template v-else-if="ready">
+          <div class="iframe-container">
+            <iframe :src="`${targetAddress}/commander`"></iframe>
+          </div>
+        </template>
+
+        <template v-else>
+          <v-card color="transparent" rounded="0" flat class="boot-root">
+            <v-layout class="boot-layout">
+              <div class="boot-bg" aria-hidden="true" />
+
+              <v-card class="boot-card" rounded="xl" elevation="12">
+                <v-card-text class="pa-8 pa-md-10">
+                  <div class="d-flex align-center justify-space-between mb-6">
+                    <div class="d-flex align-center ga-4">
+                      <div>
+                        <div class="text-h5 font-weight-bold">Bot starting</div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          Please wait while services initialize…
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-center ga-4">
+                    <div class="text-body-2">
+                      <span class="text-medium-emphasis">Stage:</span>
+                      <span class="font-weight-medium ms-2">
+                        {{ stage || "Unknown" }}
+                      </span>
+                    </div>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-layout>
+          </v-card>
+        </template>
       </div>
-    </template>
-    <template v-else>
-      <v-card color="transparent" rounded="0" flat class="boot-root">
-        <v-layout class="boot-layout">
-          <!-- background -->
-          <div class="boot-bg" aria-hidden="true">
-          </div>
-
-          <!-- content -->
-          <v-card class="boot-card" rounded="xl" elevation="12">
-            <v-card-text class="pa-8 pa-md-10">
-              <div class="d-flex align-center justify-space-between mb-6">
-                <div class="d-flex align-center ga-4">
-
-                  <div>
-                    <div class="text-h5 font-weight-bold">Bot starting</div>
-                    <div class="text-body-2 text-medium-emphasis">
-                      Please wait while services initialize…
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="d-flex align-center ga-4">
-                <div class="text-body-2">
-                  <span class="text-medium-emphasis">Stage:</span>
-                  <span class="font-weight-medium ms-2">{{ stage ?? "Unknown" }}</span>
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-layout>
-      </v-card>
-    </template>
+    </div>
   </v-app>
 </template>
 
-
 <style scoped>
+.app-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-content {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
 .iframe-container {
   height: 100%;
-}
-iframe {
-  height: calc(100% - 6px);
   width: 100%;
+}
+
+iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
   border: none;
 }
+
 .boot-root {
-  min-height: 100vh;
+  height: 100%;
 }
 
 .boot-layout {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
   position: relative;
   overflow: hidden;
   display: grid;
@@ -164,7 +196,6 @@ iframe {
   padding: 24px;
 }
 
-/* Background */
 .boot-bg {
   position: absolute;
   inset: 0;
@@ -179,8 +210,6 @@ iframe {
       linear-gradient(135deg, transparent 46%, #3A0045 47%, #3A0045 52%, transparent 53%);
   background-size: 3em 3em;
   background-color: #000000;
-  opacity: 1;
-
   animation: rainbow-cycle 12s linear infinite;
 }
 
@@ -193,17 +222,10 @@ iframe {
   }
 }
 
-/* Card */
 .boot-card {
   width: min(620px, 92vw);
-  border: 1px solid rgba(255,255,255,0.10);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(18, 18, 22, 0.8);
   backdrop-filter: blur(14px);
-}
-</style>
-
-<style>
-html {
-  overflow: hidden;
 }
 </style>

@@ -14,3 +14,10 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgb(var(--v-theme-primary));
 }
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden!important;
+}
