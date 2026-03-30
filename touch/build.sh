@@ -5,7 +5,14 @@ npm run tauri build
 
 docker run --privileged --rm tonistiigi/binfmt --install arm64 >/dev/null 2>&1 || true
 
-docker buildx create --name tauri-multi --driver docker-container --use >/dev/null 2>&1 || docker buildx use tauri-multi
+docker buildx rm tauri-multi >/dev/null 2>&1 || true
+
+docker buildx create \
+  --name tauri-multi \
+  --driver docker-container \
+  --driver-opt network=host \
+  --use >/dev/null
+
 docker buildx inspect --bootstrap >/dev/null
 
 docker buildx build \
