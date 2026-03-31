@@ -56,10 +56,10 @@ export default class WebServer {
 
         const htmlRoot = path.join(__dirname, "../../frontend/src/html");
 
-        // inject transparent background css into served html files
+        // custom HTML serving with template expansion + transparent background injection
         this.app.use(this.transparentHtmlStatic(htmlRoot));
 
-        // keep normal static serving for everything else in that folder
+        // normal static serving for other files in that folder
         this.app.use(express.static(htmlRoot));
 
         this.app.use(express.static(path.join(__dirname, "../../assets")));
@@ -132,15 +132,22 @@ export default class WebServer {
             for (const candidate of candidates) {
                 const fullPath = path.resolve(resolvedRoot, candidate);
 
-                if (!fullPath.startsWith(resolvedRoot)) {
+                if (!this.isPathInsideRoot(fullPath, resolvedRoot)) {
                     continue;
                 }
 
                 try {
-                    const html = await fs.readFile(fullPath, "utf8");
+                    await fs.access(fullPath);
+                } catch {
+                    continue;
+                }
+
+                try {
+                    const html = await this.renderHtmlFile(fullPath, resolvedRoot);
                     const injectedHtml = this.injectTransparentBackgroundCss(html);
 
                     res.type("html");
+
                     if (req.method === "HEAD") {
                         res.status(200).end();
                         return;
@@ -148,13 +155,102 @@ export default class WebServer {
 
                     res.send(injectedHtml);
                     return;
-                } catch {
-                    // try next candidate
+                } catch (error) {
+                    logWarn(
+                        `failed to render html template "${fullPath}": ${
+                            error instanceof Error ? error.message : String(error)
+                        }`
+                    );
+                    next(error);
+                    return;
                 }
             }
 
             next();
         };
+    }
+
+    private async renderHtmlFile(
+        filePath: string,
+        rootDir: string,
+        includeStack: string[] = []
+    ): Promise<string> {
+        const resolvedFile = path.resolve(filePath);
+        const resolvedRoot = path.resolve(rootDir);
+
+        if (!this.isPathInsideRoot(resolvedFile, resolvedRoot)) {
+            throw new Error(`template path is outside allowed root: ${filePath}`);
+        }
+
+        if (includeStack.includes(resolvedFile)) {
+            const chain = [...includeStack, resolvedFile]
+                .map((p) => path.relative(resolvedRoot, p))
+                .join(" -> ");
+
+            throw new Error(`circular template include detected: ${chain}`);
+        }
+
+        const html = await fs.readFile(resolvedFile, "utf8");
+
+        return this.expandTemplateTags(
+            html,
+            path.dirname(resolvedFile),
+            resolvedRoot,
+            [...includeStack, resolvedFile]
+        );
+    }
+
+    private async expandTemplateTags(
+        html: string,
+        currentDir: string,
+        rootDir: string,
+        includeStack: string[]
+    ): Promise<string> {
+        // supports:
+        // <template path="partials/example.html">
+        // <template path="partials/example.html" />
+        // <template path="partials/example.html"></template>
+        const templateRegex =
+            /<template\b[^>]*\bpath=(["'])(.*?)\1[^>]*\/?>\s*(?:<\/template>)?/gi;
+
+        let result = "";
+        let lastIndex = 0;
+
+        for (const match of html.matchAll(templateRegex)) {
+            const fullMatch = match[0];
+            const includePathRaw = match[2]?.trim();
+
+            if (match.index == null) continue;
+
+            result += html.slice(lastIndex, match.index);
+
+            if (!includePathRaw) {
+                result += fullMatch;
+                lastIndex = match.index + fullMatch.length;
+                continue;
+            }
+
+            const includeFile = includePathRaw.startsWith("/")
+                ? path.resolve(rootDir, `.${includePathRaw}`)
+                : path.resolve(currentDir, includePathRaw);
+
+            const renderedInclude = await this.renderHtmlFile(
+                includeFile,
+                rootDir,
+                includeStack
+            );
+
+            result += renderedInclude;
+            lastIndex = match.index + fullMatch.length;
+        }
+
+        result += html.slice(lastIndex);
+        return result;
+    }
+
+    private isPathInsideRoot(targetPath: string, rootDir: string): boolean {
+        const relative = path.relative(rootDir, targetPath);
+        return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
     }
 
     private injectTransparentBackgroundCss(html: string): string {
