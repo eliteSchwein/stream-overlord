@@ -15,21 +15,14 @@
          data-disable-theme="true"
          style="opacity: 0">
         <div class="col-12 alert-content-container position-relative d-flex">
-            <audio data-alert-target="sound">
-                <source src="" type="audio/mpeg">
-            </audio>
-            <div class="alert-video-container" data-alert-target="videoContainer">
-                <video data-alert-target="video" style="display: none; opacity: 0">
+            <div class="alert-video-container" data-alert-target="element" data-alert-element-type="videoContainer">
+                <video data-alert-target="element" data-alert-element-type="video" style="display: none; opacity: 0">
                     <source src="" type="video/mp4">
                 </video>
             </div>
-            <iframe class="d-none" data-alert-target="iframe"></iframe>
-            <img src="" data-alert-target="logo" class="d-none logo"/>
-            <i class="alert-logo mdi mdi-pen" data-alert-target="icon"></i>
-            <div class="alert-content justify-content-start col py-2" data-alert-target="contentContainer">
-                <div class="d-none">
-                    <img data-alert-target="image" class="d-none" src="/compressed/silly/Follower.webp" alt="">
-                </div>
+            <iframe class="d-none" data-alert-target="element" data-alert-element-type="iframe"></iframe>
+            <i class="alert-logo mdi mdi-pen" data-alert-target="element" data-alert-element-type="icon"></i>
+            <div class="alert-content justify-content-start col py-2" data-alert-target="element" data-alert-element-type="contentContainer">
                 <div class="flex">
                     <div class="row mb-3">
                         <div class="col">
@@ -43,9 +36,9 @@
                     <div class="row">
                         <div class="col">
                             <div class="stack" style="--stacks: 3;">
-                                <span style="--index: 0;" data-alert-target="content">Text</span>
-                                <span style="--index: 1;" data-alert-target="content">Text</span>
-                                <span style="--index: 2;" data-alert-target="content">Text</span>
+                                <span style="--index: 0;" data-alert-target="element" data-alert-element-type="content">Text</span>
+                                <span style="--index: 1;" data-alert-target="element" data-alert-element-type="content">Text</span>
+                                <span style="--index: 2;" data-alert-target="element" data-alert-element-type="content">Text</span>
                             </div>
                         </div>
                     </div>

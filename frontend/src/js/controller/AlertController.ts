@@ -6,30 +6,64 @@ import {sleep} from "../../../../helper/GeneralHelper";
 export default class AlertController extends BaseController {
     websocketEndpoints = ['notify_alert']
 
-    static targets = ['icon', 'content', 'sound', 'video', 'contentContainer', 'logo', 'iframe', 'delayed', 'image']
+    static targets = ['element']
 
-    declare readonly iconTarget: HTMLElement|null
-    declare readonly contentTargets: HTMLDivElement[]
-    declare readonly delayedTargets: HTMLDivElement[]
-    declare readonly contentContainerTarget: HTMLDivElement
-    declare readonly videoTarget: HTMLVideoElement
-    declare readonly logoTarget: HTMLImageElement
-    declare readonly imageTarget: HTMLImageElement
-    declare readonly iframeTarget: HTMLIFrameElement
+    declare readonly elementTargets: HTMLElement[]
 
-    protected channel: string
+    iconTarget: HTMLElement|null = null
+    contentTargets: HTMLDivElement[] = []
+    delayedTargets: HTMLDivElement[] = []
+    contentContainerTarget: HTMLDivElement|null = null
+    videoTarget: HTMLVideoElement|null = null
+    logoTarget: HTMLImageElement|null = null
+    imageTarget: HTMLImageElement|null = null
+    iframeTarget: HTMLIFrameElement|null = null
+
+    protected channel: string|null = ''
 
     isDynamic = true
 
     async postConnect() {
-        this.videoTarget.addEventListener('ended', (event) => this.videoEnd(event))
+        for(const element of this.elementTargets) {
+            if(!element.dataset.alertElementType) continue
+
+            switch (element.dataset.alertElementType) {
+                case 'icon':
+                    this.iconTarget = element
+                    break
+                case 'content':
+                    this.contentTargets.push(element as HTMLDivElement)
+                    break
+                case 'delayed':
+                    this.delayedTargets.push(element as HTMLDivElement)
+                    break
+                case 'content-container':
+                    this.contentContainerTarget = element as HTMLDivElement
+                    break
+                case 'video':
+                    this.videoTarget = element as HTMLVideoElement
+                    break
+                case 'logo':
+                    this.logoTarget = element as HTMLImageElement
+                    break
+                case 'image':
+                    this.imageTarget = element as HTMLImageElement
+                    break
+                case 'iframe':
+                    this.iframeTarget = element as HTMLIFrameElement
+                    break
+            }
+        }
+
+        this.videoTarget?.addEventListener('ended', (event) => this.videoEnd(event))
         this.channel = this.element.getAttribute('data-alert-channel')
 
         this.isDynamic = this.alertBoxHelper.isPresent()
     }
 
     videoEnd(event: Event) {
-        this.videoTarget.style.opacity = '0'
+        if(this.videoTarget)
+            this.videoTarget.style.opacity = '0'
         //this.element.querySelector('canvas').style.opacity = '1'
     }
 
@@ -59,9 +93,10 @@ export default class AlertController extends BaseController {
                 }
 
                 this.alertBoxHelper.show()
-                this.videoTarget.style.opacity = '0'
+                if(this.videoTarget)
+                    this.videoTarget.style.opacity = '0'
 
-                if(data.video) {
+                if(data.video && this.videoTarget) {
                     this.videoTarget.style.display = null
                     //this.element.querySelector('canvas').style.opacity = '0'
                     if(!this.isDynamic) {
@@ -94,7 +129,8 @@ export default class AlertController extends BaseController {
                     }
                 }
                 if(data.sound) {
-                    this.videoTarget.style.display = 'none'
+                    if(this.videoTarget)
+                        this.videoTarget.style.display = 'none'
                     if(!this.isDynamic) {
                         this.element.style.padding = null
                         this.element.classList.remove('expand')
@@ -106,7 +142,7 @@ export default class AlertController extends BaseController {
                         console.error(e)
                     }
                 }
-                if(data.iframe) {
+                if(data.iframe && this.iframeTarget) {
                     if(!this.isDynamic) {
                         this.element.classList.add('aspect')
                     }
@@ -115,11 +151,11 @@ export default class AlertController extends BaseController {
                         this.iframeTarget.classList.remove('d-none')
                     }, 2_000)
                 }
-                if(data.image) {
+                if(data.image && this.imageTarget) {
                     this.imageTarget.classList.remove('d-none')
                     this.imageTarget.src = `/compressed/${data.image}.webp`
                 }
-                if(data.logo) {
+                if(data.logo && this.logoTarget) {
                     this.logoTarget.classList.remove('d-none')
                     this.logoTarget.src = data.logo
                 }
@@ -141,22 +177,32 @@ export default class AlertController extends BaseController {
                 if(data.dummy) return
 
                 try {
-                    this.videoTarget.pause()
+                    if(this.videoTarget)
+                        this.videoTarget.pause()
                 } catch (e) {
                     console.error(e)
                 }
 
-                this.iframeTarget.src = ''
-                this.logoTarget.src = ''
+                if(this.iframeTarget) {
+                    this.iframeTarget.src = ''
 
-                if(!this.iframeTarget.classList.contains('d-none'))
-                    this.iframeTarget.classList.add('d-none')
+                    if(!this.iframeTarget.classList.contains('d-none'))
+                        this.iframeTarget.classList.add('d-none')
+                }
+                if(this.logoTarget) {
+                    this.logoTarget.src = ''
 
-                if(!this.logoTarget.classList.contains('d-none'))
-                    this.logoTarget.classList.add('d-none')
+                    if(!this.logoTarget.classList.contains('d-none'))
+                        this.logoTarget.classList.add('d-none')
+                }
 
-                if(!this.imageTarget.classList.contains('d-none'))
-                    this.imageTarget.classList.add('d-none')
+                if(this.imageTarget) {
+                    if(!this.imageTarget.classList.contains('d-none'))
+                        this.imageTarget.classList.add('d-none')
+                }
+
+
+
 
                 if(!this.isDynamic) {
                     this.element.classList.remove('expand')
