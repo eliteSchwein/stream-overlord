@@ -23,7 +23,6 @@ export async function updateChannelPoints() {
     await fetchChannelPointData()
 
     const gameData = await getGameInfoData()
-    const bot = getTwitchClient().getBot()
     const primaryChannel = getPrimaryChannel()
 
     const defaultChannelPoints = getConfig(/defaults/g)?.[0]?.['channel_points'] ?? []
@@ -31,37 +30,64 @@ export async function updateChannelPoints() {
     gameKeyCombos = {}
 
     const gameChannelPoints = Array.isArray(gameData?.channel_points)
-        ? gameData!.channel_points
-        : [];
+        ? gameData.channel_points
+        : []
+
+    const blockedChannelPoints = Array.isArray(gameData?.blocked_channel_points)
+        ? gameData.blocked_channel_points
+        : []
+
+    const normalizeName = (value: unknown): string =>
+        typeof value === "string" ? value.trim().toLowerCase() : ""
+
+    const blockedSet = new Set(
+        blockedChannelPoints
+            .map(normalizeName)
+            .filter(Boolean)
+    )
 
     const gameChannelPointNames = gameChannelPoints
         .map((point: any) => point?.name)
-        .filter((n: any): n is string => typeof n === "string" && n.length > 0);
+        .filter((n: any): n is string => typeof n === "string" && n.trim().length > 0)
 
-    for(const channelPoint of gameChannelPoints) {
-        if(!gameKeyCombos[channelPoint.name]) {
+    for (const channelPoint of gameChannelPoints) {
+        if (!channelPoint?.name) continue
+
+        if (!gameKeyCombos[channelPoint.name]) {
             gameKeyCombos[channelPoint.name] = []
         }
 
-        for(const keyCombo of channelPoint.keyboard_combos) {
+        for (const keyCombo of channelPoint.keyboard_combos ?? []) {
             gameKeyCombos[channelPoint.name].push(keyCombo)
         }
     }
 
-    const newActiveChannelPoints = defaultChannelPoints.concat(gameChannelPointNames);
+    const mergedChannelPointNames = [...defaultChannelPoints, ...gameChannelPointNames]
 
-    const toDisableKeys = Object.keys(channelPoints).filter(item => !newActiveChannelPoints.includes(item))
+    const newActiveChannelPoints = [...new Set(mergedChannelPointNames)].filter(
+        (name) => !blockedSet.has(normalizeName(name))
+    )
 
-    const toDisable = toDisableKeys.map(key => channelPoints[key])
-    const toEnable = newActiveChannelPoints.map(key => channelPoints[key])
+    const toDisableKeys = Object.keys(channelPoints).filter(
+        key => !newActiveChannelPoints.includes(key)
+    )
+
+    const toDisable = toDisableKeys.map(key => channelPoints[key]).filter(Boolean)
+    const toEnable = newActiveChannelPoints.map(key => channelPoints[key]).filter(Boolean)
 
     activeChannelPoints = []
 
     for (const channelPoint of toDisable) {
         await enableChannelPoint(channelPoint, primaryChannel, false)
     }
+
     for (const channelPoint of toEnable) {
-        if(!channelPoint) continue
+        const title = channelPoint?.title ?? ""
+
+        if (blockedSet.has(normalizeName(title))) {
+            console.log("Skipping blocked channel point:", title)
+            continue
+        }
 
         activeChannelPoints.push({
             name: channelPoint.title,
@@ -70,6 +96,7 @@ export async function updateChannelPoints() {
             image: channelPoint.getImageUrl(4),
             active: true,
         })
+
         await enableChannelPoint(channelPoint, primaryChannel, true)
     }
 
