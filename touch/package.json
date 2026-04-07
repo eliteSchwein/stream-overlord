@@ -12,7 +12,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-cli": "^2.4.1",
-    "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-opener": "^2.5.3",
     "vue": "^3.5.13",
     "vuetify": "^3.11.7",
     "websocket-ts": "^2.2.1",

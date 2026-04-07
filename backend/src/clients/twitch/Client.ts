@@ -24,8 +24,29 @@ export default class TwitchClient {
     protected bot: Bot;
     protected eventSub: EventSubWsListener;
 
-    protected get useNonAffiliateMode(): boolean {
-        return process.env.NON_AFFLIATE === "1";
+    protected async isAffiliateOrPartner(): Promise<boolean> {
+        const primaryChannel = getPrimaryChannel();
+
+        try {
+            const user = await this.bot.api.users.getUserById(primaryChannel.id);
+
+            if (!user) {
+                logWarn(`could not load twitch user for primary channel id=${primaryChannel.id}`);
+                return false;
+            }
+
+            const broadcasterType = String(user.broadcasterType ?? "").toLowerCase();
+
+            logRegular(
+                `twitch broadcaster type for ${primaryChannel.name ?? primaryChannel.id}: ${broadcasterType || "(none)"}`
+            );
+
+            return broadcasterType === "affiliate" || broadcasterType === "partner";
+        } catch (error) {
+            logWarn("failed to check affiliate/partner status");
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            return false;
+        }
     }
 
     public async connect() {
@@ -95,20 +116,22 @@ export default class TwitchClient {
         new SubGiftEvent(this.bot).register();
         new RaidEvent(this.bot).register();
 
-        // eventsub events that work in both modes
+        // eventsub events that work for all channels
         await new FollowEvent(this.eventSub, this.bot).register();
         await new ChannelUpdateEvent(this.eventSub, this.bot).register();
         await new ShieldEvent(this.eventSub, this.bot).register();
         await new ChannelSharedChatSessionEnd(this.eventSub, this.bot).register();
         await new ChannelSharedChatSession(this.eventSub, this.bot).register();
 
-        if (this.useNonAffiliateMode) {
-            logWarn("NON_AFFLIATE=1 detected - skipping affiliate/full-scope Twitch features");
+        const affiliateOrPartner = await this.isAffiliateOrPartner();
+
+        if (!affiliateOrPartner) {
+            logWarn("primary channel is not affiliate/partner - skipping monetization-related Twitch features");
             logWarn("Skipped: Channel Points, reward updates, Bits cheers, polls/predictions EventSub");
             return;
         }
 
-        // eventsub events that require full scopes / affiliate-capable setup
+        // eventsub events that require affiliate/partner features
         await new ChannelPointsEvent(this.eventSub, this.bot).register();
         await new BitEvent(this.eventSub, this.bot).register();
         await new ChannelPointEditEvent(this.eventSub, this.bot).register();

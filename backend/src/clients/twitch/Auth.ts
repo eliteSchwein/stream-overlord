@@ -15,7 +15,7 @@ export default class TwitchAuth {
     protected tempTokenData: any = null;
     protected authProvider!: RefreshingAuthProvider;
 
-    protected readonly fullScopes = [
+    protected readonly scopes = [
         "bits:read",
         "channel:bot",
         "channel:edit:commercial",
@@ -77,63 +77,6 @@ export default class TwitchAuth {
         "whispers:read"
     ];
 
-    protected readonly limitedScopes = [
-        "channel:bot",
-        "channel:manage:broadcast",
-        "channel:manage:extensions",
-        "channel:manage:moderators",
-        "channel:manage:polls",
-        "channel:manage:raids",
-        "channel:manage:schedule",
-        "channel:manage:videos",
-        "channel:manage:vips",
-        "channel:moderate",
-        "channel:read:editors",
-        "channel:read:polls",
-        "channel:read:vips",
-        "chat:edit",
-        "chat:read",
-        "clips:edit",
-        "moderation:read",
-        "moderator:manage:announcements",
-        "moderator:manage:banned_users",
-        "moderator:manage:chat_messages",
-        "moderator:manage:chat_settings",
-        "moderator:manage:shield_mode",
-        "moderator:manage:shoutouts",
-        "moderator:manage:unban_requests",
-        "moderator:read:chat_settings",
-        "moderator:read:chatters",
-        "moderator:read:followers",
-        "moderator:read:shield_mode",
-        "moderator:read:shoutouts",
-        "moderator:read:unban_requests",
-        "user:bot",
-        "user:edit",
-        "user:edit:broadcast",
-        "user:edit:follows",
-        "user:manage:blocked_users",
-        "user:manage:whispers",
-        "user:read:blocked_users",
-        "user:read:broadcast",
-        "user:read:chat",
-        "user:read:email",
-        "user:read:emotes",
-        "user:read:follows",
-        "user:read:moderated_channels",
-        "user:write:chat",
-        "whispers:edit",
-        "whispers:read"
-    ];
-
-    protected get useNonAffiliateScopes(): boolean {
-        return process.env.NON_AFFLIATE === "1";
-    }
-
-    protected get scopes(): string[] {
-        return this.useNonAffiliateScopes ? this.limitedScopes : this.fullScopes;
-    }
-
     protected get intends(): string[] {
         return this.scopes.concat(["chat"]);
     }
@@ -170,9 +113,9 @@ export default class TwitchAuth {
         return JSON.parse(tokenData);
     }
 
-    private buildAuthUrl(clientId: string, callbackAddress: string, originPath: string) {
+    private buildAuthUrl(clientId: string, callbackAddress: string, returnTo: string) {
         const statePayload = {
-            origin: originPath,
+            returnTo,
             nonce: crypto.randomBytes(16).toString("hex"),
         };
 
@@ -188,17 +131,31 @@ export default class TwitchAuth {
         return url.toString();
     }
 
-    private safeOriginFromState(state: unknown): string {
-        if (typeof state !== "string" || !state.length) return "/";
+    private safeReturnToFromState(state: unknown): string {
+        const fallback = "http://localhost:1420/";
+
+        if (typeof state !== "string" || !state.length) return fallback;
 
         try {
             const decoded = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
-            const origin = decoded?.origin;
+            const returnTo = decoded?.returnTo;
 
-            if (typeof origin === "string" && origin.startsWith("/")) return origin;
-            return "/";
+            if (typeof returnTo !== "string" || !returnTo.length) {
+                return fallback;
+            }
+
+            const url = new URL(returnTo);
+
+            if (
+                (url.protocol === "http:" || url.protocol === "https:") &&
+                (url.host === "localhost:1420" || url.host === "127.0.0.1:1420")
+            ) {
+                return url.toString();
+            }
+
+            return fallback;
         } catch {
-            return "/";
+            return fallback;
         }
     }
 
@@ -208,17 +165,25 @@ export default class TwitchAuth {
         const port = config.port;
         const app = express();
 
+        app.use((req: Request, res: Response, next) => {
+            res.header("Access-Control-Allow-Origin", "*");
+            res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+            res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+            if (req.method === "OPTIONS") {
+                res.sendStatus(204);
+                return;
+            }
+
+            next();
+        });
+
         const hostAddress = `http://${address}:${port}`;
         const authAddress = `${hostAddress}/`;
         const callbackAddress = `${hostAddress}/callback`;
 
         logEmpty();
         logWarn(`please configure ${callbackAddress} in your twitch application`);
-        logWarn(
-            this.useNonAffiliateScopes
-                ? "NON_AFFLIATE=1 detected, using limited non-affiliate scopes"
-                : "NON_AFFLIATE not set, using full scopes"
-        );
         logEmpty();
 
         setUnreadyMessage('auth in progress');
@@ -229,15 +194,29 @@ export default class TwitchAuth {
             logRegular(`please open ${authAddress} in your web browser`);
         });
 
-        app.get("/", (_req: Request, res: Response) => {
-            res.redirect(this.buildAuthUrl(clientId, callbackAddress, "/"));
+        app.get("/", (req: Request, res: Response) => {
+            const returnTo =
+                typeof req.query.returnTo === "string" && req.query.returnTo.length
+                    ? req.query.returnTo
+                    : "http://localhost:1420/";
+
+            res.redirect(this.buildAuthUrl(clientId, callbackAddress, returnTo));
         });
 
         app.get(/^\/commander(?:\/.*)?$/, (req: Request, res: Response) => {
-            res.redirect(this.buildAuthUrl(clientId, callbackAddress, req.originalUrl));
+            const returnTo =
+                typeof req.query.returnTo === "string" && req.query.returnTo.length
+                    ? req.query.returnTo
+                    : "http://localhost:1420/";
+
+            res.redirect(this.buildAuthUrl(clientId, callbackAddress, returnTo));
         });
 
-        app.get('/config.json', (_req, res) => {
+        app.get("/api/status", (_req: Request, res: Response) => {
+            res.json({ data: { bootup_stage: 'auth', ready: false, updating: false } });
+        });
+
+        app.get('/config.json', (_req: Request, res: Response) => {
             res.json(getConfig());
         });
 
@@ -246,7 +225,7 @@ export default class TwitchAuth {
             const state = req.query.state;
             const error = req.query.error as string | undefined;
             const errorDescription = req.query.error_description as string | undefined;
-            const origin = this.safeOriginFromState(state);
+            const returnTo = this.safeReturnToFromState(state);
 
             if (!code) {
                 logError(
@@ -256,13 +235,19 @@ export default class TwitchAuth {
                 );
 
                 res.status(400).send(`
-# OAuth failed
-
-error: ${error ?? "(none)"}
-
-description: ${errorDescription ?? "(none)"}
-
-<a href="${origin}">Back</a>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OAuth failed</title>
+</head>
+<body>
+  <h1>OAuth failed</h1>
+  <p>error: ${error ?? "(none)"}</p>
+  <p>description: ${errorDescription ?? "(none)"}</p>
+  <p><a href="${returnTo}">Back</a></p>
+</body>
+</html>
 `);
                 return;
             }
@@ -311,11 +296,19 @@ description: ${errorDescription ?? "(none)"}
                 });
 
                 res.status(200).send(`
-Auth successful
-
-Auth successful. Restarting server...
-
-If you are not redirected, <a href="${origin}">click here</a>.
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Auth successful</title>
+</head>
+<body>
+  <p>Auth successful. Returning to app…</p>
+  <script>
+    window.location.replace(${JSON.stringify(returnTo)});
+  </script>
+</body>
+</html>
 `);
             } catch (error) {
                 logError(`Auth Error: ${JSON.stringify(error, null, 4)}`);

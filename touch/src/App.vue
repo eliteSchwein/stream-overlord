@@ -39,6 +39,11 @@ async function fetchStatus() {
   return status;
 }
 
+function startTwitchAuth() {
+  const returnTo = encodeURIComponent(window.location.href);
+  window.location.href = `${targetAddress.value}/commander?returnTo=${returnTo}`;
+}
+
 async function bootupSequence() {
   stage.value = "Unknown";
   ready.value = false;
@@ -118,6 +123,34 @@ onBeforeUnmount(() => {
           <div class="iframe-container">
             <iframe :src="`${targetAddress}/commander`"></iframe>
           </div>
+        </template>
+
+        <template v-else-if="stage === 'auth'">
+          <v-card color="transparent" rounded="0" flat class="boot-root">
+            <v-layout class="boot-layout">
+              <div class="boot-bg" aria-hidden="true" />
+
+              <v-card class="boot-card" rounded="xl" elevation="12">
+                <v-card-text class="pa-8 pa-md-10">
+                  <div class="text-h5 font-weight-bold mb-2">Twitch Login Required</div>
+                  <div class="text-body-2 text-medium-emphasis mb-6">
+                    Continue the login flow in this window.
+                  </div>
+
+                  <v-btn color="primary" @click="startTwitchAuth">
+                    Continue to Twitch Login
+                  </v-btn>
+
+                  <div class="mt-6 text-body-2">
+                    <span class="text-medium-emphasis">Stage:</span>
+                    <span class="font-weight-medium ms-2">
+                      {{ stage || "Unknown" }}
+                    </span>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-layout>
+          </v-card>
         </template>
 
         <template v-else>
