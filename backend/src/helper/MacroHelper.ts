@@ -5,6 +5,8 @@ import {sleep} from "../../../helper/GeneralHelper";
 import {parsePlaceholders} from "./DataHelper";
 import fillTemplate from "./TemplateHelper";
 import {colorNeopixel} from "./NeopixelHelper";
+import {toggleAutoMacro} from "./AutoMacroHelper";
+import {speak} from "./TTShelper";
 
 let macros = {}
 
@@ -140,8 +142,17 @@ async function handleWebhook(method: string, data: any) {
 async function handleFunction(method: string, data: any) {
     logRegular(`trigger function: ${method}`)
     switch (method) {
+        case 'toggle_auto_macro':
+            if(data.name && data.enabled) {
+                toggleAutoMacro(data.name, data.enabled)
+            }
+            break
         case 'sleep': {
             await sleep(data.time)
+            break
+        }
+        case 'speak': {
+            await speak(data.content)
             break
         }
         case 'send_message': {

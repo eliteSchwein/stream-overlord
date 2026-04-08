@@ -1,0 +1,1 @@
+import{Qt as e,fn as t,m as n,mn as r}from"./dimensions-mBkjoUNk.js";var i=n({eager:Boolean},`lazy`);function a(n,i){let a=t(!1),o=r(()=>a.value||n.eager||i.value);e(i,()=>a.value=!0);function s(){n.eager||(a.value=!1)}return{isBooted:a,hasContent:o,onAfterLeave:s}}export{a as n,i as t};

@@ -130,7 +130,7 @@ export default class TwitchAuth {
     }
 
     private safeReturnToFromState(state: unknown): string {
-        const fallback = "http://localhost:1420/";
+        const fallback = "http://localhost:8105/commander/";
 
         if (typeof state !== "string" || !state.length) return fallback;
 
@@ -145,8 +145,7 @@ export default class TwitchAuth {
             const url = new URL(returnTo);
 
             if (
-                (url.protocol === "http:" || url.protocol === "https:") &&
-                (url.host === "localhost:1420" || url.host === "127.0.0.1:1420")
+                url
             ) {
                 return url.toString();
             }
