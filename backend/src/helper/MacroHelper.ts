@@ -1,4 +1,4 @@
-import {getConfig, getPrimaryChannel} from "./ConfigHelper";
+import {getAssetConfig, getConfig, getPrimaryChannel} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient, getTauonmbClient, getTwitchClient, getYoloboxClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
@@ -7,6 +7,8 @@ import fillTemplate, {getTemplateVariables} from "./TemplateHelper";
 import {colorNeopixel} from "./NeopixelHelper";
 import {toggleAutoMacro} from "./AutoMacroHelper";
 import {speak} from "./TTShelper";
+import {addAlert} from "./AlertHelper";
+import {v4 as uuidv4} from 'uuid';
 
 let macros = {}
 
@@ -57,7 +59,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
     if(!variables) variables = {}
 
-    variables = getTemplateVariables(variables)
+    variables = {...variables, ...getTemplateVariables()}
 
     const tasks = macros[name]['tasks']
 
@@ -102,6 +104,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
                     await handleNeopixel(task.method, task.data)
                     break
                 }
+                case "alert": {
+                    task.eventUuid = variables.eventUuid
+                    await handleAlert(task.message, task.asset, task.eventUuid)
+                    break
+                }
             }
         } catch (error) {
             logWarn(`task failed:`)
@@ -138,6 +145,39 @@ async function handleYolobox(method: string, data: any) {
     getYoloboxClient()?.sendCommand({'data': data, 'orderID': method})
 }
 
+async function handleAlert(message: string, asset: string, eventUuid: string|undefined = un
+) {
+    const theme = getAssetConfig(asset)
+
+    if(!theme) {
+        logWarn(`no theme found for ${asset}`)
+        return
+    }
+
+    if(!message) {
+        logWarn(`no message provided`)
+        return
+    }
+
+    if(!eventUuid) {
+        eventUuid = `macro_${uuidv4()}`
+    }
+
+    addAlert({
+        'sound': theme.sound,
+        'duration': 15,
+        'color': theme.color,
+        'icon': theme.icon,
+        'message':  message,
+        'event-uuid': eventUuid,
+        'video': theme.video,
+        'lamp_color': theme.lamp_color,
+        'volume': theme.volume,
+        'image': theme.image,
+        'channel': theme.channel,
+    })
+}
+
 async function handleWebhook(method: string, data: any) {
     logRegular(`send webhook: ${method}`)
 
@@ -156,8 +196,6 @@ async function handleWebhook(method: string, data: any) {
 
     webhookContent = JSON.parse(await parsePlaceholders(JSON.stringify(config.content), config.additional_data))
 
-
-    console.log(JSON.stringify(webhookContent))
     await fetch(webhookUrl, {
         method: "POST",
         headers: {
