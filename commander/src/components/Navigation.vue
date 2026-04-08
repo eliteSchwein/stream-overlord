@@ -104,12 +104,12 @@ export default {
       style="min-width: 175px;"
     >
       <span class="py-0 my-0 cpu-entry ubuntu-mono">
-        <v-icon icon="mdi-cpu-64-bit"></v-icon>
-        <span class="ml-1 mr-2">{{ Math.round(getSystemInfo?.components?.load?.currentLoad) }} %</span>
+        <v-icon size="18" icon="mdi-cpu-64-bit"></v-icon>
+        <span class="ml-1 mr-2 mt-0 mb-0">{{ Math.round(getSystemInfo?.components?.load?.currentLoad) }} %</span>
       </span>
       <span class="py-0 my-0 cpu-entry ubuntu-mono">
-        <v-icon icon="mdi-thermometer"></v-icon>
-        <span class="ml-1 mr-1">{{ Math.round(getSystemInfo?.components?.cpu?.temp?.main)}} °C</span>
+        <v-icon size="18" icon="mdi-thermometer"></v-icon>
+        <span class="ml-1 mr-1 mt-0 mb-0">{{ Math.round(getSystemInfo?.components?.cpu?.temp?.main)}} °C</span>
       </span>
     </v-btn>
 
@@ -279,8 +279,13 @@ export default {
   display: flex;
   align-items: flex-start;
 
+  i {
+    margin-top: 4px;
+  }
+
   span {
     margin-top: 2px;
+    font-size: 15px;
   }
 }
 </style>
