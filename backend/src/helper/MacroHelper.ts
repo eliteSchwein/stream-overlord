@@ -3,7 +3,7 @@ import getWebsocketServer, {getOBSClient, getTauonmbClient, getTwitchClient, get
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {parsePlaceholders} from "./DataHelper";
-import fillTemplate from "./TemplateHelper";
+import fillTemplate, {getTemplateVariables} from "./TemplateHelper";
 import {colorNeopixel} from "./NeopixelHelper";
 import {toggleAutoMacro} from "./AutoMacroHelper";
 import {speak} from "./TTShelper";
@@ -30,17 +30,45 @@ export function isMacroPresent(name: string) {
     return macros[name] !== undefined
 }
 
-export async function triggerMacro(name: string) {
+function getNestedValue(obj: any, path: string): any {
+    return path.split(".").reduce((acc, key) => acc?.[key], obj)
+}
+
+function interpolateTemplate(input: string, variables: any): string {
+    return input.replace(/\$\{([^}]+)\}/g, (_, path) => {
+        const value = getNestedValue(variables, path.trim())
+
+        if (value === undefined || value === null) {
+            return ""
+        }
+
+        if (typeof value === "object") {
+            return JSON.stringify(value)
+        }
+
+        return String(value)
+    })
+}
+
+export async function triggerMacro(name: string, variables: any = {}) {
     if(!macros[name]) {
         return false
     }
+
+    if(!variables) variables = {}
+
+    variables = getTemplateVariables(variables)
 
     const tasks = macros[name]['tasks']
 
     logNotice(`trigger ${tasks.length} tasks from ${name} macro`)
 
-    for (const task of tasks) {
+    for (const preTask of tasks) {
         try {
+            const taskString = JSON.stringify(preTask)
+            const interpolated = interpolateTemplate(taskString, variables)
+            const task = JSON.parse(interpolated)
+
             switch (task.channel) {
                 case "obs": {
                     await handleObs(task.method, task.data)
