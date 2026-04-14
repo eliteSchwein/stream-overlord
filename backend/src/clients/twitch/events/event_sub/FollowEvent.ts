@@ -26,7 +26,7 @@ export default class FollowEvent extends BaseEvent {
             return
         }
 
-        triggerMacro('follow', {event: event, eventUuid: this.eventUuid})
+        await triggerMacro('follow', {event: event, eventUuid: this.eventUuid})
 
         //addAlert({
         //    'sound': theme.sound,
