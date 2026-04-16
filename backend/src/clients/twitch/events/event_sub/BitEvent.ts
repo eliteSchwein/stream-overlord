@@ -1,11 +1,10 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelCheerEvent} from "@twurple/eventsub-base";
-import {getAssetConfig} from "../../../../helper/ConfigHelper";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
-import {addAlert} from "../../../../helper/AlertHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
+import {triggerMacro} from "../../../../helper/MacroHelper";
 
 export default class BitEvent extends BaseEvent {
     name = 'Bits'
@@ -13,8 +12,6 @@ export default class BitEvent extends BaseEvent {
 
 
     async handle(event: EventSubChannelCheerEvent) {
-        const theme = getAssetConfig('bits')
-
         logRegular(`${event.bits} bits from ${event.userDisplayName}`)
 
         if(isShieldActive()) {
@@ -22,19 +19,21 @@ export default class BitEvent extends BaseEvent {
             return
         }
 
-        addAlert({
-            'sound': theme.sound,
-            'duration': 15,
-            'color': theme.color,
-            'icon': theme.icon,
-            'message': `${event.userDisplayName} haut ${event.bits} Bits raus`,
-            'event-uuid': this.eventUuid,
-            'video': theme.video,
-            'lamp_color': theme.lamp_color,
-            'volume': theme.volume,
-            'image': theme.image,
-            'channel': theme.channel,
-        })
+        await triggerMacro('bits', {event: event, eventUuid: this.eventUuid})
+
+        //addAlert({
+        //    'sound': theme.sound,
+        //    'duration': 15,
+        //    'color': theme.color,
+        //    'icon': theme.icon,
+        //    'message': `${event.userDisplayName} haut ${event.bits} Bits raus`,
+        //    'event-uuid': this.eventUuid,
+        //    'video': theme.video,
+        //    'lamp_color': theme.lamp_color,
+        //    'volume': theme.volume,
+        //    'image': theme.image,
+        //    'channel': theme.channel,
+        //})
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
     }

@@ -1,7 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelFollowEvent} from "@twurple/eventsub-base";
-import {getAssetConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
-import {addAlert} from "../../../../helper/AlertHelper";
+import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
