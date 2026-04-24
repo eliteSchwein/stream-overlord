@@ -1,5 +1,5 @@
 import {getAssetConfig, getConfig, getPrimaryChannel} from "./ConfigHelper";
-import getWebsocketServer, {getOBSClient, getTauonmbClient, getTwitchClient, getYoloboxClient} from "../App";
+import getWebsocketServer, {getOBSClient, getTwitchClient, getYoloboxClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {parsePlaceholders} from "./DataHelper";
@@ -8,281 +8,458 @@ import {colorNeopixel} from "./NeopixelHelper";
 import {toggleAutoMacro} from "./AutoMacroHelper";
 import {speak} from "./TTShelper";
 import {addAlert} from "./AlertHelper";
-import {v4 as uuidv4} from 'uuid';
+import {v4 as uuidv4} from "uuid";
 
-let macros = {}
+let macros: any = {};
 
 export default function loadMacros() {
-    logRegular('load macros')
-    macros = {}
-    const config = getConfig((/^macro /g), true)
+    logRegular("load macros");
+    macros = {};
 
-    for(const macroName in config) {
+    const config = getConfig(/^macro /g, true);
+
+    for (const macroName in config) {
         macros[macroName] = config[macroName];
     }
 
-    getWebsocketServer().send("notify_macro_update", { macros: macros })
+    getWebsocketServer().send("notify_macro_update", {macros});
 }
 
 export function getMacros() {
-    return macros
+    return macros;
 }
 
 export function isMacroPresent(name: string) {
-    return macros[name] !== undefined
+    return macros[name] !== undefined;
 }
 
 function getNestedValue(obj: any, path: string): any {
-    return path.split(".").reduce((acc, key) => acc?.[key], obj)
+    return path.split(".").reduce((acc, key) => acc?.[key], obj);
 }
 
 function interpolateTemplate(input: string, variables: any): string {
     return input.replace(/\$\{([^}]+)\}/g, (_, path) => {
-        const value = getNestedValue(variables, path.trim())
+        const value = getNestedValue(variables, path.trim());
 
         if (value === undefined || value === null) {
-            return ""
+            return "";
         }
 
         if (typeof value === "object") {
-            return JSON.stringify(value)
+            return JSON.stringify(value);
         }
 
-        return String(value)
-    })
+        return String(value);
+    });
+}
+
+function evaluateCheck(value: any, check: string = ""): boolean {
+    try {
+        return Boolean(Function("value", `return value ${check}`)(value));
+    } catch (error) {
+        logWarn(`invalid macro condition: value ${check}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return false;
+    }
+}
+
+function shouldExecute(controlStack: any[]): boolean {
+    return controlStack.every(block => block.active);
+}
+
+function parentsShouldExecute(controlStack: any[]): boolean {
+    return controlStack.slice(0, -1).every(block => block.active);
 }
 
 export async function triggerMacro(name: string, variables: any = {}) {
-    if(!macros[name]) {
-        return false
+    if (!macros[name]) {
+        return false;
     }
 
-    if(!variables) variables = {}
+    if (!variables) variables = {};
 
-    variables = {...variables, ...getTemplateVariables()}
+    variables = {
+        ...variables,
+        ...getTemplateVariables(),
+    };
 
-    const tasks = macros[name]['tasks']
+    const macroApis = macros[name]?.apis ?? [];
 
-    logNotice(`trigger ${tasks.length} tasks from ${name} macro`)
+    for (const macroApi of macroApis) {
+        const regex = new RegExp(`/api ${macroApi}`, "g");
+        const apiConfig = getConfig(regex)[0];
+
+        if (apiConfig?.url) {
+            variables = {
+                ...variables,
+                api: {
+                    ...(variables.api || {}),
+                    [macroApi]: await (await fetch(apiConfig.url)).json(),
+                },
+            };
+        }
+    }
+
+    const tasks = macros[name]?.tasks ?? [];
+
+    logNotice(`trigger ${tasks.length} tasks from ${name} macro`);
+
+    const controlStack: any[] = [];
 
     for (const preTask of tasks) {
         try {
-            const taskString = JSON.stringify(preTask)
-            const interpolated = interpolateTemplate(taskString, variables)
-            const task = JSON.parse(interpolated)
+            const taskString = JSON.stringify(preTask);
+            const interpolated = interpolateTemplate(taskString, variables);
+            const task = JSON.parse(interpolated);
+
+            if (task.channel === "condition") {
+                switch (task.method) {
+                    case "if": {
+                        const value = getNestedValue(variables, task.key);
+                        const active = shouldExecute(controlStack) && evaluateCheck(value, task.check);
+
+                        controlStack.push({
+                            active,
+                            branchTaken: active,
+                        });
+
+                        continue;
+                    }
+
+                    case "else_if": {
+                        const block = controlStack[controlStack.length - 1];
+
+                        if (!block) continue;
+
+                        const parentActive = parentsShouldExecute(controlStack);
+
+                        if (!parentActive || block.branchTaken) {
+                            block.active = false;
+                        } else {
+                            const value = getNestedValue(variables, task.key);
+                            const active = evaluateCheck(value, task.check);
+
+                            block.active = active;
+                            block.branchTaken = active;
+                        }
+
+                        continue;
+                    }
+
+                    case "else": {
+                        const block = controlStack[controlStack.length - 1];
+
+                        if (!block) continue;
+
+                        const parentActive = parentsShouldExecute(controlStack);
+
+                        block.active = parentActive && !block.branchTaken;
+                        block.branchTaken = true;
+
+                        continue;
+                    }
+
+                    case "end_if": {
+                        controlStack.pop();
+                        continue;
+                    }
+
+                    case "end_macro": {
+                        if (shouldExecute(controlStack)) {
+                            return true;
+                        }
+
+                        continue;
+                    }
+                }
+            }
+
+            if (!shouldExecute(controlStack)) {
+                continue;
+            }
 
             switch (task.channel) {
                 case "obs": {
-                    await handleObs(task.method, task.data)
-                    break
+                    await handleObs(task.method, task.data);
+                    break;
                 }
+
                 case "rest": {
-                    await handleRest(task.method, task.endpoint, task.data)
-                    break
+                    await handleRest(task.method, task.endpoint, task.data);
+                    break;
                 }
+
                 case "websocket": {
-                    handleWebsocket(task.method, task.data)
-                    break
+                    handleWebsocket(task.method, task.data);
+                    break;
                 }
+
                 case "function": {
-                    await handleFunction(task.method, task.data)
-                    break
+                    await handleFunction(task.method, task.data);
+                    break;
                 }
+
                 case "macro": {
-                    await triggerMacro(task.method)
-                    break
+                    await triggerMacro(task.method, variables);
+                    break;
                 }
+
                 case "webhook": {
-                    await handleWebhook(task.method, task.data)
-                    break
+                    await handleWebhook(task.method, task.data);
+                    break;
                 }
+
                 case "yolobox": {
-                    await handleYolobox(task.method, task.data)
-                    break
+                    await handleYolobox(task.method, task.data);
+                    break;
                 }
+
                 case "neopixel": {
-                    await handleNeopixel(task.method, task.data)
-                    break
+                    await handleNeopixel(task.method, task.data);
+                    break;
                 }
+
                 case "alert": {
-                    task.eventUuid = variables.eventUuid
-                    await handleAlert(task.message, task.asset, task.eventUuid)
-                    break
+                    task.eventUuid = variables.eventUuid;
+                    await handleAlert(task.message, task.asset, task.eventUuid);
+                    break;
+                }
+
+                case "channel_point": {
+                    await handleChannelPoint(task.method, variables.event);
+                    break;
                 }
             }
         } catch (error) {
-            logWarn(`task failed:`)
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logWarn(`task failed:`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
         }
     }
 
-    return true
+    return true;
 }
 
 async function handleYolobox(method: string, data: any) {
-    logRegular(`send yolobox command: ${method}`)
+    logRegular(`send yolobox command: ${method}`);
 
-    const yoloboxData = getYoloboxClient()?.getData()
+    const yoloboxData = getYoloboxClient()?.getData();
 
-    if(!yoloboxData) {
-        logWarn(`yolobox is currently not connected`)
-        return
+    if (!yoloboxData) {
+        logWarn(`yolobox is currently not connected`);
+        return;
     }
 
-    if(method === "order_material_change") {
-        for(const material of yoloboxData.MaterialList) {
-            if(data.id === 'all' && material.isSelected !== data.isSelected) {
-                getYoloboxClient()?.sendCommand({'data': {id: material.id, isSelected: data.isSelected}, 'orderID': 'order_material_change'})
+    if (method === "order_material_change") {
+        for (const material of yoloboxData.MaterialList) {
+            if (data.id === "all" && material.isSelected !== data.isSelected) {
+                getYoloboxClient()?.sendCommand({
+                    data: {
+                        id: material.id,
+                        isSelected: data.isSelected,
+                    },
+                    orderID: "order_material_change",
+                });
             }
 
-            if(material.id !== data.id) continue
-            if(material.isSelected === data.isSelected) return
+            if (material.id !== data.id) continue;
+            if (material.isSelected === data.isSelected) return;
         }
     }
 
-    if(data.id === 'all') return
+    if (data.id === "all") return;
 
-    getYoloboxClient()?.sendCommand({'data': data, 'orderID': method})
+    getYoloboxClient()?.sendCommand({
+        data,
+        orderID: method,
+    });
 }
 
-async function handleAlert(message: string, asset: string, eventUuid: string|undefined = un
-) {
-    const theme = getAssetConfig(asset)
+async function handleAlert(message: string, asset: string, eventUuid: string | undefined = undefined) {
+    const theme = getAssetConfig(asset);
 
-    if(!theme) {
-        logWarn(`no theme found for ${asset}`)
-        return
+    if (!theme) {
+        logWarn(`no theme found for ${asset}`);
+        return;
     }
 
-    if(!message) {
-        logWarn(`no message provided`)
-        return
+    if (!message) {
+        logWarn(`no message provided`);
+        return;
     }
 
-    if(!eventUuid) {
-        eventUuid = `macro_${uuidv4()}`
+    if (!eventUuid) {
+        eventUuid = `macro_${uuidv4()}`;
     }
 
     addAlert({
-        'sound': theme.sound,
-        'duration': 15,
-        'color': theme.color,
-        'icon': theme.icon,
-        'message':  message,
-        'event-uuid': eventUuid,
-        'video': theme.video,
-        'lamp_color': theme.lamp_color,
-        'volume': theme.volume,
-        'image': theme.image,
-        'channel': theme.channel,
-    })
+        sound: theme.sound,
+        duration: 15,
+        color: theme.color,
+        icon: theme.icon,
+        message,
+        "event-uuid": eventUuid,
+        video: theme.video,
+        lamp_color: theme.lamp_color,
+        volume: theme.volume,
+        image: theme.image,
+        channel: theme.channel,
+    });
 }
 
 async function handleWebhook(method: string, data: any) {
-    logRegular(`send webhook: ${method}`)
-
-    let webhookContent: any = {}
-    let webhookUrl: string = ''
+    logRegular(`send webhook: ${method}`);
 
     const regex = new RegExp(`webhook ${method}`, "g");
     const config = getConfig(regex)[0];
 
-    if(!config) {
-        logWarn(`no webhook config found for ${method}`)
-        return
+    if (!config) {
+        logWarn(`no webhook config found for ${method}`);
+        return;
     }
 
-    webhookUrl = config.url
+    const webhookContent = JSON.parse(
+        await parsePlaceholders(JSON.stringify(config.content), config.additional_data),
+    );
 
-    webhookContent = JSON.parse(await parsePlaceholders(JSON.stringify(config.content), config.additional_data))
-
-    await fetch(webhookUrl, {
+    await fetch(config.url, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
         body: JSON.stringify(webhookContent),
-    })
+    });
 }
 
 async function handleFunction(method: string, data: any) {
-    logRegular(`trigger function: ${method}`)
+    logRegular(`trigger function: ${method}`);
+
     switch (method) {
-        case 'toggle_auto_macro':
-            if(data.name && data.enabled) {
-                toggleAutoMacro(data.name, data.enabled)
+        case "toggle_auto_macro": {
+            if (data.name && data.enabled !== undefined) {
+                toggleAutoMacro(data.name, data.enabled);
             }
-            break
-        case 'sleep': {
-            await sleep(data.time)
-            break
+            break;
         }
-        case 'speak': {
-            await speak(data.content)
-            break
+
+        case "sleep": {
+            await sleep(data.time);
+            break;
         }
-        case 'send_message': {
-            const primaryChannel = getPrimaryChannel()
 
-            data.content = fillTemplate(data.content, {})
+        case "speak": {
+            await speak(data.content);
+            break;
+        }
 
-            await getTwitchClient().getBot().api.chat.sendChatMessage(primaryChannel, data.content)
-            break
+        case "send_message": {
+            const primaryChannel = getPrimaryChannel();
+
+            data.content = fillTemplate(data.content, {});
+
+            await getTwitchClient()
+                .getBot()
+                .api.chat.sendChatMessage(primaryChannel, data.content);
+
+            break;
+        }
+
+        case "send_dm": {
+            if (!data.user || !data.content) {
+                logWarn(`send_dm requires user and content`);
+                break;
+            }
+
+            const bot = getTwitchClient().getBot();
+
+            data.content = fillTemplate(data.content, {});
+
+            await bot.whisper(data.user, data.content);
+
+            break;
         }
     }
 }
 
 async function handleObs(method: string, data: any) {
-    const obsClient = getOBSClient()
+    const obsClient = getOBSClient();
 
-    logRegular(`trigger obs: ${method}`)
+    logRegular(`trigger obs: ${method}`);
 
-    if(method === 'reload_browser_sources') {
-        await obsClient.reloadAllBrowserScenes()
-        return
+    if (method === "reload_browser_sources") {
+        await obsClient.reloadAllBrowserScenes();
+        return;
     }
 
-    await obsClient.send(method, data)
+    await obsClient.send(method, data);
 }
 
 async function handleRest(method: string, endpoint: string, data: any) {
-    const config = getConfig((/^webserver/g))[0]
+    const config = getConfig(/^webserver/g)[0];
 
-    logRegular(`trigger rest: ${method}`)
+    logRegular(`trigger rest: ${method}`);
 
-    const url = `http://localhost:${config.port}/api/${endpoint}`
+    const url = `http://localhost:${config.port}/api/${endpoint}`;
 
     await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
+            Accept: "application/json",
+            "Content-Type": "application/json",
         },
-        body: JSON.stringify({state: method, data: data})
-    })
+        body: JSON.stringify({
+            state: method,
+            data,
+        }),
+    });
 }
 
 async function handleNeopixel(method: string, data: any) {
-    if(method !== "color") {
-        logWarn(`invalid neopixel method`)
-        return
-    }
-    if(!data.name) {
-        logWarn(`neopixel name missing`)
-        return
-    }
-    if(!data.color) {
-        logWarn(`neopixel color missing`)
-        return
+    if (method !== "color") {
+        logWarn(`invalid neopixel method`);
+        return;
     }
 
-    await colorNeopixel(data.name, data.color, data.index)
+    if (!data.name) {
+        logWarn(`neopixel name missing`);
+        return;
+    }
+
+    if (!data.color) {
+        logWarn(`neopixel color missing`);
+        return;
+    }
+
+    await colorNeopixel(data.name, data.color, data.index);
+}
+
+async function handleChannelPoint(method: string, event: any) {
+    if (!event) {
+        logWarn(`channel_point requires event`);
+        return;
+    }
+
+    switch (method) {
+        case "cancel": {
+            await event.updateStatus("CANCELED");
+            break;
+        }
+
+        case "accept": {
+            await event.updateStatus("FULFILLED");
+            break;
+        }
+
+        default: {
+            logWarn(`invalid channel_point method: ${method}`);
+            break;
+        }
+    }
 }
 
 function handleWebsocket(method: string, data: any) {
-    const websocket = getWebsocketServer()
+    const websocket = getWebsocketServer();
 
-    logRegular(`trigger websocket: ${method}`)
+    logRegular(`trigger websocket: ${method}`);
 
-    websocket.send(method, data)
+    websocket.send(method, data);
 }

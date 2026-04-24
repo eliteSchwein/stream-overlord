@@ -16,11 +16,11 @@ export default class BaseEvent {
     eventSubWs: EventSubWsListener
     bot: Bot
 
-    name: string
-    eventTypes = []
+    name: string = ""
+    eventTypes: string[] = []
     eventLimit = 25
     eventCooldown = 5
-    eventUuid: string
+    eventUuid: string|undefined = undefined
 
     public constructor(eventSubWs: EventSubWsListener, bot: Bot) {
         this.eventSubWs = eventSubWs
