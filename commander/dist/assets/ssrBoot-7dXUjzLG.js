@@ -1,0 +1,1 @@
+import{Bt as e,fn as t,ln as n,mn as r}from"./dimensions-CdKtlYH9.js";function i(){let i=t(!1);return e(()=>{window.requestAnimationFrame(()=>{i.value=!0})}),{ssrBootStyles:r(()=>i.value?void 0:{transition:`none !important`}),isBooted:n(i)}}export{i as t};
