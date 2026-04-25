@@ -27,12 +27,6 @@ export default class ChannelPointsEvent extends BaseEvent {
     async handleRegister() {
         const primaryChannel = getPrimaryChannel();
 
-        this.channelPoints.push(new BoostChannelPoint(this.eventSubWs, this.bot));
-        this.channelPoints.push(new FAChannelPoint(this.eventSubWs, this.bot));
-        this.channelPoints.push(new HudChannelPoint(this.eventSubWs, this.bot));
-        this.channelPoints.push(new TTSChannelPoint(this.eventSubWs, this.bot));
-        this.channelPoints.push(new ShieldPurgeChannelPoint(this.eventSubWs, this.bot));
-
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id);
         const rewardNames = presentChannelPoints.map(reward => reward.title);
         const configChannelPoints = getConfig(/channel_point /g);
@@ -176,7 +170,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                 }
 
                 case "macro": {
-                    const macroTriggered = await triggerMacro(configChannelPoint.trigger, {
+                    const macroTriggered = await triggerMacro(configChannelPoint.macro, {
                         event,
                         eventUuid,
                         channelPoint: {

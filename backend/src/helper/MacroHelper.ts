@@ -225,6 +225,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
                     break;
                 }
 
+                case "dummy_alert": {
+                    await handleDummyAlert(task, variables);
+                    break;
+                }
+
                 case "channel_point": {
                     await handleChannelPoint(task.method, variables.event);
                     break;
@@ -237,6 +242,22 @@ export async function triggerMacro(name: string, variables: any = {}) {
     }
 
     return true;
+}
+
+async function handleDummyAlert(task: any, variables: any) {
+    if (!task.message) {
+        logWarn(`dummy_alert requires message`);
+        return;
+    }
+
+    addAlert({
+        dummy: true,
+        duration: task.duration ?? 5,
+        icon: task.icon ?? "",
+        message: task.message,
+        "event-uuid": variables.eventUuid ?? `macro_${uuidv4()}`,
+        speak: task.speak ?? false,
+    });
 }
 
 async function handleYolobox(method: string, data: any) {
