@@ -8,7 +8,7 @@ export default class MarqueeController extends BaseController {
             if(this.element.innerHTML === this.currentContent) return
             this.currentContent = this.element.innerHTML
 
-            this.addMarquee()
+            requestAnimationFrame(() => this.addMarquee());
         })
 
         observer.observe(this.element, {
@@ -23,19 +23,17 @@ export default class MarqueeController extends BaseController {
     }
 
     private addMarquee() {
-        const visibleWidth = this.element.parentElement.clientWidth
-        const fullWidth = Math.ceil(this.element.getBoundingClientRect().width)
         const parentElement = this.element.parentElement as HTMLDivElement;
+        if (!parentElement) return;
 
+        // Reset first so measurement is based on normal layout
+        parentElement.classList.remove('marquee');
+
+        const visibleWidth = parentElement.clientWidth;
+        const fullWidth = Math.ceil(this.element.scrollWidth);
 
         if (fullWidth > visibleWidth) {
-            if(!parentElement.classList.contains('marquee')) {
-                parentElement.classList.add('marquee');
-            }
-        } else {
-            if(parentElement.classList.contains('marquee')) {
-                parentElement.classList.remove('marquee');
-            }
+            parentElement.classList.add('marquee');
         }
     }
 }
