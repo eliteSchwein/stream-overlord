@@ -86,7 +86,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
     const macroApis = macros[name]?.apis ?? [];
 
     for (const macroApi of macroApis) {
-        const regex = new RegExp(`/api ${macroApi}`, "g");
+        const regex = new RegExp(`api ${macroApi}`, "g");
         const apiConfig = getConfig(regex)[0];
 
         if (apiConfig?.url) {
@@ -113,10 +113,13 @@ export async function triggerMacro(name: string, variables: any = {}) {
             const task = JSON.parse(interpolated);
 
             if (task.channel === "condition") {
+                logRegular(`test condition: ${task.method} ${task.check ?? ''}`);
+
                 switch (task.method) {
                     case "if": {
-                        const value = getNestedValue(variables, task.key);
-                        const active = shouldExecute(controlStack) && evaluateCheck(value, task.check);
+                        const active =
+                            shouldExecute(controlStack) &&
+                            evaluateCondition(task.check, variables);
 
                         controlStack.push({
                             active,
@@ -136,8 +139,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
                         if (!parentActive || block.branchTaken) {
                             block.active = false;
                         } else {
-                            const value = getNestedValue(variables, task.key);
-                            const active = evaluateCheck(value, task.check);
+                            const active = evaluateCondition(task.check, variables);
 
                             block.active = active;
                             block.branchTaken = active;
@@ -474,6 +476,32 @@ async function handleChannelPoint(method: string, event: any) {
             logWarn(`invalid channel_point method: ${method}`);
             break;
         }
+    }
+}
+
+function evaluateCondition(check: any, variables: any) {
+    if (!check || typeof check !== "string") return false;
+
+    const expression = check.replace(/\$\{([^}]+)\}/g, (_, path) => {
+        const value = getNestedValue(variables, path.trim());
+
+        if (typeof value === "string") {
+            return value.replace(/'/g, "\\'");
+        }
+
+        if (value === undefined || value === null) {
+            return "";
+        }
+
+        return String(value);
+    });
+
+    try {
+        return Function(`"use strict"; return (${expression});`)() === true;
+    } catch (err) {
+        // @ts-ignore
+        logRegular(`condition error: ${check} -> ${err['message'] ?? 'NA/'}`);
+        return false;
     }
 }
 
