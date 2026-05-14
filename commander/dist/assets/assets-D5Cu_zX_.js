@@ -1,0 +1,1 @@
+import{Ct as e,Et as t,O as n,Tt as r,Wn as i,jn as a}from"./index-BIlfhX0K.js";var o={computed:{...t(r,[`getAssets`])},methods:{}};function s(e,t,r,o,s,c){return i(),a(n,{class:`overflow-auto mx-auto`,"max-height":`100%`,elevation:`0`,color:`transparent`,"max-width":`100%`})}var c=e(o,[[`render`,s]]);export{c as default};
