@@ -16033,11 +16033,11 @@
     }
   };
 
-  // frontend/src/js/controller/TauonmbController.ts
-  var TauonmbController = class extends BaseController {
+  // frontend/src/js/controller/MusicController.ts
+  var MusicController = class extends BaseController {
     constructor() {
       super(...arguments);
-      __publicField(this, "websocketEndpoints", ["notify_tauonmb_update", "notify_tauonmb_show"]);
+      __publicField(this, "websocketEndpoints", ["notify_music_update", "notify_music_show"]);
       __publicField(this, "image", {
         trackId: "",
         small: "",
@@ -16054,7 +16054,7 @@
       __publicField(this, "testMode", false);
     }
     async handleMessage(websocket, method, data) {
-      if (method === "notify_tauonmb_show") {
+      if (method === "notify_music_show") {
         void this.showPlayer();
         return;
       }
@@ -16063,7 +16063,7 @@
         this.showPlayer();
         return;
       }
-      if (method !== "notify_tauonmb_update") return;
+      if (method !== "notify_music_update") return;
       if (this.image.trackId === "" && !data.image && !data.status) return;
       if (data.image) {
         this.image = data.image;
@@ -16209,6 +16209,86 @@
     }
   };
 
+  // frontend/src/js/controller/CavaController.ts
+  var CavaController = class extends BaseController {
+    constructor() {
+      super(...arguments);
+      __publicField(this, "websocketEndpoints", ["notify_music_cava", "notify_music_update"]);
+      __publicField(this, "bars", []);
+      __publicField(this, "values", []);
+      __publicField(this, "smoothedValues", []);
+      __publicField(this, "cavaBuffer", "");
+      __publicField(this, "expectedBarCount", 0);
+      __publicField(this, "smoothing", 0.45);
+      __publicField(this, "falloff", 6);
+    }
+    async connect() {
+      super.connect?.();
+      this.element.classList.add("cava-controller");
+    }
+    async handleMessage(websocket, method, data) {
+      if (method !== "notify_music_cava") return;
+      const frames = this.parseCavaFrames(String(data?.raw ?? ""));
+      for (const values of frames) {
+        if (!values.length) continue;
+        if (!this.expectedBarCount) {
+          this.expectedBarCount = values.length;
+          this.ensureBars(values.length);
+        }
+        if (values.length !== this.expectedBarCount) {
+          continue;
+        }
+        this.values = values;
+        this.smoothValues();
+        this.render();
+      }
+    }
+    async handleGameUpdate(websocket, data) {
+      if (this.element.hasAttribute("data-disable-theme")) return;
+      for (const bar of this.bars) {
+        bar.style.background = data.theme.color;
+      }
+    }
+    parseCavaFrames(raw) {
+      if (!raw) return [];
+      this.cavaBuffer += raw;
+      const lines = this.cavaBuffer.split(/\r?\n/);
+      this.cavaBuffer = lines.pop() ?? "";
+      return lines.map((line) => line.trim()).filter((line) => line.length > 0).map(
+        (line) => line.split(/[;,\s]+/).map((value) => Number(value)).filter((value) => Number.isFinite(value)).map((value) => Math.max(0, Math.min(100, value)))
+      ).filter((values) => values.length > 0);
+    }
+    ensureBars(count) {
+      if (this.bars.length === count) return;
+      this.element.innerHTML = "";
+      this.bars = [];
+      this.smoothedValues = new Array(count).fill(0);
+      for (let i = 0; i < count; i++) {
+        const bar = document.createElement("div");
+        bar.classList.add("cava-bar");
+        this.element.appendChild(bar);
+        this.bars.push(bar);
+      }
+    }
+    smoothValues() {
+      for (let i = 0; i < this.values.length; i++) {
+        const target = this.values[i] ?? 0;
+        const current = this.smoothedValues[i] ?? 0;
+        if (target > current) {
+          this.smoothedValues[i] = current + (target - current) * this.smoothing;
+        } else {
+          this.smoothedValues[i] = Math.max(target, current - this.falloff);
+        }
+      }
+    }
+    render() {
+      for (let i = 0; i < this.bars.length; i++) {
+        const value = this.smoothedValues[i] ?? 0;
+        this.bars[i].style.height = value > 0 ? `${Math.max(3, value)}%` : "0%";
+      }
+    }
+  };
+
   // frontend/src/App.ts
   var websocketClient;
   void init2();
@@ -16232,10 +16312,11 @@
     stimulus.register("shoutout", ShoutoutController);
     stimulus.register("info", InfoController);
     stimulus.register("source_background", SourceBackgroundController);
-    stimulus.register("tauonmb", TauonmbController);
+    stimulus.register("music", MusicController);
     stimulus.register("visible", VisibleController);
     stimulus.register("marquee", MarqueeController);
     stimulus.register("iframe", IFrameController);
+    stimulus.register("cava", CavaController);
     await sleep(250);
     websocketClient.registerEndpoints(["notify_game_update", "notify_shield_mode", "notify_test_mode"]);
   }

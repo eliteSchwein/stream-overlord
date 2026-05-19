@@ -20,6 +20,8 @@ import fillTemplate from "../../helper/TemplateHelper";
 import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
 import {hasModerator, hasVip} from "./helper/PermissionHelper";
 import {isShowErrorMessage} from "../../helper/CommandHelper";
+import {SongRequestToggleCommand} from "./commands/SongRequestToggleCommand";
+import SongRequestCommand from "./commands/SongRequestCommand";
 
 export default function buildCommands(bot: Bot) {
     let commands: any[] = [];
@@ -40,6 +42,8 @@ export default function buildCommands(bot: Bot) {
     commands = commands.concat(new StartRotatingSceneCommand(bot).register());
     commands = commands.concat(new ListMacrosCommand(bot).register());
     commands = commands.concat(new GiveawayEnterCommand(bot).register());
+    commands = commands.concat(new SongRequestToggleCommand(bot).register());
+    commands = commands.concat(new SongRequestCommand(bot).register());
 
     // configured commands
     commands = buildConfigCommands(commands);

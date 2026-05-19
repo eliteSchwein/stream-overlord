@@ -15,7 +15,6 @@ import {initAudio} from "./helper/AudioHelper";
 import loadMacros from "./helper/MacroHelper";
 import {updateSystemComponents, updateSystemInfo} from "./helper/SystemInfoHelper";
 import {updateSourceFilters} from "./helper/SourceHelper";
-import TauonmbClient from "./clients/tauonmb/TauonmbClient";
 import {initGpio, killGpio} from "./helper/SystemHelper";
 import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
 import {compressAssets} from "./helper/AssetTuneHelper";
@@ -24,12 +23,12 @@ import * as apiModules from "./api";
 import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
 import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
 import {initNeopixels} from "./helper/NeopixelHelper";
+import {cleanupAllStreambotAudio, loadMusicConfig, startMusicPlayer, stopMusicPlayer} from "./helper/MusicHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
 let webServer: WebServer
 let obsClient: OBSClient
-let tauonmbClient: TauonmbClient
 let yoloboxClient: YoloboxClient
 
 let ready = false
@@ -51,6 +50,8 @@ async function init() {
     websocketServer.registerEvents()
     logSuccess('websocket server is ready')
 
+    await cleanupAllStreambotAudio()
+
     webServer = new WebServer()
     await webServer.initial()
 
@@ -64,6 +65,7 @@ async function init() {
     await twitchClient.connect()
     await registerPermissions(twitchClient.getBot())
     registerPermissionInterval(twitchClient.getBot())
+
 
     try {
         stage = 'OBS connection'
@@ -89,11 +91,6 @@ async function init() {
     stage = 'Fetching Game Info'
 
     await fetchGameInfo()
-
-    stage = 'connecting tauonmb...'
-    logRegular("connect tauonmb client")
-    tauonmbClient = new TauonmbClient()
-    await tauonmbClient.init()
 
     stage = 'starting schedulers...'
     logRegular('initial schedulers')
@@ -143,6 +140,11 @@ async function init() {
     stage = 'starting auto macros...'
     initAutoMacros()
 
+
+    stage = 'starting music player...'
+    loadMusicConfig()
+    await startMusicPlayer()
+
     logSuccess('backend is ready')
     ready = true
     stage = 'Finished'
@@ -164,10 +166,6 @@ export function getWebServer() {
 
 export function getOBSClient() {
     return obsClient
-}
-
-export function getTauonmbClient() {
-    return tauonmbClient
 }
 
 export async function registerApiEndpoints() {
@@ -214,6 +212,9 @@ export async function reload() {
 
         initAutoMacros()
 
+        loadMusicConfig()
+        await startMusicPlayer()
+
         logSuccess('reload finished')
 
         getWebsocketServer().send("notify_config_update", {data: getRawConfig()})
@@ -230,6 +231,7 @@ export function getYoloboxClient() {
 }
 
 process.on('SIGINT', () => {
+    void stopMusicPlayer()
     killGpio()
     process.exit()
 })

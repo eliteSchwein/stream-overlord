@@ -20,6 +20,8 @@ declare module 'vue' {
     Game: typeof import('./components/Game.vue')['default']
     Giveaway: typeof import('./components/Giveaway.vue')['default']
     Macro: typeof import('./components/Macro.vue')['default']
+    MuscControls: typeof import('./components/MuscControls.vue')['default']
+    MusicControls: typeof import('./components/MusicControls.vue')['default']
     Navigation: typeof import('./components/Navigation.vue')['default']
     ObsAudio: typeof import('./components/obs/ObsAudio.vue')['default']
     OBSSettings: typeof import('./components/obs/OBSSettings.vue')['default']

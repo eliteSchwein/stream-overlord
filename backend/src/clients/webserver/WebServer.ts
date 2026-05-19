@@ -6,12 +6,10 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import TestApi from "./api/TestApi";
 import * as bodyParser from "body-parser";
-import TauonStatusApi from "./api/Tauonmb/TauonStatusApi";
-import TauonNextApi from "./api/Tauonmb/TauonNextApi";
-import TauonBackApi from "./api/Tauonmb/TauonBackApi";
 import { registerApiEndpoints } from "../../App";
 import { Server } from "node:http";
 import YoloboxPreviewApi from "./api/Yolobox/YoloboxPreviewApi";
+import MusicPlaylistAddApi from "./api/Music/MusicPlaylistAddApi";
 
 export default class WebServer {
     app: Express;
@@ -86,10 +84,8 @@ export default class WebServer {
             res.json(getConfig());
         });
 
-        // Tauon API
-        new TauonStatusApi().register(this.app);
-        new TauonNextApi().register(this.app);
-        new TauonBackApi().register(this.app);
+        // Music API
+        new MusicPlaylistAddApi().register(this.app)
 
         // Yolobox API
         new YoloboxPreviewApi().register(this.app);

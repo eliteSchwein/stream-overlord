@@ -1,9 +1,8 @@
 import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
-import {sleep} from "../../../../helper/GeneralHelper";
 
-export default class TauonmbController extends BaseController {
-    websocketEndpoints = ['notify_tauonmb_update', 'notify_tauonmb_show']
+export default class MusicController extends BaseController {
+    websocketEndpoints = ['notify_music_update', 'notify_music_show']
 
     protected image = {
         trackId: '',
@@ -21,7 +20,7 @@ export default class TauonmbController extends BaseController {
     protected testMode = false
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method === 'notify_tauonmb_show') {
+        if(method === 'notify_music_show') {
             void this.showPlayer()
             return
         }
@@ -30,7 +29,7 @@ export default class TauonmbController extends BaseController {
             this.showPlayer()
             return
         }
-        if(method !== 'notify_tauonmb_update') return
+        if(method !== 'notify_music_update') return
 
         if(this.image.trackId === '' && !data.image && !data.status) return
 

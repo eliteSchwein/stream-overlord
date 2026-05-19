@@ -32,13 +32,14 @@ import ToggleController from "./js/controller/ToggleController";
 import ShoutoutController from "./js/controller/ShoutoutController";
 import InfoController from "./js/controller/InfoController";
 import SourceBackgroundController from "./js/controller/SourceBackgroundController";
-import TauonmbController from "./js/controller/TauonmbController";
+import MusicController from "./js/controller/MusicController";
 import VisibleController from "./js/controller/VisibleController";
 import {sleep} from "../../helper/GeneralHelper";
 import MarqueeController from "./js/controller/MarqueeController";
 import ContenController from "./js/controller/ContenController";
 import IFrameController from "./js/controller/IFrameController";
 import {initEffects} from "./js/helper/EffectHelper";
+import CavaController from "./js/controller/CavaController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -68,10 +69,11 @@ async function init(){
     stimulus.register('shoutout', ShoutoutController)
     stimulus.register('info', InfoController)
     stimulus.register('source_background', SourceBackgroundController)
-    stimulus.register('tauonmb', TauonmbController)
+    stimulus.register('music', MusicController)
     stimulus.register('visible', VisibleController)
     stimulus.register('marquee', MarqueeController)
     stimulus.register('iframe', IFrameController)
+    stimulus.register('cava', CavaController)
 
     await sleep(250)
 

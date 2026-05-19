@@ -8,7 +8,7 @@ import {getActiveChannelPoints} from "../../helper/ChannelPointHelper";
 import {getAudioData} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
-import {getOBSClient, getTauonmbClient, getYoloboxClient} from "../../App";
+import {getOBSClient, getYoloboxClient} from "../../App";
 import getGameInfo from "../../helper/GameHelper";
 import {getAllVisibleElements, isTestModeActive, toggleElementVisiblity} from "../../helper/VisibleHelper";
 import {getVoices} from "../../helper/TTShelper";
@@ -18,6 +18,7 @@ import {getTemplateVariables} from "../../helper/TemplateHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
 import BaseApi from "../../abstracts/BaseApi";
 import {getParsedAssetFiles} from "../../helper/AssetHelper";
+import {getStatus} from "../../helper/MusicHelper";
 
 
 export default class WebsocketServer {
@@ -30,7 +31,6 @@ export default class WebsocketServer {
         'notify_effect',
         'notify_toggle_element',
         'notify_shoutout_clip',
-        'notify_tauonmb_update',
         'notify_source_update',
         'notify_system_info',
         'notify_audio_update',
@@ -45,7 +45,6 @@ export default class WebsocketServer {
         'notify_config_update',
         'notify_obs_scene_update',
         'notify_obs_audio_update',
-        'notify_tauonmb_show',
         'notify_test_mode',
         'notify_power_button',
         'notify_voice_list_update',
@@ -53,7 +52,10 @@ export default class WebsocketServer {
         'notify_auto_macros_update',
         'notify_variables_update',
         'notify_giveaway_update',
-        'notify_yolobox_update'
+        'notify_yolobox_update',
+        'notify_music_show',
+        'notify_music_update',
+        'notify_music_cava'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -176,7 +178,7 @@ export default class WebsocketServer {
                 this.send("notify_audio_update", getAudioData(), client)
                 this.send("notify_system_info", getSystemInfo(), client)
                 this.send("notify_source_update", getSourceFilters(), client)
-                this.send("notify_tauonmb_update", getTauonmbClient()?.getStatus(), client)
+                this.send("notify_music_update", getStatus(), client)
                 this.send("notify_connection", this.getConnections(), client)
                 this.send("notify_obs_scene_update", getOBSClient()?.getSceneData(), client)
                 this.send("notify_obs_audio_update", getOBSClient()?.getAudioData(), client)

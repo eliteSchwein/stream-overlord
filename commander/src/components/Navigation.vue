@@ -234,6 +234,11 @@ export default {
         title="/assets"
         color=""
         to="/assets"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-music"
+        title="/music"
+        color=""
+        to="/music"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>Streaming Dienste</v-list-subheader>
       <v-list-item

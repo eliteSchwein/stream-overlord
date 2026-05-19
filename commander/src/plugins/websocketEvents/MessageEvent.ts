@@ -22,6 +22,7 @@ import NotifyYoloboxUpdateMessage from "@/plugins/websocketEvents/websocketMessa
 import NotifyObsAudioUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyObsAudioUpdateMessage.ts";
 import NotifyAssetsUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAssetsUpdateMessage.ts";
 import NotifyDisconnectMessage from "@/plugins/websocketEvents/websocketMessage/NotifyDisconnectMessage.ts";
+import NotifyMusicUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyMusicUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -56,5 +57,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyYoloboxUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyObsAudioUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyAssetsUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyMusicUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

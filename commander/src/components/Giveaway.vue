@@ -142,7 +142,7 @@ export default {
   </v-card-item>
   <v-card-item v-else>
     <v-row>
-      <v-col cols="12" md="8" xl="10">
+      <v-col cols="12" md="6" xl="8">
         <v-text-field
           class="mt-1"
           label="Was wird verlost?"
@@ -152,7 +152,7 @@ export default {
           hide-details
         ></v-text-field>
       </v-col>
-      <v-col cols="9" md="2" xl="1">
+      <v-col cols="9" md="3" xl="2">
         <v-select
           class="mt-1"
           label="Dauer"
@@ -163,7 +163,7 @@ export default {
           hide-details
         ></v-select>
       </v-col>
-      <v-col cols="3" md="2" xl="1">
+      <v-col cols="3" md="3" xl="2">
         <v-btn @click="sendGiveaway" prepend-icon="mdi-send" variant="tonal" class="mt-1" width="100%">Erstellen</v-btn>
       </v-col>
     </v-row>
