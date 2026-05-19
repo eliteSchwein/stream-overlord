@@ -236,6 +236,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
                     await handleChannelPoint(task.method, variables.event);
                     break;
                 }
+
+                case "effect": {
+                    handleEffect(task.method, task.data)
+                    break
+                }
             }
         } catch (error) {
             logWarn(`task failed:`);
@@ -511,4 +516,17 @@ function handleWebsocket(method: string, data: any) {
     logRegular(`trigger websocket: ${method}`);
 
     websocket.send(method, data);
+}
+
+function handleEffect(method: string, data: any) {
+    const websocket = getWebsocketServer()
+
+    logRegular(`trigger effect: ${method}`)
+
+    websocket.send('notify_effect', {
+        target: data.target,
+        effect: method,
+        content: data.content ?? '',
+        options: data.options ?? {},
+    })
 }

@@ -38,6 +38,7 @@ import {sleep} from "../../helper/GeneralHelper";
 import MarqueeController from "./js/controller/MarqueeController";
 import ContenController from "./js/controller/ContenController";
 import IFrameController from "./js/controller/IFrameController";
+import {initEffects} from "./js/helper/EffectHelper";
 
 // variables
 let websocketClient: WebsocketClient
@@ -49,6 +50,7 @@ async function init(){
     await fetchConfig()
 
     await loadFull(tsParticles);
+    await initEffects()
 
     websocketClient = new WebsocketClient()
     await websocketClient.connect()
