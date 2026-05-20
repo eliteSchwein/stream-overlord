@@ -38,6 +38,7 @@ export const useAppStore = defineStore('app', {
     yoloboxData: {},
     obsAudioData: {},
     musicData: {},
+    musicCavaData: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -73,6 +74,7 @@ export const useAppStore = defineStore('app', {
     getAssets: (state) => state.assets,
     getStatus: (state) => state.status,
     getMusicData: (state) => state.musicData,
+    getMusicCavaData: (state) => state.musicCavaData
   },
   actions: {
     async fetchConfig() {
@@ -189,6 +191,10 @@ export const useAppStore = defineStore('app', {
     setMusicData(musicData: any) {
       this.musicData = musicData
       this.$patch(state => state.musicData = musicData)
+    },
+    setMusicCavaData(musicCavaData: any) {
+      this.musicCavaData = musicCavaData
+      this.$patch(state => state.musicCavaData = musicCavaData)
     },
     async fetchStatus(): Promise<any> {
       let status = 'Unknown'
