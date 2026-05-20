@@ -3,6 +3,8 @@ import {
     existsSync,
     mkdirSync,
     readdirSync,
+    readFileSync,
+    renameSync,
     rmSync,
     unlinkSync,
     writeFileSync,
@@ -19,26 +21,41 @@ import https from 'https'
 const songRequestPath = '/tmp/songrequests'
 const mpvSocketPath = '/tmp/streambot-music-mpv.sock'
 const cavaConfigPath = '/tmp/streambot-cava.conf'
+const musicStatePath = '/tmp/streambot-music-state.json'
 const streambotMusicSink = 'streambot_music'
 
 let musicPath = '$HOME/Music/Streambot'
 let songRequestEnabled = false
 let cavaEnabled = false
-
 let mpvProcess: ChildProcessWithoutNullStreams | null = null
 let cavaProcess: ChildProcessWithoutNullStreams | null = null
 let mpvEventSocket: Socket | null = null
 let musicUpdateInterval: ReturnType<typeof setInterval> | null = null
 let streambotLoopbackModuleId: string | null = null
 let streambotLoopbackSinkInputId: string | null = null
-
 let status: any = null
-
 let songRequestQueue: string[] = []
 let songRequestTitleMap: Record<string, string> = {}
 let songRequestBlocklist: string[] = []
 let currentRequestIndex = 0
 let songRequestBusy = false
+let pendingMusicCrashState: MusicCrashState | null = null
+let suppressMusicStateWrite = true
+
+type MusicCrashState = {
+    path: string | null
+    filename: string | null
+    title: string
+    artist: string
+    progress: number
+    duration: number
+    paused: boolean
+    songrequest_enabled: boolean
+    songrequest_active: boolean
+    current_is_songrequest: boolean
+    songrequest_current_url: string | null
+    updated_at: string
+}
 
 export function loadMusicConfig() {
     logRegular('init musicplayer')
@@ -51,7 +68,6 @@ export function loadMusicConfig() {
 
     mkdirSync(songRequestPath, { recursive: true })
 }
-
 
 function getInitialMusicVolumePercent(): number {
     const audioData: any = getAudioData()
@@ -72,7 +88,15 @@ function getInitialMusicVolumePercent(): number {
 }
 
 export async function startMusicPlayer() {
+    suppressMusicStateWrite = true
+
     await stopMusicPlayer()
+
+    pendingMusicCrashState = readMusicCrashState()
+
+    if (pendingMusicCrashState?.songrequest_enabled === true) {
+        songRequestEnabled = true
+    }
 
     if (songRequestEnabled) {
         await prepareSongRequestCache()
@@ -95,6 +119,7 @@ export async function startMusicPlayer() {
     await setupStreambotAudioSink()
 
     const initialVolume = getInitialMusicVolumePercent()
+
     const mpvArgs = [
         '--loop-playlist=inf',
         '--no-video',
@@ -138,6 +163,8 @@ export async function startMusicPlayer() {
     startMpvEventListener()
     startMusicUpdateInterval()
 
+    await applyMusicCrashState()
+
     if (cavaEnabled) {
         startCavaFeed()
     }
@@ -145,9 +172,11 @@ export async function startMusicPlayer() {
     await sync()
 
     logSuccess('music player is ready')
+    suppressMusicStateWrite = false
 }
 
 export async function stopMusicPlayer() {
+    suppressMusicStateWrite = true
     stopCavaFeed()
     stopMpvEventListener()
     stopMusicUpdateInterval()
@@ -167,6 +196,7 @@ export async function stopMusicPlayer() {
             if (!process.killed) {
                 process.kill('SIGKILL')
             }
+
             resolve()
         }, 1000)
 
@@ -220,6 +250,7 @@ export async function toggleSongRequest(): Promise<boolean> {
 
 function unwrapDeezerLinkUrl(url: string): string {
     const parsed = new URL(url)
+
     const realUrl =
         parsed.searchParams.get('dest') ??
         parsed.searchParams.get('awf') ??
@@ -300,6 +331,9 @@ export async function addSongRequest(url: string): Promise<boolean> {
 
 export async function sync() {
     status = await getMusicUpdate()
+
+    writeMusicCrashState(status)
+
     getWebsocketServer().send('notify_music_update', status)
 }
 
@@ -391,9 +425,7 @@ export async function deleteSong(filename: string) {
     delete songRequestTitleMap[safeFilename]
 
     const currentPath = await mpvGetProperty('path')
-    const isCurrentSong =
-        currentPath === targetFile ||
-        path.basename(currentPath ?? '') === safeFilename
+    const isCurrentSong = currentPath === targetFile || path.basename(currentPath ?? '') === safeFilename
 
     if (isCurrentSong) {
         await mpvCommand(['playlist-next', 'force'])
@@ -405,7 +437,6 @@ export async function deleteSong(filename: string) {
     if (existsSync(targetFile)) {
         rmSync(targetFile, { force: true })
     }
-
 
     await sleep(150)
     await sync()
@@ -429,25 +460,17 @@ async function getMusicUpdate() {
     return {
         status: current.pause ? 'paused' : 'playing',
         path: getActiveMusicPath(),
-
         volume,
         progress: current.progress,
-        progress_percentage: current.duration > 0
-            ? (current.progress / current.duration) * 100
-            : 0,
-
+        progress_percentage: current.duration > 0 ? (current.progress / current.duration) * 100 : 0,
         position: current.position,
         duration: current.duration,
-
         title: current.title,
         artist: current.artist,
         album: current.album,
-
         track: current,
-
         playlist,
         playlist_length: Array.isArray(playlist) ? playlist.length : 0,
-
         songrequest: getSongRequestState(),
     }
 }
@@ -472,21 +495,14 @@ function getSongRequestState() {
 
 async function getCurrentMusic() {
     const metadata = await mpvGetProperty('metadata') ?? {}
-
     const duration = secondsToMs(await mpvGetProperty('duration'))
     const position = secondsToMs(await mpvGetProperty('time-pos'))
-
     const filename = await mpvGetProperty('filename')
     const mediaTitle = await mpvGetProperty('media-title')
 
     return {
         title: metadata.title ?? metadata.TITLE ?? mediaTitle ?? filename ?? '',
-        artist:
-            metadata.artist ??
-            metadata.ARTIST ??
-            metadata.album_artist ??
-            metadata.ALBUMARTIST ??
-            '',
+        artist: metadata.artist ?? metadata.ARTIST ?? metadata.album_artist ?? metadata.ALBUMARTIST ?? '',
         album: metadata.album ?? metadata.ALBUM ?? '',
         album_artist: metadata.album_artist ?? metadata.ALBUMARTIST ?? '',
         duration,
@@ -495,12 +511,7 @@ async function getCurrentMusic() {
         path: await mpvGetProperty('path'),
         filename,
         pause: await mpvGetProperty('pause'),
-        track_number:
-            metadata.track ??
-            metadata.TRACK ??
-            metadata.tracknumber ??
-            metadata.TRACKNUMBER ??
-            '',
+        track_number: metadata.track ?? metadata.TRACK ?? metadata.tracknumber ?? metadata.TRACKNUMBER ?? '',
     }
 }
 
@@ -515,12 +526,99 @@ async function getPlaylist() {
         const file = item.filename ?? item.path ?? ''
 
         if (!file) return false
-
         if (file === getActiveMusicPath()) return false
         if (path.resolve(file) === path.resolve(getActiveMusicPath())) return false
 
         return true
     })
+}
+
+function readMusicCrashState(): MusicCrashState | null {
+    if (!existsSync(musicStatePath)) return null
+
+    try {
+        return JSON.parse(readFileSync(musicStatePath, 'utf8')) as MusicCrashState
+    } catch (error) {
+        logWarn('failed to read music crash state')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        return null
+    }
+}
+
+function writeMusicCrashState(data: any) {
+    const track = data?.track ?? {}
+    const trackPath = track.path ?? null
+    const filename = track.filename ?? (trackPath ? path.basename(trackPath) : null)
+
+    if(suppressMusicStateWrite) return
+
+    const state: MusicCrashState = {
+        path: trackPath,
+        filename,
+        title: data?.title ?? track.title ?? '',
+        artist: data?.artist ?? track.artist ?? '',
+        progress: Number(data?.progress ?? track.progress ?? 0),
+        duration: Number(data?.duration ?? track.duration ?? 0),
+        paused: data?.status === 'paused' || track.pause === true,
+        songrequest_enabled: songRequestEnabled,
+        songrequest_active: songRequestEnabled,
+        current_is_songrequest: typeof trackPath === 'string' && trackPath.startsWith(songRequestPath),
+        songrequest_current_url: data?.songrequest?.current_url ?? null,
+        updated_at: new Date().toISOString(),
+    }
+
+    try {
+        const tmpPath = `${musicStatePath}.tmp`
+        writeFileSync(tmpPath, JSON.stringify(state, null, 2))
+        renameSync(tmpPath, musicStatePath)
+    } catch (error) {
+        logWarn('failed to write music crash state')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
+}
+
+async function applyMusicCrashState() {
+    const state = pendingMusicCrashState ?? readMusicCrashState()
+    pendingMusicCrashState = null
+
+    if (!state) return
+    if (!state.path && !state.filename) return
+    if (!mpvProcess || !existsSync(mpvSocketPath)) return
+
+    logRegular('apply music crash state')
+
+    const playlist = await getPlaylist()
+    const wantedPath = state.path
+    const wantedFilename = state.filename
+
+    const index = playlist.findIndex((item: any) => {
+        const itemPath = item.filename ?? item.path ?? ''
+
+        if (wantedPath && itemPath === wantedPath) return true
+        if (wantedPath && path.resolve(itemPath) === path.resolve(wantedPath)) return true
+        if (wantedFilename && path.basename(itemPath) === wantedFilename) return true
+
+        return false
+    })
+
+    if (index !== -1) {
+        await mpvCommand(['set_property', 'playlist-pos', index])
+    } else if (wantedPath && existsSync(wantedPath)) {
+        await mpvCommand(['loadfile', wantedPath, 'replace'])
+    } else {
+        logWarn('music crash recovery skipped: previous song not found')
+        return
+    }
+
+    await sleep(300)
+
+    if (state.progress > 0) {
+        await mpvCommand(['seek', state.progress / 1000, 'absolute'])
+    }
+
+    await mpvCommand(['set_property', 'pause', state.paused === true])
+
+    logRegular(`music crash state restored: ${state.filename ?? state.path}`)
 }
 
 function startMusicUpdateInterval() {
@@ -656,6 +754,7 @@ async function removeFromPlaylist(filePath: string) {
 
     const index = playlist.findIndex((item: any) => {
         const itemPath = item.filename ?? item.path ?? ''
+
         return itemPath === filePath || path.basename(itemPath) === targetBase
     })
 
@@ -663,7 +762,6 @@ async function removeFromPlaylist(filePath: string) {
 
     await mpvCommand(['playlist-remove', index])
 }
-
 
 async function downloadSongRequest(url: string): Promise<void> {
     if (isYoutubeUrl(url)) {
@@ -782,6 +880,7 @@ async function mpvSetVolume(volume: number): Promise<void> {
 
 async function mpvGetProperty(property: string): Promise<any> {
     const response = await mpvCommand(['get_property', property])
+
     return response?.data ?? null
 }
 
@@ -797,6 +896,7 @@ async function mpvCommand(command: any[]): Promise<any> {
 
         const finish = (value: any = null) => {
             if (resolved) return
+
             resolved = true
             socket.destroy()
             resolve(value)
@@ -841,6 +941,7 @@ async function mpvCommand(command: any[]): Promise<any> {
 async function waitForMpvSocket() {
     for (let i = 0; i < 50; i++) {
         if (existsSync(mpvSocketPath)) return
+
         await sleep(100)
     }
 }
@@ -910,12 +1011,12 @@ function renderCavaSection(name: string, values: Record<string, any>): string {
 
     for (const key in values) {
         if (values[key] === undefined || values[key] === null) continue
+
         lines.push(`${key} = ${values[key]}`)
     }
 
     return lines.join('\n')
 }
-
 
 async function setupStreambotAudioSink() {
     await cleanupStreambotAudioSink()
@@ -926,8 +1027,7 @@ async function setupStreambotAudioSink() {
             'load-module',
             'module-null-sink',
             `sink_name=${streambotMusicSink}`,
-            'sink_properties=' +
-            [
+            'sink_properties=' + [
                 'device.description=streambot_music',
                 'node.description=streambot_music',
                 'node.nick=streambot_music',
@@ -950,7 +1050,9 @@ async function setupStreambotAudioSink() {
         ])
 
         streambotLoopbackModuleId = output.trim()
+
         await sleep(500)
+
         streambotLoopbackSinkInputId = await findStreambotLoopbackSinkInputId()
     } catch {
         streambotLoopbackSinkInputId = await findStreambotLoopbackSinkInputId()
@@ -958,6 +1060,7 @@ async function setupStreambotAudioSink() {
 }
 
 export async function cleanupAllStreambotAudio() {
+    suppressMusicStateWrite = true
     try {
         const nodes = await runCommandWithOutput('pw-cli', ['ls', 'Node'])
 
@@ -981,6 +1084,7 @@ export async function cleanupAllStreambotAudio() {
             if (!/streambot_music(-\d+)?/i.test(line)) continue
 
             const moduleId = line.trim().split(/\s+/)[0]
+
             if (moduleId) moduleIds.add(moduleId)
         }
     } catch {}
@@ -993,6 +1097,8 @@ export async function cleanupAllStreambotAudio() {
 
     streambotLoopbackModuleId = null
     streambotLoopbackSinkInputId = null
+
+    suppressMusicStateWrite = false
 }
 
 async function cleanupStreambotAudioSink() {
@@ -1042,6 +1148,7 @@ async function getStreambotOutputVolumePercent(): Promise<number> {
         ])
 
         const blocks = output.split(/Sink Input #/).slice(1)
+
         const block = blocks.find(block => {
             const id = block.split(/\r?\n/)[0]?.trim()
             return id === streambotLoopbackSinkInputId
@@ -1079,10 +1186,13 @@ async function findStreambotLoopbackSinkInputId(): Promise<string | null> {
 
         for (const block of blocks) {
             const id = block.split(/\r?\n/)[0]?.trim()
-            const isLoopback = block.includes('module-loopback') ||
+
+            const isLoopback =
+                block.includes('module-loopback') ||
                 block.includes('application.name = "PulseAudio Loopback"') ||
                 block.includes('application.name = "PipeWire"') ||
                 block.includes('media.name = "Loopback')
+
             const isFromStreambot = block.includes(`${streambotMusicSink}.monitor`)
 
             if (id && /^\d+$/.test(id) && isLoopback && isFromStreambot) {
@@ -1186,9 +1296,7 @@ export async function deleteRegularMusicFile(filename: string) {
     }
 
     const currentPath = await mpvGetProperty('path')
-    const isCurrentSong =
-        currentPath === targetFile ||
-        path.basename(currentPath ?? '') === safeFilename
+    const isCurrentSong = currentPath === targetFile || path.basename(currentPath ?? '') === safeFilename
 
     if (isCurrentSong) {
         await mpvCommand(['playlist-next', 'force'])

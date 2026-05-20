@@ -50,8 +50,6 @@ async function init() {
     websocketServer.registerEvents()
     logSuccess('websocket server is ready')
 
-    await cleanupAllStreambotAudio()
-
     webServer = new WebServer()
     await webServer.initial()
 
