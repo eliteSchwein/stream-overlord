@@ -408,17 +408,23 @@ async function handleFunction(method: string, data: any) {
     }
 }
 
-async function handleObs(method: string, data: any) {
+async function handleObs(method: string, data: any = {}) {
     const obsClient = getOBSClient();
+    const connection = data.connection ?? data.obs ?? data.target ?? 'default';
 
-    logRegular(`trigger obs: ${method}`);
+    logRegular(`trigger obs (${connection}): ${method}`);
+
+    const obsData = {...data};
+    delete obsData.connection;
+    delete obsData.obs;
+    delete obsData.target;
 
     if (method === "reload_browser_sources") {
-        await obsClient.reloadAllBrowserScenes();
+        await obsClient.reloadAllBrowserScenes(connection);
         return;
     }
 
-    await obsClient.send(method, data);
+    await obsClient.send(method, obsData, connection);
 }
 
 async function handleRest(method: string, endpoint: string, data: any) {
