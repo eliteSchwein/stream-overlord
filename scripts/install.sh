@@ -62,11 +62,26 @@ export PATH="$HOME/.local/bin:$PATH"
 python3 -m pip install --user --break-system-packages streamrip
 
 export PATH="$HOME/.local/bin:$PATH"
+mkdir -p "$HOME/.local/bin"
 
 if ! command -v streamrip >/dev/null 2>&1; then
-    echo "streamrip installed, but not found in PATH."
-    echo "Expected location: $HOME/.local/bin/streamrip"
-    echo "Current PATH: $PATH"
+    STREAMRIP_BIN="$(python3 -m site --user-base)/bin/streamrip"
+
+    if [ -x "$STREAMRIP_BIN" ]; then
+        ln -sf "$STREAMRIP_BIN" "$HOME/.local/bin/streamrip"
+    fi
+fi
+
+if ! command -v streamrip >/dev/null 2>&1; then
+    echo "streamrip installed, but executable was not created."
+    echo
+    echo "Debug info:"
+    python3 -m pip show streamrip || true
+    echo "User base: $(python3 -m site --user-base)"
+    echo "User scripts:"
+    ls -la "$(python3 -m site --user-base)/bin" 2>/dev/null || true
+    echo "$HOME/.local/bin:"
+    ls -la "$HOME/.local/bin" 2>/dev/null || true
     exit 1
 fi
 
