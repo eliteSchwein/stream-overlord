@@ -549,11 +549,15 @@ function handleAnimation(method: string, data: any) {
 
     websocket.send('notify_animation_update', {
         target: data.target,
+        src: data.src,
         animation: method,
         startFrame: data.startFrame ?? data.start_frame ?? 0,
         stopFrame: data.stopFrame ?? data.stop_frame ?? null,
         speed: data.speed ?? 1,
         loop: data.loop ?? false,
+        reverse: data.reverse ?? false,
+        totalFrames: data.totalFrames ?? data.total_frames,
+        frameRate: data.frameRate ?? data.frame_rate,
         variables: data.variables ?? {},
     })
 }
