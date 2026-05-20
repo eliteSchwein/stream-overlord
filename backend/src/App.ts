@@ -23,7 +23,13 @@ import * as apiModules from "./api";
 import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
 import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
 import {initNeopixels} from "./helper/NeopixelHelper";
-import {cleanupAllStreambotAudio, loadMusicConfig, startMusicPlayer, stopMusicPlayer} from "./helper/MusicHelper";
+import {
+    cleanupAllStreambotAudio,
+    loadMusicConfig,
+    reloadMusicPlayer,
+    startMusicPlayer,
+    stopMusicPlayer
+} from "./helper/MusicHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -211,7 +217,7 @@ export async function reload() {
         initAutoMacros()
 
         loadMusicConfig()
-        await startMusicPlayer()
+        await reloadMusicPlayer(true)
 
         logSuccess('reload finished')
 

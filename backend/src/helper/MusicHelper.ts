@@ -53,6 +53,10 @@ type MusicCrashState = {
     songrequest_enabled: boolean
     songrequest_active: boolean
     current_is_songrequest: boolean
+    songrequest_queue: string[]
+    songrequest_title_map: Record<string, string>
+    songrequest_blocklist: string[]
+    songrequest_current_index: number
     songrequest_current_url: string | null
     updated_at: string
 }
@@ -87,14 +91,13 @@ function getInitialMusicVolumePercent(): number {
     return Math.round(Math.max(0, Math.min(1, volume)) * 100)
 }
 
-export async function startMusicPlayer() {
-    suppressMusicStateWrite = true
-
-    await stopMusicPlayer()
-
+export async function startMusicPlayer(restoreModeFromState = true) {
     pendingMusicCrashState = readMusicCrashState()
 
-    if (pendingMusicCrashState?.songrequest_enabled === true) {
+    suppressMusicStateWrite = true
+    await stopMusicPlayer()
+
+    if (restoreModeFromState && pendingMusicCrashState?.songrequest_enabled === true) {
         songRequestEnabled = true
     }
 
@@ -108,11 +111,8 @@ export async function startMusicPlayer() {
 
     if (files.length === 0) {
         logWarn('music player not started: no music files found')
-
         suppressMusicStateWrite = false
-
         await sync()
-
         return
     }
 
@@ -160,14 +160,17 @@ export async function startMusicPlayer() {
     if (!existsSync(mpvSocketPath)) {
         logWarn('music player not ready: mpv socket missing')
         mpvProcess = null
+        suppressMusicStateWrite = false
         await sync()
         return
     }
 
     startMpvEventListener()
-    startMusicUpdateInterval()
 
     await applyMusicCrashState()
+
+    suppressMusicStateWrite = false
+    startMusicUpdateInterval()
 
     if (cavaEnabled) {
         startCavaFeed()
@@ -176,7 +179,6 @@ export async function startMusicPlayer() {
     await sync()
 
     logSuccess('music player is ready')
-    suppressMusicStateWrite = false
 }
 
 export async function stopMusicPlayer() {
@@ -217,8 +219,8 @@ export async function stopMusicPlayer() {
     await cleanupStreambotAudioSink()
 }
 
-export async function reloadMusicPlayer() {
-    await startMusicPlayer()
+export async function reloadMusicPlayer(restoreModeFromState = false) {
+    await startMusicPlayer(restoreModeFromState)
 }
 
 export function getActiveMusicPath(): string {
@@ -236,7 +238,7 @@ export async function toggleSongRequest(): Promise<boolean> {
         clearSongRequestCache()
     }
 
-    await reloadMusicPlayer()
+    await reloadMusicPlayer(false)
     await sync()
 
     try {
@@ -567,6 +569,10 @@ function writeMusicCrashState(data: any) {
         songrequest_enabled: songRequestEnabled,
         songrequest_active: songRequestEnabled,
         current_is_songrequest: typeof trackPath === 'string' && trackPath.startsWith(songRequestPath),
+        songrequest_queue: songRequestQueue,
+        songrequest_title_map: songRequestTitleMap,
+        songrequest_blocklist: songRequestBlocklist,
+        songrequest_current_index: currentRequestIndex,
         songrequest_current_url: data?.songrequest?.current_url ?? null,
         updated_at: new Date().toISOString(),
     }
@@ -590,6 +596,22 @@ async function applyMusicCrashState() {
     if (!mpvProcess || !existsSync(mpvSocketPath)) return
 
     logRegular('apply music crash state')
+
+    if (Array.isArray(state.songrequest_queue)) {
+        songRequestQueue = state.songrequest_queue
+    }
+
+    if (state.songrequest_title_map && typeof state.songrequest_title_map === 'object') {
+        songRequestTitleMap = state.songrequest_title_map
+    }
+
+    if (Array.isArray(state.songrequest_blocklist)) {
+        songRequestBlocklist = state.songrequest_blocklist
+    }
+
+    if (Number.isFinite(state.songrequest_current_index)) {
+        currentRequestIndex = state.songrequest_current_index
+    }
 
     const playlist = await getPlaylist()
     const wantedPath = state.path
