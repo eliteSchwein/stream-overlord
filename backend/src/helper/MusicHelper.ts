@@ -1115,7 +1115,7 @@ function sleep(ms: number): Promise<void> {
 function runCommand(command: string, args: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
         execFile(command, args, (error, stdout, stderr) => {
-            if (stdout) logRegular(stdout.trim())
+            if (stdout) logDebug(stdout.trim())
             if (stderr) logWarn(stderr.trim())
 
             if (error) {
