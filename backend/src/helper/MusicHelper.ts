@@ -807,9 +807,11 @@ async function downloadSongRequest(url: string): Promise<void> {
 }
 
 async function downloadWithStreamrip(url: string): Promise<void> {
-    logRegular(`download songrequest with streamrip: ${url}`)
+    const command = await getStreamripCommand()
 
-    await runCommand('rip', [
+    logRegular(`download songrequest with ${command}: ${url}`)
+
+    await runCommand(command, [
         '-ndb',
         '-f',
         songRequestPath,
@@ -1372,4 +1374,20 @@ export async function addRegularMusicFileFromUpload(file: any) {
         added: true,
         filename: safeFilename,
     }
+}
+
+let streamripCommand: string | null = null
+
+async function getStreamripCommand(): Promise<string> {
+    if (streamripCommand) return streamripCommand
+
+    for (const command of ['rip', 'streamrip']) {
+        try {
+            await runCommand(command, ['--help'])
+            streamripCommand = command
+            return command
+        } catch {}
+    }
+
+    throw new Error('streamrip CLI not found. Expected either "rip" or "streamrip" in PATH.')
 }
