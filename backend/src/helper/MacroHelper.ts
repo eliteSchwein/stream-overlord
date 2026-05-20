@@ -559,7 +559,7 @@ function handleAnimation(method: string, data: any) {
         stopFrame = originalStartFrame
     }
 
-    logRegular(`trigger animation: ${data.target}`)
+    logRegular(`trigger animation: ${data.target} ${startFrame} -> ${stopFrame} speed: ${data.speed ?? 1} loop: ${data.loop ?? false} ${data.src ?? ''}`)
 
     websocket.send('notify_animation_update', {
         target: data.target,
