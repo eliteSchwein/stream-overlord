@@ -333,7 +333,7 @@ export default {
   left: 20px;
   right: 20px;
   bottom: 32px;
-  height: 108px;
+  height: 95px;
   z-index: 1;
   display: flex;
   align-items: flex-end;
@@ -348,7 +348,7 @@ export default {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 0;
+  margin-top: 20px;
   margin-bottom: 0;
 }
 
@@ -382,11 +382,6 @@ export default {
 
 .music-controls-main-content {
   z-index: 2;
-}
-
-.music-controls-divider {
-  margin-top: 0;
-  margin-bottom: 0;
 }
 
 .music-playlist-list {
