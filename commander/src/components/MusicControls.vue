@@ -117,10 +117,11 @@ export default {
   watch: {
     getMusicCavaData: {
       handler(data: any) {
+        if (!data?.raw) return
         this.handleCavaData(data)
       },
-      deep: true,
-      immediate: true,
+      deep: false,
+      immediate: false,
     },
 
     'music.track.title'() {
@@ -152,15 +153,19 @@ export default {
     },
   },
 
+  mounted() {
+    this.resetCava()
+
+    if (this.getMusicCavaData?.raw) {
+      this.handleCavaData(this.getMusicCavaData)
+    }
+  },
+
   methods: {
     handleCavaData(data: any) {
       const frames = this.parseCavaFrames(String(data?.raw ?? ''))
 
-      for (const rawValues of frames) {
-        if (!rawValues.length) continue
-
-        const values = rawValues.slice(0, -1)
-
+      for (const values of frames) {
         if (!values.length) continue
 
         if (!this.expectedCavaBarCount) {
@@ -169,7 +174,8 @@ export default {
         }
 
         if (values.length !== this.expectedCavaBarCount) {
-          continue
+          this.expectedCavaBarCount = values.length
+          this.ensureCavaBars(values.length)
         }
 
         this.cavaValues = values
@@ -188,12 +194,15 @@ export default {
       return lines
         .map(line => line.trim())
         .filter(line => line.length > 0)
-        .map(line => line
-          .split(/[;,\s]+/)
-          .map(value => Number(value))
-          .filter(value => Number.isFinite(value))
-          .map(value => Math.max(0, Math.min(100, value)))
-        )
+        .map(line => {
+          const values = line
+            .split(/[;,\s]+/)
+            .map(value => Number(value))
+            .filter(value => Number.isFinite(value))
+            .map(value => Math.max(0, Math.min(100, value)))
+
+          return values.length > 1 ? values.slice(0, -1) : values
+        })
         .filter(values => values.length > 0)
     },
 
@@ -306,7 +315,14 @@ export default {
       await fetch(`${this.getRestApi}/api/music/songrequest/toggle`, {
         method: 'POST'
       })
-    }
+    },
+
+    resetCava() {
+      this.cavaBuffer = ''
+      this.expectedCavaBarCount = 0
+      this.cavaValues = []
+      this.smoothedCavaValues = []
+    },
   },
 }
 </script>
