@@ -56,12 +56,29 @@ add_pip_path "$HOME/.zshrc"
 
 export PATH="$HOME/.local/bin:$PATH"
 
+if [ -f "$HOME/.bashrc" ]; then
+    source "$HOME/.bashrc" || true
+fi
+
+if [ -f "$HOME/.zshrc" ]; then
+    source "$HOME/.zshrc" || true
+fi
+
 # streamrip
 python3 -m pip install --user --break-system-packages streamrip
 
 if ! command -v streamrip >/dev/null 2>&1; then
     echo "streamrip installed, but not found in PATH."
     echo "Try: source ~/.bashrc or source ~/.zshrc"
+    exit 1
+fi
+
+export PATH="$HOME/.local/bin:$PATH"
+
+if ! command -v streamrip >/dev/null 2>&1; then
+    echo "streamrip installed, but not found in PATH."
+    echo "Expected location: $HOME/.local/bin/streamrip"
+    echo "Current PATH: $PATH"
     exit 1
 fi
 
