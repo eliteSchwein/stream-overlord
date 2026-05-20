@@ -156,7 +156,11 @@ export default {
     handleCavaData(data: any) {
       const frames = this.parseCavaFrames(String(data?.raw ?? ''))
 
-      for (const values of frames) {
+      for (const rawValues of frames) {
+        if (!rawValues.length) continue
+
+        const values = rawValues.slice(0, -1)
+
         if (!values.length) continue
 
         if (!this.expectedCavaBarCount) {

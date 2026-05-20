@@ -24,8 +24,10 @@ export default class CavaController extends BaseController {
 
         const frames = this.parseCavaFrames(String(data?.raw ?? ''))
 
-        for (const values of frames) {
-            if (!values.length) continue
+        for (const rawValues of frames) {
+            if (!rawValues.length) continue
+
+            const values = rawValues.slice(0, -1)
 
             if (!this.expectedBarCount) {
                 this.expectedBarCount = values.length
