@@ -54,15 +54,9 @@ add_pip_path() {
 add_pip_path "$HOME/.bashrc"
 add_pip_path "$HOME/.zshrc"
 
+# Make streamrip available for THIS installer run.
+# Do not source .zshrc here; Oh My Zsh rejects being loaded from bash.
 export PATH="$HOME/.local/bin:$PATH"
-
-if [ -f "$HOME/.bashrc" ]; then
-    source "$HOME/.bashrc" || true
-fi
-
-if [ -f "$HOME/.zshrc" ]; then
-    source "$HOME/.zshrc" || true
-fi
 
 # streamrip
 python3 -m pip install --user --break-system-packages streamrip
@@ -75,6 +69,8 @@ if ! command -v streamrip >/dev/null 2>&1; then
     echo "Current PATH: $PATH"
     exit 1
 fi
+
+echo "streamrip found at: $(command -v streamrip)"
 
 bash install_neopixel.sh
 bash install_polkit.sh
