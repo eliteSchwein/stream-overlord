@@ -1,0 +1,1 @@
+import{Ct as e,Et as t,Gn as n,Mn as r,O as i,Tt as a}from"./index-DNQMSBFK.js";var o={computed:{...t(a,[`getAssets`])},methods:{}};function s(e,t,a,o,s,c){return n(),r(i,{class:`overflow-auto mx-auto`,"max-height":`100%`,elevation:`0`,color:`transparent`,"max-width":`100%`})}var c=e(o,[[`render`,s]]);export{c as default};

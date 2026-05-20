@@ -385,7 +385,7 @@ export default {
 }
 
 .music-playlist-list {
-  max-height: calc(100vh - 600px);
+  max-height: calc(100vh - 365px);
   overflow-y: auto;
 }
 </style>
