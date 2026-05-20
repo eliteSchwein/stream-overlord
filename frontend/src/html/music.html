@@ -9,6 +9,12 @@
 </head>
 <body>
     <div class="music d-flex justify-content-start" data-controller="music">
+        <div
+                data-controller="animation"
+                data-src="/animations/test.json"
+                data-target="alert_overlay"
+                style="width: 100%; height: 100%;"
+        ></div>
         <div data-controller="cava">
             <div class="cava-bar"></div>
             <div class="cava-bar"></div>
@@ -116,38 +122,6 @@
             <polyline class="cls-1" points="500.55 96.5 500.55 148.12 487.89 151.4 487.89 171.29"/>
             <text transform="translate(219.3 111.23)"><tspan class="cls-5"><tspan x="0" y="0">LOREM IPSUM AMET</tspan></tspan><tspan class="cls-6"><tspan x="0" y="16.8">amet consectetuer </tspan></tspan></text>
         </svg>
-        <div class="new-alert-box dynamic" style="width: 100vw;height: 100vh;">
-            <div class="new-alert-container">
-                <div class="music-container">
-                    <div class="music-thumbnail-container">
-                        <div class="music-thumbnail">
-                            <img id="music-thumbnail" />
-                        </div>
-                    </div>
-                    <div class="music-info-container">
-                        <div class="new-alert-top-bar">
-                            <div class="new-alert-top-bar-container">
-                                <div class="new-alert-top-bar-content"></div>
-                            </div>
-                        </div>
-                        <div class="music-volume">
-                            <div class="music-volume-container">
-                                <div class="music-volume-bar"></div>
-                                <div class="music-volume-text">100%</div>
-                            </div>
-                        </div>
-                        <div class="music-title-container">
-                            <div class="music-title-track">
-                                <span class="music-title-text" data-controller="marquee">Loading</span>
-                            </div>
-                            <div class="music-artist-track">
-                                <span class="music-artist-text" data-controller="marquee">Loading</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
 </body>

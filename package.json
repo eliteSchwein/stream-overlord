@@ -79,6 +79,7 @@
     "ws": "^8.20.1"
   },
   "dependencies": {
+    "@dotlottie/player-component": "^2.7.12",
     "cors": "^2.8.6",
     "lottie-web": "^5.13.0",
     "multer": "^2.1.1",
