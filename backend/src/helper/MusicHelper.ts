@@ -108,7 +108,11 @@ export async function startMusicPlayer() {
 
     if (files.length === 0) {
         logWarn('music player not started: no music files found')
+
+        suppressMusicStateWrite = false
+
         await sync()
+
         return
     }
 
