@@ -47,6 +47,7 @@ export { default as ShieldApi } from "./Security/ShieldApi";
 export { default as RefreshSourcesApi } from "./Sources/RefreshSourcesApi";
 export { default as SaveSourcesApi } from "./Sources/SaveSourcesApi";
 export { default as HaltSystemApi } from "./System/HaltSystemApi";
+export { default as LanguageApi } from "./System/LanguageApi";
 export { default as RestartApi } from "./System/RestartApi";
 export { default as UpdateApi } from "./System/UpdateApi";
 export { default as YoloboxExecuteApi } from "./Yolobox/YoloboxExecuteApi";
