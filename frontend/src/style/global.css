@@ -9,6 +9,10 @@ body {
     color: var(--theme-color);
 }
 
+.background-theme {
+    background-color: var(--theme-color)!important;
+}
+
 .text-right {
     text-align: right;
 }

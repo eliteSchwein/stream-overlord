@@ -8,6 +8,7 @@ export default class AnimationController extends BaseController {
     private src = this.element.dataset.src
     private animation: AnimationItem | null = null
     private dotlottiePlayer: any = null
+    private svgElement: SVGSVGElement | null = null
     private ready = false
     private queuedData: any = null
     private frameRequest: number | null = null
@@ -25,7 +26,10 @@ export default class AnimationController extends BaseController {
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if (method !== "notify_animation_update") return
-        if (data.target && data.target !== this.targetName) return
+
+        if (data.target && data.target !== this.targetName) {
+            return
+        }
 
         if (data.src) {
             this.queuedData = data
@@ -53,6 +57,11 @@ export default class AnimationController extends BaseController {
         this.element.dataset.src = src
         this.element.innerHTML = ""
 
+        if (cleanSrc.endsWith(".svg")) {
+            this.loadAnimatedSvg(src, currentLoadId)
+            return
+        }
+
         if (cleanSrc.endsWith(".lottie")) {
             this.loadDotLottie(src, currentLoadId)
             return
@@ -68,7 +77,9 @@ export default class AnimationController extends BaseController {
             try {
                 this.animation.stop()
                 this.animation.destroy()
-            } catch {}
+            } catch (error) {
+                console.warn("[animation] json destroy failed", error)
+            }
 
             this.animation = null
         }
@@ -78,11 +89,14 @@ export default class AnimationController extends BaseController {
                 this.dotlottiePlayer.pause?.()
                 this.dotlottiePlayer.stop?.()
                 this.dotlottiePlayer.remove()
-            } catch {}
+            } catch (error) {
+                console.warn("[animation] dotlottie destroy failed", error)
+            }
 
             this.dotlottiePlayer = null
         }
 
+        this.svgElement = null
         this.ready = false
     }
 
@@ -96,7 +110,9 @@ export default class AnimationController extends BaseController {
         })
 
         this.animation.addEventListener("DOMLoaded", () => {
-            if (loadId !== this.loadId) return
+            if (loadId !== this.loadId) {
+                return
+            }
 
             this.ready = true
             this.animation?.goToAndStop(0, true)
@@ -106,7 +122,7 @@ export default class AnimationController extends BaseController {
 
         this.animation.addEventListener("data_failed", () => {
             if (loadId !== this.loadId) return
-            console.warn("lottie json failed to load", src)
+            console.warn("[animation] json failed to load", src)
         })
     }
 
@@ -130,7 +146,9 @@ export default class AnimationController extends BaseController {
         }
 
         player.addEventListener("ready", () => {
-            if (loadId !== this.loadId) return
+            if (loadId !== this.loadId) {
+                return
+            }
 
             this.ready = true
             stopInitialPlayback()
@@ -145,7 +163,7 @@ export default class AnimationController extends BaseController {
 
         player.addEventListener("error", (event: any) => {
             if (loadId !== this.loadId) return
-            console.warn("dotlottie failed to load", {src, event})
+            console.warn("[animation] dotlottie failed to load", {src, event})
         })
 
         this.element.appendChild(player)
@@ -156,11 +174,62 @@ export default class AnimationController extends BaseController {
         setTimeout(stopInitialPlayback, 50)
     }
 
+    private async loadAnimatedSvg(src: string, loadId: number) {
+        try {
+            const request = await fetch(src)
+
+            if (!request.ok) {
+                console.warn("[animation] svg fetch failed", {
+                    src,
+                    status: request.status,
+                })
+                return
+            }
+
+            const content = new DOMParser().parseFromString(
+                await request.text(),
+                "image/svg+xml",
+            )
+
+            const parsedSvg = content.querySelector("svg") as SVGSVGElement
+
+            if (!parsedSvg) {
+                console.warn("[animation] svg has no svg element", src)
+                return
+            }
+
+            if (loadId !== this.loadId) {
+                return
+            }
+
+            this.element.innerHTML = ""
+            this.element.appendChild(parsedSvg)
+
+            this.svgElement = parsedSvg
+            this.ready = true
+
+            try {
+                this.svgElement.pauseAnimations()
+                this.svgElement.setCurrentTime(0)
+            } catch (error) {
+                console.warn("[animation] svg pause/set time failed", error)
+            }
+
+            this.playQueued()
+        } catch (error) {
+            if (loadId !== this.loadId) return
+            console.warn("[animation] svg failed to load", {src, error})
+        }
+    }
+
     private playQueued() {
-        if (!this.queuedData) return
+        if (!this.queuedData) {
+            return
+        }
 
         const queuedData = this.queuedData
         this.queuedData = null
+
         this.play(queuedData)
     }
 
@@ -175,7 +244,12 @@ export default class AnimationController extends BaseController {
             return
         }
 
-        console.warn("animation update received, but no animation instance exists")
+        if (this.svgElement) {
+            this.playAnimatedSvg(data)
+            return
+        }
+
+        console.warn("[animation] update received, but no animation instance exists")
     }
 
     private stopFrameLoop() {
@@ -188,11 +262,12 @@ export default class AnimationController extends BaseController {
     private resolveFrames(data: any, totalFrames: number) {
         const startFrame = data.startFrame ?? data.start_frame ?? 0
         const stopFrame = data.stopFrame ?? data.stop_frame ?? totalFrames
+        const direction = startFrame > stopFrame ? -1 : 1
 
         return {
             startFrame,
             stopFrame,
-            direction: startFrame > stopFrame ? -1 : 1,
+            direction,
         }
     }
 
@@ -291,6 +366,59 @@ export default class AnimationController extends BaseController {
         this.frameRequest = requestAnimationFrame(tick)
     }
 
+    private playAnimatedSvg(data: any) {
+        if (!this.svgElement) return
+
+        this.stopFrameLoop()
+
+        const totalFrames = data.totalFrames ?? data.total_frames ?? 156
+        const frameRate = data.frameRate ?? data.frame_rate ?? 60
+        const {startFrame, stopFrame, direction} = this.resolveFrames(data, totalFrames)
+        const speed = Math.abs(data.speed ?? 1)
+        const loop = data.loop ?? false
+
+        this.applyVariables(data.variables ?? {})
+
+        try {
+            this.svgElement.pauseAnimations()
+            this.svgElement.setCurrentTime(startFrame / frameRate)
+        } catch (error) {
+            console.warn("[animation] svg frame control failed", error)
+            return
+        }
+
+        let currentFrame = startFrame
+        let lastTime = performance.now()
+
+        const tick = (time: number) => {
+            if (!this.svgElement) return
+
+            const delta = time - lastTime
+            lastTime = time
+
+            currentFrame += direction * (delta / 1000) * frameRate * speed
+
+            const finished = direction > 0
+                ? currentFrame >= stopFrame
+                : currentFrame <= stopFrame
+
+            if (finished) {
+                if (loop) {
+                    currentFrame = startFrame
+                } else {
+                    this.svgElement.setCurrentTime(stopFrame / frameRate)
+                    this.frameRequest = null
+                    return
+                }
+            }
+
+            this.svgElement.setCurrentTime(currentFrame / frameRate)
+            this.frameRequest = requestAnimationFrame(tick)
+        }
+
+        this.frameRequest = requestAnimationFrame(tick)
+    }
+
     private applyVariables(variables: any) {
         const svg = this.element.querySelector("svg")
         if (!svg) return
@@ -300,6 +428,7 @@ export default class AnimationController extends BaseController {
 
             svg.querySelectorAll(`[data-variable="${key}"], [data-var="${key}"]`)
                 .forEach((element) => {
+                    console.log("[animation] set variable", {key, value, element})
                     element.textContent = String(value)
                 })
         }

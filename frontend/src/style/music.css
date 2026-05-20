@@ -117,6 +117,6 @@
     flex: 1;
     height: 0%;
     min-height: 2px;
-    background: red;
+    background: var(--theme-color);
     transition: height 5ms linear;
 }

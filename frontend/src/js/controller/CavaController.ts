@@ -42,14 +42,6 @@ export default class CavaController extends BaseController {
         }
     }
 
-    async handleGameUpdate(websocket: Websocket, data: any) {
-        if (this.element.hasAttribute("data-disable-theme")) return
-
-        for (const bar of this.bars) {
-            bar.style.background = data.theme.color
-        }
-    }
-
     protected parseCavaFrames(raw: string): number[][] {
         if (!raw) return []
 

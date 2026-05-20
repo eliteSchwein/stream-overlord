@@ -10,6 +10,9 @@ body {
 .color-theme {
   color: var(--theme-color);
 }
+.background-theme {
+  background-color: var(--theme-color) !important;
+}
 .text-right {
   text-align: right;
 }
@@ -916,7 +919,7 @@ picture {
   flex: 1;
   height: 0%;
   min-height: 2px;
-  background: red;
+  background: var(--theme-color);
   transition: height 5ms linear;
 }
 

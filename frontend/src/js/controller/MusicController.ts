@@ -78,8 +78,11 @@ export default class MusicController extends BaseController {
 
     async handleGameUpdate(websocket: Websocket, data: any) {
         if(this.element.hasAttribute("data-disable-theme")) return
-        this.barElement.style.background = data.theme.color
-        this.titleElement.style.color = data.theme.color
+        if(this.barElement)
+            this.barElement.style.background = data.theme.color
+
+        if(this.titleElement)
+            this.titleElement.style.color = data.theme.color
     }
 
     showPlayer() {

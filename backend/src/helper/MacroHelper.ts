@@ -545,17 +545,30 @@ function handleEffect(method: string, data: any) {
 function handleAnimation(method: string, data: any) {
     const websocket = getWebsocketServer()
 
-    logRegular(`trigger animation: ${method}`)
+    let startFrame = data.startFrame ?? data.start_frame ?? 0
+    let stopFrame = data.stopFrame ?? data.stop_frame ?? null
+    const reverse = data.reverse === true || data.reverse === "true"
+
+    if (stopFrame === null || stopFrame === undefined) {
+        stopFrame = data.totalFrames ?? data.total_frames ?? null
+    }
+
+    if (reverse && stopFrame !== null && startFrame < stopFrame) {
+        const originalStartFrame = startFrame
+        startFrame = stopFrame
+        stopFrame = originalStartFrame
+    }
+
+    logRegular(`trigger animation: ${data.target}`)
 
     websocket.send('notify_animation_update', {
         target: data.target,
         src: data.src,
         animation: method,
-        startFrame: data.startFrame ?? data.start_frame ?? 0,
-        stopFrame: data.stopFrame ?? data.stop_frame ?? null,
+        startFrame,
+        stopFrame,
         speed: data.speed ?? 1,
         loop: data.loop ?? false,
-        reverse: data.reverse ?? false,
         totalFrames: data.totalFrames ?? data.total_frames,
         frameRate: data.frameRate ?? data.frame_rate,
         variables: data.variables ?? {},
