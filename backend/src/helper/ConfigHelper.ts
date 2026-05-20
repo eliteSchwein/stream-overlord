@@ -151,7 +151,7 @@ export function getPrimaryChannel() {
 }
 
 export function watchConfig() {
-    logRegular("watch config file");
+    logRegular('watch config file')
 
     watchFile(
         `${__dirname}/../../.env.conf`,
@@ -160,8 +160,21 @@ export function watchConfig() {
             interval: 100
         },
         async () => {
-            logNotice("config update detected");
-            await reload();
+            logNotice("config update detected")
+            await reload()
         }
-    );
+    )
+
+    watchFile(
+        settingsPath,
+        {
+            persistent: true,
+            interval: 100
+        },
+        async () => {
+            logNotice("settings update detected")
+            readSettings()
+            await reload()
+        }
+    )
 }
