@@ -4,9 +4,6 @@ mkdir -p ~/.config/systemd/user/
 mkdir -p ~/.config/autostart
 
 cp stream-overlord.service ~/.config/systemd/user/
-cp touch-autostart.desktop ~/.config/autostart/
-
-rm -rf ~/.config/autostart/firefox-commander.desktop
 
 systemctl --user daemon-reload
 systemctl --user enable stream-overlord

@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Firefox Commander
-Comment=Open Stream Commander in kiosk mode
-X-GNOME-Autostart-enabled=true
-Exec=/bin/sh -c 'WEBKIT_DISABLE_COMPOSITING_MODE=1 stream-overlord-touch --fullscreen'
