@@ -241,6 +241,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
                     handleEffect(task.method, task.data)
                     break
                 }
+
+                case "animation": {
+                    handleAnimation(task.method, task.data)
+                    break
+                }
             }
         } catch (error) {
             logWarn(`task failed:`);
@@ -534,5 +539,21 @@ function handleEffect(method: string, data: any) {
         effect: method,
         content: data.content ?? '',
         options: data.options ?? {},
+    })
+}
+
+function handleAnimation(method: string, data: any) {
+    const websocket = getWebsocketServer()
+
+    logRegular(`trigger animation: ${method}`)
+
+    websocket.send('notify_animation_update', {
+        target: data.target,
+        animation: method,
+        startFrame: data.startFrame ?? data.start_frame ?? 0,
+        stopFrame: data.stopFrame ?? data.stop_frame ?? null,
+        speed: data.speed ?? 1,
+        loop: data.loop ?? false,
+        variables: data.variables ?? {},
     })
 }

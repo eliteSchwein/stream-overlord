@@ -40,6 +40,7 @@ import ContenController from "./js/controller/ContenController";
 import IFrameController from "./js/controller/IFrameController";
 import {initEffects} from "./js/helper/EffectHelper";
 import CavaController from "./js/controller/CavaController";
+import AnimationController from "./js/controller/AnimationController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -74,6 +75,7 @@ async function init(){
     stimulus.register('marquee', MarqueeController)
     stimulus.register('iframe', IFrameController)
     stimulus.register('cava', CavaController)
+    stimulus.register('animation', AnimationController)
 
     await sleep(250)
 

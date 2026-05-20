@@ -1,0 +1,1 @@
+import{c as e}from"/dist/chunks/chunk-GR64AWP5.js";var i=class{constructor(n,t){e(this,"_container");e(this,"_engine");this._engine=n,this._container=t}destroy(){this._engine.images?.delete(this._container)}};export{i as ImagePreloaderInstance};

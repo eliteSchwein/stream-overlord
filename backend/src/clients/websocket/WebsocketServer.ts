@@ -55,7 +55,8 @@ export default class WebsocketServer {
         'notify_yolobox_update',
         'notify_music_show',
         'notify_music_update',
-        'notify_music_cava'
+        'notify_music_cava',
+        'notify_animation_update'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
