@@ -1,7 +1,6 @@
 import BaseController from './BaseController'
 import { Websocket } from 'websocket-ts'
 import { sleep } from '../../../../helper/GeneralHelper'
-import { triggerEffect } from '../helper/EffectHelper'
 
 export default class AlertController extends BaseController {
     websocketEndpoints = ['notify_alert']
@@ -173,8 +172,6 @@ export default class AlertController extends BaseController {
         }, 250)
 
         this.iconTarget?.setAttribute('class', `alert-logo mdi mdi-${data.icon}`)
-
-        await this.runStartEffects()
     }
 
     protected async hideAlert(data: any): Promise<void> {
@@ -185,8 +182,6 @@ export default class AlertController extends BaseController {
         } catch (e) {
             console.error(e)
         }
-
-        await this.runEndEffects()
 
         if (this.iframeTarget) {
             this.iframeTarget.src = ''
@@ -220,52 +215,6 @@ export default class AlertController extends BaseController {
 
         this.iconTarget?.setAttribute('class', 'alert-logo mdi')
         this.visible = false
-    }
-
-    protected async runStartEffects(): Promise<void> {
-        const effects = this.parseEffects(this.element.dataset.alertStartEffects)
-
-        if (!effects.length) {
-            this.element.style.opacity = '1'
-            return
-        }
-
-        await this.runEffects(effects)
-    }
-
-    protected async runEndEffects(): Promise<void> {
-        const effects = this.parseEffects(this.element.dataset.alertEndEffects)
-
-        if (!effects.length) {
-            this.element.style.opacity = '0'
-            return
-        }
-
-        await this.runEffects(effects)
-    }
-
-    protected async runEffects(effects: any[]): Promise<void> {
-
-        for (const effect of effects) {
-            await triggerEffect(
-                effect.effect ?? effect.method,
-                this.element,
-                null,
-                effect.options ?? {},
-            )
-        }
-    }
-
-    protected parseEffects(value?: string): any[] {
-        if (!value) return []
-
-        try {
-            const parsed = JSON.parse(value)
-            return Array.isArray(parsed) ? parsed : [parsed]
-        } catch (e) {
-            console.error(e)
-            return []
-        }
     }
 
     async handleGameUpdate(websocket: Websocket, data: any) {

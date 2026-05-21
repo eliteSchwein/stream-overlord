@@ -223,7 +223,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
                 case "alert": {
                     task.eventUuid = variables.eventUuid;
-                    await handleAlert(task.message, task.asset, task.eventUuid);
+                    await handleAlert(task.message, task.asset, task.eventUuid, variables);
                     break;
                 }
 
@@ -307,7 +307,12 @@ async function handleYolobox(method: string, data: any) {
     });
 }
 
-async function handleAlert(message: string, asset: string, eventUuid: string | undefined = undefined) {
+async function handleAlert(
+    message: string,
+    asset: string,
+    eventUuid: string | undefined = undefined,
+    variables: any = {},
+) {
     const theme = getAssetConfig(asset);
 
     if (!theme) {
@@ -325,8 +330,9 @@ async function handleAlert(message: string, asset: string, eventUuid: string | u
     }
 
     addAlert({
+        asset,
         sound: theme.sound,
-        duration: 15,
+        duration: theme.duration ?? 15,
         color: theme.color,
         icon: theme.icon,
         message,
@@ -336,6 +342,14 @@ async function handleAlert(message: string, asset: string, eventUuid: string | u
         volume: theme.volume,
         image: theme.image,
         channel: theme.channel,
+        start_macros: theme.start_macros ?? theme.startMacros ?? [],
+        idle_macros: theme.idle_macros ?? theme.idleMacros ?? [],
+        end_macros: theme.end_macros ?? theme.endMacros ?? [],
+        variables: {
+            ...variables,
+            asset,
+            eventUuid,
+        },
     });
 }
 
