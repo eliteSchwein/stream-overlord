@@ -9,6 +9,7 @@ import {toggleAutoMacro} from "./AutoMacroHelper";
 import {speak} from "./TTShelper";
 import {addAlert} from "./AlertHelper";
 import {v4 as uuidv4} from "uuid";
+import {addSongRequest, toggleSongRequest} from "./MusicHelper";
 
 let macros: any = {};
 
@@ -387,7 +388,7 @@ async function handleWebhook(method: string, data: any) {
     });
 }
 
-async function handleFunction(method: string, data: any) {
+async function handleFunction(method: string, data: any = {}) {
     logRegular(`trigger function: ${method}`);
 
     switch (method) {
@@ -405,6 +406,26 @@ async function handleFunction(method: string, data: any) {
 
         case "speak": {
             await speak(data.content);
+            break;
+        }
+
+        case "song_request": {
+            if (!data.url) {
+                logWarn(`song_request requires url`);
+                break;
+            }
+
+            const added = await addSongRequest(fillTemplate(data.url, data));
+
+            if (!added) {
+                logWarn(`song_request failed`);
+            }
+
+            break;
+        }
+
+        case "song_request_toggle": {
+            await toggleSongRequest();
             break;
         }
 

@@ -86,34 +86,67 @@ function buildConfigCommands(commands: any[]) {
 }
 
 function buildConfigCommand(command: string, option: any) {
+    const commandOptions: any = {
+        aliases: option.alias,
+        userCooldown: option.userCooldown,
+        globalCooldown: option.globalCooldown,
+    }
+
+    if (Array.isArray(option.params)) {
+        commandOptions.params = option.params
+    }
+
     return createBotCommand(command, async (params, context) => {
-        if(option.enforce_primary) {
+        if (option.enforce_primary) {
             const primaryChannel = getPrimaryChannel()
 
-            if(context.broadcasterId !== primaryChannel.id) return
+            if (context.broadcasterId !== primaryChannel.id) return
         }
 
-        if(option.requiresBroadcaster && context.broadcasterId !== context.userId) {
+        if (option.requiresBroadcaster && context.broadcasterId !== context.userId) {
             await replyPermissionError(context)
             return
         }
 
-        if(option.requiresMod &&
+        if (
+            option.requiresMod &&
             !hasModerator(context.broadcasterName, context.userId) &&
-            context.broadcasterId !== context.userId) {
-            await replyPermissionError(context)
-            return
-        }
-        if(option.requiresVip &&
-            !hasVip(context.broadcasterName, context.userId) &&
-            context.broadcasterId !== context.userId) {
+            context.broadcasterId !== context.userId
+        ) {
             await replyPermissionError(context)
             return
         }
 
-        if(option.message) void context.reply(fillTemplate(option.message, {}));
-        if(option.macro) void triggerMacro(option.macro)
-    }, {aliases: option.alias, userCooldown: option.userCooldown, globalCooldown: option.globalCooldown})
+        if (
+            option.requiresVip &&
+            !hasVip(context.broadcasterName, context.userId) &&
+            context.broadcasterId !== context.userId
+        ) {
+            await replyPermissionError(context)
+            return
+        }
+
+        const data = {
+            command,
+            params,
+            context: {
+                userId: context.userId,
+                userName: context.userName,
+                userDisplayName: context.userDisplayName,
+                broadcasterId: context.broadcasterId,
+                broadcasterName: context.broadcasterName,
+            },
+            ...params,
+        }
+
+        if (option.message) {
+            void context.reply(fillTemplate(option.message, data))
+        }
+
+        if (option.macro) {
+            void triggerMacro(option.macro, data)
+        }
+    }, commandOptions)
 }
 
 async function replyPermissionError(context: BotCommandContext) {

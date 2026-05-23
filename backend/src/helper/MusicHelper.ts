@@ -251,6 +251,12 @@ export async function toggleSongRequest(): Promise<boolean> {
 
     }
 
+    logRegular(
+        songRequestBlocklist
+            ? `songrequests enabled`
+            : `songrequests disabled`
+    );
+
     return songRequestEnabled
 }
 
@@ -481,7 +487,7 @@ async function getMusicUpdate() {
     }
 }
 
-function getSongRequestState() {
+export function getSongRequestState() {
     const files = getSongRequestFiles().filter(file => isMusicFile(file))
 
     return {
@@ -1390,4 +1396,24 @@ async function getStreamripCommand(): Promise<string> {
     }
 
     throw new Error('streamrip CLI not found. Expected either "rip" or "streamrip" in PATH.')
+}
+
+export function isSongRequestQueryBlocked(url: string): boolean {
+    try {
+        const normalizedUrl = normalizeSongRequestUrl(url);
+
+        return songRequestBlocklist.includes(normalizedUrl);
+    } catch {
+        return false;
+    }
+}
+
+export function isSongRequestQueryAlreadyPresent(url: string): boolean {
+    try {
+        const normalizedUrl = normalizeSongRequestUrl(url);
+
+        return songRequestQueue.includes(normalizedUrl);
+    } catch {
+        return false;
+    }
 }
