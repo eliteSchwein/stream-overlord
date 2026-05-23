@@ -272,20 +272,30 @@ async function handleDummyAlert(task: any, variables: any) {
     });
 }
 
-async function handleYolobox(method: string, data: any) {
+async function handleYolobox(method: string, data: any = {}) {
     logRegular(`send yolobox command: ${method}`);
 
-    const yoloboxData = getYoloboxClient()?.getData();
+    const yoloboxClient = getYoloboxClient();
+    const yoloboxData = yoloboxClient?.getData();
 
-    if (!yoloboxData) {
+    if (!yoloboxClient || !yoloboxData) {
         logWarn(`yolobox is currently not connected`);
         return;
     }
 
     if (method === "order_material_change") {
-        for (const material of yoloboxData.MaterialList) {
+        const materialList = Array.isArray(yoloboxData.MaterialList)
+            ? yoloboxData.MaterialList
+            : [];
+
+        if (!Array.isArray(yoloboxData.MaterialList)) {
+            logWarn(`yolobox MaterialList is missing or invalid - skipping material change`);
+            return;
+        }
+
+        for (const material of materialList) {
             if (data.id === "all" && material.isSelected !== data.isSelected) {
-                getYoloboxClient()?.sendCommand({
+                yoloboxClient.sendCommand({
                     data: {
                         id: material.id,
                         isSelected: data.isSelected,
@@ -301,7 +311,7 @@ async function handleYolobox(method: string, data: any) {
 
     if (data.id === "all") return;
 
-    getYoloboxClient()?.sendCommand({
+    yoloboxClient.sendCommand({
         data,
         orderID: method,
     });
