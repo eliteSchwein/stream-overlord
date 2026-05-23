@@ -24,6 +24,35 @@ export default class TwitchClient {
     protected bot: Bot;
     protected eventSub: EventSubWsListener;
 
+    private warnTwitchNetworkError(context: string, error: unknown): boolean {
+        const err = error as any;
+        const cause = err?.cause;
+        const code = cause?.code ?? err?.code;
+
+        if (
+            (err?.name === "TypeError" && err?.message === "fetch failed") ||
+            code === "EAI_AGAIN" ||
+            code === "UND_ERR_CONNECT_TIMEOUT"
+        ) {
+            logWarn(`${context}: temporary Twitch network error (${code ?? "fetch failed"})`);
+            logWarn(cause?.message ?? err?.message ?? String(error));
+            return true;
+        }
+
+        return false;
+    }
+
+    private async safeRegister(name: string, register: () => Promise<unknown> | unknown) {
+        try {
+            await register();
+        } catch (error) {
+            if (!this.warnTwitchNetworkError(`failed to register ${name}`, error)) {
+                logWarn(`failed to register ${name}`);
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
+    }
+
     protected async isAffiliateOrPartner(): Promise<boolean> {
         const primaryChannel = getPrimaryChannel();
 
@@ -38,13 +67,18 @@ export default class TwitchClient {
             const broadcasterType = String(user.broadcasterType ?? "").toLowerCase();
 
             logRegular(
-                `twitch broadcaster type for ${primaryChannel.name ?? primaryChannel.id}: ${broadcasterType || "(none)"}`
+                `twitch broadcaster type for ${primaryChannel.name ?? primaryChannel.id}: ${
+                    broadcasterType || "(none)"
+                }`
             );
 
             return broadcasterType === "affiliate" || broadcasterType === "partner";
         } catch (error) {
-            logWarn("failed to check affiliate/partner status");
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            if (!this.warnTwitchNetworkError("failed to check affiliate/partner status", error)) {
+                logWarn("failed to check affiliate/partner status");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+
             return false;
         }
     }
@@ -102,7 +136,14 @@ export default class TwitchClient {
             logger: { minLevel: "ERROR" }
         });
 
-        this.eventSub.start();
+        try {
+            this.eventSub.start();
+        } catch (error) {
+            if (!this.warnTwitchNetworkError("failed to start eventsub", error)) {
+                logWarn("failed to start eventsub");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
 
         await this.registerEvents();
 
@@ -117,11 +158,17 @@ export default class TwitchClient {
         new RaidEvent(this.bot).register();
 
         // eventsub events that work for all channels
-        await new FollowEvent(this.eventSub, this.bot).register();
-        await new ChannelUpdateEvent(this.eventSub, this.bot).register();
-        await new ShieldEvent(this.eventSub, this.bot).register();
-        await new ChannelSharedChatSessionEnd(this.eventSub, this.bot).register();
-        await new ChannelSharedChatSession(this.eventSub, this.bot).register();
+        await this.safeRegister("follow event", () => new FollowEvent(this.eventSub, this.bot).register());
+        await this.safeRegister("channel update event", () => new ChannelUpdateEvent(this.eventSub, this.bot).register());
+        await this.safeRegister("shield event", () => new ShieldEvent(this.eventSub, this.bot).register());
+        await this.safeRegister(
+            "shared chat session end event",
+            () => new ChannelSharedChatSessionEnd(this.eventSub, this.bot).register()
+        );
+        await this.safeRegister(
+            "shared chat session event",
+            () => new ChannelSharedChatSession(this.eventSub, this.bot).register()
+        );
 
         const affiliateOrPartner = await this.isAffiliateOrPartner();
 
@@ -132,10 +179,16 @@ export default class TwitchClient {
         }
 
         // eventsub events that require affiliate/partner features
-        await new ChannelPointsEvent(this.eventSub, this.bot).register();
-        await new BitEvent(this.eventSub, this.bot).register();
-        await new ChannelPointEditEvent(this.eventSub, this.bot).register();
-        await new PollPredictionEvent(this.eventSub, this.bot).register();
+        await this.safeRegister("channel points event", () => new ChannelPointsEvent(this.eventSub, this.bot).register());
+        await this.safeRegister("bits event", () => new BitEvent(this.eventSub, this.bot).register());
+        await this.safeRegister(
+            "channel point edit event",
+            () => new ChannelPointEditEvent(this.eventSub, this.bot).register()
+        );
+        await this.safeRegister(
+            "poll prediction event",
+            () => new PollPredictionEvent(this.eventSub, this.bot).register()
+        );
     }
 
     public getBot() {
@@ -150,17 +203,16 @@ export default class TwitchClient {
         const primaryChannel = getPrimaryChannel();
 
         try {
-            await this.bot.api.chat.sendAnnouncement(
-                primaryChannel.id,
-                {
-                    message: message,
-                    // @ts-ignore
-                    color: color // 'primary' | 'blue' | 'green' | 'orange' | 'purple'
-                }
-            );
+            await this.bot.api.chat.sendAnnouncement(primaryChannel.id, {
+                message: message,
+                // @ts-ignore
+                color: color
+            });
         } catch (error) {
-            logWarn("twitch announce failed:");
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            if (!this.warnTwitchNetworkError("twitch announce failed", error)) {
+                logWarn("twitch announce failed:");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
         }
     }
 }
