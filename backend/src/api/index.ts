@@ -6,6 +6,7 @@ export { default as RemoveAlertApi } from "./Alert/RemoveAlertApi";
 export { default as GetChannePointsApi } from "./ChannelPoints/GetChannePointsApi";
 export { default as ToggleChannelPointApi } from "./ChannelPoints/ToggleChannelPointApi";
 export { default as LinkSinkApi } from "./Common/LinkSinkApi";
+export { default as SetAudioOutputVolumeApi } from "./Common/SetAudioOutputVolumeApi";
 export { default as SetVolumeApi } from "./Common/SetVolumeApi";
 export { default as StatusApi } from "./Common/StatusApi";
 export { default as UpdateConfigApi } from "./Common/UpdateConfigApi";

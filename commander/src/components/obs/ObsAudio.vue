@@ -2,7 +2,6 @@
   <v-card v-if="Object.keys(getObsAudioData).length > 0" color="grey-darken-4">
     <v-card-title class="d-flex align-center justify-space-between">
       <span>OBS Audio Mixer</span>
-      <v-icon icon="mdi-broadcast" />
     </v-card-title>
 
     <v-card-text>

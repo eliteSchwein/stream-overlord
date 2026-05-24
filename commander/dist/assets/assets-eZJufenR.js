@@ -1,0 +1,1 @@
+import{O as e,St as t,Tt as n,Wn as r,jn as i,wt as a}from"./index-DNdoB2Vo.js";var o={computed:{...n(a,[`getAssets`])},methods:{}};function s(t,n,a,o,s,c){return r(),i(e,{class:`overflow-auto mx-auto`,"max-height":`100%`,elevation:`0`,color:`transparent`,"max-width":`100%`})}var c=t(o,[[`render`,s]]);export{c as default};

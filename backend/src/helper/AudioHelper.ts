@@ -187,6 +187,41 @@ export async function unlinkPipewireSinkFromAudioOutput(
     };
 }
 
+
+export async function setAudioOutputVolume(
+    outputName: string,
+    volume: number,
+) {
+    if (!outputName) return { error: "missing output" };
+
+    const outputs = await getAvailableAudioOutputs();
+    const output = outputs.find(item => item.name === outputName || item.id === outputName);
+
+    if (!output) return { error: "unknown output" };
+
+    const safeVolume = normalizeVolume(volume);
+
+    try {
+        await runCommand("pactl", [
+            "set-sink-volume",
+            output.name,
+            `${Math.round(safeVolume * 100)}%`,
+        ]);
+    } catch (error) {
+        logWarn(`setting output volume for ${output.name} failed:`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return { error: "setting output volume failed" };
+    }
+
+    await refreshAudioOutputs(true);
+    getWebsocketServer().send("notify_audio_outputs_update", audioOutputs);
+
+    return {
+        output: output.name,
+        volume: safeVolume,
+    };
+}
+
 function applyAudioVolumeState(audioInterface: string, volume: number) {
     const currentAudioData = audioData[audioInterface];
 

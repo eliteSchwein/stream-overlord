@@ -2,7 +2,6 @@
   <v-card color="grey-darken-4" elevation="0">
     <v-card-title class="d-flex align-center justify-space-between">
       <span>Yolobox Audio Mixer</span>
-      <v-icon icon="mdi-video-input-component" />
     </v-card-title>
 
     <v-card-text>

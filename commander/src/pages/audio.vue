@@ -29,7 +29,7 @@
                       size="small"
                       class="mr-1"
                     />
-                    <span class="text-truncate">{{ outputLabel(output) }}</span>
+                    <span class="text-truncate">{{ outputNumberLabel(output) }}</span>
                   </div>
                 </th>
               </tr>
@@ -40,7 +40,7 @@
                 <td class="audio-name-column">
                   <div class="font-weight-medium">{{ key }}</div>
                   <div v-if="isPipewireSink(device)" class="text-caption text-medium-emphasis">
-                    {{ device.sink_name || `streambot_${key}` }}
+                    Sink: {{ device.sink_name || `streambot_${key}` }}
                   </div>
                 </td>
 
@@ -112,6 +112,109 @@
                   <span v-else class="text-disabled">—</span>
                 </td>
               </tr>
+
+              <tr
+                v-for="output in audioOutputList"
+                :key="`output-volume-${outputKey(output)}`"
+                class="audio-output-volume-row"
+              >
+                <td class="audio-name-column">
+                  <div class="d-flex align-center ga-1 font-weight-medium">
+                    <v-icon
+                      v-if="isDefaultOutput(output)"
+                      icon="mdi-star-circle"
+                      size="small"
+                    />
+                    <span>{{ outputLabel(output) }}</span>
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    {{ outputNumberLabel(output) }}
+                  </div>
+                </td>
+
+                <td class="audio-volume-column">
+                  <div class="audio-control-row">
+                    <v-btn
+                      v-if="isOutputMuted(output)"
+                      density="compact"
+                      elevation="0"
+                      variant="text"
+                      icon="mdi-volume-variant-off"
+                      color="red"
+                      @click="setOutputVolume(output, getOutputFallbackVolume(output))"
+                    />
+                    <v-btn
+                      v-else
+                      density="compact"
+                      elevation="0"
+                      variant="text"
+                      icon="mdi-volume-source"
+                      @click="setOutputVolume(output, 0)"
+                    />
+
+                    <v-btn
+                      density="compact"
+                      elevation="0"
+                      variant="text"
+                      icon="mdi-minus"
+                      :disabled="isOutputMuted(output)"
+                      @click="stepOutputVolume(output, -1)"
+                    />
+
+                    <v-slider
+                      class="audio-slider"
+                      hide-details
+                      :max="1"
+                      :min="0"
+                      :step="0.01"
+                      :disabled="isOutputMuted(output)"
+                      :model-value="getOutputVolumeValue(output)"
+                      density="compact"
+                      @update:modelValue="queueOutputVolume(output, Number($event))"
+                      @end="flushOutputVolume(output)"
+                    />
+
+                    <v-btn
+                      density="compact"
+                      elevation="0"
+                      variant="text"
+                      icon="mdi-plus"
+                      :disabled="isOutputMuted(output)"
+                      @click="stepOutputVolume(output, 1)"
+                    />
+                  </div>
+                </td>
+
+                <td
+                  v-if="audioOutputList.length > 0"
+                  :colspan="audioOutputList.length"
+                  class="audio-output-route-cell"
+                >
+                  <svg
+                    class="audio-output-route-svg"
+                    :viewBox="`0 0 ${audioOutputList.length * 100} 48`"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <line
+                      class="audio-output-route-line"
+                      x1="0"
+                      y1="24"
+                      :x2="getRouteTargetX(output)"
+                      y2="24"
+                    />
+                    <line
+                      v-for="routeIndex in getRouteColumnIndexes(output)"
+                      :key="`route-${outputKey(output)}-${routeIndex}`"
+                      class="audio-output-route-line"
+                      :x1="getRouteColumnX(routeIndex)"
+                      :x2="getRouteColumnX(routeIndex)"
+                      y1="0"
+                      :y2="routeIndex === getOutputIndex(output) ? 24 : 48"
+                    />
+                  </svg>
+                </td>
+              </tr>
               </tbody>
             </v-table>
           </div>
@@ -144,6 +247,8 @@ export default {
     return {
       volumeDebounceTimers: {} as Record<string, ReturnType<typeof setTimeout>>,
       volumeDrafts: {} as Record<string, number>,
+      outputVolumeDebounceTimers: {} as Record<string, ReturnType<typeof setTimeout>>,
+      outputVolumeDrafts: {} as Record<string, number>,
     }
   },
 
@@ -252,6 +357,106 @@ export default {
       this.setVolume(audioInterface, Number(audioData.current_volume ?? audioData.default_volume ?? audioData.min_range ?? 0))
     },
 
+    outputVolumeKey(output: AudioOutput): string {
+      return this.outputIdentifier(output)
+    },
+
+    getOutputIndex(output: AudioOutput): number {
+      const key = this.outputKey(output)
+
+      return this.audioOutputList.findIndex((item: AudioOutput) => this.outputKey(item) === key)
+    },
+
+    getRouteColumnX(index: number): number {
+      return (index * 100) + 46
+    },
+
+    getRouteTargetX(output: AudioOutput): number {
+      const index = Math.max(0, this.getOutputIndex(output))
+
+      return this.getRouteColumnX(index)
+    },
+
+    getRouteColumnIndexes(output: AudioOutput): number[] {
+      const start = this.getOutputIndex(output)
+
+      if (start < 0) return []
+
+      return this.audioOutputList
+        .map((_output: AudioOutput, index: number) => index)
+        .filter((index: number) => index >= start)
+    },
+
+    isOutputMuted(output: AudioOutput): boolean {
+      return output.muted === true || Number(output.volume ?? 0) === 0
+    },
+
+    getOutputFallbackVolume(output: AudioOutput): number {
+      const current = Number(output.volume)
+
+      return Number.isFinite(current) && current > 0 ? current : 0.2
+    },
+
+    getOutputVolumeValue(output: AudioOutput): number {
+      const key = this.outputVolumeKey(output)
+
+      if (this.outputVolumeDrafts[key] !== undefined) {
+        return this.outputVolumeDrafts[key]
+      }
+
+      const volume = Number(output.volume ?? 0)
+
+      return Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0
+    },
+
+    stepOutputVolume(output: AudioOutput, direction: number) {
+      const current = this.getOutputVolumeValue(output)
+      const next = Math.max(0, Math.min(1, current + (0.01 * direction)))
+
+      this.outputVolumeDrafts[this.outputVolumeKey(output)] = next
+      this.flushOutputVolume(output)
+    },
+
+    queueOutputVolume(output: AudioOutput, volume: number) {
+      const key = this.outputVolumeKey(output)
+
+      this.outputVolumeDrafts[key] = Math.max(0, Math.min(1, volume))
+
+      if (this.outputVolumeDebounceTimers[key]) {
+        clearTimeout(this.outputVolumeDebounceTimers[key])
+      }
+
+      this.outputVolumeDebounceTimers[key] = setTimeout(() => {
+        this.flushOutputVolume(output)
+      }, 200)
+    },
+
+    flushOutputVolume(output: AudioOutput) {
+      const key = this.outputVolumeKey(output)
+      const volume = this.outputVolumeDrafts[key]
+
+      if (volume === undefined) return
+
+      if (this.outputVolumeDebounceTimers[key]) {
+        clearTimeout(this.outputVolumeDebounceTimers[key])
+        delete this.outputVolumeDebounceTimers[key]
+      }
+
+      delete this.outputVolumeDrafts[key]
+      this.setOutputVolume(output, volume)
+    },
+
+    setOutputVolume(output: AudioOutput, volume: number) {
+      const outputName = this.outputIdentifier(output)
+
+      if (!outputName) return
+
+      eventBus.$emit('websocket:send', {
+        method: 'set_audio_output_volume',
+        params: { output: outputName, volume },
+      })
+    },
+
     isPipewireSink(device: any): boolean {
       return device?.pipewire_sink === true || device?.pipewire_sink === 'true'
     },
@@ -283,6 +488,13 @@ export default {
         output.id ??
         'Unknown output'
       )
+    },
+
+
+    outputNumberLabel(output: AudioOutput): string {
+      const index = this.getOutputIndex(output)
+
+      return `Output ${index >= 0 ? index + 1 : ''}`.trim()
     },
 
     outputTitle(output: AudioOutput): string {
@@ -392,8 +604,8 @@ export default {
 }
 
 .audio-name-column {
-  min-width: 180px;
-  width: 220px;
+  min-width: 240px;
+  width: 280px;
 }
 
 .audio-volume-column {
@@ -402,8 +614,9 @@ export default {
 }
 
 .audio-output-column {
-  min-width: 140px;
-  max-width: 180px;
+  min-width: 96px;
+  width: 112px;
+  max-width: 128px;
 }
 
 .audio-control-row {
@@ -429,4 +642,31 @@ export default {
   outline: 1px solid currentColor;
   font-weight: 700;
 }
+.audio-output-route-cell {
+  position: relative;
+  height: 48px;
+  padding: 0 !important;
+  overflow: visible;
+}
+
+.audio-output-route-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 48px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.audio-output-route-line {
+  stroke: rgb(var(--v-theme-primary));
+  stroke-width: 3;
+  stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+}
+
+.audio-output-volume-row :deep(td) {
+  overflow: visible;
+}
+
 </style>
