@@ -19,6 +19,7 @@ export const useAppStore = defineStore('app', {
     currentGame: {},
     channelPoints: [],
     audioData: {},
+    audioOutputs: {},
     systemInfo: {
       components: {},
       config: {},
@@ -74,7 +75,9 @@ export const useAppStore = defineStore('app', {
     getAssets: (state) => state.assets,
     getStatus: (state) => state.status,
     getMusicData: (state) => state.musicData,
-    getMusicCavaData: (state) => state.musicCavaData
+    getMusicCavaData: (state) => state.musicCavaData,
+    getAudioOutput: (state) => state.audioOutputs,
+    getAudioOutputs: (state) => state.audioOutputs,
   },
   actions: {
     async fetchConfig() {
@@ -195,6 +198,14 @@ export const useAppStore = defineStore('app', {
     setMusicCavaData(musicCavaData: any) {
       this.musicCavaData = musicCavaData
       this.$patch(state => state.musicCavaData = musicCavaData)
+    },
+    setAudioOutput(audioOutputs: any) {
+      this.audioOutputs = audioOutputs
+      this.$patch(state => state.audioOutputs = audioOutputs)
+    },
+    setAudioOutputs(audioOutputs: any) {
+      this.audioOutputs = audioOutputs
+      this.$patch(state => state.audioOutputs = audioOutputs)
     },
     async fetchStatus(): Promise<any> {
       let status = 'Unknown'

@@ -14,7 +14,14 @@ import os from 'os'
 import path from 'path'
 import getWebsocketServer, {getTwitchClient} from '../App'
 import { getConfig } from './ConfigHelper'
-import { getAudioData } from './AudioHelper'
+import {
+    cleanupPipewireAudioSink,
+    getAudioData,
+    getPipewireSinkOutputVolumePercent,
+    getStreambotSinkName,
+    setPipewireSinkOutputVolume,
+    setupPipewireAudioSink,
+} from './AudioHelper'
 import {logDebug, logError, logRegular, logSuccess, logWarn} from './LogHelper'
 import https from 'https'
 
@@ -22,7 +29,8 @@ const songRequestPath = '/tmp/songrequests'
 const mpvSocketPath = '/tmp/streambot-music-mpv.sock'
 const cavaConfigPath = '/tmp/streambot-cava.conf'
 const musicStatePath = '/tmp/streambot-music-state.json'
-const streambotMusicSink = 'streambot_music'
+const streambotMusicConfigName = 'music'
+const streambotMusicSink = getStreambotSinkName(streambotMusicConfigName)
 
 let musicPath = '$HOME/Music/Streambot'
 let songRequestEnabled = false
@@ -31,8 +39,6 @@ let mpvProcess: ChildProcessWithoutNullStreams | null = null
 let cavaProcess: ChildProcessWithoutNullStreams | null = null
 let mpvEventSocket: Socket | null = null
 let musicUpdateInterval: ReturnType<typeof setInterval> | null = null
-let streambotLoopbackModuleId: string | null = null
-let streambotLoopbackSinkInputId: string | null = null
 let status: any = null
 let songRequestQueue: string[] = []
 let songRequestTitleMap: Record<string, string> = {}
@@ -120,7 +126,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         unlinkSync(mpvSocketPath)
     }
 
-    await setupStreambotAudioSink()
+    await setupPipewireAudioSink(streambotMusicConfigName)
 
     const initialVolume = getInitialMusicVolumePercent()
 
@@ -138,7 +144,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
 
     mpvProcess = spawn('mpv', mpvArgs)
 
-    await setStreambotOutputVolume(initialVolume / 100)
+    await setPipewireSinkOutputVolume(streambotMusicConfigName, initialVolume / 100)
 
     mpvProcess.stdout.on('data', data => logDebug(`[mpv] ${data.toString().trim()}`))
     mpvProcess.stderr.on('data', data => logDebug(`[mpv] ${data.toString().trim()}`))
@@ -188,7 +194,7 @@ export async function stopMusicPlayer() {
     stopMusicUpdateInterval()
 
     if (!mpvProcess) {
-        await cleanupStreambotAudioSink()
+        await cleanupPipewireAudioSink(streambotMusicConfigName)
         return
     }
 
@@ -216,7 +222,7 @@ export async function stopMusicPlayer() {
         unlinkSync(mpvSocketPath)
     }
 
-    await cleanupStreambotAudioSink()
+    await cleanupPipewireAudioSink(streambotMusicConfigName)
 }
 
 export async function reloadMusicPlayer(restoreModeFromState = false) {
@@ -398,10 +404,10 @@ export async function setVolume(volume: number) {
 }
 
 export async function setRelativeVolume(volume: number) {
-    const currentVolume = await getStreambotOutputVolumePercent()
+    const currentVolume = await getPipewireSinkOutputVolumePercent(streambotMusicConfigName)
     const nextVolume = Math.max(0, Math.min(100, currentVolume + volume))
 
-    await setStreambotOutputVolume(nextVolume / 100)
+    await setPipewireSinkOutputVolume(streambotMusicConfigName, nextVolume / 100)
     await sync()
 }
 
@@ -463,7 +469,7 @@ export async function deleteSong(filename: string) {
 async function getMusicUpdate() {
     const current = await getCurrentMusic()
     let playlist = await getPlaylist()
-    const volume = await getStreambotOutputVolumePercent()
+    const volume = await getPipewireSinkOutputVolumePercent(streambotMusicConfigName)
 
     if (!playlist.length && !songRequestEnabled) {
         playlist = getRegularMusicFiles()
@@ -909,7 +915,7 @@ function clearSongRequestCache() {
 }
 
 async function mpvSetVolume(volume: number): Promise<void> {
-    await setStreambotOutputVolume(volume)
+    await setPipewireSinkOutputVolume(streambotMusicConfigName, volume)
 }
 
 async function mpvGetProperty(property: string): Promise<any> {
@@ -1050,192 +1056,6 @@ function renderCavaSection(name: string, values: Record<string, any>): string {
     }
 
     return lines.join('\n')
-}
-
-async function setupStreambotAudioSink() {
-    await cleanupStreambotAudioSink()
-    await cleanupAllStreambotAudio()
-
-    try {
-        await runCommand('pactl', [
-            'load-module',
-            'module-null-sink',
-            `sink_name=${streambotMusicSink}`,
-            'sink_properties=' + [
-                'device.description=streambot_music',
-                'node.description=streambot_music',
-                'node.nick=streambot_music',
-                'node.virtual=true',
-                'node.hidden=true',
-                'device.api=virtual',
-                'media.class=Audio/Sink',
-            ].join(' '),
-        ])
-    } catch {
-        // sink probably already exists
-    }
-
-    try {
-        const output = await runCommandWithOutput('pactl', [
-            'load-module',
-            'module-loopback',
-            `source=${streambotMusicSink}.monitor`,
-            'latency_msec=30',
-        ])
-
-        streambotLoopbackModuleId = output.trim()
-
-        await sleep(500)
-
-        streambotLoopbackSinkInputId = await findStreambotLoopbackSinkInputId()
-    } catch {
-        streambotLoopbackSinkInputId = await findStreambotLoopbackSinkInputId()
-    }
-}
-
-export async function cleanupAllStreambotAudio() {
-    suppressMusicStateWrite = true
-    try {
-        const nodes = await runCommandWithOutput('pw-cli', ['ls', 'Node'])
-
-        for (const match of nodes.matchAll(/streambot_music(-\d+)?/gi)) {
-            try {
-                await runCommand('pw-cli', ['destroy', match[0]])
-            } catch {}
-        }
-    } catch {}
-
-    const moduleIds = new Set<string>()
-
-    try {
-        const modules = await runCommandWithOutput('pactl', [
-            'list',
-            'modules',
-            'short',
-        ])
-
-        for (const line of modules.split(/\r?\n/)) {
-            if (!/streambot_music(-\d+)?/i.test(line)) continue
-
-            const moduleId = line.trim().split(/\s+/)[0]
-
-            if (moduleId) moduleIds.add(moduleId)
-        }
-    } catch {}
-
-    for (const moduleId of moduleIds) {
-        try {
-            await runCommand('pactl', ['unload-module', moduleId])
-        } catch {}
-    }
-
-    streambotLoopbackModuleId = null
-    streambotLoopbackSinkInputId = null
-
-    suppressMusicStateWrite = false
-}
-
-async function cleanupStreambotAudioSink() {
-    if (!streambotLoopbackModuleId) return
-
-    try {
-        await runCommand('pactl', [
-            'unload-module',
-            streambotLoopbackModuleId,
-        ])
-    } catch {}
-
-    streambotLoopbackModuleId = null
-    streambotLoopbackSinkInputId = null
-}
-
-async function setStreambotOutputVolume(volume: number): Promise<void> {
-    const safeVolume = Math.max(0, Math.min(1, volume))
-
-    if (!streambotLoopbackSinkInputId) {
-        streambotLoopbackSinkInputId = await findStreambotLoopbackSinkInputId()
-    }
-
-    if (!streambotLoopbackSinkInputId) {
-        logWarn('streambot loopback sink-input not found')
-        return
-    }
-
-    await runCommand('pactl', [
-        'set-sink-input-volume',
-        streambotLoopbackSinkInputId,
-        `${Math.round(safeVolume * 100)}%`,
-    ])
-}
-
-async function getStreambotOutputVolumePercent(): Promise<number> {
-    if (!streambotLoopbackSinkInputId) {
-        streambotLoopbackSinkInputId = await findStreambotLoopbackSinkInputId()
-    }
-
-    if (!streambotLoopbackSinkInputId) return 20
-
-    try {
-        const output = await runCommandWithOutput('pactl', [
-            'list',
-            'sink-inputs',
-        ])
-
-        const blocks = output.split(/Sink Input #/).slice(1)
-
-        const block = blocks.find(block => {
-            const id = block.split(/\r?\n/)[0]?.trim()
-            return id === streambotLoopbackSinkInputId
-        })
-
-        if (!block) return 20
-
-        const match = block.match(/Volume:.*?(\d+)%/)
-        const volume = Number(match?.[1])
-
-        if (Number.isFinite(volume)) return volume
-    } catch {}
-
-    return 20
-}
-
-async function findStreambotLoopbackSinkInputId(): Promise<string | null> {
-    try {
-        const output = await runCommandWithOutput('pactl', [
-            'list',
-            'sink-inputs',
-        ])
-
-        const blocks = output.split(/Sink Input #/).slice(1)
-
-        for (const block of blocks) {
-            const id = block.split(/\r?\n/)[0]?.trim()
-
-            if (!id || !/^\d+$/.test(id)) continue
-
-            if (streambotLoopbackModuleId && block.includes(`Owner Module: ${streambotLoopbackModuleId}`)) {
-                return id
-            }
-        }
-
-        for (const block of blocks) {
-            const id = block.split(/\r?\n/)[0]?.trim()
-
-            const isLoopback =
-                block.includes('module-loopback') ||
-                block.includes('application.name = "PulseAudio Loopback"') ||
-                block.includes('application.name = "PipeWire"') ||
-                block.includes('media.name = "Loopback')
-
-            const isFromStreambot = block.includes(`${streambotMusicSink}.monitor`)
-
-            if (id && /^\d+$/.test(id) && isLoopback && isFromStreambot) {
-                return id
-            }
-        }
-    } catch {}
-
-    return null
 }
 
 function secondsToMs(value: any): number {

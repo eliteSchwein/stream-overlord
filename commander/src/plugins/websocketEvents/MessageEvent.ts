@@ -3,8 +3,7 @@ import {type Websocket, WebsocketEvent} from "websocket-ts";
 import NotifyAlertQueryMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAlertQueryMessage";
 import NotifyGameUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyGameUpdateMessage";
 import NotifyShieldModeMessage from "@/plugins/websocketEvents/websocketMessage/NotifyShieldModeMessage";
-import NotifyChannelPointUpdateMessage
-  from "@/plugins/websocketEvents/websocketMessage/NotifyChannelPointUpdateMessage";
+import NotifyChannelPointUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyChannelPointUpdateMessage";
 import NotifyAudioUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAudioUpdateMessage";
 import NotifySystemInfoMessage from "@/plugins/websocketEvents/websocketMessage/NotifySystemInfoMessage.ts";
 import NotifySceneMessage from "@/plugins/websocketEvents/websocketMessage/NotifySceneMessage.ts";
@@ -24,6 +23,7 @@ import NotifyAssetsUpdateMessage from "@/plugins/websocketEvents/websocketMessag
 import NotifyDisconnectMessage from "@/plugins/websocketEvents/websocketMessage/NotifyDisconnectMessage.ts";
 import NotifyMusicUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyMusicUpdateMessage.ts";
 import NotifyMusicCavaMessage from "@/plugins/websocketEvents/websocketMessage/NotifyMusicCavaMessage.ts";
+import NotifyAudioOutputUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAudioOutputUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -60,5 +60,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyAssetsUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyMusicUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyMusicCavaMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyAudioOutputUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

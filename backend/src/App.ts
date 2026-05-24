@@ -24,7 +24,6 @@ import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
 import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
 import {initNeopixels} from "./helper/NeopixelHelper";
 import {
-    cleanupAllStreambotAudio,
     loadMusicConfig,
     reloadMusicPlayer,
     startMusicPlayer,

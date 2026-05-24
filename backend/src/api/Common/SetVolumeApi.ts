@@ -9,7 +9,7 @@ export default class SetVolumeApi extends BaseApi {
     async handle(data: any): Promise<any>
     {
         if(!data.interface) return {"error": "missing interface"}
-        if(!data.volume) return {"error": "missing volume"}
+        if(data.volume === undefined || data.volume === null) return {"error": "missing volume"}
 
         await setVolume(data.interface, data.volume)
     }

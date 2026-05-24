@@ -1,7 +1,7 @@
 import {getFullConfig} from "./ConfigHelper"
 import {execute} from "./CommandHelper"
 import {logDebug, logError, logNotice, logWarn} from "./LogHelper"
-import {getAudioData} from "./AudioHelper"
+import {getAudioData, getStreambotSinkName} from "./AudioHelper"
 import {getArch, parsePath} from "./SystemHelper"
 import {createWriteStream, existsSync, rmSync} from "node:fs"
 import {mkdirSync} from "fs"
@@ -261,6 +261,16 @@ export async function speak(message: string) {
     const config = getFullConfig()["tts"]
     const audioData = getAudioData()["tts"]
 
+    if (!config) {
+        logWarn(`TTS failed: missing tts config`)
+        return
+    }
+
+    if (!audioData) {
+        logWarn(`TTS failed: missing tts audio config`)
+        return
+    }
+
     if (audioData.muted) {
         logWarn(`TTS failed: muted`)
         return
@@ -274,15 +284,32 @@ export async function speak(message: string) {
     message = message.replace(escapeRegex, "")
 
     try {
-        let playCommand = config.play_command
-        playCommand = playCommand.replace("${volume}", audioData["current_volume"])
+        const pipewireSinkEnabled = audioData.pipewire_sink === true || audioData.pipewire_sink === "true"
+        const sinkName = getStreambotSinkName("tts")
+
+        let playCommand = String(config.play_command ?? "")
+
+        if (!playCommand) {
+            logWarn(`TTS failed: missing play_command`)
+            return
+        }
+
+        playCommand = playCommand
+            .replace(/\$\{volume}/g, pipewireSinkEnabled ? "1" : String(audioData["current_volume"] ?? 1))
+            .replace(/\$\{sink}/g, sinkName)
+            .replace(/\$\{audio_sink}/g, sinkName)
+            .replace(/\$\{audio_device}/g, sinkName)
+
+        if (pipewireSinkEnabled) {
+            playCommand = `PULSE_SINK=${shellEscape(sinkName)} PIPEWIRE_NODE=${shellEscape(sinkName)} ${playCommand}`
+        }
 
         // Use only the filename placed in models/
         const modelFile = path.basename(String(config.model))
 
-        const command = `bash -c "cd ${parsePath(
+        const command = `bash -c "cd ${shellEscape(parsePath(
             config.location
-        )} && echo '${message}' | ./piper ${piperAttributes} --model models/${modelFile}.onnx --output-raw | ${playCommand}"`
+        ))} && echo ${shellEscape(message)} | ./piper ${piperAttributes} --model models/${shellEscape(`${modelFile}.onnx`)} --output-raw | ${playCommand}"`
 
         logDebug(`TTS Command: ${command}`)
         await execute(command)
@@ -290,6 +317,10 @@ export async function speak(message: string) {
         logWarn(`TTS failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
+}
+
+function shellEscape(value: string): string {
+    return `'${String(value).replace(/'/g, `'\''`)}'`
 }
 
 export function calculateTTSduration(text: string, speechRate = 150) {

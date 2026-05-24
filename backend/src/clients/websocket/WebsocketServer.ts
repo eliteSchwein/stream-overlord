@@ -5,7 +5,7 @@ import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
 import isShieldActive from "../../helper/ShieldHelper";
 import {getActiveChannelPoints} from "../../helper/ChannelPointHelper";
-import {getAudioData} from "../../helper/AudioHelper";
+import {getAudioData, getAudioOutputs} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
 import {getOBSClient, getYoloboxClient} from "../../App";
@@ -56,7 +56,8 @@ export default class WebsocketServer {
         'notify_music_show',
         'notify_music_update',
         'notify_music_cava',
-        'notify_animation_update'
+        'notify_animation_update',
+        'notify_audio_outputs_update'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -192,6 +193,7 @@ export default class WebsocketServer {
                 this.send("notify_giveaway_update", getGiveaway(), client)
                 this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)
                 this.send("notify_assets_update", getParsedAssetFiles(), client)
+                this.send("notify_audio_outputs_update", getAudioOutputs(), client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]
