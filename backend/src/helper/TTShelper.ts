@@ -1,6 +1,6 @@
 import {getFullConfig} from "./ConfigHelper"
-import {execute} from "./CommandHelper"
-import {logDebug, logError, logNotice, logWarn} from "./LogHelper"
+import {execute, executeProcess} from "./CommandHelper"
+import {logDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper"
 import {getAudioData, getStreambotSinkName} from "./AudioHelper"
 import {getArch, parsePath} from "./SystemHelper"
 import {createWriteStream, existsSync, rmSync} from "node:fs"
@@ -10,6 +10,7 @@ import * as stream from "node:stream"
 import axios from "axios"
 import * as path from "node:path"
 import getWebsocketServer from "../App"
+import {ChildProcessWithoutNullStreams} from "node:child_process";
 
 const escapeRegex = /[\/'"]/
 
@@ -25,6 +26,23 @@ type HFEntry = {
 }
 
 const finishedDownload = promisify(stream.finished)
+
+let activeSpeechEventUuid: string | undefined = undefined
+const activeSpeechProcesses: Record<string, any> = {}
+
+export function interruptSpeechByEventUuid(eventUuid: string | undefined) {
+    if (!eventUuid) return
+
+    const process = activeSpeechProcesses[eventUuid]
+
+    if (!process) return
+
+    try {
+        process.kill("SIGTERM")
+    } catch (_) {}
+
+    delete activeSpeechProcesses[eventUuid]
+}
 
 /** List repo tree (handles pagination via Link: rel="next"). */
 async function* hfListRepoTree(repo = HF_REPO, rev = HF_REV) {
@@ -257,7 +275,10 @@ export async function installPiper() {
     await execute(`mkdir -p ${installPath}/models`)
 }
 
-export async function speak(message: string) {
+export async function speak(
+    message: string,
+    eventUuid: string | undefined = undefined,
+) {
     const config = getFullConfig()["tts"]
     const audioData = getAudioData()["tts"]
 
@@ -312,7 +333,21 @@ export async function speak(message: string) {
         ))} && echo ${shellEscape(message)} | ./piper ${piperAttributes} --model models/${shellEscape(`${modelFile}.onnx`)} --output-raw | ${playCommand}"`
 
         logDebug(`TTS Command: ${command}`)
-        await execute(command)
+        console.log(eventUuid)
+
+        const execution = await executeProcess(command)
+
+        if (eventUuid) {
+            activeSpeechProcesses[eventUuid] = execution.process
+        }
+
+        try {
+            await execution.promise
+        } finally {
+            if (eventUuid) {
+                delete activeSpeechProcesses[eventUuid]
+            }
+        }
     } catch (error: any) {
         logWarn(`TTS failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))

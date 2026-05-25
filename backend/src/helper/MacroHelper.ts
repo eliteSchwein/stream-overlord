@@ -6,12 +6,28 @@ import {parsePlaceholders} from "./DataHelper";
 import fillTemplate, {getTemplateVariables} from "./TemplateHelper";
 import {colorNeopixel} from "./NeopixelHelper";
 import {toggleAutoMacro} from "./AutoMacroHelper";
-import {speak} from "./TTShelper";
+import {calculateTTSduration, speak} from "./TTShelper";
 import {addAlert} from "./AlertHelper";
 import {v4 as uuidv4} from "uuid";
 import {addSongRequest, toggleSongRequest} from "./MusicHelper";
 
 let macros: any = {};
+
+const cancelledEvents = new Set<string>()
+
+export function cancelMacroEvent(eventUuid: string | undefined) {
+    if (!eventUuid) return
+    cancelledEvents.add(eventUuid)
+}
+
+export function clearCancelledMacroEvent(eventUuid: string | undefined) {
+    if (!eventUuid) return
+    cancelledEvents.delete(eventUuid)
+}
+
+function isMacroEventCancelled(variables: any) {
+    return variables?.eventUuid && cancelledEvents.has(variables.eventUuid)
+}
 
 export default function loadMacros() {
     logRegular("load macros");
@@ -80,8 +96,8 @@ export async function triggerMacro(name: string, variables: any = {}) {
     if (!variables) variables = {};
 
     variables = {
-        ...variables,
         ...getTemplateVariables(),
+        ...variables,
     };
 
     const macroApis = macros[name]?.apis ?? [];
@@ -108,6 +124,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
     const controlStack: any[] = [];
 
     for (const preTask of tasks) {
+        if (isMacroEventCancelled(variables)) {
+            logWarn(`macro ${name} cancelled for event ${variables.eventUuid}`)
+            return false
+        }
+
         try {
             const taskString = JSON.stringify(preTask);
             const interpolated = interpolateTemplate(taskString, variables);
@@ -263,12 +284,23 @@ async function handleDummyAlert(task: any, variables: any) {
         return;
     }
 
+    const eventUuid =
+        task.event_uuid ??
+        task.eventUuid ??
+        variables.eventUuid ??
+        `macro_${uuidv4()}`;
+
+    const duration =
+        task.duration === "tts"
+            ? calculateTTSduration(task.message)
+            : task.duration ?? 5;
+
     addAlert({
         dummy: true,
-        duration: task.duration ?? 5,
+        duration: duration,
         icon: task.icon ?? "",
         message: task.message,
-        "event-uuid": variables.eventUuid ?? `macro_${uuidv4()}`,
+        "event-uuid": eventUuid,
         speak: task.speak ?? false,
     });
 }
@@ -405,7 +437,7 @@ async function handleFunction(method: string, data: any = {}) {
         }
 
         case "speak": {
-            await speak(data.content);
+            await speak(data.content, data.event_uuid);
             break;
         }
 

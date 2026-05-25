@@ -5,7 +5,6 @@ import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {addAlert, isAlertActive} from "../../../helper/AlertHelper";
 import getWebsocketServer from "../../../App";
 import {WAIT_FOREVER, waitUntil} from "async-wait-until";
-import {v4 as uuidv4} from "uuid";
 
 export default class ShoutoutCommand extends BaseCommand {
     command = 'shoutout'
@@ -58,7 +57,7 @@ export default class ShoutoutCommand extends BaseCommand {
             'duration': 30,
             'icon': '',
             'message': ``,
-            'event-uuid': `shoutout_${uuidv4()}`,
+            'event-uuid': this.eventUuid,
         })
     }
 }

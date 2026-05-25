@@ -5,6 +5,7 @@ import {setLedColor} from "./WledHelper";
 import {speak} from "./TTShelper";
 import {logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
+import {unlinkEvent} from "./MessageEventLinkHelper";
 
 const alertQuery: any[] = []
 const activeAlerts: string[] = []
@@ -60,7 +61,7 @@ export default function initialAlerts() {
 
                 if(activeAlert.speak) {
                     activeAlert['speakFinished'] = false
-                    await speak(activeAlert.message)
+                    await speak(activeAlert.message, activeAlert['event-uuid'])
                     activeAlert['speakFinished'] = true
                 }
 
@@ -160,9 +161,20 @@ function getMacroList(macros: any): string[] {
 }
 
 function buildAlertVariables(alert: any) {
+    const {
+        variables,
+        start_macros,
+        startMacros,
+        idle_macros,
+        idleMacros,
+        end_macros,
+        endMacros,
+        ...safeAlert
+    } = alert
+
     return {
-        ...(alert.variables ?? {}),
-        alert,
+        ...(variables ?? {}),
+        alert: safeAlert,
         eventUuid: alert['event-uuid'],
         message: alert.message,
         asset: alert.asset,
@@ -214,6 +226,7 @@ export function removeAlert(alert: any) {
         }
 
         removeEventFromQuery(alert['event-uuid'])
+        unlinkEvent(alert['event-uuid'])
     }
 }
 
@@ -223,4 +236,12 @@ export function getActiveSound() {
 
 export function setActiveSound(sound: string|null) {
     activeSound = sound
+}
+
+export function removeAlertByEventUuid(eventUuid: string | undefined) {
+    if (!eventUuid) return
+
+    removeAlert({
+        "event-uuid": eventUuid,
+    })
 }

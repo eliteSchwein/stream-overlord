@@ -4,6 +4,8 @@ import {hasModerator, hasVip} from "../helper/PermissionHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
 import {isShowErrorMessage} from "../../../helper/CommandHelper";
 import {getPrimaryChannel} from "../../../helper/ConfigHelper";
+import {v4 as uuidv4} from 'uuid';
+import {linkMessageToEvent} from "../../../helper/MessageEventLinkHelper";
 
 export default class BaseCommand {
     command: string
@@ -16,6 +18,7 @@ export default class BaseCommand {
     userCooldown = 10
     enforceSame = false
     registerCommand = true
+    eventUuid: string = `command_${uuidv4()}`
 
     bot: Bot
 
@@ -172,6 +175,11 @@ export default class BaseCommand {
         logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
 
         try {
+            linkMessageToEvent(
+                context.msg?.id,
+                this.eventUuid,
+            )
+
             await this.handle(params, context, param)
         } catch (error) {
             logWarn(`command ${this.command} failed:`)

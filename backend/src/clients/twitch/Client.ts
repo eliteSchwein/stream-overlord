@@ -18,6 +18,7 @@ import ChannelPointEditEvent from "./events/event_sub/ChannelPointEditEvent";
 import ChannelSharedChatSessionEnd from "./events/event_sub/ChannelSharedChatSessionEnd";
 import ChannelSharedChatSession from "./events/event_sub/ChannelSharedChatSession";
 import PollPredictionEvent from "./events/event_sub/PollPredictionEvent";
+import MessageDeleteEvent from "./events/event_sub/MessageDeleteEvent";
 
 export default class TwitchClient {
     protected auth: TwitchAuth;
@@ -168,6 +169,10 @@ export default class TwitchClient {
         await this.safeRegister(
             "shared chat session event",
             () => new ChannelSharedChatSession(this.eventSub, this.bot).register()
+        );
+        await this.safeRegister(
+            "message delete event",
+            () => new MessageDeleteEvent(this.eventSub, this.bot).register()
         );
 
         const affiliateOrPartner = await this.isAffiliateOrPartner();
