@@ -1,7 +1,7 @@
 <template>
-  <v-row class="audio-page-layout" dense no-gutters>
+  <v-row class="audio-page-layout ma-0 pa-0" dense no-gutters>
     <v-col cols="12" :lg="yoloboxAudioEnabled ? 8 : 12" class="bot-audio-panel">
-      <v-card color="grey-darken-4" elevation="0">
+      <v-card color="grey-darken-4" elevation="0" rounded="0">
         <v-card-title class="d-flex align-center justify-space-between">
           <span>Bot Audio Mixer</span>
         </v-card-title>
@@ -565,7 +565,6 @@ export default {
 .bot-audio-panel,
 .yolobox-audio-panel {
   min-width: 0;
-  padding-left: 2px;
 }
 
 .yolobox-audio-panel :deep(.v-row) {

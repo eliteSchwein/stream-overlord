@@ -1,5 +1,5 @@
 <template>
-  <v-card v-if="Object.keys(getObsAudioData).length > 0" color="grey-darken-4">
+  <v-card v-if="Object.keys(getObsAudioData).length > 0" color="grey-darken-4" elevation="0" rounded="0">
     <v-card-title class="d-flex align-center justify-space-between">
       <span>OBS Audio Mixer</span>
     </v-card-title>

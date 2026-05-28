@@ -1,5 +1,5 @@
 <template>
-  <v-card color="grey-darken-4" elevation="0">
+  <v-card color="grey-darken-4" elevation="0" rounded="0">
     <v-card-title class="d-flex align-center justify-space-between">
       <span>Yolobox Audio Mixer</span>
     </v-card-title>
