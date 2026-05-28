@@ -6,6 +6,7 @@ import {
     readFileSync,
     renameSync,
     rmSync,
+    statSync,
     unlinkSync,
     writeFileSync,
 } from 'fs'
@@ -29,6 +30,7 @@ const songRequestPath = '/tmp/songrequests'
 const mpvSocketPath = '/tmp/streambot-music-mpv.sock'
 const cavaConfigPath = '/tmp/streambot-cava.conf'
 const musicStatePath = '/tmp/streambot-music-state.json'
+const musicThumbnailPath = '/tmp/streambot-music-thumbnail.png'
 const streambotMusicConfigName = 'music'
 const streambotMusicSink = getStreambotSinkName(streambotMusicConfigName)
 
@@ -47,6 +49,9 @@ let currentRequestIndex = 0
 let songRequestBusy = false
 let pendingMusicCrashState: MusicCrashState | null = null
 let suppressMusicStateWrite = true
+let overlayDuration = 15_000
+let musicOverlayTimeout: ReturnType<typeof setTimeout> | null = null
+let lastThumbnailTrackKey: string | null = null
 
 type MusicCrashState = {
     path: string | null
@@ -71,6 +76,12 @@ export function loadMusicConfig() {
     logRegular('init musicplayer')
 
     const musicConfig = getConfig(/^music$/g)[0] ?? {}
+
+    overlayDuration = Number(musicConfig.overlay_duration ?? 15_000)
+
+    if (!Number.isFinite(overlayDuration)) {
+        overlayDuration = 15_000
+    }
 
     musicPath = expandPath(musicConfig.path ?? '$HOME/Music/Streambot')
     songRequestEnabled = musicConfig.songrequest === true || musicConfig.songrequest === 'true'
@@ -355,8 +366,27 @@ export async function sync() {
     getWebsocketServer().send('notify_music_update', status)
 }
 
-export function show() {
+export async function show() {
     getWebsocketServer().send('notify_music_show', getStatus())
+
+    const { triggerMacro } = await import('./MacroHelper')
+
+    if (musicOverlayTimeout) {
+        clearTimeout(musicOverlayTimeout)
+        musicOverlayTimeout = null
+    }
+
+    void triggerMacro('music_start', {
+        music: getStatus(),
+    })
+
+    musicOverlayTimeout = setTimeout(() => {
+        musicOverlayTimeout = null
+
+        void triggerMacro('music_end', {
+            music: getStatus(),
+        })
+    }, overlayDuration)
 }
 
 export function getSongCmd() {
@@ -376,21 +406,25 @@ export function getStatus() {
 export async function next() {
     await mpvCommand(['playlist-next', 'force'])
     await sync()
+    void show()
 }
 
 export async function play() {
     await mpvCommand(['set_property', 'pause', false])
     await sync()
+    void show()
 }
 
 export async function pause() {
     await mpvCommand(['set_property', 'pause', true])
     await sync()
+    void show()
 }
 
 export async function back() {
     await mpvCommand(['playlist-prev', 'force'])
     await sync()
+    void show()
 }
 
 export async function togglePause() {
@@ -470,6 +504,7 @@ async function getMusicUpdate() {
     const current = await getCurrentMusic()
     let playlist = await getPlaylist()
     const volume = await getPipewireSinkOutputVolumePercent(streambotMusicConfigName)
+    const thumbnail = await getMusicThumbnailUpdate(current.path)
 
     if (!playlist.length && !songRequestEnabled) {
         playlist = getRegularMusicFiles()
@@ -486,6 +521,7 @@ async function getMusicUpdate() {
         title: current.title,
         artist: current.artist,
         album: current.album,
+        thumbnail,
         track: current,
         playlist,
         playlist_length: Array.isArray(playlist) ? playlist.length : 0,
@@ -531,6 +567,86 @@ async function getCurrentMusic() {
         pause: await mpvGetProperty('pause'),
         track_number: metadata.track ?? metadata.TRACK ?? metadata.tracknumber ?? metadata.TRACKNUMBER ?? '',
     }
+}
+
+async function getMusicThumbnailUpdate(trackPath: string | null) {
+
+    if (!trackPath || !existsSync(trackPath)) {
+        lastThumbnailTrackKey = null
+
+        if (existsSync(musicThumbnailPath)) {
+            rmSync(musicThumbnailPath, { force: true })
+        }
+
+        return null
+    }
+
+    const trackKey = getThumbnailTrackKey(trackPath)
+
+    if (trackKey === lastThumbnailTrackKey) {
+        return null
+    }
+
+    lastThumbnailTrackKey = trackKey
+
+    if (existsSync(musicThumbnailPath)) {
+        rmSync(musicThumbnailPath, { force: true })
+    }
+
+    const extracted = await extractMusicThumbnail(trackPath)
+
+    if (!extracted || !existsSync(musicThumbnailPath)) {
+        return null
+    }
+
+    const base64 = readFileSync(musicThumbnailPath).toString('base64')
+
+    return {
+        path: musicThumbnailPath,
+        mime: 'image/png',
+        base64,
+        data_url: `data:image/png;base64,${base64}`,
+    }
+}
+
+function getThumbnailTrackKey(trackPath: string): string {
+    try {
+        const stat = statSync(trackPath)
+
+        return `${trackPath}:${stat.size}:${stat.mtimeMs}`
+    } catch (error) {
+        return trackPath
+    }
+}
+
+async function extractMusicThumbnail(trackPath: string): Promise<boolean> {
+    const args = [
+        '-y',
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-i',
+        trackPath,
+        '-map',
+        '0:v:0',
+        '-frames:v',
+        '1',
+        musicThumbnailPath,
+    ]
+
+    return new Promise(resolve => {
+        execFile('ffmpeg', args, (error, stdout, stderr) => {
+            if (error) {
+                resolve(false)
+                return
+            }
+
+            const exists = existsSync(musicThumbnailPath)
+            const size = exists ? statSync(musicThumbnailPath).size : 0
+
+            resolve(exists && size > 0)
+        })
+    })
 }
 
 async function getPlaylist() {

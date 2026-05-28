@@ -7,7 +7,7 @@ export default class MusicShowApi extends BaseApi {
     websocketMethod = 'music_show'
 
     async handle(data: any) {
-        show()
+        void show()
 
         return {
             status: 'okay',

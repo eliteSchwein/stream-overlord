@@ -19,17 +19,25 @@ export default class AnimationController extends BaseController {
     ]
 
     async postConnect() {
-        if (!this.src) return
+        if (this.src) {
+            this.reinitAnimation(this.src)
+            return
+        }
 
-        this.reinitAnimation(this.src)
+        const svg = this.element.querySelector(":scope > svg") as SVGSVGElement | null
+        if (!svg) return
+
+        this.svgElement = svg
+        this.ready = true
+
+        this.freezeSvgAnimations()
+        this.playQueued()
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if (method !== "notify_animation_update") return
 
-        if (data.target && data.target !== this.targetName) {
-            return
-        }
+        if (data.target && data.target !== this.targetName) return
 
         if (data.src) {
             this.queuedData = data
@@ -110,9 +118,7 @@ export default class AnimationController extends BaseController {
         })
 
         this.animation.addEventListener("DOMLoaded", () => {
-            if (loadId !== this.loadId) {
-                return
-            }
+            if (loadId !== this.loadId) return
 
             this.ready = true
             this.animation?.goToAndStop(0, true)
@@ -146,13 +152,10 @@ export default class AnimationController extends BaseController {
         }
 
         player.addEventListener("ready", () => {
-            if (loadId !== this.loadId) {
-                return
-            }
+            if (loadId !== this.loadId) return
 
             this.ready = true
             stopInitialPlayback()
-
             this.playQueued()
         })
 
@@ -191,16 +194,14 @@ export default class AnimationController extends BaseController {
                 "image/svg+xml",
             )
 
-            const parsedSvg = content.querySelector("svg") as SVGSVGElement
+            const parsedSvg = content.querySelector("svg") as SVGSVGElement | null
 
             if (!parsedSvg) {
                 console.warn("[animation] svg has no svg element", src)
                 return
             }
 
-            if (loadId !== this.loadId) {
-                return
-            }
+            if (loadId !== this.loadId) return
 
             this.element.innerHTML = ""
             this.element.appendChild(parsedSvg)
@@ -208,13 +209,7 @@ export default class AnimationController extends BaseController {
             this.svgElement = parsedSvg
             this.ready = true
 
-            try {
-                this.svgElement.pauseAnimations()
-                this.svgElement.setCurrentTime(0)
-            } catch (error) {
-                console.warn("[animation] svg pause/set time failed", error)
-            }
-
+            this.freezeSvgAnimations()
             this.playQueued()
         } catch (error) {
             if (loadId !== this.loadId) return
@@ -222,10 +217,28 @@ export default class AnimationController extends BaseController {
         }
     }
 
-    private playQueued() {
-        if (!this.queuedData) {
-            return
+    private freezeSvgAnimations() {
+        if (!this.svgElement) return
+
+        try {
+            this.svgElement.pauseAnimations()
+            this.svgElement.setCurrentTime(0)
+        } catch {
+            // CSS animations are handled below.
         }
+
+        this.svgElement.getAnimations({subtree: true}).forEach((animation) => {
+            try {
+                animation.pause()
+                animation.currentTime = 0
+            } catch (error) {
+                console.warn("[animation] css svg animation freeze failed", error)
+            }
+        })
+    }
+
+    private playQueued() {
+        if (!this.queuedData) return
 
         const queuedData = this.queuedData
         this.queuedData = null
@@ -379,13 +392,23 @@ export default class AnimationController extends BaseController {
 
         this.applyVariables(data.variables ?? {})
 
+        const cssAnimations = this.svgElement.getAnimations({subtree: true})
+
         try {
             this.svgElement.pauseAnimations()
             this.svgElement.setCurrentTime(startFrame / frameRate)
-        } catch (error) {
-            console.warn("[animation] svg frame control failed", error)
-            return
+        } catch {
+            // Ignore, CSS animations are controlled below.
         }
+
+        cssAnimations.forEach((animation) => {
+            try {
+                animation.pause()
+                animation.currentTime = (startFrame / frameRate) * 1000
+            } catch (error) {
+                console.warn("[animation] css svg animation seek failed", error)
+            }
+        })
 
         let currentFrame = startFrame
         let lastTime = performance.now()
@@ -406,13 +429,33 @@ export default class AnimationController extends BaseController {
                 if (loop) {
                     currentFrame = startFrame
                 } else {
-                    this.svgElement.setCurrentTime(stopFrame / frameRate)
+                    try {
+                        this.svgElement.setCurrentTime(stopFrame / frameRate)
+                    } catch {
+                        // Ignore.
+                    }
+
+                    cssAnimations.forEach((animation) => {
+                        animation.currentTime = (stopFrame / frameRate) * 1000
+                        animation.pause()
+                    })
+
                     this.frameRequest = null
                     return
                 }
             }
 
-            this.svgElement.setCurrentTime(currentFrame / frameRate)
+            try {
+                this.svgElement.setCurrentTime(currentFrame / frameRate)
+            } catch {
+                // Ignore.
+            }
+
+            cssAnimations.forEach((animation) => {
+                animation.currentTime = (currentFrame / frameRate) * 1000
+                animation.pause()
+            })
+
             this.frameRequest = requestAnimationFrame(tick)
         }
 

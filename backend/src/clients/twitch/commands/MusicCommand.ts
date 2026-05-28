@@ -48,7 +48,7 @@ export default class MusicCommand extends BaseCommand {
     async handle(params: any, context: any, rawParams: string[]) {
         if (!params.control) {
             await sync()
-            show()
+            void show()
 
             await context.reply(getSongCmd())
             return

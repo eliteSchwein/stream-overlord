@@ -1,10 +1,12 @@
 import BaseController from "./BaseController";
 import { Websocket } from "websocket-ts";
 
+type CavaBar = HTMLDivElement | SVGRectElement
+
 export default class CavaController extends BaseController {
     websocketEndpoints = ['notify_music_cava', 'notify_music_update']
 
-    protected bars: HTMLDivElement[] = []
+    protected bars: CavaBar[] = []
     protected values: number[] = []
     protected smoothedValues: number[] = []
 
@@ -14,9 +16,18 @@ export default class CavaController extends BaseController {
     protected smoothing = 0.45
     protected falloff = 6
 
+    protected isSvgMode = false
+    protected svgRectData = new Map<SVGRectElement, { y: number, height: number }>()
+
     async connect() {
         super.connect?.()
+
+        this.isSvgMode = this.element instanceof SVGElement
         this.element.classList.add('cava-controller')
+
+        if (this.isSvgMode) {
+            this.ensureSvgBars()
+        }
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
@@ -28,10 +39,11 @@ export default class CavaController extends BaseController {
             if (!rawValues.length) continue
 
             const values = rawValues.slice(0, -1)
+            if (!values.length) continue
 
             if (!this.expectedBarCount) {
                 this.expectedBarCount = values.length
-                this.ensureBars(values.length)
+                this.ensureBars(this.expectedBarCount)
             }
 
             if (values.length !== this.expectedBarCount) {
@@ -65,6 +77,11 @@ export default class CavaController extends BaseController {
     }
 
     protected ensureBars(count: number) {
+        if (this.isSvgMode) {
+            this.ensureSvgBars(count)
+            return
+        }
+
         if (this.bars.length === count) return
 
         this.element.innerHTML = ''
@@ -76,6 +93,57 @@ export default class CavaController extends BaseController {
             bar.classList.add('cava-bar')
             this.element.appendChild(bar)
             this.bars.push(bar)
+        }
+    }
+
+    protected ensureSvgBars(count?: number) {
+        const rects = Array.from(
+            this.element.querySelectorAll(':scope > rect')
+        ) as SVGRectElement[]
+
+        if (rects.length < 1) return
+
+        const reference = rects[0]
+        const spacingReference = rects[1] ?? rects[0]
+
+        const referenceX = Number(reference.getAttribute('x') ?? 0)
+        const referenceY = Number(reference.getAttribute('y') ?? 0)
+        const referenceWidth = Number(reference.getAttribute('width') ?? 0)
+        const referenceHeight = Number(reference.getAttribute('height') ?? 0)
+
+        const spacingX = Number(spacingReference.getAttribute('x') ?? referenceX + referenceWidth)
+        const stepX = rects[1]
+            ? spacingX - referenceX
+            : referenceWidth + 1
+
+        const safeStepX = Number.isFinite(stepX) && stepX !== 0
+            ? stepX
+            : referenceWidth + 1
+
+        const desiredCount = count ?? rects.length
+
+        while (rects.length < desiredCount) {
+            const index = rects.length
+            const clone = reference.cloneNode(true) as SVGRectElement
+
+            clone.setAttribute('x', String(referenceX + safeStepX * index))
+            clone.setAttribute('y', String(referenceY))
+            clone.setAttribute('width', String(referenceWidth))
+            clone.setAttribute('height', String(referenceHeight))
+
+            this.element.appendChild(clone)
+            rects.push(clone)
+        }
+
+        this.bars = rects.slice(0, desiredCount)
+        this.smoothedValues = new Array(this.bars.length).fill(0)
+        this.svgRectData.clear()
+
+        for (const rect of this.bars as SVGRectElement[]) {
+            const y = Number(rect.getAttribute('y') ?? referenceY)
+            const height = Number(rect.getAttribute('height') ?? referenceHeight)
+
+            this.svgRectData.set(rect, { y, height })
         }
     }
 
@@ -95,11 +163,41 @@ export default class CavaController extends BaseController {
     }
 
     protected render() {
+        if (this.isSvgMode) {
+            this.renderSvgBars()
+            return
+        }
+
+        this.renderHtmlBars()
+    }
+
+    protected renderHtmlBars() {
         for (let i = 0; i < this.bars.length; i++) {
+            const bar = this.bars[i] as HTMLDivElement
             const value = this.smoothedValues[i] ?? 0
-            this.bars[i].style.height = value > 0
+
+            bar.style.height = value > 0
                 ? `${Math.max(3, value)}%`
                 : '0%'
+        }
+    }
+
+    protected renderSvgBars() {
+        for (let i = 0; i < this.bars.length; i++) {
+            const rect = this.bars[i] as SVGRectElement
+            const original = this.svgRectData.get(rect)
+
+            if (!original) continue
+
+            const value = this.smoothedValues[i] ?? 0
+            const height = value > 0
+                ? Math.max(1, original.height * (value / 100))
+                : 0
+
+            const y = original.y + original.height - height
+
+            rect.setAttribute('height', String(height))
+            rect.setAttribute('y', String(y))
         }
     }
 }

@@ -13,6 +13,12 @@
     src: url(../fonts/Lobster/Lobster-Regular.ttf);
 }
 
+@font-face {
+    font-family: Audiowide;
+    src: url(../fonts/Audiowide/Audiowide-Regular.ttf);
+}
+
+
 .font-silkscreen {
     font-family: Silkscreen, sans-serif;
 }
@@ -23,6 +29,10 @@
 
 .font-lobster {
     font-family: Lobster, sans-serif;
+}
+
+.font-audiowide {
+    font-family: Audiowide, sans-serif;
 }
 
 .font-size-1 { font-size: 5rem; }
