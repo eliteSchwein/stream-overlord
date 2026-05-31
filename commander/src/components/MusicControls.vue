@@ -38,12 +38,22 @@
             </div>
 
             <div class="music-control-buttons">
+              <v-btn
+                icon="mdi-shuffle-variant"
+                :color="isShuffleEnabled ? 'primary' : undefined"
+                @click="callMusicApi('shuffle')"
+              />
               <v-btn icon="mdi-skip-previous" @click="callMusicApi('back')" />
               <v-btn
                 :icon="isPlaying ? 'mdi-pause' : 'mdi-play'"
                 @click="callMusicApi(isPlaying ? 'pause' : 'play')"
               />
               <v-btn icon="mdi-skip-next" @click="callMusicApi('next')" />
+              <v-btn
+                icon="mdi-repeat"
+                :color="isLoopEnabled ? 'primary' : undefined"
+                @click="callMusicApi('loop')"
+              />
             </div>
 
             <div class="music-cava-spacer" aria-hidden="true" />
@@ -150,6 +160,14 @@ export default {
 
     isPlaying(): boolean {
       return this.music.status === 'playing'
+    },
+
+    isShuffleEnabled(): boolean {
+      return this.music.shuffle === true
+    },
+
+    isLoopEnabled(): boolean {
+      return this.music.loop === true || this.music.loop_file === true
     },
   },
 
@@ -280,9 +298,23 @@ export default {
     },
 
     async callMusicApi(action: string) {
-      await fetch(`${this.getRestApi}/api/music/${action}`, {
+      const postActions = ['shuffle', 'loop', 'loop-file']
+      const isPost = postActions.includes(action)
+
+      const response = await fetch(`${this.getRestApi}/api/music/${action}`, {
+        method: isPost ? 'POST' : 'GET',
         cache: 'no-store',
+        headers: isPost
+          ? { 'Content-Type': 'application/json' }
+          : undefined,
+        body: isPost
+          ? JSON.stringify({})
+          : undefined,
       })
+
+      if (!response.ok) {
+        console.warn(`music api failed: ${action}`, response.status, await response.text())
+      }
     },
 
     formatTime(ms: number = 0): string {

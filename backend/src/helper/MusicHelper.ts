@@ -484,13 +484,11 @@ export async function setMusicShuffle(enabled: any) {
     if (musicShuffleEnabled) {
         await mpvCommand(['playlist-shuffle'])
         await sync()
-        void show()
         return
     }
 
     await reloadMusicPlayer(false)
     await sync()
-    void show()
 }
 
 export async function toggleMusicShuffle() {
@@ -502,7 +500,6 @@ export async function setMusicLoop(enabled: any) {
 
     await mpvCommand(['set_property', 'loop-playlist', shouldEnable ? 'inf' : 'no'])
     await sync()
-    void show()
 }
 
 export async function toggleMusicLoop() {
