@@ -19,7 +19,10 @@ sudo apt install -y \
     python3 \
     python3-pip \
     git \
-    pulseaudio-utils
+    pulseaudio-utils \
+    redis-server
+
+sudo systemctl enable --now redis-server
 
 # yt-dlp
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
