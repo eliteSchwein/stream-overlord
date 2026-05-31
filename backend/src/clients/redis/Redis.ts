@@ -1,6 +1,6 @@
 import { createClient, RedisClientType } from 'redis';
 import {getConfig} from "../../helper/ConfigHelper";
-import {logRegular, logSuccess} from "../../helper/LogHelper";
+import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 
 export default class Redis {
     protected redisClient: RedisClientType | undefined
@@ -14,12 +14,17 @@ export default class Redis {
 
         if(!config) return
 
-        this.redisClient = createClient({
-            url: `redis://${config.host}:${config.port}`,
-            password: config.password
-        })
+        try {
+            this.redisClient = createClient({
+                url: `redis://${config.host}:${config.port}`,
+                password: config.password
+            })
 
-        await this.redisClient.connect()
+            await this.redisClient.connect()
+        } catch (error) {
+            logWarn('redis client failed:')
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
 
         logSuccess(`connected to redis`)
     }
