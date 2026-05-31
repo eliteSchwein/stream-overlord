@@ -52,6 +52,7 @@ let suppressMusicStateWrite = true
 let overlayDuration = 15_000
 let musicOverlayTimeout: ReturnType<typeof setTimeout> | null = null
 let lastThumbnailTrackKey: string | null = null
+let musicShuffleEnabled = false
 
 type MusicCrashState = {
     path: string | null
@@ -184,6 +185,10 @@ export async function startMusicPlayer(restoreModeFromState = true) {
 
     startMpvEventListener()
 
+    if (musicShuffleEnabled) {
+        await mpvCommand(['playlist-shuffle'])
+    }
+
     await applyMusicCrashState()
 
     suppressMusicStateWrite = false
@@ -246,6 +251,41 @@ export function getActiveMusicPath(): string {
 
 export function isSongRequestEnabled(): boolean {
     return songRequestEnabled
+}
+
+function parseBooleanValue(value: any, fallback = false): boolean {
+    if (value === undefined || value === null || value === '') return fallback
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') return value !== 0
+
+    const normalized = String(value).trim().toLowerCase()
+
+    if (['true', '1', 'yes', 'on', 'enabled', 'enable'].includes(normalized)) return true
+    if (['false', '0', 'no', 'off', 'disabled', 'disable'].includes(normalized)) return false
+
+    return fallback
+}
+
+function normalizeSearchInput(value: any): string {
+    return String(value ?? '').trim().toLowerCase()
+}
+
+function findRegularMusicByInput(input: any): { filename: string, path: string } | null {
+    const query = normalizeSearchInput(input)
+
+    if (!query) return null
+
+    const files = getRegularMusicFiles()
+
+    return files.find(file => {
+        const filename = normalizeSearchInput(file.filename)
+        const filePath = normalizeSearchInput(file.path)
+
+        return filename === query ||
+            filePath === query ||
+            filename.includes(query) ||
+            filePath.includes(query)
+    }) ?? null
 }
 
 export async function toggleSongRequest(): Promise<boolean> {
@@ -432,6 +472,130 @@ export async function togglePause() {
     await sync()
 }
 
+export async function stopMusicPlayback() {
+    await mpvCommand(['stop'])
+    await sync()
+    void show()
+}
+
+export async function setMusicShuffle(enabled: any) {
+    musicShuffleEnabled = parseBooleanValue(enabled, false)
+
+    if (musicShuffleEnabled) {
+        await mpvCommand(['playlist-shuffle'])
+        await sync()
+        void show()
+        return
+    }
+
+    await reloadMusicPlayer(false)
+    await sync()
+    void show()
+}
+
+export async function toggleMusicShuffle() {
+    await setMusicShuffle(!musicShuffleEnabled)
+}
+
+export async function setMusicLoop(enabled: any) {
+    const shouldEnable = parseBooleanValue(enabled, false)
+
+    await mpvCommand(['set_property', 'loop-playlist', shouldEnable ? 'inf' : 'no'])
+    await sync()
+    void show()
+}
+
+export async function toggleMusicLoop() {
+    const current = await mpvGetProperty('loop-playlist')
+    await setMusicLoop(!(current === 'inf' || current === true))
+}
+
+export async function setMusicLoopFile(enabled: any) {
+    const shouldEnable = parseBooleanValue(enabled, false)
+
+    await mpvCommand(['set_property', 'loop-file', shouldEnable ? 'inf' : 'no'])
+    await sync()
+    void show()
+}
+
+export async function toggleMusicLoopFile() {
+    const current = await mpvGetProperty('loop-file')
+    await setMusicLoopFile(!(current === 'inf' || current === true))
+}
+
+export async function playSong(options: any = {}) {
+    const shouldContinue = parseBooleanValue(options.continue ?? options.continue_playlist ?? options.continuePlaylist, true)
+    const shouldRestart = parseBooleanValue(options.restart, true)
+    const shouldPause = parseBooleanValue(options.pause, false)
+    const wantedPath = options.path ? expandPath(String(options.path)) : null
+    const wantedIndex = options.index !== undefined ? Number(options.index) : null
+    const query = options.song ?? options.query ?? options.filename ?? options.title ?? options.name
+    const files = getRegularMusicFiles()
+
+    let target: { filename: string, path: string } | null = null
+
+    if (wantedPath) {
+        target = files.find(file => path.resolve(file.path) === path.resolve(wantedPath)) ?? {
+            filename: path.basename(wantedPath),
+            path: wantedPath,
+        }
+    } else if (Number.isFinite(wantedIndex)) {
+        const safeIndex = Math.max(0, Math.min(files.length - 1, Number(wantedIndex)))
+        target = files[safeIndex] ?? null
+    } else {
+        target = findRegularMusicByInput(query)
+    }
+
+    if (!target || !target.path || !existsSync(target.path)) {
+        logWarn(`music_play_song failed: song not found (${query ?? wantedPath ?? wantedIndex ?? 'missing query'})`)
+        return false
+    }
+
+    if (!mpvProcess || !existsSync(mpvSocketPath)) {
+        await startMusicPlayer(false)
+    }
+
+    if (shouldContinue) {
+        const playlist = await getPlaylist()
+        const playlistIndex = playlist.findIndex((item: any) => {
+            const itemPath = item.filename ?? item.path ?? ''
+
+            return itemPath === target.path || path.resolve(itemPath) === path.resolve(target.path)
+        })
+
+        if (playlistIndex !== -1) {
+            await mpvCommand(['set_property', 'playlist-pos', playlistIndex])
+        } else {
+            await mpvCommand(['loadfile', target.path, 'append-play'])
+            const updatedPlaylist = await getPlaylist()
+            const appendedIndex = updatedPlaylist.findIndex((item: any) => {
+                const itemPath = item.filename ?? item.path ?? ''
+
+                return itemPath === target.path || path.resolve(itemPath) === path.resolve(target.path)
+            })
+
+            if (appendedIndex !== -1) {
+                await mpvCommand(['set_property', 'playlist-pos', appendedIndex])
+            }
+        }
+    } else {
+        await mpvCommand(['set_property', 'loop-playlist', 'no'])
+        await mpvCommand(['set_property', 'keep-open', true])
+        await mpvCommand(['loadfile', target.path, 'replace'])
+    }
+
+    if (shouldRestart) {
+        await sleep(100)
+        await mpvCommand(['seek', 0, 'absolute'])
+    }
+
+    await mpvCommand(['set_property', 'pause', shouldPause])
+    await sync()
+    void show()
+
+    return true
+}
+
 export async function setVolume(volume: number) {
     await mpvSetVolume(volume / 100)
     await sync()
@@ -505,6 +669,9 @@ async function getMusicUpdate() {
     let playlist = await getPlaylist()
     const volume = await getPipewireSinkOutputVolumePercent(streambotMusicConfigName)
     const thumbnail = await getMusicThumbnailUpdate(current.path)
+    const shuffle = musicShuffleEnabled
+    const loopPlaylist = await mpvGetProperty('loop-playlist')
+    const loopFile = await mpvGetProperty('loop-file')
 
     if (!playlist.length && !songRequestEnabled) {
         playlist = getRegularMusicFiles()
@@ -514,6 +681,11 @@ async function getMusicUpdate() {
         status: current.pause ? 'paused' : 'playing',
         path: getActiveMusicPath(),
         volume,
+        shuffle,
+        loop: loopPlaylist === 'inf' || loopPlaylist === true,
+        loop_playlist: loopPlaylist,
+        loop_file: loopFile === 'inf' || loopFile === true,
+        loop_file_mode: loopFile,
         progress: current.progress,
         progress_percentage: current.duration > 0 ? (current.progress / current.duration) * 100 : 0,
         position: current.position,
