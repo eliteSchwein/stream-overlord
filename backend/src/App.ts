@@ -29,12 +29,15 @@ import {
     startMusicPlayer,
     stopMusicPlayer
 } from "./helper/MusicHelper";
+import Redis from "./clients/redis/Redis";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
 let webServer: WebServer
 let obsClient: OBSClient
 let yoloboxClient: YoloboxClient
+
+const redis: Redis = new Redis()
 
 let ready = false
 let stage = 'Unknown'
@@ -49,6 +52,8 @@ async function init() {
 
     logRegular('load config')
     readConfig()
+
+    await redis.connect()
 
     websocketServer = new WebsocketServer()
     websocketServer.initial()
@@ -188,6 +193,8 @@ export async function reload() {
         logNotice('init reload')
         readConfig()
 
+        await redis.connect()
+
         await stopMusicPlayer()
 
         await initAudio()
@@ -236,6 +243,7 @@ export function getYoloboxClient() {
 }
 
 process.on('SIGINT', () => {
+    void redis.disconnect()
     void stopMusicPlayer()
     killGpio()
     process.exit()
