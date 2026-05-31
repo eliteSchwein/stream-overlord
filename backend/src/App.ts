@@ -188,6 +188,8 @@ export async function reload() {
         logNotice('init reload')
         readConfig()
 
+        await stopMusicPlayer()
+
         await initAudio()
 
         await getTwitchClient().connect()

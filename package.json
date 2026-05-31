@@ -71,7 +71,7 @@
     "shelljs": "^0.10.0",
     "stacktrace-js": "^2.0.2",
     "ts-node": "^10.9.2",
-    "tsparticles": "^4.0.5",
+    "tsparticles": "^4.1.1",
     "typescript": "^6.0.3",
     "undici": "8.3.0",
     "uuid": "^14.0.0",
@@ -84,7 +84,7 @@
     "lottie-web": "^5.13.0",
     "multer": "^2.1.1",
     "sharp": "^0.34.5",
-    "systeminformation": "^5.31.6",
+    "systeminformation": "^5.31.7",
     "tesmart-api": "^1.0.0"
   }
 }
