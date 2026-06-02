@@ -69,7 +69,7 @@ export default {
               width="100%"
               @click="shutdownSystem()"
             >
-              {{ $t('obs.audioMixer.shutdown') }}
+              {{ $t('power.dialog.shutdown') }}
             </v-btn>
           </v-col>
         </v-row>
