@@ -5,272 +5,177 @@ import getWebsocketServer from "../App";
 import * as path from "node:path";
 import * as os from "node:os";
 import * as fs from "node:fs";
-import { ChildProcessWithoutNullStreams, spawn } from "node:child_process";
-import { execSync } from "child_process";
 
 /**
- * We may need to grab multiple event devices that emit KEY_POWER.
- * If we only grab one, the desktop can still see it via another event node.
+ * Normal GPIO handling only.
+ * Power-button interception / evtest / /dev/input handling was intentionally removed.
  */
-let evtestProcs: ChildProcessWithoutNullStreams[] = [];
-let lastPowerPressMs = 0;
-const POWER_DEBOUNCE_MS = 400;
+type GpioInstance = {
+    watch: (callback: (error: Error | null | undefined, value: number) => void) => void;
+    unwatchAll: () => void;
+    unexport: () => void;
+    writeSync?: (value: number) => void;
+};
 
-function listEventCandidates(): Array<{ dev: string; name: string }> {
-    let txt = "";
-    try { txt = fs.readFileSync("/proc/bus/input/devices", "utf8"); } catch { return []; }
-    const blocks = txt.split(/\n\n+/);
-    const res: Array<{ dev: string; name: string }> = [];
-    for (const b of blocks) {
-        const name = (b.match(/^N:\s*Name="([^"]+)"/m) || [])[1] || "";
-        const handlers = (b.match(/^H:\s*Handlers=([^\n]+)/m) || [])[1] || "";
-        const ev = handlers.split(/\s+/).find(h => /^event\d+$/.test(h));
-        if (ev) res.push({ dev: `/dev/input/${ev}`, name });
-    }
+type GpioConstructor = new (
+    pin: number,
+    direction: "in" | "out" | "high" | "low",
+    edge?: "none" | "rising" | "falling" | "both",
+    options?: Record<string, any>
+) => GpioInstance;
 
-    // Just a rough preference ordering for logs/fallbacks
-    const score = (n: string) => {
-        const s = (n || "").toLowerCase();
-        let v = 0;
-        if (s.includes("pwr_button")) v += 1000;
-        if (s.includes("gpio-keys")) v += 200;
-        if (s.includes("power")) v += 80;
-        if (s.includes("acpi")) v += 40;
-        if (s.includes("consumer control")) v -= 200;
-        if (s.includes("audio")) v -= 100;
-        return v;
-    };
+type GpioConfig = {
+    pin?: number | string;
+    gpio?: number | string;
+    direction?: "in" | "out" | "high" | "low";
+    edge?: "none" | "rising" | "falling" | "both";
+    activeLow?: boolean;
+    debounceTimeout?: number;
+    method?: string;
+    event?: string;
+    data?: any;
+    value?: number | string | boolean;
+};
 
-    return res.sort((a, b) => score(b.name) - score(a.name));
-}
+let gpioPins: GpioInstance[] = [];
 
-function hasEvtest(): string | null {
+function loadGpioConstructor(): GpioConstructor | null {
     try {
-        if (fs.existsSync("/usr/bin/evtest")) return "/usr/bin/evtest";
-        const out = execSync("which evtest", { stdio: ["ignore", "pipe", "ignore"] })
-            .toString().trim();
-        return out || null;
-    } catch {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const mod = require("onoff");
+        return mod.Gpio || mod.default?.Gpio || null;
+    } catch (error: any) {
+        logWarn(`GPIO unavailable: onoff could not be loaded (${error?.message || error})`);
         return null;
     }
 }
 
-/**
- * Detect whether an input device supports a given key code by reading:
- *   /sys/class/input/eventX/device/capabilities/key
- *
- * The file is a bitmap printed as hex words of "unsigned long".
- * On 64-bit kernels, unsigned long is 64-bit; on 32-bit kernels, 32-bit.
- * Lowest bits are in the RIGHTMOST word.
- */
-function sysfsSupportsKeyCode(dev: string, keyCode: number): boolean {
-    try {
-        const ev = path.basename(dev); // eventX
-        const capPath = `/sys/class/input/${ev}/device/capabilities/key`;
-        const raw = fs.readFileSync(capPath, "utf8").trim();
-        if (!raw) return false;
+function parsePin(config: GpioConfig): number | null {
+    const raw = config.pin ?? config.gpio;
+    const pin = Number(raw);
 
-        const words = raw.split(/\s+/);
-
-        const bitsPerWord =
-            (process.arch === "arm64" || process.arch === "x64") ? 64 : 32;
-
-        const wordIndex = Math.floor(keyCode / bitsPerWord);
-        const bitIndex = keyCode % bitsPerWord;
-
-        // LSB word is rightmost
-        const fromRight = words.length - 1 - wordIndex;
-        if (fromRight < 0) return false;
-
-        const word = BigInt("0x" + words[fromRight]);
-        return ((word >> BigInt(bitIndex)) & 1n) === 1n;
-    } catch {
-        return false;
+    if (!Number.isInteger(pin) || pin < 0) {
+        return null;
     }
+
+    return pin;
 }
 
-/**
- * Fallback detection: run evtest briefly and parse its header output.
- * This matches what you pasted:
- *   Event code 116 (KEY_POWER)
- *
- * We don't need the process to keep running; a short timeout is enough.
- */
-function evtestHeaderSupportsKey(evtestPath: string, dev: string, keyName: string): boolean {
-    try {
-        execSync(`${evtestPath} ${dev}`, {
-            stdio: ["ignore", "pipe", "ignore"],
-            timeout: 200
-        });
-        return false;
-    } catch (e: any) {
-        const out = (e?.stdout ? e.stdout.toString() : "");
-        return out.includes(`(${keyName})`);
+function normalizeEdge(edge: any): "none" | "rising" | "falling" | "both" {
+    const normalized = String(edge ?? "both").trim().toLowerCase();
+
+    if (["none", "rising", "falling", "both"].includes(normalized)) {
+        return normalized as "none" | "rising" | "falling" | "both";
     }
+
+    return "both";
 }
 
-function findKeyPowerDevices(evtestPath: string): Array<{ dev: string; name: string }> {
-    const candidates = listEventCandidates();
+function normalizeDirection(direction: any): "in" | "out" | "high" | "low" {
+    const normalized = String(direction ?? "in").trim().toLowerCase();
 
-    // 116 = KEY_POWER
-    let hits = candidates.filter(c => sysfsSupportsKeyCode(c.dev, 116));
-
-    // If sysfs gives nothing, parse evtest header (works on your event2 for sure)
-    if (hits.length === 0) {
-        hits = candidates.filter(c => evtestHeaderSupportsKey(evtestPath, c.dev, "KEY_POWER"));
+    if (["in", "out", "high", "low"].includes(normalized)) {
+        return normalized as "in" | "out" | "high" | "low";
     }
 
-    // Still nothing? brute scan /dev/input/event*
-    if (hits.length === 0) {
-        try {
-            const devs = fs.readdirSync("/dev/input")
-                .filter(f => /^event\d+$/.test(f))
-                .map(f => `/dev/input/${f}`)
-                .sort((a, b) => {
-                    const na = Number(path.basename(a).replace("event", ""));
-                    const nb = Number(path.basename(b).replace("event", ""));
-                    return na - nb;
-                });
+    return "in";
+}
 
-            for (const dev of devs) {
-                const ok =
-                    sysfsSupportsKeyCode(dev, 116) ||
-                    evtestHeaderSupportsKey(evtestPath, dev, "KEY_POWER");
+function parseBoolean(value: any, fallback = false): boolean {
+    if (value === undefined || value === null || value === "") return fallback;
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
 
-                if (!ok) continue;
+    const normalized = String(value).trim().toLowerCase();
+    if (["true", "1", "yes", "on", "enabled", "enable"].includes(normalized)) return true;
+    if (["false", "0", "no", "off", "disabled", "disable"].includes(normalized)) return false;
 
-                const ev = path.basename(dev);
-                const namePath = `/sys/class/input/${ev}/device/name`;
-                const name = fs.existsSync(namePath) ? fs.readFileSync(namePath, "utf8").trim() : "";
-                hits.push({ dev, name });
-            }
-        } catch {
-            // ignore
-        }
-    }
+    return fallback;
+}
 
-    // Dedup by dev path
-    const seen = new Set<string>();
-    hits = hits.filter(h => (seen.has(h.dev) ? false : (seen.add(h.dev), true)));
+function parseOutputValue(value: any): number {
+    if (typeof value === "boolean") return value ? 1 : 0;
+    if (typeof value === "number") return value ? 1 : 0;
 
-    // Prefer pwr_button first
-    const score = (n: string) => {
-        const s = (n || "").toLowerCase();
-        let v = 0;
-        if (s.includes("pwr_button")) v += 1000;
-        if (s.includes("gpio-keys")) v += 200;
-        if (s.includes("power")) v += 80;
-        if (s.includes("consumer control")) v -= 200;
-        if (s.includes("audio")) v -= 100;
-        return v;
+    const normalized = String(value ?? "0").trim().toLowerCase();
+    return ["1", "true", "high", "on", "yes"].includes(normalized) ? 1 : 0;
+}
+
+function notifyGpio(config: GpioConfig, value: number) {
+    const method = config.method || config.event || "notify_gpio";
+    const data = {
+        ...(config.data || {}),
+        pin: parsePin(config),
+        value,
     };
-    hits.sort((a, b) => score(b.name) - score(a.name));
 
-    return hits;
+    getWebsocketServer().send(method, data);
 }
 
-function startEvtestGrab(onPress: () => void) {
-    if (evtestProcs.length) return;
-
-    const evtestPath = hasEvtest();
-    if (!evtestPath) {
-        logWarn("evtest not installed or not in PATH");
-        return;
-    }
-
-    const targets = findKeyPowerDevices(evtestPath);
-    if (!targets.length) {
-        logWarn("Could not find any KEY_POWER-capable input devices.");
-        return;
-    }
-
-    logRegular(
-        "Intercepting KEY_POWER with evtest --grab on:\n" +
-        targets.map(t => `  ${t.dev} (${t.name || "unknown"})`).join("\n")
-    );
-
-    for (const t of targets) {
-        const p = spawn(evtestPath, ["--grab", t.dev], {
-            stdio: ["ignore", "pipe", "pipe"]
-        });
-
-        p.stdout.setEncoding("utf8");
-        p.stderr.setEncoding("utf8");
-
-        // line buffer to avoid chunk-splitting issues
-        let buf = "";
-        p.stdout.on("data", (chunk: string) => {
-            buf += chunk;
-
-            let idx: number;
-            while ((idx = buf.indexOf("\n")) >= 0) {
-                const line = buf.slice(0, idx).trimEnd();
-                buf = buf.slice(idx + 1);
-
-                const m = line.match(/code\s+116\s+\(KEY_POWER\),\s+value\s+(\d+)/);
-                if (!m) continue;
-
-                const val = Number(m[1]);
-                if (val !== 1) continue; // 1 = press/down
-
-                const now = Date.now();
-                if (now - lastPowerPressMs < POWER_DEBOUNCE_MS) continue;
-                lastPowerPressMs = now;
-
-                onPress();
-            }
-        });
-
-        p.stderr.on("data", (d: string) => {
-            const msg = String(d).trim();
-            if (!msg) return;
-
-            if (/Permission denied/i.test(msg)) {
-                logWarn(
-                    `evtest: permission denied grabbing ${t.dev}. ` +
-                    `For --grab you typically need to run as root or have write permissions on /dev/input/event*.`
-                );
-            } else {
-                logWarn(msg);
-            }
-        });
-
-        p.on("exit", (code, signal) => {
-            logRegular(`evtest(${t.dev}) exited (code=${code} signal=${signal || ""})`);
-            evtestProcs = evtestProcs.filter(x => x !== p);
-        });
-
-        evtestProcs.push(p);
-    }
-}
-
-function stopEvtestGrab() {
-    if (!evtestProcs.length) return;
-    for (const p of evtestProcs) {
-        try { p.kill("SIGTERM"); } catch {}
-    }
-    evtestProcs = [];
-}
-
-/**
- * GPIO removed: initGpio/killGpio now only manage evtest interception.
- * Keeping the function names avoids breaking other imports/call-sites.
- */
 export function initGpio() {
-    // Clear any old processes first
     killGpio();
 
-    // Start power-button interception (not GPIO)
-    startEvtestGrab(() => {
-        getWebsocketServer().send("notify_power_button");
-    });
+    const Gpio = loadGpioConstructor();
+    if (!Gpio) return;
 
-    // We intentionally ignore any gpio config now.
-    // const config = getConfig(/gpio/)[0];
+    const configs = getConfig(/gpio/g, true) as Record<string, GpioConfig> | GpioConfig[];
+    const entries = Array.isArray(configs)
+        ? configs.map((config, index) => [`gpio_${index}`, config] as const)
+        : Object.entries(configs || {});
+
+    if (!entries.length) {
+        logRegular("No GPIO config found.");
+        return;
+    }
+
+    for (const [name, config] of entries) {
+        const pin = parsePin(config);
+
+        if (pin === null) {
+            logWarn(`GPIO ${name}: missing or invalid pin/gpio value`);
+            continue;
+        }
+
+        const direction = normalizeDirection(config.direction);
+        const edge = direction === "in" ? normalizeEdge(config.edge) : "none";
+        const options = {
+            activeLow: parseBoolean(config.activeLow, false),
+            debounceTimeout: Number(config.debounceTimeout ?? 10),
+        };
+
+        try {
+            const gpio = new Gpio(pin, direction, edge, options);
+            gpioPins.push(gpio);
+
+            if (direction === "out" && config.value !== undefined && gpio.writeSync) {
+                gpio.writeSync(parseOutputValue(config.value));
+            }
+
+            if (direction === "in") {
+                gpio.watch((error, value) => {
+                    if (error) {
+                        logWarn(`GPIO ${name} / pin ${pin} watch error: ${error.message}`);
+                        return;
+                    }
+
+                    notifyGpio(config, value);
+                });
+            }
+
+            logRegular(`GPIO ${name}: initialized pin ${pin} direction=${direction} edge=${edge}`);
+        } catch (error: any) {
+            logWarn(`GPIO ${name}: failed to initialize pin ${pin}: ${error?.message || error}`);
+        }
+    }
 }
 
 export function killGpio() {
-    stopEvtestGrab();
+    for (const gpio of gpioPins) {
+        try { gpio.unwatchAll(); } catch {}
+        try { gpio.unexport(); } catch {}
+    }
+
+    gpioPins = [];
 }
 
 export function parsePath(filePath: string) {
@@ -316,7 +221,7 @@ export async function rebootSystem() {
         if (checkFile("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -r now");
         if (checkFile("/sbin/reboot"))       cmds.push("/sbin/reboot");
         if (checkFile("/bin/busybox"))       cmds.push("/bin/busybox reboot");
-        cmds.push("reboot"); // fallback
+        cmds.push("reboot");
 
         const ok = await runOneOf(cmds);
         if (ok) logRegular("Reboot command issued.");
@@ -335,7 +240,7 @@ export async function shutdownSystem() {
         if (checkFile("/usr/sbin/shutdown")) cmds.push("/usr/sbin/shutdown -h now");
         if (checkFile("/sbin/poweroff"))     cmds.push("/sbin/poweroff");
         if (checkFile("/bin/busybox"))       cmds.push("/bin/busybox poweroff");
-        cmds.push("poweroff"); // fallback
+        cmds.push("poweroff");
 
         const ok = await runOneOf(cmds);
         if (ok) logRegular("Shutdown command issued.");
