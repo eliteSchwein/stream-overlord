@@ -27,7 +27,6 @@ declare module 'vue' {
     PowerDialog: typeof import('./components/dialogs/PowerDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    SpeedtestCard: typeof import('./components/cards/SpeedtestCard.vue')['default']
     YoloboxAudio: typeof import('./components/yolobox/YoloboxAudio.vue')['default']
     YoloboxPreview: typeof import('./components/yolobox/YoloboxPreview.vue')['default']
     YoloboxSettings: typeof import('./components/yolobox/YoloboxSettings.vue')['default']
