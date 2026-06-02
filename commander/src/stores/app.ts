@@ -1,5 +1,6 @@
 // Utilities
 import { defineStore } from 'pinia'
+import { setI18nLanguage, setI18nLanguageFromConfig } from '@/plugins/i18n'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -8,6 +9,9 @@ export const useAppStore = defineStore('app', {
     config: {
       websocketPort: 8100,
       webserverPort: 8105
+    },
+    systemConfig: {
+      language: 'en'
     },
     games: [],
     alerts: [],
@@ -43,6 +47,8 @@ export const useAppStore = defineStore('app', {
   }),
   getters: {
     getConfig: (state) => state.config,
+    getSystemConfig: (state) => state.systemConfig,
+    getLanguage: (state) => state.systemConfig.language,
     getWebsocket: (state) => {
       return `ws://${location.hostname}:${state.config.websocketPort}`
     },
@@ -144,8 +150,33 @@ export const useAppStore = defineStore('app', {
     setBackendConfig(config: string, parsedConfig: any) {
       this.backendConfig = config
       this.parsedBackendConfig = parsedConfig
+
       this.$patch(state => state.backendConfig = config)
       this.$patch(state => state.parsedBackendConfig = parsedConfig)
+
+      if (parsedConfig?.system_config) {
+        this.setSystemConfig(parsedConfig.system_config)
+      }
+    },
+    setSystemConfig(systemConfig: any) {
+      const mergedSystemConfig = {
+        ...this.systemConfig,
+        ...systemConfig
+      }
+
+      if (mergedSystemConfig.language) {
+        mergedSystemConfig.language = setI18nLanguageFromConfig(mergedSystemConfig.language)
+      }
+
+      this.systemConfig = mergedSystemConfig
+      this.$patch(state => state.systemConfig = mergedSystemConfig)
+    },
+    setSystemLanguage(language: string) {
+      const normalizedLanguage = setI18nLanguage(language)
+
+      this.setSystemConfig({
+        language: normalizedLanguage
+      })
     },
     setObsSceneData(obsSceneData: []) {
       this.obsSceneData = obsSceneData

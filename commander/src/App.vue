@@ -79,8 +79,10 @@ import { useAppStore } from '@/stores/app'
 import WebsocketClient from "@/plugins/webSocketClient"
 import eventBus from "@/eventBus"
 import { sleep } from "@/helper/GeneralHelper.ts"
+import { setI18nLanguageFromConfig } from '@/plugins/i18n'
 
 const appOption = useAppStore()
+setI18nLanguageFromConfig(appOption.getLanguage)
 let websocket: WebsocketClient | undefined = undefined
 
 const ready = ref<boolean | undefined>(false)
@@ -101,6 +103,20 @@ eventBus.$on('websocket:send', (data) => {
     updating.value = true // this doesnt seem to trigger?
   }
   websocket?.send(data.method, data.params)
+})
+
+eventBus.$on('websocket:request', async (data) => {
+  if (!websocket) {
+    data?.reject?.(new Error('websocket is not connected'))
+    return
+  }
+
+  try {
+    const result = await websocket.request(data.method, data.params ?? {}, data.timeout ?? 10_000)
+    data?.resolve?.(result)
+  } catch (error) {
+    data?.reject?.(error)
+  }
 })
 
 onMounted(async () => {

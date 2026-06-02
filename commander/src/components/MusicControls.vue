@@ -72,8 +72,10 @@
           </div>
         </div>
 
-        <div class="text-caption mt-4 mb-2">
-          Playlist: {{ music.playlist_length ?? 0 }} Songs
+        <div class="d-flex align-center justify-space-between mt-4 mb-2">
+          <div class="text-caption">
+            {{ isSongRequestEnabled ? 'Song Requests' : 'Playlist' }}: {{ playlistLength }} Songs
+          </div>
         </div>
 
         <v-list
@@ -81,7 +83,6 @@
           density="compact"
           bg-color="transparent"
           class="music-playlist-list"
-          v-if="music?.songrequest?.enabled ?? false"
         >
           <v-list-item
             v-for="item in playlist"
@@ -92,13 +93,24 @@
             :ref="el => setPlaylistItemRef(el, item)"
           >
             <template #append>
-              <v-btn
-                icon="mdi-delete"
-                size="small"
-                variant="text"
-                color="red"
-                @click="deleteSong(item)"
-              />
+              <div class="d-flex align-center ga-1">
+                <v-btn
+                  v-if="!isCurrentSong(item)"
+                  icon="mdi-play"
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  @click="playSong(item)"
+                />
+
+                <v-btn
+                  icon="mdi-delete"
+                  size="small"
+                  variant="text"
+                  color="red"
+                  @click="deleteSong(item)"
+                />
+              </div>
             </template>
           </v-list-item>
         </v-list>
@@ -108,13 +120,19 @@
 </template>
 
 <script lang="ts">
-import { mapState } from 'pinia'
+import { defineComponent, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
+import eventBus from '@/eventBus'
 
-export default {
+export default defineComponent({
+  name: 'MusicControls',
+
   data() {
     return {
       playlistItemRefs: {} as Record<string, any>,
+      playlistResponse: null as any,
+      playlistLoading: false,
+      lastPlaylistTrackKey: '',
       cavaBuffer: '',
       expectedCavaBarCount: 0,
       cavaValues: [] as number[],
@@ -124,38 +142,58 @@ export default {
     }
   },
 
-  watch: {
-    getMusicCavaData: {
-      handler(data: any) {
-        if (!data?.raw) return
-        this.handleCavaData(data)
-      },
-      deep: false,
-      immediate: false,
-    },
-
-    'music.track.title'() {
-      this.$nextTick(() => this.scrollToCurrentSong())
-    },
-
-    'music.track.path'() {
-      this.$nextTick(() => this.scrollToCurrentSong())
-    },
-
-    'music.track.filename'() {
-      this.$nextTick(() => this.scrollToCurrentSong())
-    },
-  },
-
   computed: {
-    ...mapState(useAppStore, ['getMusicData', 'getMusicCavaData', 'getRestApi']),
+    appStore(): ReturnType<typeof useAppStore> {
+      return useAppStore()
+    },
 
     music(): any {
-      return this.getMusicData ?? {}
+      return this.appStore.getMusicData ?? {}
+    },
+
+    getMusicCavaData(): any {
+      return this.appStore.getMusicCavaData
+    },
+
+    cavaRaw(): string {
+      return String(this.getMusicCavaData?.raw ?? '')
+    },
+
+    getWebsocket(): string {
+      return this.appStore.getWebsocket ?? ''
+    },
+
+    isSongRequestEnabled(): boolean {
+      return this.music?.songrequest?.enabled === true
+    },
+
+    songRequestFiles(): any[] {
+      const songrequest = this.music?.songrequest ?? {}
+      const candidates = [
+        songrequest.files,
+        songrequest.playlist,
+        songrequest.queue,
+        songrequest.requests,
+        songrequest.songs,
+      ]
+
+      for (const candidate of candidates) {
+        if (Array.isArray(candidate)) return candidate
+      }
+
+      return []
     },
 
     playlist(): any[] {
-      return this.music.playlist ?? []
+      if (this.isSongRequestEnabled) return this.songRequestFiles
+
+      return this.playlistResponse?.files ?? []
+    },
+
+    playlistLength(): number {
+      if (this.isSongRequestEnabled) return this.songRequestFiles.length
+
+      return this.playlistResponse?.playlist_length ?? this.music.playlist_length ?? this.playlist.length
     },
 
     isPlaying(): boolean {
@@ -169,29 +207,147 @@ export default {
     isLoopEnabled(): boolean {
       return this.music.loop === true || this.music.loop_file === true
     },
+
+    currentTrackKey(): string {
+      return [
+        this.music?.track?.path ?? '',
+        this.music?.track?.filename ?? '',
+        this.music?.track?.title ?? '',
+        this.music?.filename ?? '',
+        this.music?.path ?? '',
+        this.music?.title ?? '',
+      ].join('|')
+    },
+  },
+
+  watch: {
+    getWebsocket: {
+      immediate: true,
+      handler(value: string) {
+        if (!value) return
+        void this.fetchFiles()
+      },
+    },
+
+    cavaRaw: {
+      immediate: true,
+      handler(raw: string) {
+        if (!raw) return
+        this.handleCavaData({ raw })
+      },
+    },
+
+    currentTrackKey: {
+      immediate: true,
+      handler() {
+        this.refreshPlaylistAfterTrackChange()
+      },
+    },
+
+    playlist: {
+      deep: true,
+      handler() {
+        void nextTick(() => this.scrollToCurrentSong())
+      },
+    },
+
+    isSongRequestEnabled() {
+      if (!this.isSongRequestEnabled) {
+        void this.fetchFiles()
+      } else {
+        void nextTick(() => this.scrollToCurrentSong())
+      }
+    },
+
+    songRequestFiles: {
+      deep: true,
+      handler() {
+        if (!this.isSongRequestEnabled) return
+        void nextTick(() => this.scrollToCurrentSong())
+      },
+    },
   },
 
   mounted() {
-    this.resetCava()
-
-    if (this.getMusicCavaData?.raw) {
-      this.handleCavaData(this.getMusicCavaData)
-    }
+    void nextTick(async () => {
+      await this.fetchFiles()
+      this.refreshPlaylistAfterTrackChange()
+      this.scrollToCurrentSong()
+    })
   },
 
   methods: {
+    refreshPlaylistAfterTrackChange() {
+      if (this.isSongRequestEnabled) {
+        void nextTick(() => this.scrollToCurrentSong())
+        return
+      }
+
+      const key = this.currentTrackKey
+
+      if (!key.replace(/\|/g, '')) {
+        void nextTick(() => this.scrollToCurrentSong())
+        return
+      }
+
+      if (key === this.lastPlaylistTrackKey) {
+        void nextTick(() => this.scrollToCurrentSong())
+        return
+      }
+
+      this.lastPlaylistTrackKey = key
+      void this.fetchFiles()
+    },
+
+    async fetchFiles() {
+      if (this.isSongRequestEnabled) {
+        await nextTick()
+        this.scrollToCurrentSong()
+        return
+      }
+
+      if (!this.getWebsocket || this.playlistLoading) return
+
+      this.playlistLoading = true
+
+      try {
+        this.playlistResponse = await this.requestMusicWebsocket('music_playlist')
+
+        await nextTick()
+        this.scrollToCurrentSong()
+      } catch (error) {
+        console.warn('music playlist websocket failed', error)
+      } finally {
+        this.playlistLoading = false
+      }
+    },
+
+    requestMusicWebsocket(method: string, params: Record<string, any> = {}): Promise<any> {
+      return new Promise((resolve, reject) => {
+        eventBus.$emit('websocket:request', {
+          method,
+          params,
+          timeout: 10_000,
+          resolve,
+          reject,
+        })
+      })
+    },
+
+    sendMusicWebsocket(method: string, params: Record<string, any> = {}) {
+      eventBus.$emit('websocket:send', {
+        method,
+        params,
+      })
+    },
+
     handleCavaData(data: any) {
       const frames = this.parseCavaFrames(String(data?.raw ?? ''))
 
       for (const values of frames) {
         if (!values.length) continue
 
-        if (!this.expectedCavaBarCount) {
-          this.expectedCavaBarCount = values.length
-          this.ensureCavaBars(values.length)
-        }
-
-        if (values.length !== this.expectedCavaBarCount) {
+        if (!this.expectedCavaBarCount || values.length !== this.expectedCavaBarCount) {
           this.expectedCavaBarCount = values.length
           this.ensureCavaBars(values.length)
         }
@@ -226,7 +382,6 @@ export default {
 
     ensureCavaBars(count: number) {
       if (this.smoothedCavaValues.length === count) return
-
       this.smoothedCavaValues = new Array(count).fill(0)
     },
 
@@ -254,26 +409,32 @@ export default {
     },
 
     getItemPath(item: any): string {
-      return item.filename ?? item.path ?? ''
+      return item?.path ?? item?.filename ?? item?.file ?? item?.song?.path ?? item?.song?.filename ?? ''
     },
 
     getCurrentPath(): string {
-      return this.music?.track?.path ?? this.music?.track?.filename ?? ''
+      return this.music?.track?.path ?? this.music?.track?.filename ?? this.music?.path ?? this.music?.filename ?? ''
+    },
+
+    normalizePath(value: string): string {
+      return String(value ?? '').replace(/\\/g, '/').trim()
+    },
+
+    getBasename(value: string): string {
+      return this.normalizePath(value).split('/').filter(Boolean).pop() ?? this.normalizePath(value)
     },
 
     isCurrentSong(item: any): boolean {
-      const itemPath = this.getItemPath(item)
-      const currentPath = this.getCurrentPath()
+      const itemPath = this.normalizePath(this.getItemPath(item))
+      const currentPath = this.normalizePath(this.getCurrentPath())
 
       if (!itemPath || !currentPath) return false
 
-      return itemPath === currentPath ||
-        this.getFilename(item) === currentPath.split(/[\\/]/).pop()
+      return itemPath === currentPath || this.getBasename(itemPath) === this.getBasename(currentPath)
     },
 
     setPlaylistItemRef(el: any, item: any) {
       const key = this.getFilename(item)
-
       if (!key) return
 
       if (el) {
@@ -288,8 +449,8 @@ export default {
       if (!current) return
 
       const key = this.getFilename(current)
-      const ref = this.playlistItemRefs[key]
-      const element = ref?.$el ?? ref
+      const itemRef = this.playlistItemRefs[key]
+      const element = itemRef?.$el ?? itemRef
 
       element?.scrollIntoView?.({
         block: 'center',
@@ -297,24 +458,14 @@ export default {
       })
     },
 
-    async callMusicApi(action: string) {
-      const postActions = ['shuffle', 'loop', 'loop-file']
-      const isPost = postActions.includes(action)
+    callMusicApi(action: string) {
+      if (!this.getWebsocket) return
 
-      const response = await fetch(`${this.getRestApi}/api/music/${action}`, {
-        method: isPost ? 'POST' : 'GET',
-        cache: 'no-store',
-        headers: isPost
-          ? { 'Content-Type': 'application/json' }
-          : undefined,
-        body: isPost
-          ? JSON.stringify({})
-          : undefined,
-      })
+      this.sendMusicWebsocket(this.getMusicWebsocketMethod(action))
+    },
 
-      if (!response.ok) {
-        console.warn(`music api failed: ${action}`, response.status, await response.text())
-      }
+    getMusicWebsocketMethod(action: string): string {
+      return `music_${String(action ?? '').replace(/-/g, '_')}`
     },
 
     formatTime(ms: number = 0): string {
@@ -326,27 +477,39 @@ export default {
     },
 
     getFilename(item: any): string {
-      const file = item.filename ?? item.path ?? ''
+      const file = this.getItemPath(item)
+      const basename = this.getBasename(file)
 
-      return file.split(/[\\/]/).pop() ?? file
+      return basename || item?.title || item?.song?.title || 'Unknown song'
+    },
+
+    async playSong(item: any) {
+      if (!this.getWebsocket || this.isCurrentSong(item)) return
+
+      const path = this.getItemPath(item)
+      const filename = path || item?.filename || item?.song?.filename
+
+      this.sendMusicWebsocket('music_play_song', {
+        ...item,
+        filename,
+        path,
+      })
     },
 
     async deleteSong(item: any) {
+      if (!this.getWebsocket) return
+
       const filename = this.getFilename(item)
 
-      await fetch(`${this.getRestApi}/api/music/delete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ filename }),
-      })
+      this.sendMusicWebsocket('music_delete', { filename })
+      await this.fetchFiles()
     },
 
     async toggleSongRequest() {
-      await fetch(`${this.getRestApi}/api/music/songrequest/toggle`, {
-        method: 'POST'
-      })
+      if (!this.getWebsocket) return
+
+      this.sendMusicWebsocket('music_songrequest_toggle')
+      await this.fetchFiles()
     },
 
     resetCava() {
@@ -356,7 +519,7 @@ export default {
       this.smoothedCavaValues = []
     },
   },
-}
+})
 </script>
 
 <style scoped>

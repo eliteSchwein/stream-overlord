@@ -1,24 +1,25 @@
 import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
 import {logNotice, logRegular} from "./LogHelper";
-import {existsSync, watchFile, writeFileSync} from "node:fs";
+import {existsSync, mkdirSync, watchFile, writeFileSync} from "node:fs";
 import {reload} from "../App";
 import {readFileSync} from "fs";
 import * as path from "node:path";
 import * as os from "node:os";
 
-let config = {};
+let config: any = {};
 let primaryChannel = undefined;
 
 type StreambotSettings = {
     language: string;
 };
 
-let settings: StreambotSettings = {
+let systemConfig: StreambotSettings = {
     language: "en"
 };
 
-const settingsPath = path.resolve(os.homedir(), "streambot-settings.json");
+const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
+const systemConfigPath = path.resolve(systemConfigDir, "streambot-settings.json");
 
 function detectSystemLanguage() {
     return (
@@ -34,74 +35,105 @@ function detectSystemLanguage() {
         .toLowerCase();
 }
 
-export function readSettings() {
-    if (!existsSync(settingsPath)) {
-        settings = {
-            language: detectSystemLanguage()
-        };
+function ensureSystemConfigDir() {
+    mkdirSync(systemConfigDir, {recursive: true});
+}
 
-        writeSettings(settings);
-        return settings;
+function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
+    const language = rawSystemConfig.language?.trim().toLowerCase() || detectSystemLanguage();
+
+    return {
+        language
+    };
+}
+
+function withSystemConfig<T extends object>(parsedConfig: T): T & { system_config: StreambotSettings } {
+    return {
+        ...parsedConfig,
+        system_config: systemConfig
+    };
+}
+
+export function readSystemConfig() {
+    if (!existsSync(systemConfigPath)) {
+        systemConfig = normalizeSystemConfig();
+        writeSystemConfig(systemConfig);
+        return systemConfig;
     }
 
     try {
-        const raw = readFileSync(settingsPath, "utf8");
+        const raw = readFileSync(systemConfigPath, "utf8");
         const parsed = JSON.parse(raw);
 
-        settings = {
-            language: parsed.language || detectSystemLanguage()
-        };
-
-        writeSettings(settings);
+        systemConfig = normalizeSystemConfig(parsed);
+        writeSystemConfig(systemConfig);
     } catch {
-        settings = {
-            language: detectSystemLanguage()
-        };
-
-        writeSettings(settings);
+        systemConfig = normalizeSystemConfig();
+        writeSystemConfig(systemConfig);
     }
 
-    return settings;
+    return systemConfig;
 }
 
-export function writeSettings(newSettings: Partial<StreambotSettings>) {
-    settings = {
-        ...settings,
-        ...newSettings
-    };
+export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
+    ensureSystemConfigDir();
+
+    systemConfig = normalizeSystemConfig({
+        ...systemConfig,
+        ...newSystemConfig
+    });
 
     writeFileSync(
-        settingsPath,
-        JSON.stringify(settings, null, 2),
+        systemConfigPath,
+        JSON.stringify(systemConfig, null, 2),
         "utf8"
     );
 
-    return settings;
+    return systemConfig;
 }
 
-export function updateSettings(newSettings: Partial<StreambotSettings>) {
-    return writeSettings(newSettings);
+export function updateSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
+    return writeSystemConfig(newSystemConfig);
 }
 
-export function getSettings() {
-    return settings;
+export function setSystemLanguage(language: string) {
+    const normalizedLanguage = language.trim().toLowerCase();
+
+    if (!normalizedLanguage) {
+        throw new Error("language is required");
+    }
+
+    return writeSystemConfig({
+        language: normalizedLanguage
+    });
+}
+
+export function getSystemConfig() {
+    return systemConfig;
 }
 
 export function getLanguage() {
-    return settings.language;
+    return systemConfig.language;
 }
 
 export default function readConfig(standalone = false) {
-    if (standalone) return parseConfig(`${__dirname}/../..`, ".env.conf");
+    if (standalone) {
+        const standaloneConfig = parseConfig(`${__dirname}/../..`, ".env.conf");
+        readSystemConfig();
+        return withSystemConfig(standaloneConfig);
+    }
 
     config = parseConfig(`${__dirname}/../..`, ".env.conf");
-    readSettings();
+    readSystemConfig();
+
+    return withSystemConfig(config);
 }
 
 export function getRawConfig() {
     return {
         raw: readFileSync(path.resolve(`${__dirname}/../..`, ".env.conf"), "utf8"),
-        parsed: config
+        parsed: withSystemConfig(config),
+        system_config: systemConfig
     };
 }
 
@@ -110,20 +142,22 @@ export function writeRawConfig(content: string) {
 }
 
 export function getConfig(filter: RegExp | undefined = undefined, asObject = false) {
-    if (!filter) return config;
+    const mergedConfig = withSystemConfig(config);
 
-    const result: any = [];
+    if (!filter) return mergedConfig;
 
-    for (const key in config) {
+    const result: any = asObject ? {} : [];
+
+    for (const key in mergedConfig) {
         if (!key.match(filter)) {
             continue;
         }
 
         if (asObject) {
             const realKey = key.replace(filter, "");
-            result[realKey] = config[key];
+            result[realKey] = mergedConfig[key];
         } else {
-            result.push(config[key]);
+            result.push(mergedConfig[key]);
         }
     }
 
@@ -131,7 +165,7 @@ export function getConfig(filter: RegExp | undefined = undefined, asObject = fal
 }
 
 export function getFullConfig() {
-    return config;
+    return withSystemConfig(config);
 }
 
 export function getAssetConfig(asset: string) {
@@ -151,7 +185,7 @@ export function getPrimaryChannel() {
 }
 
 export function watchConfig() {
-    logRegular('watch config file')
+    logRegular("watch config file");
 
     watchFile(
         `${__dirname}/../../.env.conf`,
@@ -160,21 +194,27 @@ export function watchConfig() {
             interval: 100
         },
         async () => {
-            logNotice("config update detected")
-            await reload()
+            logNotice("config update detected");
+            await reload();
         }
-    )
+    );
 
     watchFile(
-        settingsPath,
+        systemConfigPath,
         {
             persistent: true,
             interval: 100
         },
         async () => {
-            logNotice("settings update detected")
-            readSettings()
-            await reload()
+            logNotice("system config update detected");
+            readSystemConfig();
+            await reload();
         }
-    )
+    );
 }
+
+// Backwards-compatible aliases for existing imports.
+export const readSettings = readSystemConfig;
+export const writeSettings = writeSystemConfig;
+export const updateSettings = updateSystemConfig;
+export const getSettings = getSystemConfig;

@@ -56,7 +56,7 @@
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import Giveaway from '@/components/Giveaway.vue'
-import MusicControls from '@/components/MusicControls.vue'
+import MusicControls from "@/components/MusicControls.vue";
 
 export default {
   components: {

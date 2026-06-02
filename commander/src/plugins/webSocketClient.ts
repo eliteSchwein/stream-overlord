@@ -1,4 +1,4 @@
-import {Websocket} from "websocket-ts";
+import {Websocket, WebsocketEvent} from "websocket-ts";
 import {getRandomInt, sleep} from "@/helper/GeneralHelper";
 import type {Store} from "pinia";
 import {useAppStore} from "@/stores/app";
@@ -11,6 +11,7 @@ export default class WebsocketClient {
   url = ''
   websocket: Websocket|undefined = undefined
   store: useAppStore
+  pendingRequests: Record<number, { resolve: (value: any) => void, reject: (error: any) => void, timeout: number }> = {}
 
   public constructor(
     url: string,
@@ -40,6 +41,7 @@ export default class WebsocketClient {
     this.websocket = new Websocket(this.url)
 
     this.registerEvents()
+    this.registerRequestHandler()
   }
 
   public getWebsocket() {
@@ -63,5 +65,75 @@ export default class WebsocketClient {
       console.error('request to a websocket client failed!')
       console.error(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
+  }
+
+  public request(method: string, data: any = {}, timeoutMs = 10_000): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const id = getRandomInt(10_000)
+      const timeout = window.setTimeout(() => {
+        delete this.pendingRequests[id]
+        reject(new Error(`${method} websocket request timed out`))
+      }, timeoutMs)
+
+      this.pendingRequests[id] = {resolve, reject, timeout}
+
+      try {
+        this.websocket?.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id}))
+      } catch (error) {
+        window.clearTimeout(timeout)
+        delete this.pendingRequests[id]
+        reject(error)
+      }
+    })
+  }
+
+  private registerRequestHandler() {
+    const socket = this.websocket as any
+    if (!socket) return
+
+    const handler = (...args: any[]) => {
+      const event = args.length > 1 ? args[1] : args[0]
+      this.handleRequestMessage(event)
+    }
+
+    if (typeof socket.addEventListener === 'function') {
+      try {
+        socket.addEventListener(WebsocketEvent.message, handler)
+      } catch {
+        socket.addEventListener('message', handler)
+      }
+    }
+  }
+
+  private handleRequestMessage(event: any) {
+    const message = this.parseMessage(event)
+    if (!message?.id) return
+
+    const pending = this.pendingRequests[message.id]
+    if (!pending) return
+
+    window.clearTimeout(pending.timeout)
+    delete this.pendingRequests[message.id]
+
+    if (message.error) {
+      pending.reject(message.error)
+      return
+    }
+
+    pending.resolve(message.params ?? message.data ?? message)
+  }
+
+  private parseMessage(event: any): any {
+    const raw = event?.data ?? event
+
+    if (typeof raw === 'string') {
+      try {
+        return JSON.parse(raw)
+      } catch {
+        return null
+      }
+    }
+
+    return raw
   }
 }
