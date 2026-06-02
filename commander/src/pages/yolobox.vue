@@ -10,13 +10,13 @@
         color="primary"
         @update:model-value="setTab"
       >
-        <v-tab value="source">Source</v-tab>
-        <v-tab value="overlay">Overlay</v-tab>
-        <v-tab value="audio">Audio</v-tab>
+        <v-tab value="source">{{ $t('yolobox.tabs.source') }}</v-tab>
+        <v-tab value="overlay">{{ $t('yolobox.tabs.overlay') }}</v-tab>
+        <v-tab value="audio">{{ $t('yolobox.tabs.audio') }}</v-tab>
       </v-tabs>
       <template v-slot:append>
         <v-switch
-          label="Auto Refresh"
+          :label="$t('yolobox.autoRefresh')"
           class="mt-6 mr-5"
           density="compact"
           :model-value="autoRefresh"

@@ -24,6 +24,17 @@ export default {
     ]),
     currentRouteName() {
       return this.$route.name;
+    },
+    currentRouteTitle() {
+      const routeName = this.currentRouteName;
+
+      if (!routeName) {
+        return this.$t('navigation.tabs.dashboard');
+      }
+
+      return this.$te(`navigation.routes.${routeName}`)
+        ? this.$t(`navigation.routes.${routeName}`)
+        : routeName;
     }
   },
   methods: {
@@ -81,7 +92,7 @@ export default {
   >
     <v-app-bar-nav-icon variant="text" @click.stop="rail = !rail"></v-app-bar-nav-icon>
 
-    <v-app-bar-title>{{ currentRouteName }}</v-app-bar-title>
+    <v-app-bar-title>{{ currentRouteTitle }}</v-app-bar-title>
 
     <v-spacer></v-spacer>
 
@@ -136,7 +147,7 @@ export default {
       v-if="isThrottled"
     >
       <v-icon icon="mdi-flash" color="warning"></v-icon>
-      <p class="text-warning ml-2">Throttled</p>
+      <p class="text-warning ml-2">{{ $t('navigation.status.throttled') }}</p>
     </v-btn>
 
     <v-btn
@@ -145,7 +156,7 @@ export default {
       v-if="isShieldActive"
     >
       <v-icon icon="mdi-shield" color="error"></v-icon>
-      <p class="text-error ml-2">Shield</p>
+      <p class="text-error ml-2">{{ $t('navigation.status.shield') }}</p>
     </v-btn>
 
     <v-btn
@@ -156,30 +167,30 @@ export default {
       <v-menu activator="parent">
         <v-list>
           <v-list-item
-            title="Seite neuladen"
+            :title="$t('navigation.actions.reloadPage')"
             @click="reloadCommander"
             prepend-icon="mdi-restart"
           ></v-list-item>
           <v-list-item
-            title="Bot neustarten"
+            :title="$t('navigation.actions.restartBot')"
             @click="restartService"
             prepend-icon="mdi-robot"
           ></v-list-item>
           <template v-if="Object.keys(getObsAudioData).length > 0">
             <v-list-item
-              title="Browser Quellen neuladen"
+              :title="$t('navigation.actions.reloadBrowserSources')"
               @click="reloadBrowserSources"
               prepend-icon="mdi-application-outline"
             ></v-list-item>
           </template>
           <v-divider></v-divider>
           <v-list-item
-            title="Bot Updaten"
+            :title="$t('navigation.actions.updateBot')"
             @click="updateBot"
             prepend-icon="mdi-download"
           ></v-list-item>
           <v-list-item
-            title="System herunterfahren"
+            :title="$t('navigation.actions.shutdownSystem')"
             @click="showPowerMenu"
             prepend-icon="mdi-power"
           ></v-list-item>
@@ -202,73 +213,73 @@ export default {
     <v-list color="transparent">
       <v-list-item
         prepend-icon="mdi-view-dashboard"
-        title="/"
+        :title="$t('navigation.tabs.dashboard')"
         color=""
         to="/"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>Automatisierungen</v-list-subheader>
+      <v-list-subheader>{{ $t('navigation.sections.automation') }}</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-motion-play-outline"
-        title="/channelPoints"
+        :title="$t('navigation.tabs.channelPoints')"
         color=""
         to="/channelPoints"></v-list-item>
       <v-list-item
         prepend-icon="mdi-volume-high"
-        title="/audio"
+        :title="$t('navigation.tabs.audio')"
         color=""
         to="/audio"></v-list-item>
       <v-list-item
         prepend-icon="mdi-dialpad"
-        title="/macros"
+        :title="$t('navigation.tabs.macros')"
         color=""
         to="/macros"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>Overlay</v-list-subheader>
+      <v-list-subheader>{{ $t('navigation.sections.overlay') }}</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-picture-in-picture-top-right"
-        title="/overlay"
+        :title="$t('navigation.tabs.overlay')"
         color=""
         to="/overlay"></v-list-item>
       <v-list-item
         prepend-icon="mdi-multimedia"
-        title="/assets"
+        :title="$t('navigation.tabs.assets')"
         color=""
         to="/assets"></v-list-item>
       <v-list-item
         prepend-icon="mdi-music"
-        title="/music"
+        :title="$t('navigation.tabs.music')"
         color=""
         to="/music"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>Streaming Dienste</v-list-subheader>
+      <v-list-subheader>{{ $t('navigation.sections.streamingServices') }}</v-list-subheader>
       <v-list-item
         v-if="getParsedBackendConfig?.yolobox?.enable"
         prepend-icon="mdi-video-box"
-        title="/yolobox"
+        :title="$t('navigation.tabs.yolobox')"
         color=""
         to="/yolobox"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>System Werkzeuge</v-list-subheader>
+      <v-list-subheader>{{ $t('navigation.sections.systemTools') }}</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-cog"
-        title="/editConfig"
+        :title="$t('navigation.tabs.config')"
         color=""
         to="/editConfig"></v-list-item>
       <v-list-item
         prepend-icon="mdi-webhook"
-        title="/connections"
+        :title="$t('navigation.tabs.connections')"
         color=""
         to="/connections"></v-list-item>
       <v-list-item
         prepend-icon="mdi-heart-cog"
-        title="/recovery"
+        :title="$t('navigation.tabs.recovery')"
         color=""
         to="/recovery"></v-list-item>
       <v-divider></v-divider>
-      <v-list-subheader>SCHW31N Zone</v-list-subheader>
+      <v-list-subheader>{{ $t('navigation.sections.schw31nZone') }}</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-controller"
-        title="/gameScene"
+        :title="$t('navigation.tabs.gameScene')"
         color=""
         to="/gameScene"></v-list-item>
     </v-list>

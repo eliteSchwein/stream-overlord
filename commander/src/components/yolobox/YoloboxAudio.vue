@@ -1,7 +1,7 @@
 <template>
   <v-card color="grey-darken-4" elevation="0" rounded="0">
     <v-card-title class="d-flex align-center justify-space-between">
-      <span>Yolobox Audio Mixer</span>
+      <span>{{ $t('yolobox.audioMixer.title') }}</span>
     </v-card-title>
 
     <v-card-text>
@@ -67,7 +67,7 @@
               />
 
               <div class="audio-delay-slider">
-                <div class="text-caption text-medium-emphasis">Delay {{ device.delayTime }}ms</div>
+                <div class="text-caption text-medium-emphasis">{{ $t('yolobox.audioMixer.delay', { delay: device.delayTime }) }}</div>
                 <v-slider
                   hide-details
                   :max="device.maxDelay"

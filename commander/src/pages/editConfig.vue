@@ -12,7 +12,7 @@
         <v-card class="sticky pa-0" color="transparent" elevation="0">
           <v-toolbar flat density="compact">
             <v-toolbar-title class="d-flex align-center">
-              Bot Konfiguration
+              {{ $t('editConfig.title') }}
             </v-toolbar-title>
 
             <v-btn
@@ -22,7 +22,7 @@
               elevation="0"
               @click="saveConfig"
             >
-              Speichern
+              {{ $t('editConfig.save') }}
             </v-btn>
           </v-toolbar>
 
@@ -44,7 +44,7 @@
           <!-- optional debug -->
           <v-card-text class="py-2">
             <div class="text-caption">
-              Cursor: {{ cursorPos }} | Selection: {{ selection.start }}–{{ selection.end }}
+              {{ $t('editConfig.cursor') }}: {{ cursorPos }} | {{ $t('editConfig.selection') }}: {{ selection.start }}–{{ selection.end }}
             </div>
           </v-card-text>
         </v-card>
@@ -54,7 +54,7 @@
         <v-card elevation="0">
           <v-toolbar flat density="compact">
             <v-toolbar-title class="d-flex align-center">
-              Diverse System Funktionen
+              {{ $t('editConfig.systemFunctions') }}
             </v-toolbar-title>
           </v-toolbar>
 
@@ -63,7 +63,7 @@
               align-content="center"
               justify="center"
               align="center"
-              dense
+              density="comfortable"
               class="pa-3"
             >
               <v-col cols="12">
@@ -75,7 +75,7 @@
                   elevation="0"
                   @click="toggleTestMode"
                 >
-                  Test Modus
+                  {{ $t('editConfig.testMode') }}
                 </v-btn>
               </v-col>
             </v-row>
@@ -85,7 +85,7 @@
         <v-card elevation="0" class="mt-3">
           <v-toolbar flat density="compact">
             <v-toolbar-title class="d-flex align-center">
-              Standart Makros
+              {{ $t('editConfig.defaultMacros') }}
             </v-toolbar-title>
           </v-toolbar>
 
@@ -94,7 +94,7 @@
               align-content="center"
               justify="center"
               align="center"
-              dense
+              density="comfortable"
               class="pa-3"
             >
               <v-col cols="12">
@@ -106,7 +106,7 @@
                   elevation="0"
                   @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:250}}) +'\n')"
                 >
-                  250ms Pause
+                  {{ $t('editConfig.pause250ms') }}
                 </v-btn>
               </v-col>
 
@@ -119,7 +119,7 @@
                   elevation="0"
                   @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:1000}}) +'\n')"
                 >
-                  1s Pause
+                  {{ $t('editConfig.pause1s') }}
                 </v-btn>
               </v-col>
             </v-row>
@@ -136,7 +136,7 @@
         <v-card class="mt-3" color="transparent" elevation="0">
           <v-toolbar flat density="compact">
             <v-toolbar-title class="d-flex align-center">
-              Verfügbare Stimmen
+              {{ $t('editConfig.availableVoices') }}
             </v-toolbar-title>
           </v-toolbar>
 

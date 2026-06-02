@@ -5,7 +5,7 @@
       density="compact"
     >
       <v-toolbar-title class="d-flex align-center">
-        OBS Szenen
+        {{ $t('obs.settings.title') }}
       </v-toolbar-title>
     </v-toolbar>
 
@@ -25,11 +25,11 @@
                 <v-table>
                   <tbody>
                   <tr>
-                    <td>UUID</td>
+                    <td>{{ $t('obs.settings.uuid') }}</td>
                     <td>{{ obsScene.uuid }} <CopyButton :content="obsScene.uuid"/> </td>
                   </tr>
                   <tr>
-                    <td>Index</td>
+                    <td>{{ $t('obs.settings.index') }}</td>
                     <td>{{ obsScene.index }} <CopyButton :content="obsScene.index"/> </td>
                   </tr>
                   </tbody>
@@ -54,11 +54,11 @@
                         <v-table class="wrap-anywhere">
                           <tbody>
                           <tr>
-                            <td>UUID</td>
+                            <td>{{ $t('obs.settings.uuid') }}</td>
                             <td>{{ obsItem.uuid }} <CopyButton :content="obsItem.uuid"/></td>
                           </tr>
                           <tr>
-                            <td>ID</td>
+                            <td>{{ $t('obs.settings.id') }}</td>
                             <td>{{ obsItem.id }} <CopyButton :content="obsItem.id"/></td>
                           </tr>
                           </tbody>

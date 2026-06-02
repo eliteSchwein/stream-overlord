@@ -53,6 +53,7 @@ export default {
           @click.stop="triggerMacro"
           :icon="icon"
           :color="color"
+          :aria-label="$t('macro.trigger')"
           class="mr-2"
           size="small"
           density="compact"
@@ -64,26 +65,26 @@ export default {
     <v-expansion-panel-text class="pa-0">
       <v-table>
         <thead>
-          <tr>
-            <th class="text-left" style="width: 220px">
-              Kanal
-            </th>
-            <th class="text-left" style="width: 220px">
-              Methode
-            </th>
-            <th class="text-left">
-              Daten
-            </th>
-          </tr>
+        <tr>
+          <th class="text-left" style="width: 220px">
+            {{ $t('macro.table.channel') }}
+          </th>
+          <th class="text-left" style="width: 220px">
+            {{ $t('macro.table.method') }}
+          </th>
+          <th class="text-left">
+            {{ $t('macro.table.data') }}
+          </th>
+        </tr>
         </thead>
         <tbody>
-          <template v-for="task in macro.tasks">
-            <tr>
-              <td>{{task.channel}}</td>
-              <td>{{task.method}}</td>
-              <td>{{task.data}}</td>
-            </tr>
-          </template>
+        <template v-for="task in macro.tasks">
+          <tr>
+            <td>{{task.channel}}</td>
+            <td>{{task.method}}</td>
+            <td>{{task.data}}</td>
+          </tr>
+        </template>
         </tbody>
       </v-table>
     </v-expansion-panel-text>

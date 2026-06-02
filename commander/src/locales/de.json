@@ -1,1 +1,204 @@
-{}
+{
+  "navigation": {
+    "status": {
+      "throttled": "Gedrosselt",
+      "shield": "Schutzmodus"
+    },
+    "actions": {
+      "reloadPage": "Seite neu laden",
+      "restartBot": "Bot neu starten",
+      "reloadBrowserSources": "Browser-Quellen neu laden",
+      "updateBot": "Bot aktualisieren",
+      "shutdownSystem": "System herunterfahren"
+    },
+    "sections": {
+      "automation": "Automatisierung",
+      "overlay": "Overlay",
+      "streamingServices": "Streaming-Dienste",
+      "systemTools": "Systemwerkzeuge",
+      "schw31nZone": "SCHW31N Zone"
+    },
+    "tabs": {
+      "dashboard": "Dashboard",
+      "channelPoints": "Channel Points",
+      "audio": "Audio",
+      "macros": "Makros",
+      "overlay": "Overlay",
+      "assets": "Assets",
+      "music": "Musik",
+      "yolobox": "YoloBox",
+      "config": "Konfiguration",
+      "connections": "Verbindungen",
+      "recovery": "Recovery",
+      "gameScene": "Game Scene"
+    },
+    "routes": {
+      "dashboard": "Dashboard",
+      "channelPoints": "Channel Points",
+      "audio": "Audio",
+      "macros": "Makros",
+      "overlay": "Overlay",
+      "assets": "Assets",
+      "music": "Musik",
+      "yolobox": "YoloBox",
+      "editConfig": "Konfiguration",
+      "connections": "Verbindungen",
+      "recovery": "Recovery",
+      "gameScene": "Game Scene"
+    }
+  },
+  "music": {
+    "title": "Musik",
+    "songRequests": "Song Requests",
+    "playlist": "Playlist",
+    "songCount": "{count} Songs",
+    "noSong": "Kein Song",
+    "unknownArtist": "Unbekannter Künstler",
+    "unknownSong": "Unbekannter Song",
+    "playlistWebsocketFailed": "Musik-Playlist-Websocket fehlgeschlagen"
+  },
+  "musicPlaylist": {
+    "title": "Musik Playlist",
+    "addSongs": "Lieder hinzufügen (max. 30 auf einmal)",
+    "searchSong": "Song suchen",
+    "noMusicFound": "Keine Musik gefunden.",
+    "showPrevious": "Vorherige anzeigen",
+    "showNext": "Nächste anzeigen"
+  },
+  "macro": {
+    "trigger": "Makro ausführen",
+    "table": {
+      "channel": "Kanal",
+      "method": "Methode",
+      "data": "Daten"
+    }
+  },
+  "giveaway": {
+    "title": "Giveaway",
+    "winner": "Gewinner",
+    "active": "Aktiv",
+    "participants": "Teilnehmer",
+    "name": "Name",
+    "contentLabel": "Was wird verlost?",
+    "durationLabel": "Dauer",
+    "create": "Erstellen"
+  },
+  "alerts": {
+    "activeAlert": {
+      "title": "Alarm: {uuid} - {duration}",
+      "name": "Name",
+      "value": "Wert",
+      "channel": "Kanal",
+      "icon": "Symbol",
+      "message": "Nachricht",
+      "sound": "Ton",
+      "video": "Video",
+      "lampColor": "Lampenfarbe"
+    }
+  },
+  "yolobox": {
+    "settings": {
+      "title": "Yolobox Makros",
+      "videoSources": "Videoquellen",
+      "overlaySources": "Overlay-Quellen",
+      "audioSources": "Audioquellen",
+      "generalCommands": "Allgemeine Befehle",
+      "name": "Name",
+      "actions": "Aktionen",
+      "overlayOrderWarning": "Die Reihenfolge der Aktivierung ist wichtig!",
+      "volumeWarning": "Die Lautstärke geht von 0 bis 1. 0.5 sind 50%. Wichtig: Punkt verwenden, kein Komma!",
+      "disableAllOverlays": "Alle Overlays deaktivieren",
+      "goLive": "Live gehen",
+      "stopStream": "Stream stoppen",
+      "tooltips": {
+        "switchVideoSource": "Zu dieser Videoquelle wechseln",
+        "enableOverlay": "Dieses Overlay aktivieren",
+        "disableOverlay": "Dieses Overlay deaktivieren",
+        "muteAudioSource": "Diese Audioquelle stummschalten",
+        "unmuteAudioSource": "Diese Audioquelle entstummen",
+        "copyAudioVolume": "Die Lautstärke dieser Audioquelle kopieren"
+      }
+    },
+    "audioMixer": {
+      "title": "Yolobox Audio-Mixer",
+      "delay": "Verzögerung {delay}ms"
+    },
+    "tabs": {
+      "source": "Quelle",
+      "overlay": "Overlay",
+      "audio": "Audio"
+    },
+    "autoRefresh": "Automatische Aktualisierung"
+  },
+  "obs": {
+    "settings": {
+      "title": "OBS-Szenen",
+      "uuid": "UUID",
+      "index": "Index",
+      "id": "ID"
+    },
+    "audioMixer": {
+      "title": "OBS-Audiomixer",
+      "balance": "Balance"
+    }
+  },
+  "power": {
+    "dialog": {
+      "title": "System herunterfahren?",
+      "reboot": "Neustarten",
+      "shutdown": "Herunterfahren"
+    }
+  },
+  "connectDialog": {
+    "reconnecting": "Verbinde neu...",
+    "connectionLost": "Verbindung verloren",
+    "connectionLostText": "Die Verbindung mit dem Bot Backend wurde verloren, neuverbinden?",
+    "reconnect": "Neu verbinden"
+  },
+  "audio": {
+    "title": "Bot Audio Mixer",
+    "name": "Name",
+    "volumeControl": "Lautstärkeregelung",
+    "sink": "Senke",
+    "unknownOutput": "Unbekannter Ausgang",
+    "output": "Ausgang",
+    "defaultSink": "Standard-Ausgang",
+    "active": "Aktiv"
+  },
+  "editConfig": {
+    "title": "Bot Konfiguration",
+    "save": "Speichern",
+    "cursor": "Cursor",
+    "selection": "Auswahl",
+    "systemFunctions": "Diverse System Funktionen",
+    "testMode": "Test Modus",
+    "defaultMacros": "Standard Makros",
+    "pause250ms": "250ms Pause",
+    "pause1s": "1s Pause",
+    "availableVoices": "Verfügbare Stimmen"
+  },
+  "gameScene": {
+    "saveScene": "Szene speichern",
+    "reloadScene": "Szene neu laden"
+  },
+  "currentGame": {
+    "title": "Aktuell aktives Spiel",
+    "gameId": "Spiel ID",
+    "deaths": "Tode",
+    "tags": "Tags",
+    "channelPoints": "Kanalpunkte"
+  },
+  "dashboard": {
+    "noAlerts": "Es sind derzeit keine Alerts!",
+    "noAutoMacros": "Es gibt aktuell keine automatischen Makros!"
+  },
+  "recovery": {
+    "warning": "Hier gibt es keine Abfrage ob du diese Aktion auslösen willst, bitte nur auslösen wenn du dir ABSOLUT sicher bist was du machst.",
+    "deleteAuthText": "Twitch Verknüpfung löschen, danach bitte oben rechts den Bot neustarten.",
+    "authReset": "AUTH RESET",
+    "botReloadText": "Hier kannst du den Bot intern neuladen, das sollte in der Regel nichts kaputt machen.",
+    "botReload": "BOT RELOAD",
+    "compressAssetsText": "Hier kannst du die Assets (Bilder/Videos) manuell komprimieren, das komprimiert alle Assets nochmal neu. Hier bitte Geduld, das dauert ein bisschen.",
+    "compressAssets": "COMPRESS ASSETS"
+  }
+}

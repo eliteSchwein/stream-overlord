@@ -2,7 +2,7 @@
 <template>
   <v-card color="grey-darken-4">
     <v-card-title class="d-flex align-center justify-space-between">
-      <span>Musik Playlist</span>
+      <span>{{ $t('musicPlaylist.title') }}</span>
 
       <v-btn
         icon="mdi-refresh"
@@ -16,7 +16,7 @@
       <v-file-input
         :key="fileInputKey"
         v-model="uploadFiles"
-        label="Lieder hinzufügen (max. 30 auf einmal)"
+        :label="$t('musicPlaylist.addSongs')"
         accept=".mp3,.flac,.wav,.ogg,.m4a,.opus,audio/*"
         prepend-icon="mdi-music"
         multiple
@@ -30,8 +30,7 @@
 
       <v-text-field
         v-model="searchQuery"
-        label="Song suchen"
-        placeholder="Mindestens 2 Zeichen..."
+        :label="$t('musicPlaylist.searchSong')"
         prepend-inner-icon="mdi-magnify"
         clearable
         variant="outlined"
@@ -46,7 +45,7 @@
         v-if="files.length === 0"
         type="info"
         color="grey-darken-3"
-        text="Keine Musik gefunden."
+        :text="$t('musicPlaylist.noMusicFound')"
       />
 
       <v-list
@@ -66,7 +65,7 @@
             <v-icon icon="mdi-chevron-up" />
           </template>
 
-          <v-list-item-title>Vorherige anzeigen</v-list-item-title>
+          <v-list-item-title>{{ $t('musicPlaylist.showPrevious') }}</v-list-item-title>
         </v-list-item>
 
         <v-list-item
@@ -111,7 +110,7 @@
             <v-icon icon="mdi-chevron-down" />
           </template>
 
-          <v-list-item-title>Nächste anzeigen</v-list-item-title>
+          <v-list-item-title>{{ $t('musicPlaylist.showNext') }}</v-list-item-title>
         </v-list-item>
       </v-list>
     </v-card-text>
@@ -438,7 +437,7 @@ export default {
 
 <style scoped>
 .music-playlist-list {
-  max-height: calc(100vh - 240px);
+  max-height: calc(100vh - 300px);
   overflow-y: auto;
 }
 

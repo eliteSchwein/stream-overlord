@@ -6,7 +6,7 @@
         density="compact"
       >
         <v-toolbar-title class="d-flex align-center">
-          Yolobox Makros
+          {{ $t('yolobox.settings.title') }}
         </v-toolbar-title>
       </v-toolbar>
 
@@ -14,15 +14,15 @@
         <v-expansion-panels color="grey-darken-4">
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Video Quellen
+              {{ $t('yolobox.settings.videoSources') }}
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
               <v-table>
                 <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th style="width: 100px">Aktionen</th>
-                  </tr>
+                <tr>
+                  <th>{{ $t('yolobox.settings.name') }}</th>
+                  <th style="width: 100px">{{ $t('yolobox.settings.actions') }}</th>
+                </tr>
                 </thead>
                 <tbody>
                 <tr v-for="director in getYoloboxData.DirectorList">
@@ -34,7 +34,7 @@
                         size="x-small"
                         @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_director_change', data:{id:director.id,isSelected:true}}) +'\n')"
                         elevation="0"
-                        v-tooltip="'Zu dieser Video Quelle wechseln'"
+                        v-tooltip="$t('yolobox.settings.tooltips.switchVideoSource')"
                       />
                     </div>
                   </td>
@@ -45,10 +45,10 @@
           </v-expansion-panel>
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Overlay Quellen
+              {{ $t('yolobox.settings.overlaySources') }}
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
-              <v-alert text="Die Reihenfolgen der Aktivierung ist wichtig!" type="warning" variant="outlined" class="mb-2"></v-alert>
+              <v-alert :text="$t('yolobox.settings.overlayOrderWarning')" type="warning" variant="outlined" class="mb-2"></v-alert>
               <v-row>
                 <v-col cols="4" v-for="material in getYoloboxData.MaterialList">
                   <div class="position-relative">
@@ -64,7 +64,7 @@
                         size="x-small"
                         @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:true}}) +'\n')"
                         elevation="0"
-                        v-tooltip="'Dieses Overlay aktivieren'"
+                        v-tooltip="$t('yolobox.settings.tooltips.enableOverlay')"
                       />
                       <v-btn
                         class="ml-1"
@@ -72,7 +72,7 @@
                         size="x-small"
                         @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:material.id,isSelected:false}}) +'\n')"
                         elevation="0"
-                        v-tooltip="'Dieses Overlay deaktivieren'"
+                        v-tooltip="$t('yolobox.settings.tooltips.disableOverlay')"
                       />
                     </div>
                   </div>
@@ -83,22 +83,22 @@
                     size="small"
                     @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_material_change', data:{id:'all',isSelected:false}}) +'\n')"
                     elevation="0"
-                  >Alle Overlays deaktivieren<v-icon class="ml-2" icon="mdi-content-copy"/> </v-btn>
+                  >{{ $t('yolobox.settings.disableAllOverlays') }}<v-icon class="ml-2" icon="mdi-content-copy"/> </v-btn>
                 </v-col>
               </v-row>
             </v-expansion-panel-text>
           </v-expansion-panel>
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Audio Quellen
+              {{ $t('yolobox.settings.audioSources') }}
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
-              <v-alert text="Die Lautstärke geht von 0 bis 1, 0.5 sind 50%. Wichtig, ein Punkt verwenden und nicht ein komma!" type="warning" variant="outlined" class="mb-2"></v-alert>
+              <v-alert :text="$t('yolobox.settings.volumeWarning')" type="warning" variant="outlined" class="mb-2"></v-alert>
               <v-table>
                 <thead>
                 <tr>
-                  <th>Name</th>
-                  <th style="width: 130px">Aktionen</th>
+                  <th>{{ $t('yolobox.settings.name') }}</th>
+                  <th style="width: 130px">{{ $t('yolobox.settings.actions') }}</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -111,21 +111,21 @@
                         size="x-small"
                         @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:false}}) +'\n')"
                         elevation="0"
-                        v-tooltip="'Diese Audio Quelle stummen'"
+                        v-tooltip="$t('yolobox.settings.tooltips.muteAudioSource')"
                       />
                       <v-btn
                         icon="mdi-volume-source"
                         size="x-small"
                         @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,isSelected:true}}) +'\n')"
                         elevation="0"
-                        v-tooltip="'Diese Audio Quelle entstummen'"
+                        v-tooltip="$t('yolobox.settings.tooltips.unmuteAudioSource')"
                       />
                       <v-btn
                         icon="mdi-content-copy"
                         size="x-small"
                         @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_mixer_change', data:{id:mixer.id,volume:mixer.volume}}) +'\n')"
                         elevation="0"
-                        v-tooltip="'Die Lautstärke kopieren von dieser Audio Quelle kopieren'"
+                        v-tooltip="$t('yolobox.settings.tooltips.copyAudioVolume')"
                       />
                     </div>
                   </td>
@@ -136,7 +136,7 @@
           </v-expansion-panel>
           <v-expansion-panel>
             <v-expansion-panel-title>
-              Generelle Befehle
+              {{ $t('yolobox.settings.generalCommands') }}
             </v-expansion-panel-title>
             <v-expansion-panel-text class="pa-0">
 
@@ -144,7 +144,7 @@
                 align-content="center"
                 justify="center"
                 align="center"
-                dense
+                density="comfortable"
                 class="pa-3"
               >
                 <v-col cols="12">
@@ -156,7 +156,7 @@
                     elevation="0"
                     @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'start'}}) +'\n')"
                   >
-                    Live gehen
+                    {{ $t('yolobox.settings.goLive') }}
                   </v-btn>
                 </v-col>
                 <v-col cols="12">
@@ -168,7 +168,7 @@
                     elevation="0"
                     @click="writeToConfig('- ' +JSON.stringify({channel: 'yolobox', method: 'order_live_status', data:{status:'stop'}}) +'\n')"
                   >
-                    Stream stoppen
+                    {{ $t('yolobox.settings.stopStream') }}
                   </v-btn>
                 </v-col>
 

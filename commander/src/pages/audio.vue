@@ -1,9 +1,9 @@
 <template>
-  <v-row class="audio-page-layout ma-0 pa-0" dense no-gutters>
+  <v-row class="audio-page-layout ma-0 pa-0" density="comfortable" no-gutters>
     <v-col cols="12" :lg="yoloboxAudioEnabled ? 8 : 12" class="bot-audio-panel">
       <v-card color="grey-darken-4" elevation="0" rounded="0">
         <v-card-title class="d-flex align-center justify-space-between">
-          <span>Bot Audio Mixer</span>
+          <span>{{ $t('audio.title') }}</span>
         </v-card-title>
 
         <v-card-text>
@@ -11,8 +11,8 @@
             <v-table density="compact" class="audio-table" hover>
               <thead>
               <tr>
-                <th class="text-left audio-name-column">Name</th>
-                <th class="text-left audio-volume-column">Volume Control</th>
+                <th class="text-left audio-name-column">{{ $t('audio.name') }}</th>
+                <th class="text-left audio-volume-column">{{ $t('audio.volumeControl') }}</th>
                 <th
                   v-for="output in audioOutputList"
                   :key="outputKey(output)"
@@ -40,7 +40,7 @@
                 <td class="audio-name-column">
                   <div class="font-weight-medium">{{ key }}</div>
                   <div v-if="isPipewireSink(device)" class="text-caption text-medium-emphasis">
-                    Sink: {{ device.sink_name || `streambot_${key}` }}
+                    {{ $t('audio.sink') }}: {{ device.sink_name || `streambot_${key}` }}
                   </div>
                 </td>
 
@@ -486,7 +486,7 @@ export default {
         output.node_name ??
         output.nodeName ??
         output.id ??
-        'Unknown output'
+        this.$t('audio.unknownOutput')
       )
     },
 
@@ -494,14 +494,14 @@ export default {
     outputNumberLabel(output: AudioOutput): string {
       const index = this.getOutputIndex(output)
 
-      return `Output ${index >= 0 ? index + 1 : ''}`.trim()
+      return `${this.$t('audio.output')} ${index >= 0 ? index + 1 : ''}`.trim()
     },
 
     outputTitle(output: AudioOutput): string {
       const parts = [this.outputLabel(output)]
 
-      if (this.isDefaultOutput(output)) parts.push('Default sink')
-      if (this.isDefaultOutputActive(output)) parts.push('Active')
+      if (this.isDefaultOutput(output)) parts.push(String(this.$t('audio.defaultSink')))
+      if (this.isDefaultOutputActive(output)) parts.push(String(this.$t('audio.active')))
 
       return parts.join(' · ')
     },

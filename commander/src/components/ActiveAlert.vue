@@ -19,43 +19,43 @@ function removeAlert(eventUuid: string) {
 <template>
   <v-expansion-panel
     :color="alert.active ? 'green-darken-2' : 'grey-darken-3'"
-    :title="'Alert: ' + alert['event-uuid'] + ' - ' + formatSeconds(alert.duration)"
+    :title="$t('alerts.activeAlert.title', { uuid: alert['event-uuid'], duration: formatSeconds(alert.duration) })"
   >
     <v-expansion-panel-text class="pa-0">
       <v-table>
         <thead>
         <tr>
           <th class="text-left" style="width: 220px">
-            Name
+            {{ $t('alerts.activeAlert.name') }}
           </th>
           <th class="text-left">
-            Wert
+            {{ $t('alerts.activeAlert.value') }}
           </th>
         </tr>
         </thead>
         <tbody>
         <tr>
-          <td><v-icon icon="mdi-broadcast"></v-icon> Channel</td>
+          <td><v-icon icon="mdi-broadcast"></v-icon> {{ $t('alerts.activeAlert.channel') }}</td>
           <td>{{alert.channel}}</td>
         </tr>
         <tr v-if="alert.icon">
-          <td><v-icon icon="mdi-circle-slice-1"></v-icon> Icon</td>
+          <td><v-icon icon="mdi-circle-slice-1"></v-icon> {{ $t('alerts.activeAlert.icon') }}</td>
           <td>{{alert.icon}}</td>
         </tr>
         <tr v-if="alert.message">
-          <td><v-icon icon="mdi-message"></v-icon> Message</td>
+          <td><v-icon icon="mdi-message"></v-icon> {{ $t('alerts.activeAlert.message') }}</td>
           <td>{{alert.message}}</td>
         </tr>
         <tr v-if="alert.sound">
-          <td><v-icon icon="mdi-volume-low"></v-icon> Sound</td>
+          <td><v-icon icon="mdi-volume-low"></v-icon> {{ $t('alerts.activeAlert.sound') }}</td>
           <td>{{alert.sound}}</td>
         </tr>
         <tr v-if="alert.video">
-          <td><v-icon icon="mdi-video"></v-icon> Video</td>
+          <td><v-icon icon="mdi-video"></v-icon> {{ $t('alerts.activeAlert.video') }}</td>
           <td>{{alert.video}}</td>
         </tr>
         <tr v-if="alert.lamp_color">
-          <td><v-icon icon="mdi-lamp"></v-icon> Lamp Color</td>
+          <td><v-icon icon="mdi-lamp"></v-icon> {{ $t('alerts.activeAlert.lampColor') }}</td>
           <td>{{alert.lamp_color}}</td>
         </tr>
         </tbody>

@@ -1,6 +1,4 @@
 <script lang="ts">
-import {mapState} from "pinia";
-import {useAppStore} from "@/stores/app";
 import eventBus from "@/eventBus";
 
 export default {
@@ -46,7 +44,7 @@ export default {
           density="compact"
         >
         <v-toolbar-title class="d-flex align-center">
-          System herunterfahren?
+          {{ $t('power.dialog.title') }}
         </v-toolbar-title>
         <v-btn icon="mdi-close" @click="show = false"></v-btn>
       </v-toolbar>
@@ -60,7 +58,7 @@ export default {
               width="100%"
               @click="rebootSystem()"
             >
-              Neustarten
+              {{ $t('power.dialog.reboot') }}
             </v-btn>
           </v-col>
           <v-col>
@@ -71,7 +69,7 @@ export default {
               width="100%"
               @click="shutdownSystem()"
             >
-              Herunterfahren
+              {{ $t('obs.audioMixer.shutdown') }}
             </v-btn>
           </v-col>
         </v-row>

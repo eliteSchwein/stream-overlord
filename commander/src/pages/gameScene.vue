@@ -23,7 +23,7 @@
             align-content="center"
             justify="center"
             align="center"
-            dense
+            density="comfortable"
           >
             <v-col cols="12">
               <v-btn
@@ -34,7 +34,7 @@
                 elevation="0"
                 @click="saveItems"
               >
-                Save Scene
+                {{ $t('gameScene.saveScene') }}
               </v-btn>
             </v-col>
             <v-col cols="12">
@@ -46,7 +46,7 @@
                 elevation="0"
                 @click="refreshitems"
               >
-                Reload Scene
+                {{ $t('gameScene.reloadScene') }}
               </v-btn>
             </v-col>
           </v-row>

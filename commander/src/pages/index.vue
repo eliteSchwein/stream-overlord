@@ -15,7 +15,7 @@
             class="mt-5"
             type="info"
             color="gray-darken-3"
-            text="Es sind derzeit keine Alerts!"
+            :text="$t('dashboard.noAlerts')"
           />
         </template>
         <template v-else>
@@ -33,7 +33,7 @@
             class="mt-5"
             type="info"
             color="gray-darken-3"
-            text="Es gibt aktuell keine automatischen Makros!"
+            :text="$t('dashboard.noAutoMacros')"
           />
         </template>
         <template v-else>

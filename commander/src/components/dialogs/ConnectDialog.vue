@@ -1,18 +1,18 @@
 <script lang="ts">
-import {mapState} from "pinia";
-import {useAppStore} from "@/stores/app";
+import { mapState } from "pinia";
+import { useAppStore } from "@/stores/app";
 import eventBus from "@/eventBus";
 
 export default {
   computed: {
-    ...mapState(useAppStore, ['isWebsocketConnecting', 'isWebsocketConnected']),
+    ...mapState(useAppStore, ["isWebsocketConnecting", "isWebsocketConnected"]),
   },
   methods: {
     connectWebsocket() {
-      eventBus.$emit('websocket:reconnect', {})
-    }
-  }
-}
+      eventBus.$emit("websocket:reconnect", {});
+    },
+  },
+};
 </script>
 
 <template>
@@ -23,29 +23,40 @@ export default {
   >
     <v-card
       v-if="!isWebsocketConnected"
-      :loading="isWebsocketConnecting">
+      :loading="isWebsocketConnecting"
+    >
       <v-toolbar
-          flat
-          density="compact"
-          color="warning"
+        flat
+        density="compact"
+        color="warning"
+      >
+        <v-toolbar-title
+          v-if="isWebsocketConnecting"
+          class="d-flex align-center"
         >
-        <v-toolbar-title class="d-flex align-center" v-if="isWebsocketConnecting">
-          Verbinde neu...
+          {{ $t('connectDialog.reconnecting') }}
         </v-toolbar-title>
-        <v-toolbar-title class="d-flex align-center" v-else>
-          Verbindung verloren
+
+        <v-toolbar-title
+          v-else
+          class="d-flex align-center"
+        >
+          {{ $t('connectDialog.connectionLost') }}
         </v-toolbar-title>
       </v-toolbar>
+
       <v-card-text v-if="!isWebsocketConnecting">
-        Die Verbindung mit dem Bot Backend wurde verloren, neuverbinden?
+        {{ $t('connectDialog.connectionLostText') }}
       </v-card-text>
+
       <v-card-actions v-if="!isWebsocketConnecting">
-        <v-btn color="" @click="connectWebsocket">Neu verbinden</v-btn>
+        <v-btn @click="connectWebsocket">
+          {{ $t('connectDialog.reconnect') }}
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
 <style scoped lang="scss">
-
 </style>

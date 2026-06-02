@@ -1,1 +1,204 @@
-{}
+{
+  "navigation": {
+    "status": {
+      "throttled": "Throttled",
+      "shield": "Shield"
+    },
+    "actions": {
+      "reloadPage": "Reload page",
+      "restartBot": "Restart bot",
+      "reloadBrowserSources": "Reload browser sources",
+      "updateBot": "Update bot",
+      "shutdownSystem": "Shut down system"
+    },
+    "sections": {
+      "automation": "Automation",
+      "overlay": "Overlay",
+      "streamingServices": "Streaming services",
+      "systemTools": "System tools",
+      "schw31nZone": "SCHW31N Zone"
+    },
+    "tabs": {
+      "dashboard": "Dashboard",
+      "channelPoints": "Channel points",
+      "audio": "Audio",
+      "macros": "Macros",
+      "overlay": "Overlay",
+      "assets": "Assets",
+      "music": "Music",
+      "yolobox": "YoloBox",
+      "config": "Config",
+      "connections": "Connections",
+      "recovery": "Recovery",
+      "gameScene": "Game scene"
+    },
+    "routes": {
+      "dashboard": "Dashboard",
+      "channelPoints": "Channel points",
+      "audio": "Audio",
+      "macros": "Macros",
+      "overlay": "Overlay",
+      "assets": "Assets",
+      "music": "Music",
+      "yolobox": "YoloBox",
+      "editConfig": "Config",
+      "connections": "Connections",
+      "recovery": "Recovery",
+      "gameScene": "Game scene"
+    }
+  },
+  "music": {
+    "title": "Music",
+    "songRequests": "Song Requests",
+    "playlist": "Playlist",
+    "songCount": "{count} Songs",
+    "noSong": "No song",
+    "unknownArtist": "Unknown artist",
+    "unknownSong": "Unknown song",
+    "playlistWebsocketFailed": "Music playlist websocket failed"
+  },
+  "musicPlaylist": {
+    "title": "Music Playlist",
+    "addSongs": "Add songs (max. 30 at a time)",
+    "searchSong": "Search song",
+    "noMusicFound": "No music found.",
+    "showPrevious": "Show previous",
+    "showNext": "Show next"
+  },
+  "macro": {
+    "trigger": "Run macro",
+    "table": {
+      "channel": "Channel",
+      "method": "Method",
+      "data": "Data"
+    }
+  },
+  "giveaway": {
+    "title": "Giveaway",
+    "winner": "Winner",
+    "active": "Active",
+    "participants": "participants",
+    "name": "Name",
+    "contentLabel": "What is being raffled?",
+    "durationLabel": "Duration",
+    "create": "Create"
+  },
+  "alerts": {
+    "activeAlert": {
+      "title": "Alert: {uuid} - {duration}",
+      "name": "Name",
+      "value": "Value",
+      "channel": "Channel",
+      "icon": "Icon",
+      "message": "Message",
+      "sound": "Sound",
+      "video": "Video",
+      "lampColor": "Lamp Color"
+    }
+  },
+  "yolobox": {
+    "settings": {
+      "title": "Yolobox Macros",
+      "videoSources": "Video Sources",
+      "overlaySources": "Overlay Sources",
+      "audioSources": "Audio Sources",
+      "generalCommands": "General Commands",
+      "name": "Name",
+      "actions": "Actions",
+      "overlayOrderWarning": "The activation order is important!",
+      "volumeWarning": "Volume ranges from 0 to 1. 0.5 means 50%. Important: use a dot, not a comma!",
+      "disableAllOverlays": "Disable all overlays",
+      "goLive": "Go live",
+      "stopStream": "Stop stream",
+      "tooltips": {
+        "switchVideoSource": "Switch to this video source",
+        "enableOverlay": "Enable this overlay",
+        "disableOverlay": "Disable this overlay",
+        "muteAudioSource": "Mute this audio source",
+        "unmuteAudioSource": "Unmute this audio source",
+        "copyAudioVolume": "Copy the volume from this audio source"
+      }
+    },
+    "audioMixer": {
+      "title": "Yolobox Audio Mixer",
+      "delay": "Delay {delay}ms"
+    },
+    "tabs": {
+      "source": "Source",
+      "overlay": "Overlay",
+      "audio": "Audio"
+    },
+    "autoRefresh": "Auto Refresh"
+  },
+  "obs": {
+    "settings": {
+      "title": "OBS Scenes",
+      "uuid": "UUID",
+      "index": "Index",
+      "id": "ID"
+    },
+    "audioMixer": {
+      "title": "OBS Audio Mixer",
+      "balance": "Balance"
+    }
+  },
+  "power": {
+    "dialog": {
+      "title": "Shut down system?",
+      "reboot": "Reboot",
+      "shutdown": "Shutdown"
+    }
+  },
+  "connectDialog": {
+    "reconnecting": "Reconnecting...",
+    "connectionLost": "Connection Lost",
+    "connectionLostText": "The connection to the bot backend was lost. Reconnect?",
+    "reconnect": "Reconnect"
+  },
+  "audio": {
+    "title": "Bot Audio Mixer",
+    "name": "Name",
+    "volumeControl": "Volume Control",
+    "sink": "Sink",
+    "unknownOutput": "Unknown Output",
+    "output": "Output",
+    "defaultSink": "Default Sink",
+    "active": "Active"
+  },
+  "editConfig": {
+    "title": "Bot Configuration",
+    "save": "Save",
+    "cursor": "Cursor",
+    "selection": "Selection",
+    "systemFunctions": "System Functions",
+    "testMode": "Test Mode",
+    "defaultMacros": "Default Macros",
+    "pause250ms": "250ms Pause",
+    "pause1s": "1s Pause",
+    "availableVoices": "Available Voices"
+  },
+  "gameScene": {
+    "saveScene": "Save Scene",
+    "reloadScene": "Reload Scene"
+  },
+  "currentGame": {
+    "title": "Currently Active Game",
+    "gameId": "Game ID",
+    "deaths": "Deaths",
+    "tags": "Tags",
+    "channelPoints": "Channel Points"
+  },
+  "dashboard": {
+    "noAlerts": "There are currently no alerts!",
+    "noAutoMacros": "There are currently no automatic macros!"
+  },
+  "recovery": {
+    "warning": "There is no confirmation before triggering these actions. Only trigger them if you are ABSOLUTELY sure what you are doing.",
+    "deleteAuthText": "Delete Twitch connection. After that, please restart the bot in the top right.",
+    "authReset": "AUTH RESET",
+    "botReloadText": "Reload the bot internally. This usually should not break anything.",
+    "botReload": "BOT RELOAD",
+    "compressAssetsText": "Manually compress the assets (images/videos). This recompresses all assets again. Please be patient, this takes a little while.",
+    "compressAssets": "COMPRESS ASSETS"
+  }
+}

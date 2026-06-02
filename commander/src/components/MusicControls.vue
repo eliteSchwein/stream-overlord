@@ -6,11 +6,11 @@
   >
     <div class="music-controls-content">
       <v-card-title class="d-flex align-center justify-space-between">
-        <span>Musik</span>
+        <span>{{ $t('music.title') }}</span>
         <v-spacer></v-spacer>
         <v-switch
           density="compact"
-          label="Song Requests"
+          :label="$t('music.songRequests')"
           :model-value="music?.songrequest?.enabled ?? false"
           @click="toggleSongRequest"
           hide-details
@@ -30,11 +30,11 @@
 
           <div class="music-controls-main-content">
             <div class="text-subtitle-1 font-weight-bold text-truncate">
-              {{ music.title || 'Kein song' }}
+              {{ music.title || $t('music.noSong') }}
             </div>
 
             <div class="text-body-2 text-grey-lighten-1 text-truncate">
-              {{ music.artist || 'Unbekannter Künstler' }}
+              {{ music.artist || $t('music.unknownArtist') }}
             </div>
 
             <div class="music-control-buttons">
@@ -74,7 +74,7 @@
 
         <div class="d-flex align-center justify-space-between mt-4 mb-2">
           <div class="text-caption">
-            {{ isSongRequestEnabled ? 'Song Requests' : 'Playlist' }}: {{ playlistLength }} Songs
+            {{ isSongRequestEnabled ? $t('music.songRequests') : $t('music.playlist') }}: {{ $t('music.songCount', { count: playlistLength }) }}
           </div>
         </div>
 
@@ -316,7 +316,7 @@ export default defineComponent({
         await nextTick()
         this.scrollToCurrentSong()
       } catch (error) {
-        console.warn('music playlist websocket failed', error)
+        console.warn(this.$t('music.playlistWebsocketFailed'), error)
       } finally {
         this.playlistLoading = false
       }
@@ -480,7 +480,7 @@ export default defineComponent({
       const file = this.getItemPath(item)
       const basename = this.getBasename(file)
 
-      return basename || item?.title || item?.song?.title || 'Unknown song'
+      return basename || item?.title || item?.song?.title || String(this.$t('music.unknownSong'))
     },
 
     async playSong(item: any) {

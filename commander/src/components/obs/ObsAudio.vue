@@ -1,7 +1,7 @@
 <template>
   <v-card v-if="Object.keys(getObsAudioData).length > 0" color="grey-darken-4" elevation="0" rounded="0">
     <v-card-title class="d-flex align-center justify-space-between">
-      <span>OBS Audio Mixer</span>
+      <span>{{ $t('obs.audioMixer.title') }}</span>
     </v-card-title>
 
     <v-card-text>
@@ -58,7 +58,7 @@
             </div>
 
             <div class="audio-balance-row">
-              <div class="text-caption text-medium-emphasis audio-balance-label">Balance</div>
+              <div class="text-caption text-medium-emphasis audio-balance-label">{{ $t('obs.audioMixer.balance') }}</div>
               <v-slider
                 hide-details
                 :max="1"
