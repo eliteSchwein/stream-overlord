@@ -22,7 +22,7 @@ export default class BaseController extends Controller<HTMLElement> {
     }
 
     async connect() {
-        console.log('connect', this.element)
+        console.log('connect', this.identifier, this.element)
         await this.preConnect()
         await this.register()
         await this.postConnect()
@@ -51,9 +51,7 @@ export default class BaseController extends Controller<HTMLElement> {
             const themeData = gameData.theme
             await this.handleGameUpdate(websocket, gameData)
 
-            const themeStyle = document.createElement('style')
-            themeStyle.innerHTML = `:root {--theme-color: ${themeData.color}}`
-            document.head.appendChild(themeStyle)
+            this.applyTheme(themeData)
             return
         }
 
@@ -63,6 +61,38 @@ export default class BaseController extends Controller<HTMLElement> {
         }
 
         await this.handleMessage(websocket, data.method, data.params)
+    }
+
+    applyTheme(themeData: any) {
+        if(!themeData) {
+            return
+        }
+
+        const root = document.documentElement
+
+        const variableMap: Record<string, string[]> = {
+            '--theme-color': ['color', '--theme-color'],
+            '--theme-glow-alpha-low': ['glowAlphaLow', '--theme-glow-alpha-low'],
+            '--theme-glow-alpha-mid': ['glowAlphaMid', '--theme-glow-alpha-mid'],
+            '--theme-glow-alpha-high': ['glowAlphaHigh', '--theme-glow-alpha-high'],
+            '--theme-glow-alpha-white': ['glowAlphaWhite', '--theme-glow-alpha-white'],
+            '--theme-shine-opacity-start': ['shineOpacityStart', '--theme-shine-opacity-start'],
+            '--theme-shine-opacity-peak': ['shineOpacityPeak', '--theme-shine-opacity-peak'],
+            '--theme-shine-opacity-mid': ['shineOpacityMid', '--theme-shine-opacity-mid'],
+            '--theme-shine-stop-opacity': ['shineStopOpacity', '--theme-shine-stop-opacity'],
+        }
+
+        Object.entries(variableMap).forEach(([variableName, themeKeys]) => {
+            const value = themeKeys
+                .map((themeKey) => themeData[themeKey])
+                .find((themeValue) => themeValue !== undefined && themeValue !== null && themeValue !== '')
+
+            if(value === undefined) {
+                return
+            }
+
+            root.style.setProperty(variableName, String(value))
+        })
     }
 
     async handleShield() {
