@@ -408,9 +408,9 @@ async function handleAlert(
         volume: theme.volume,
         image: theme.image,
         channel: theme.channel,
-        start_macros: theme.start_macros ?? theme.startMacros ?? [],
-        idle_macros: theme.idle_macros ?? theme.idleMacros ?? [],
-        end_macros: theme.end_macros ?? theme.endMacros ?? [],
+        start_macros: theme.start_macros ?? [],
+        idle_macros: theme.idle_macros ?? [],
+        end_macros: theme.end_macros ?? [],
         variables: {
             ...variables,
             asset,

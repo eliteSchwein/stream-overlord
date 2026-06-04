@@ -21,6 +21,24 @@ export default class AlertController extends BaseController {
     protected channel: string | null = ''
     protected visible = false
 
+    protected resetActiveTypeElements(): void {
+        this.element
+            .querySelectorAll<HTMLElement>('[data-alert-active-type]')
+            .forEach(element => {
+                element.style.display = 'none'
+            })
+    }
+
+    protected showActiveTypeElements(types: string[]): void {
+        for (const type of types) {
+            this.element
+                .querySelectorAll<HTMLElement>(`[data-alert-active-type=\"${type}\"]`)
+                .forEach(element => {
+                    element.style.display = ''
+                })
+        }
+    }
+
     async postConnect() {
         for (const element of this.elementTargets) {
             if (!element.dataset.alertElementType) continue
@@ -55,6 +73,7 @@ export default class AlertController extends BaseController {
 
         this.videoTarget?.addEventListener('ended', event => this.videoEnd(event))
         this.channel = this.element.getAttribute('data-alert-channel')
+        this.resetActiveTypeElements()
     }
 
     videoEnd(event: Event) {
@@ -90,6 +109,19 @@ export default class AlertController extends BaseController {
         if (this.visible) return
 
         this.visible = true
+
+        this.resetActiveTypeElements()
+
+        const activeTypes: string[] = []
+
+        if (data.icon) activeTypes.push('icon')
+        if (data.video) activeTypes.push('video')
+        if (data.sound) activeTypes.push('sound')
+        if (data.iframe) activeTypes.push('iframe')
+        if (data.image) activeTypes.push('image')
+        if (data.logo) activeTypes.push('logo')
+
+        this.showActiveTypeElements(activeTypes)
 
         this.element.style.height = null
         this.element.style.width = null
@@ -214,6 +246,7 @@ export default class AlertController extends BaseController {
         }
 
         this.iconTarget?.setAttribute('class', 'alert-logo mdi')
+        this.resetActiveTypeElements()
         this.visible = false
     }
 

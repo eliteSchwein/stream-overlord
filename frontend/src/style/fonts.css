@@ -18,6 +18,13 @@
     src: url(../fonts/Audiowide/Audiowide-Regular.ttf);
 }
 
+@font-face {
+    font-family: "Doto";
+    src: url(../fonts/Doto/Doto-VariableFont_ROND,wght.ttf) format("truetype");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
 
 .font-silkscreen {
     font-family: Silkscreen, sans-serif;
@@ -33,6 +40,10 @@
 
 .font-audiowide {
     font-family: Audiowide, sans-serif;
+}
+
+.font-doto {
+    font-family: "Doto", sans-serif;
 }
 
 .font-size-1 { font-size: 5rem; }
