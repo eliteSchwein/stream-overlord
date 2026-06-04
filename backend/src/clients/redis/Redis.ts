@@ -21,12 +21,12 @@ export default class Redis {
             })
 
             await this.redisClient.connect()
+            logSuccess(`connected to redis`)
         } catch (error) {
+            this.redisClient = undefined
             logWarn('redis client failed:')
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
-
-        logSuccess(`connected to redis`)
     }
 
     public async disconnect() {
@@ -34,16 +34,38 @@ export default class Redis {
 
         logRegular(`disconnect redis`)
 
-        await this.redisClient.quit()
+        try {
+            await this.redisClient.quit()
+            logSuccess(`disconnected from redis`)
+        } catch (error) {
+            logWarn('redis disconnect failed:')
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        } finally {
+            this.redisClient = undefined
+        }
+    }
 
-        logSuccess(`disconnected from redis`)
+    public isReady() {
+        return !!this.redisClient?.isReady
     }
 
     public getVariable(key: string) {
-        return this.redisClient?.get(key)
+        if (!this.redisClient?.isReady) return undefined
+
+        return this.redisClient.get(key)
     }
 
     public async setVariable(key: string, value: string) {
-        await this.redisClient?.set(key, value)
+        if (!this.redisClient?.isReady) return
+
+        await this.redisClient.set(key, value)
+    }
+
+    public async deleteVariable(key: string) {
+        if (!this.redisClient?.isReady) return
+
+        await this.redisClient.del(key)
     }
 }
+
+export const redis = new Redis()

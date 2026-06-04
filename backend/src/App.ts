@@ -29,7 +29,7 @@ import {
     startMusicPlayer,
     stopMusicPlayer
 } from "./helper/MusicHelper";
-import Redis from "./clients/redis/Redis";
+import { redis } from "./clients/redis/Redis";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -37,7 +37,6 @@ let webServer: WebServer
 let obsClient: OBSClient
 let yoloboxClient: YoloboxClient
 
-const redis: Redis = new Redis()
 
 let ready = false
 let stage = 'Unknown'
@@ -194,6 +193,7 @@ export async function reload() {
         readConfig()
 
         await redis.connect()
+        await webServer?.precacheConfiguredHtmlTemplates()
 
         await stopMusicPlayer()
 

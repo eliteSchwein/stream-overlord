@@ -7,6 +7,7 @@ import * as fs from "node:fs/promises";
 import TestApi from "./api/TestApi";
 import * as bodyParser from "body-parser";
 import { registerApiEndpoints } from "../../App";
+import { redis } from "../redis/Redis";
 import { Server } from "node:http";
 import YoloboxPreviewApi from "./api/Yolobox/YoloboxPreviewApi";
 import MusicPlaylistAddApi from "./api/Music/MusicPlaylistAddApi";
@@ -52,7 +53,9 @@ export default class WebServer {
             express.static(path.join(__dirname, "../../frontend/dist"))
         );
 
-        const htmlRoot = path.join(__dirname, "../../frontend/src/html");
+        const htmlRoot = this.getHtmlRoot();
+
+        await this.precacheConfiguredHtmlTemplates();
 
         // custom HTML serving with template expansion + transparent background injection
         this.app.use(this.transparentHtmlStatic(htmlRoot));
@@ -166,10 +169,59 @@ export default class WebServer {
         };
     }
 
+    public async precacheConfiguredHtmlTemplates() {
+        logRegular(`pre-caching configured html templates`)
+        await this.precacheConfiguredTemplates(this.getHtmlRoot());
+    }
+
+    private getHtmlRoot() {
+        return path.join(__dirname, "../../frontend/src/html");
+    }
+
+    private async precacheConfiguredTemplates(rootDir: string) {
+        const config = getConfig(/precache/g)[0];
+        const templates = Array.isArray(config?.templates) ? config.templates : [];
+
+        if (!templates.length) return;
+
+        const resolvedRoot = path.resolve(rootDir);
+
+        for (const template of templates) {
+            const templateName = String(template ?? "").trim();
+
+            if (!templateName) continue;
+
+            const candidates = this.resolveTemplateCandidates(templateName, resolvedRoot);
+            let cached = false;
+
+            for (const candidate of candidates) {
+                if (!this.isPathInsideRoot(candidate, resolvedRoot)) continue;
+
+                try {
+                    await fs.access(candidate);
+                    await this.renderHtmlFile(candidate, resolvedRoot, [], true);
+                    cached = true;
+                    break;
+                } catch (error) {
+                    logWarn(
+                        `failed to precache template "${templateName}" from "${candidate}": ${
+                            error instanceof Error ? error.message : String(error)
+                        }`
+                    );
+                }
+            }
+
+            if (!cached) {
+                logWarn(`precache template not found: ${templateName}`);
+            }
+        }
+    }
+
     private async renderHtmlFile(
         filePath: string,
         rootDir: string,
-        includeStack: string[] = []
+        includeStack: string[] = [],
+        refreshCache = false
     ): Promise<string> {
         const resolvedFile = path.resolve(filePath);
         const resolvedRoot = path.resolve(rootDir);
@@ -186,14 +238,27 @@ export default class WebServer {
             throw new Error(`circular template include detected: ${chain}`);
         }
 
-        const html = await fs.readFile(resolvedFile, "utf8");
+        const cacheKey = this.getTemplateCacheKey(resolvedFile, resolvedRoot);
 
-        return this.expandTemplateTags(
+        if (!refreshCache) {
+            const cachedHtml = await redis.getVariable(cacheKey);
+
+            if (cachedHtml) {
+                return cachedHtml;
+            }
+        }
+
+        const html = await fs.readFile(resolvedFile, "utf8");
+        const renderedHtml = await this.expandTemplateTags(
             html,
             path.dirname(resolvedFile),
             resolvedRoot,
             [...includeStack, resolvedFile]
         );
+
+        await redis.setVariable(cacheKey, renderedHtml);
+
+        return renderedHtml;
     }
 
     private async expandTemplateTags(
@@ -242,6 +307,31 @@ export default class WebServer {
 
         result += html.slice(lastIndex);
         return result;
+    }
+
+
+    private resolveTemplateCandidates(templateName: string, rootDir: string): string[] {
+        const normalizedName = templateName.replace(/^\/+/, "");
+        const ext = path.extname(normalizedName);
+
+        if (ext) {
+            return [path.resolve(rootDir, normalizedName)];
+        }
+
+        return [
+            path.resolve(rootDir, `${normalizedName}.html`),
+            path.resolve(rootDir, normalizedName, "index.html")
+        ];
+    }
+
+    private getTemplateCacheKey(filePath: string, rootDir: string): string {
+        const relativeName = path
+            .relative(rootDir, filePath)
+            .replace(/\\/g, "/")
+            .replace(/\.html$/i, "")
+            .replace(/\/index$/i, "");
+
+        return `template_${relativeName}`;
     }
 
     private isPathInsideRoot(targetPath: string, rootDir: string): boolean {
