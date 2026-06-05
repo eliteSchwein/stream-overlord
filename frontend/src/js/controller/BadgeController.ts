@@ -6,11 +6,12 @@ import {sleep} from "../../../../helper/GeneralHelper";
 export default class BadgeController extends BaseController {
     websocketEndpoints = ['notify_ads']
 
-    static targets = ['title', 'subtitle', 'titleImage', 'logo']
+    static targets = ['title', 'subtitle', 'titleImage', 'logo', 'fullImage']
 
     declare readonly titleTargets: HTMLElement[]
-    declare readonly logoTarget: HTMLElement
+    declare readonly logoTarget: HTMLElement|HTMLImageElement
     declare readonly titleImageTarget: HTMLImageElement
+    declare readonly fullImageTarget: HTMLImageElement
     declare readonly subtitleTargets: HTMLElement[]
 
     protected ads: any = []
@@ -28,7 +29,11 @@ export default class BadgeController extends BaseController {
     loadBadgeContent() {
         this.websocket.send('get_ads', {})
 
-        this.logoTarget.style.backgroundImage = null
+        if(this.logoTarget.tagName === "IMG") {
+            this.logoTarget.src = "/compressed/logo.webp"
+        } else {
+            this.logoTarget.style.backgroundImage = null
+        }
 
         if(!this.ads) return
 
@@ -39,7 +44,11 @@ export default class BadgeController extends BaseController {
         await sleep(250)
         if(this.shieldActive) {
             await sleep(250)
-            this.logoTarget.style.backgroundImage = 'url("/shieldIcon.png")'
+            if(this.logoTarget.tagName === "IMG") {
+                this.logoTarget.src = "/shieldIcon.png"
+            } else {
+                this.logoTarget.style.backgroundImage = 'url("/shieldIcon.png")'
+            }
 
             await this.updateTitle({type: "text", content: "eliteSCHW31N"})
 
@@ -52,10 +61,27 @@ export default class BadgeController extends BaseController {
         }
     }
 
+
+    private updateActiveType(type: 'text_only' | 'text_image' | 'image_only') {
+        const elements = this.element.querySelectorAll<HTMLElement>('[data-badge-active-type]')
+
+        for (const element of elements) {
+            element.style.display = 'none'
+        }
+
+        const activeElements = this.element.querySelectorAll<HTMLElement>(`[data-badge-active-type="${type}"]`)
+
+        for (const element of activeElements) {
+            element.style.display = null
+        }
+    }
+
     async updateTitle(data: any) {
         if(!data) return
 
-        for (const titleElement of this.titleTargets) {
+        this.updateActiveType(data.type === 'text' ? 'text_only' : 'image_only')
+
+        for (const titleElement of this.subtitleTargets) {
             titleElement.style.display = 'none'
         }
 
@@ -64,6 +90,8 @@ export default class BadgeController extends BaseController {
         if(data.type === 'text') {
             this.titleImageTarget.src = ''
             this.titleImageTarget.style.display = 'none'
+            this.fullImageTarget.src = ''
+            this.fullImageTarget.style.display = 'none'
 
             for (const titleElement of this.titleTargets) {
                 titleElement.style.display = null
@@ -78,11 +106,16 @@ export default class BadgeController extends BaseController {
             return
         }
 
-        this.titleImageTarget.src = data.url
+        for (const titleElement of this.titleTargets) {
+            titleElement.style.display = null
+            titleElement.innerHTML = "eliteSCHW31N"
+        }
+
+        this.fullImageTarget.src = data.url
 
         await sleep(50)
 
-        this.titleImageTarget.style.display = null
+        this.fullImageTarget.style.display = null
     }
 
     createInterval() {
