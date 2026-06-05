@@ -11,9 +11,9 @@
 <div
         data-alert-channel="general"
         data-target="generic_alert_animation"
-        data-controller="alert animation">
+        data-controller="alert animation" class="alert-overlay-root">
 
-    <svg id="Ebene_1" data-name="Ebene 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1082.17">
+    <svg id="alert-svg-root" data-name="Ebene 1" xmlns="http://www.w3.org/2000/svg" viewBox="100 25 1700 1000">
         <defs>
             <style>
                 .alert-logo {
@@ -36,24 +36,24 @@
                     white-space: normal;
                 }
 
-                .cls-1 { fill: var(--theme-color); }
-                .cls-2 {
+                .alert-cls-1 { fill: var(--theme-color); }
+                .alert-cls-2 {
                     fill: none;
                     stroke: var(--theme-color);
                     stroke-miterlimit: 10;
                     stroke-width: 6px;
                 }
-                .cls-3 { fill: #282828; }
-                .cls-6 {
+                .alert-cls-3 { fill: #282828; }
+                .alert-cls-6 {
                     fill: none;
                     stroke: var(--theme-color);
                     stroke-miterlimit: 10;
                     stroke-width: 4px;
                 }
-                .cls-9 { fill: url(#Gradient_bez_nazwy_109); }
-                .cls-12 { fill: #353535; }
+                .alert-cls-9 { fill: url(#alert-bg-gradient); }
+                .alert-cls-12 { fill: #353535; }
 
-                :root {
+                .alert-overlay-root {
                     --build-time: 3.20s;
                     --video-in-delay: 1.7s;
                     --video-in-time: .25s;
@@ -73,19 +73,19 @@
                 svg { overflow: visible; }
 
                 /* background comes in early, leaves late */
-                .cls-9 {
+                .alert-cls-9 {
                     opacity: 0;
                     animation:
-                            svg-build-opacity .70s ease forwards .20s,
-                            svg-dismantle-opacity .70s ease forwards 6.85s;
+                            alert-svg-build-opacity .70s ease forwards .20s,
+                            alert-svg-dismantle-opacity .70s ease forwards 6.85s;
                 }
 
                 /* video: no movement, only opacity; last in, first out */
-                #video-wrap {
+                #alert-video-wrap {
                     opacity: 0;
                     animation:
-                            svg-build-opacity var(--video-in-time) ease forwards var(--video-in-delay),
-                            svg-dismantle-opacity var(--video-out-time) ease forwards var(--video-out-delay);
+                            alert-svg-build-opacity var(--video-in-time) ease forwards var(--video-in-delay),
+                            alert-svg-dismantle-opacity var(--video-out-time) ease forwards var(--video-out-delay);
                 }
 
                 /* logo + text join after shell exists, leave before final frame */
@@ -93,114 +93,114 @@
                 .alert-content {
                     opacity: 0;
                     animation:
-                            svg-build-opacity .45s ease forwards 2s,
-                            svg-dismantle-opacity .35s ease forwards 5.55s;
+                            alert-svg-build-opacity .45s ease forwards 2s,
+                            alert-svg-dismantle-opacity .35s ease forwards 5.55s;
                 }
 
                 /* lines draw on, then draw away in reverse-ish order */
-                .cls-2,
-                .cls-6 {
+                .alert-cls-2,
+                .alert-cls-6 {
                     stroke-dasharray: 5600;
                     stroke-dashoffset: 5600;
                     animation:
-                            svg-build-line 1.25s cubic-bezier(.65,0,.25,1) var(--build-delay,1.5s) forwards,
-                            svg-dismantle-line 1.15s cubic-bezier(.75,0,.25,1) var(--dismantle-line-delay,var(--dismantle-delay)) forwards;
+                            alert-svg-build-line 1.25s cubic-bezier(.65,0,.25,1) var(--build-delay,1.5s) forwards,
+                            alert-svg-dismantle-line 1.15s cubic-bezier(.75,0,.25,1) var(--dismantle-line-delay,var(--dismantle-delay)) forwards;
                 }
 
-                .svg-line-top-right { --build-delay: .00s; --dismantle-line-delay: 6.80s; }
-                .svg-line-right-outside { --build-delay: .40s; --dismantle-line-delay: 6.60s; }
-                .svg-line-main-right { --build-delay: .65s; --dismantle-line-delay: 6.40s; }
-                .svg-line-main-left { --build-delay: .95s; --dismantle-line-delay: 6.25s; }
-                .svg-line-bottom { --build-delay: 1.25s; --dismantle-line-delay: 6.15s; }
-                .svg-line-node { --build-delay: 1.38s; --dismantle-line-delay: 6.05s; }
+                .alert-svg-line-top-right { --build-delay: .00s; --dismantle-line-delay: 6.80s; }
+                .alert-svg-line-right-outside { --build-delay: .40s; --dismantle-line-delay: 6.60s; }
+                .alert-svg-line-main-right { --build-delay: .65s; --dismantle-line-delay: 6.40s; }
+                .alert-svg-line-main-left { --build-delay: .95s; --dismantle-line-delay: 6.25s; }
+                .alert-svg-line-bottom { --build-delay: 1.25s; --dismantle-line-delay: 6.15s; }
+                .alert-svg-line-node { --build-delay: 1.38s; --dismantle-line-delay: 6.05s; }
 
                 /* fill pieces */
-                .cls-1,
-                .cls-3 {
+                .alert-cls-1,
+                .alert-cls-3 {
                     opacity: 0;
                     transform-box: fill-box;
                     transform-origin: center;
                     animation:
-                            svg-build-fill .70s ease forwards var(--build-fill-delay,1.10s),
-                            svg-dismantle-fill .70s ease forwards var(--dismantle-fill-delay,6.20s);
+                            alert-svg-build-fill .70s ease forwards var(--build-fill-delay,1.10s),
+                            alert-svg-dismantle-fill .70s ease forwards var(--dismantle-fill-delay,6.20s);
                 }
 
-                .svg-bottom-left-accent { --build-fill-delay: 1.35s; --dismantle-fill-delay: 6.25s; }
-                .svg-left-bar { --build-fill-delay: 1.45s; --dismantle-fill-delay: 6.20s; transform-origin: top center; }
-                .svg-right-accent { --build-fill-delay: .52s; --dismantle-fill-delay: 6.65s; transform-origin: top center; }
+                .alert-svg-bottom-left-accent { --build-fill-delay: 1.35s; --dismantle-fill-delay: 6.25s; }
+                .alert-svg-left-bar { --build-fill-delay: 1.45s; --dismantle-fill-delay: 6.20s; transform-origin: top center; }
+                .alert-svg-right-accent { --build-fill-delay: .52s; --dismantle-fill-delay: 6.65s; transform-origin: top center; }
 
                 /* top chunks build from top-right in a stepped order, idle shimmer, reverse out */
-                .svg-top-accent {
+                .alert-svg-top-accent {
                     transform-box: fill-box;
                     transform-origin: right center;
                     animation:
-                            svg-build-top-accent .55s cubic-bezier(.65,0,.25,1) var(--build-fill-delay,.05s) forwards,
-                            svg-top-accent-idle 1.65s ease-in-out infinite var(--idle-delay),
-                            svg-dismantle-top-accent .55s cubic-bezier(.75,0,.25,1) var(--dismantle-fill-delay,6.95s) forwards;
+                            alert-svg-build-top-accent .55s cubic-bezier(.65,0,.25,1) var(--build-fill-delay,.05s) forwards,
+                            alert-alert-svg-top-accent-idle 1.65s ease-in-out infinite var(--idle-delay),
+                            alert-svg-dismantle-top-accent .55s cubic-bezier(.75,0,.25,1) var(--dismantle-fill-delay,6.95s) forwards;
                 }
-                .svg-top-accent-3 { --build-fill-delay: .05s; --dismantle-fill-delay: 7.21s; }
-                .svg-top-accent-2 { --build-fill-delay: .18s; --dismantle-fill-delay: 7.08s; }
-                .svg-top-accent-1 { --build-fill-delay: .31s; --dismantle-fill-delay: 6.95s; }
+                .alert-alert-svg-top-accent-3 { --build-fill-delay: .05s; --dismantle-fill-delay: 7.21s; }
+                .alert-alert-svg-top-accent-2 { --build-fill-delay: .18s; --dismantle-fill-delay: 7.08s; }
+                .alert-alert-svg-top-accent-1 { --build-fill-delay: .31s; --dismantle-fill-delay: 6.95s; }
 
                 /* idle shine over the masked content */
-                #svg-shine-sweep {
+                #alert-svg-shine-sweep {
                     opacity: 0;
-                    clip-path: url(#video-mask);
+                    clip-path: url(#alert-video-mask);
                     pointer-events: none;
                     animation:
-                            svg-shine-sweep 1.65s ease-in-out infinite var(--idle-delay),
-                            svg-shine-off .2s linear forwards 5.45s;
+                            alert-svg-shine-sweep 1.65s ease-in-out infinite var(--idle-delay),
+                            alert-svg-shine-off .2s linear forwards 5.45s;
                 }
 
-                #Ebene_1 {
-                    animation: svg-idle-glow 1.8s ease-in-out infinite var(--idle-delay);
+                #alert-svg-root {
+                    animation: alert-svg-idle-glow 1.8s ease-in-out infinite var(--idle-delay);
                 }
 
-                @keyframes svg-build-line { to { stroke-dashoffset: 0; } }
-                @keyframes svg-dismantle-line { to { stroke-dashoffset: -5600; opacity: 0; } }
+                @keyframes alert-svg-build-line { to { stroke-dashoffset: 0; } }
+                @keyframes alert-svg-dismantle-line { to { stroke-dashoffset: -5600; opacity: 0; } }
 
-                @keyframes svg-build-opacity { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes svg-dismantle-opacity { to { opacity: 0; } }
+                @keyframes alert-svg-build-opacity { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes alert-svg-dismantle-opacity { to { opacity: 0; } }
 
-                @keyframes svg-build-fill {
+                @keyframes alert-svg-build-fill {
                     from { opacity: 0; transform: scale(.86); }
                     to { opacity: 1; transform: scale(1); }
                 }
-                @keyframes svg-dismantle-fill {
+                @keyframes alert-svg-dismantle-fill {
                     to { opacity: 0; transform: scale(.82); }
                 }
 
-                @keyframes svg-build-top-accent {
+                @keyframes alert-svg-build-top-accent {
                     0% { opacity: 0; transform: scaleX(0) translateX(14px); filter: drop-shadow(0 0 0 rgb(from var(--theme-color) r g b / 0)); }
                     60% { opacity: 1; transform: scaleX(1.04) translateX(0); }
                     100% { opacity: 1; transform: scaleX(1) translateX(0); filter: drop-shadow(0 0 7px rgb(from var(--theme-color) r g b / var(--theme-glow-alpha-mid))); }
                 }
-                @keyframes svg-dismantle-top-accent {
+                @keyframes alert-svg-dismantle-top-accent {
                     to { opacity: 0; transform: scaleX(0) translateX(10px); filter: drop-shadow(0 0 0 rgb(from var(--theme-color) r g b / 0)); }
                 }
-                @keyframes svg-top-accent-idle {
+                @keyframes alert-alert-svg-top-accent-idle {
                     0%, 100% { filter: drop-shadow(0 0 4px rgb(from var(--theme-color) r g b / var(--theme-glow-alpha-low))); }
                     46% { filter: drop-shadow(0 0 7px rgb(from var(--theme-color) r g b / var(--theme-glow-alpha-mid))); }
                     50% { filter: drop-shadow(0 0 12px rgb(255 255 255 / var(--theme-glow-alpha-white))); }
                     54% { filter: drop-shadow(0 0 7px rgb(from var(--theme-color) r g b / var(--theme-glow-alpha-mid))); }
                 }
 
-                @keyframes svg-idle-glow {
+                @keyframes alert-svg-idle-glow {
                     0%, 100% { filter: drop-shadow(0 0 1px rgb(from var(--theme-color) r g b / var(--theme-glow-alpha-low))); }
                     50% { filter: drop-shadow(0 0 10px rgb(from var(--theme-color) r g b / var(--theme-glow-alpha-high))); }
                 }
 
-                @keyframes svg-shine-sweep {
+                @keyframes alert-svg-shine-sweep {
                     0% { opacity: 0; transform: translateX(-520px) skewX(-14deg); }
                     18% { opacity: var(--theme-shine-opacity-peak); }
                     52% { opacity: var(--theme-shine-opacity-mid); }
                     100% { opacity: 0; transform: translateX(2100px) skewX(-14deg); }
                 }
-                @keyframes svg-shine-off { to { opacity: 0; } }
+                @keyframes alert-svg-shine-off { to { opacity: 0; } }
 
                 @media (prefers-reduced-motion: reduce) {
-                    .cls-1, .cls-2, .cls-3, .cls-6, .cls-9,
-                    #video-wrap, #svg-shine-sweep, #Ebene_1,
+                    .alert-cls-1, .alert-cls-2, .alert-cls-3, .alert-cls-6, .alert-cls-9,
+                    #alert-video-wrap, #alert-svg-shine-sweep, #alert-svg-root,
                     .alert-logo, .alert-content {
                         animation: none !important;
                         opacity: 1 !important;
@@ -211,17 +211,17 @@
                 }
             </style>
 
-            <linearGradient id="Gradient_bez_nazwy_109" data-name="Gradient bez nazwy 109" x1="897.4" y1="639.4" x2="431.27" y2="173.28" gradientTransform="translate(1042.2) rotate(-180) scale(1 -1)" gradientUnits="userSpaceOnUse">
+            <linearGradient id="alert-bg-gradient" data-name="Gradient bez nazwy 109" x1="897.4" y1="639.4" x2="431.27" y2="173.28" gradientTransform="translate(1042.2) rotate(-180) scale(1 -1)" gradientUnits="userSpaceOnUse">
                 <stop offset="0" stop-color="#353535" stop-opacity=".1"/>
                 <stop offset=".39" stop-color="#3b3b3b" stop-opacity=".1"/>
                 <stop offset="1" stop-color="#ffa5a5" stop-opacity=".2"/>
             </linearGradient>
 
-            <clipPath id="video-mask" clipPathUnits="userSpaceOnUse">
+            <clipPath id="alert-video-mask" clipPathUnits="userSpaceOnUse">
                 <path d="M203.23 71.91 L1397.31 71.91 L1484.58 142.21 L1717.13 140.91 L1717.13 467.68 L1674.42 480.19 L1677.3 748.69 L1717.13 761.2 L1717.13 987.8 L714.14 987.8 L698.82 1017.63 L381.23 1016.7 L392.25 1034.93 L177.54 1034.93 L177.54 860.41 L184.88 860.41 L184.88 357.63 L149.5 328.01 L149.5 164.1 L203.94 125.3 Z"/>
             </clipPath>
 
-            <linearGradient id="svg-shine-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="alert-svg-shine-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
                 <stop offset="45%" stop-color="#ffffff" stop-opacity="0"/>
                 <stop offset="50%" stop-color="#ffffff" stop-opacity="0.75"/>
@@ -232,7 +232,7 @@
 
         <!-- background -->
         <polyline
-                class="cls-9"
+                class="alert-cls-9"
                 points="
                     203.23 71.91
                     1397.31 71.91
@@ -260,7 +260,7 @@
 
 
         <!-- video -->
-        <g id="video-wrap" clip-path="url(#video-mask)" data-alert-active-type="video">
+        <g id="alert-video-wrap" clip-path="url(#alert-video-mask)" data-alert-active-type="video">
             <foreignObject x="0" y="0" width="1920" height="1082.17">
                 <video xmlns="http://www.w3.org/1999/xhtml"
                        data-alert-target="element"
@@ -273,7 +273,7 @@
             </foreignObject>
         </g>
 
-        <rect id="svg-shine-sweep" x="-220" y="0" width="260" height="1082.17" fill="url(#svg-shine-gradient)"/>
+        <rect id="alert-svg-shine-sweep" x="-220" y="0" width="260" height="1082.17" fill="url(#alert-svg-shine-gradient)"/>
 
 
         <!-- logo -->
@@ -283,13 +283,13 @@
             </foreignObject>
         </g>
 
-        <circle class="cls-6" cx="221.16" cy="297.36" r="6.26" data-alert-active-type="icon"/>
-        <polyline class="cls-6" points="185.45 356.29 221.16 328.67 221.16 303.2" data-alert-active-type="icon"/>
+        <circle class="alert-cls-6" cx="221.16" cy="297.36" r="6.26" data-alert-active-type="icon"/>
+        <polyline class="alert-cls-6" points="185.45 356.29 221.16 328.67 221.16 303.2" data-alert-active-type="icon"/>
 
         <!-- text -->
 
         <g data-alert-active-type="text">
-            <foreignObject x="300" y="100" width="1350" height="850" clip-path="url(#video-mask)">
+            <foreignObject x="300" y="100" width="1350" height="850" clip-path="url(#alert-video-mask)">
                 <div class="alert-content" data-alert-target="element" data-alert-element-type="contentContainer">
                     <div class="stack" style="--stacks: 3;">
                         <span style="--index: 0;" data-alert-target="element" data-alert-element-type="content">TextTextTextTextTextTextTextTextText</span>
@@ -301,26 +301,26 @@
         </g>
 
         <!-- use as mask for video -->
-        <polygon class="cls-1 svg-bottom-left-accent" points="392.25 1034.93 177.54 1034.93 177.54 997.24 378.1 997.24 392.25 1034.93"/>
-        <polyline class="cls-2 svg-line-main-right" points="1481.41 140.91 1717.13 139.81 1717.13 467.68 1674.42 480.19 1677.3 748.69 1717.13 761.2 1717.13 987.8 714.14 987.8 698.82 1017.63 381.23 1016.7"/>
-        <polyline class="cls-2 svg-line-main-left" points="184.88 897.82 184.88 357.63 149.5 328.01 149.5 164.1 203.94 125.3 203.23 71.91 1397.31 71.91 1484.58 142.21"/>
-        <rect class="cls-1 svg-left-bar" x="177.54" y="860.41" width="14.68" height="174.52"/>
+        <polygon class="alert-cls-1 alert-svg-bottom-left-accent" points="392.25 1034.93 177.54 1034.93 177.54 997.24 378.1 997.24 392.25 1034.93"/>
+        <polyline class="alert-cls-2 alert-svg-line-main-right" points="1481.41 140.91 1717.13 139.81 1717.13 467.68 1674.42 480.19 1677.3 748.69 1717.13 761.2 1717.13 987.8 714.14 987.8 698.82 1017.63 381.23 1016.7"/>
+        <polyline class="alert-cls-2 alert-svg-line-main-left" points="184.88 897.82 184.88 357.63 149.5 328.01 149.5 164.1 203.94 125.3 203.23 71.91 1397.31 71.91 1484.58 142.21"/>
+        <rect class="alert-cls-1 alert-svg-left-bar" x="177.54" y="860.41" width="14.68" height="174.52"/>
 
         <!-- other crap -->
-        <polygon class="cls-1 svg-top-accent svg-top-accent-1"
+        <polygon class="alert-cls-1 alert-svg-top-accent alert-alert-svg-top-accent-1"
                  points="1438.27 74.85 1507.11 74.85 1569.54 123.79 1504.93 123.79"/>
 
-        <polygon class="cls-1 svg-top-accent svg-top-accent-2"
+        <polygon class="alert-cls-1 alert-svg-top-accent alert-alert-svg-top-accent-2"
                  points="1548.08 74.85 1612.35 74.85 1674.79 123.79 1609.56 123.79"/>
 
-        <polygon class="cls-1 svg-top-accent svg-top-accent-3"
+        <polygon class="alert-cls-1 alert-svg-top-accent alert-alert-svg-top-accent-3"
                  points="1651.33 74.85 1758.28 74.85 1758.28 123.79 1712.81 123.79"/>
-        <rect class="cls-1 svg-right-accent" x="1739.41" y="111.2" width="18.87" height="122.68"/>
-        <polyline class="cls-2 svg-line-top-right" points="1748.84 233.89 1748.84 481.35 1701.88 495.34 1701.66 664.85"/>
-        <polyline class="cls-2 svg-line-right-outside" points="748.1 1012.97 1773.47 1012.97 1773.47 952.55 1773.2 741.55 1726.23 727.41 1726.23 676.53 1726.23 679.57 1726.45 508.2 1773.42 494.06 1773.42 243.88 1773.91 309.08 1773.91 117.21 1773.91 47.24 1429.98 47.24 173.99 47.24 173.99 81.12"/>
-        <circle class="cls-2 svg-line-node" cx="732.08" cy="1012.97" r="16.01"/>
-        <circle class="cls-2 svg-line-node" cx="1701.12" cy="680.86" r="16.01"/>
-        <circle class="cls-2 svg-line-node" cx="173.99" cy="99.32" r="16.01"/>
+        <rect class="alert-cls-1 alert-svg-right-accent" x="1739.41" y="111.2" width="18.87" height="122.68"/>
+        <polyline class="alert-cls-2 alert-svg-line-top-right" points="1748.84 233.89 1748.84 481.35 1701.88 495.34 1701.66 664.85"/>
+        <polyline class="alert-cls-2 alert-svg-line-right-outside" points="748.1 1012.97 1773.47 1012.97 1773.47 952.55 1773.2 741.55 1726.23 727.41 1726.23 676.53 1726.23 679.57 1726.45 508.2 1773.42 494.06 1773.42 243.88 1773.91 309.08 1773.91 117.21 1773.91 47.24 1429.98 47.24 173.99 47.24 173.99 81.12"/>
+        <circle class="alert-cls-2 alert-svg-line-node" cx="732.08" cy="1012.97" r="16.01"/>
+        <circle class="alert-cls-2 alert-svg-line-node" cx="1701.12" cy="680.86" r="16.01"/>
+        <circle class="alert-cls-2 alert-svg-line-node" cx="173.99" cy="99.32" r="16.01"/>
     </svg>
 </div>
 </body>

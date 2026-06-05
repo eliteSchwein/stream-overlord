@@ -301,7 +301,7 @@ export default class WebServer {
                 includeStack
             );
 
-            result += renderedInclude;
+            result += this.stripHeadFromHtml(renderedInclude);
             lastIndex = match.index + fullMatch.length;
         }
 
@@ -309,6 +309,15 @@ export default class WebServer {
         return result;
     }
 
+
+    private stripHeadFromHtml(html: string): string {
+        return html
+            .replace(/<head\b[^>]*>[\s\S]*?<\/head>/gi, "")
+            .replace(/<!doctype\s+html[^>]*>/gi, "")
+            .replace(/<\/?html\b[^>]*>/gi, "")
+            .replace(/<body\b[^>]*>/gi, "")
+            .replace(/<\/body>/gi, "");
+    }
 
     private resolveTemplateCandidates(templateName: string, rootDir: string): string[] {
         const normalizedName = templateName.replace(/^\/+/, "");
