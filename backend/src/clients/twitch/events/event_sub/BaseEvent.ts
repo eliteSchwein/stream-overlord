@@ -66,5 +66,117 @@ export default class BaseEvent {
         removeEventFromQuery(this.eventUuid)
     }
 
+    protected sanitizeMacroEvent(event: any): any {
+        return sanitizeMacroValue(event)
+    }
+
+    protected getMacroVariables(event: any, variables: any = {}) {
+        const {event: _event, eventUuid, ...safeVariables} = variables
+
+        return {
+            ...safeVariables,
+            event: this.sanitizeMacroEvent(event),
+            eventUuid: eventUuid ?? this.eventUuid,
+        }
+    }
+
     async handle(event: any) {}
+}
+
+function sanitizeMacroValue(value: any, seen = new WeakSet<object>(), depth = 0): any {
+    if (value === null || value === undefined) return value
+
+    const valueType = typeof value
+
+    if (valueType === "string" || valueType === "number" || valueType === "boolean") {
+        return value
+    }
+
+    if (valueType === "bigint") {
+        return value.toString()
+    }
+
+    if (value instanceof Date) {
+        return value.toISOString()
+    }
+
+    if (Array.isArray(value)) {
+        if (seen.has(value)) return undefined
+        if (depth >= 4) return undefined
+
+        seen.add(value)
+        return value.map(item => sanitizeMacroValue(item, seen, depth + 1))
+            .filter(item => item !== undefined)
+    }
+
+    if (valueType !== "object") {
+        return undefined
+    }
+
+    if (seen.has(value)) return undefined
+    if (depth >= 4) return undefined
+
+    seen.add(value)
+
+    const output: any = {}
+
+    for (const key of Object.keys(value)) {
+        if (key.startsWith("_")) continue
+
+        const sanitized = sanitizeMacroValue(value[key], seen, depth + 1)
+
+        if (sanitized !== undefined) {
+            output[key] = sanitized
+        }
+    }
+
+    const twitchEventKeys = [
+        "id",
+        "broadcasterId",
+        "broadcasterName",
+        "broadcasterDisplayName",
+        "userId",
+        "userName",
+        "userDisplayName",
+        "gifterId",
+        "gifterName",
+        "gifterDisplayName",
+        "recipientId",
+        "recipientName",
+        "recipientDisplayName",
+        "viewerCount",
+        "bits",
+        "count",
+        "months",
+        "streak",
+        "plan",
+        "isGift",
+        "isAnonymous",
+        "message",
+        "rewardId",
+        "rewardTitle",
+        "rewardCost",
+        "input",
+        "status",
+        "title",
+        "categoryId",
+        "categoryName",
+        "messageId",
+    ]
+
+    for (const key of twitchEventKeys) {
+        if (output[key] !== undefined) continue
+
+        try {
+            const sanitized = sanitizeMacroValue(value[key], seen, depth + 1)
+
+            if (sanitized !== undefined) {
+                output[key] = sanitized
+            }
+        } catch (_) {
+            // Some Twurple fields are getters around runtime internals. Ignore unsafe fields.
+        }
+    }
+
+    return output
 }

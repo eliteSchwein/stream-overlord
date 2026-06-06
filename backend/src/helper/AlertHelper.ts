@@ -28,8 +28,6 @@ export default function initialAlerts() {
             const activeAlert = alertQuery[0]
 
             if(activeAlert.duration > 0) {
-                activeAlert.duration--
-
                 websocketServer.send('notify_alert', {...activeAlert, action: 'show'})
 
                 if(activeAlert.active) {
@@ -37,11 +35,18 @@ export default function initialAlerts() {
                         activeAlerts.push(activeAlert['event-uuid'])
                     }
 
+                    if(!activeAlert.startMacrosFinished) {
+                        alertQuery[0] = activeAlert
+                        return
+                    }
+
+                    activeAlert.duration--
                     alertQuery[0] = activeAlert
                     return
                 }
 
                 activeAlert.active = true
+                activeAlert.startMacrosFinished = false
                 activeAlert.idleRunId = (activeAlert.idleRunId ?? 0) + 1
 
                 if(!activeAlerts.includes(activeAlert['event-uuid'])) {
@@ -69,14 +74,14 @@ export default function initialAlerts() {
                 return
             }
 
+            await finishAlertLifecycle(activeAlert)
+
             websocketServer.send('notify_alert', {...activeAlert, action: 'hide'})
 
             if(activeAlert.ending) return
 
             activeAlert.ending = true
             activeAlert.idleRunId = (activeAlert.idleRunId ?? 0) + 1
-
-            void finishAlertLifecycle(activeAlert)
         } finally {
             alertLoopRunning = false
         }
@@ -85,8 +90,15 @@ export default function initialAlerts() {
 
 async function startAlertLifecycle(alert: any) {
     alert.variables = buildAlertVariables(alert)
+    alert.startMacrosFinished = false
 
-    await runAlertMacros(alert.start_macros ?? alert.startMacros, alert.variables, 'start')
+    try {
+        await runAlertMacros(alert.start_macros ?? alert.startMacros, alert.variables, 'start')
+    } catch (error) {
+        logWarn(`alert start macro failed: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+        alert.startMacrosFinished = true
+    }
 
     if (!alert.active || alert.ending) return
 
@@ -168,6 +180,7 @@ function buildAlertVariables(alert: any) {
         idleMacros,
         end_macros,
         endMacros,
+        startMacrosFinished,
         ...safeAlert
     } = alert
 

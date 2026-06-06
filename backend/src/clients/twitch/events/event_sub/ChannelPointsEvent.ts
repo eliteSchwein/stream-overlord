@@ -166,8 +166,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                 }
 
                 case "macro": {
-                    const macroTriggered = await triggerMacro(configChannelPoint.macro, {
-                        event,
+                    const macroTriggered = await triggerMacro(configChannelPoint.macro, this.getMacroVariables(event, {
                         eventUuid,
                         channelPoint: {
                             title: event.rewardTitle,
@@ -178,7 +177,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                                 ? stripEmotes(String(event.input ?? ""), event as any)
                                 : event.input,
                         },
-                    });
+                    }));
 
                     if (!macroTriggered) {
                         if (event.broadcasterName !== event.userName) {
@@ -233,8 +232,7 @@ export default class ChannelPointsEvent extends BaseEvent {
             if (gameMacro) {
                 logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`);
 
-                const macroTriggered = await triggerMacro(gameMacro, {
-                    event,
+                const macroTriggered = await triggerMacro(gameMacro, this.getMacroVariables(event, {
                     eventUuid,
                     channelPoint: {
                         title: event.rewardTitle,
@@ -243,7 +241,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                         broadcasterName: event.broadcasterName,
                         input: event.input,
                     },
-                });
+                }));
 
                 if (!macroTriggered) {
                     if (event.broadcasterName !== event.userName) {

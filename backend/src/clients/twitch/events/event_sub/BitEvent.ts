@@ -19,7 +19,7 @@ export default class BitEvent extends BaseEvent {
             return
         }
 
-        await triggerMacro('bits', {event: event, eventUuid: this.eventUuid})
+        await triggerMacro('bits', this.getMacroVariables(event))
 
         //addAlert({
         //    'sound': theme.sound,

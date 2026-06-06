@@ -93,6 +93,8 @@ export default class AlertController extends BaseController {
         if (!data.channel || data.channel !== this.channel) return
         if (method !== 'notify_alert' && method !== 'notify_test_mode') return
 
+        console.log(data)
+
         switch (data.action) {
             case 'show':
                 await this.showAlert(data)
@@ -120,6 +122,7 @@ export default class AlertController extends BaseController {
         if (data.iframe) activeTypes.push('iframe')
         if (data.image) activeTypes.push('image')
         if (data.logo) activeTypes.push('logo')
+        if (data.message) activeTypes.push('text')
 
         this.showActiveTypeElements(activeTypes)
 

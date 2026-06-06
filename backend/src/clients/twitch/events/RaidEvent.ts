@@ -20,7 +20,7 @@ export default class RaidEvent extends BaseEvent {
             return
         }
 
-        await triggerMacro('raid', {event: event, eventUuid: this.eventUuid})
+        await triggerMacro('raid', this.getMacroVariables(event))
 
         //addAlert({
         //    'sound': theme.sound,

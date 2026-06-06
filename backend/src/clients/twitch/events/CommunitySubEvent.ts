@@ -24,7 +24,7 @@ export default class CommunitySubEvent extends BaseEvent {
             return
         }
 
-        await triggerMacro('subcommunitygift', {event: event, eventUuid: this.eventUuid, plan: plan})
+        await triggerMacro('subcommunitygift', this.getMacroVariables(event, {plan}))
 
         // addAlert({
         //    'sound': theme.sound,

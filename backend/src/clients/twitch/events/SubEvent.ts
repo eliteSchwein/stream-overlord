@@ -24,7 +24,7 @@ export default class SubEvent extends BaseEvent {
             return
         }
 
-        await triggerMacro('sub', {event: event, eventUuid: this.eventUuid, plan: plan})
+        await triggerMacro('sub', this.getMacroVariables(event, {plan}))
 
         //addAlert({
         //    'sound': theme.sound,
