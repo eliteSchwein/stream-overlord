@@ -98,10 +98,9 @@ async function runIdleMacros(alert: any) {
     const macros = alert.idle_macros ?? alert.idleMacros
 
     if (!getMacroList(macros).length) return
+    if (!alert.active || alert.ending || runId !== alert.idleRunId) return
 
-    while (alert.active && !alert.ending && runId === alert.idleRunId) {
-        await runAlertMacros(macros, alert.variables, 'idle')
-    }
+    await runAlertMacros(macros, alert.variables, 'idle')
 }
 
 async function finishAlertLifecycle(alert: any) {
