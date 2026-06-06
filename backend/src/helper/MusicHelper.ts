@@ -308,11 +308,7 @@ export async function toggleSongRequest(): Promise<boolean> {
 
     }
 
-    logRegular(
-        songRequestBlocklist
-            ? `songrequests enabled`
-            : `songrequests disabled`
-    );
+    logRegular(songRequestEnabled ? 'songrequests enabled' : 'songrequests disabled')
 
     return songRequestEnabled
 }
@@ -894,20 +890,24 @@ async function applyMusicCrashState() {
 
     logRegular('apply music crash state')
 
-    if (Array.isArray(state.songrequest_queue)) {
-        songRequestQueue = state.songrequest_queue
-    }
-
-    if (state.songrequest_title_map && typeof state.songrequest_title_map === 'object') {
-        songRequestTitleMap = state.songrequest_title_map
-    }
-
     if (Array.isArray(state.songrequest_blocklist)) {
         songRequestBlocklist = state.songrequest_blocklist
     }
 
-    if (Number.isFinite(state.songrequest_current_index)) {
-        currentRequestIndex = state.songrequest_current_index
+    if (songRequestEnabled) {
+        if (Array.isArray(state.songrequest_queue)) {
+            songRequestQueue = state.songrequest_queue
+        }
+
+        if (state.songrequest_title_map && typeof state.songrequest_title_map === 'object') {
+            songRequestTitleMap = state.songrequest_title_map
+        }
+
+        if (Number.isFinite(state.songrequest_current_index)) {
+            currentRequestIndex = state.songrequest_current_index
+        }
+    } else {
+        clearSongRequestRuntimeState()
     }
 
     const playlist = await getPlaylist()
@@ -1127,6 +1127,9 @@ async function downloadWithYtDlp(url: string): Promise<void> {
         '--audio-quality',
         '0',
         '--embed-metadata',
+        '--embed-thumbnail',
+        '--convert-thumbnails',
+        'png',
         '--parse-metadata',
         '%(artist,creator,uploader)s:%(meta_artist)s',
         '--parse-metadata',
@@ -1186,11 +1189,15 @@ function isYoutubeUrl(url: string): boolean {
     return ['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'].includes(hostname)
 }
 
-function clearSongRequestCache() {
+function clearSongRequestRuntimeState() {
     currentRequestIndex = 0
     songRequestQueue = []
     songRequestTitleMap = {}
     songRequestBusy = false
+}
+
+function clearSongRequestCache() {
+    clearSongRequestRuntimeState()
 
     if (existsSync(songRequestPath)) {
         rmSync(songRequestPath, { recursive: true, force: true })
