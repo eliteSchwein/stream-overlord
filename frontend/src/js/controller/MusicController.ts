@@ -36,8 +36,6 @@ export default class MusicController extends BaseController {
         }
 
         if (method === 'notify_test_mode') {
-            console.log("[music] test mode update", data)
-
             this.testMode = data.active
             void this.showPlayer()
             return
