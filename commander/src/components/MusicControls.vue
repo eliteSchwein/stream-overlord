@@ -477,6 +477,10 @@ export default defineComponent({
     },
 
     getFilename(item: any): string {
+      if (typeof item === "string") {
+        return this.getBasename(item)
+      }
+
       const file = this.getItemPath(item)
       const basename = this.getBasename(file)
 
