@@ -12,17 +12,21 @@ export default class CavaController extends BaseController {
 
     protected cavaBuffer = ''
     protected expectedBarCount = 0
+    protected target = 'default'
 
     protected smoothing = 0.45
     protected falloff = 6
 
     protected isSvgMode = false
+    protected invertBars = false
     protected svgRectData = new Map<SVGRectElement, { y: number, height: number }>()
 
     async connect() {
         super.connect?.()
 
         this.isSvgMode = this.element instanceof SVGElement
+        this.invertBars = this.element.getAttribute('data-cava-invert-bars') === 'true'
+        this.target = this.element.getAttribute('data-cava-target')?.trim() || 'default'
         this.element.classList.add('cava-controller')
 
         if (this.isSvgMode) {
@@ -32,6 +36,10 @@ export default class CavaController extends BaseController {
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
         if (method !== 'notify_music_cava') return
+
+        const frameTarget = String(data?.target ?? 'default').trim() || 'default'
+
+        if (frameTarget !== this.target) return
 
         const frames = this.parseCavaFrames(String(data?.raw ?? ''))
 
@@ -91,6 +99,7 @@ export default class CavaController extends BaseController {
         for (let i = 0; i < count; i++) {
             const bar = document.createElement('div')
             bar.classList.add('cava-bar')
+            bar.style.alignSelf = this.invertBars ? 'flex-start' : 'flex-end'
             this.element.appendChild(bar)
             this.bars.push(bar)
         }
@@ -176,6 +185,7 @@ export default class CavaController extends BaseController {
             const bar = this.bars[i] as HTMLDivElement
             const value = this.smoothedValues[i] ?? 0
 
+            bar.style.alignSelf = this.invertBars ? 'flex-start' : 'flex-end'
             bar.style.height = value > 0
                 ? `${Math.max(3, value)}%`
                 : '0%'
@@ -194,7 +204,9 @@ export default class CavaController extends BaseController {
                 ? Math.max(1, original.height * (value / 100))
                 : 0
 
-            const y = original.y + original.height - height
+            const y = this.invertBars
+                ? original.y
+                : original.y + original.height - height
 
             rect.setAttribute('height', String(height))
             rect.setAttribute('y', String(y))

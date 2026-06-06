@@ -28,7 +28,7 @@ import https from 'https'
 
 const songRequestPath = '/tmp/songrequests'
 const mpvSocketPath = '/tmp/streambot-music-mpv.sock'
-const cavaConfigPath = '/tmp/streambot-cava.conf'
+const cavaConfigPathPrefix = '/tmp/streambot-cava'
 const musicStatePath = '/tmp/streambot-music-state.json'
 const musicThumbnailPath = '/tmp/streambot-music-thumbnail.png'
 const streambotMusicConfigName = 'music'
@@ -38,7 +38,7 @@ let musicPath = '$HOME/Music/Streambot'
 let songRequestEnabled = false
 let cavaEnabled = false
 let mpvProcess: ChildProcessWithoutNullStreams | null = null
-let cavaProcess: ChildProcessWithoutNullStreams | null = null
+const cavaProcesses = new Map<string, ChildProcessWithoutNullStreams>()
 let mpvEventSocket: Socket | null = null
 let musicUpdateInterval: ReturnType<typeof setInterval> | null = null
 let status: any = null
@@ -86,7 +86,7 @@ export function loadMusicConfig() {
 
     musicPath = expandPath(musicConfig.path ?? '$HOME/Music/Streambot')
     songRequestEnabled = musicConfig.songrequest === true || musicConfig.songrequest === 'true'
-    cavaEnabled = musicConfig.cava === true || musicConfig.cava === 'true'
+    cavaEnabled = getCavaTargetConfigs().length > 0
 
     mkdirSync(songRequestPath, { recursive: true })
 }
@@ -1271,43 +1271,134 @@ async function waitForMpvSocket() {
     }
 }
 
+type CavaTargetConfig = {
+    target: string
+    values: Record<string, any>
+}
+
 function startCavaFeed() {
     stopCavaFeed()
 
-    writeFileSync(cavaConfigPath, buildCavaConfig())
+    const configs = getCavaTargetConfigs()
 
-    cavaProcess = spawn('cava', ['-p', cavaConfigPath])
+    if (configs.length < 1) {
+        logDebug('cava skipped: no cava configs found')
+        return
+    }
 
-    cavaProcess.stdout.on('data', data => {
-        getWebsocketServer().send('notify_music_cava', {
-            raw: data.toString(),
+    for (const config of configs) {
+        const configPath = getCavaConfigPath(config.target)
+
+        writeFileSync(configPath, buildCavaConfig(config.values))
+
+        const process = spawn('cava', ['-p', configPath])
+        cavaProcesses.set(config.target, process)
+
+        logRegular(`cava ${config.target} created`)
+        logDebug(`cava ${config.target} config: ${configPath}`)
+        logDebug(`cava ${config.target} values: ${JSON.stringify(config.values)}`)
+
+        process.stdout.on('data', data => {
+            getWebsocketServer().send('notify_music_cava', {
+                target: config.target,
+                raw: data.toString(),
+            })
         })
-    })
 
-    cavaProcess.stderr.on('data', data => {
-        logDebug(`[cava] ${data.toString().trim()}`)
-    })
+        process.stderr.on('data', data => {
+            logDebug(`cava ${config.target} ${data.toString().trim()}`)
+        })
 
-    cavaProcess.on('exit', () => {
-        cavaProcess = null
-    })
+        process.on('exit', () => {
+            cavaProcesses.delete(config.target)
+        })
+
+        process.on('error', error => {
+            logWarn(`cava${config.target} failed to start: ${error.message}`)
+            cavaProcesses.delete(config.target)
+        })
+    }
 }
 
 function stopCavaFeed() {
-    if (!cavaProcess) return
+    for (const process of cavaProcesses.values()) {
+        process.kill()
+    }
 
-    cavaProcess.kill()
-    cavaProcess = null
+    cavaProcesses.clear()
 }
 
-function buildCavaConfig(): string {
-    const cavaGeneral = getConfig(/^cava_general$/g)[0] ?? {}
+function getCavaTargetConfigs(): CavaTargetConfig[] {
+    const rawConfigs = getConfig(/^cava/g, true)
+    const entries = Array.isArray(rawConfigs)
+        ? rawConfigs.map((config: any, index: number) => [index === 0 ? '' : String(index), config])
+        : Object.entries(rawConfigs ?? {})
+
+    return entries
+        .filter(([name]) => !String(name).startsWith('_'))
+        .map(([name, config]: [any, any], index: number) => {
+            const target = getCavaConfigTarget(config, index, String(name))
+
+            return {
+                target,
+                values: stripCavaMetaValues(config ?? {}),
+            }
+        })
+        .filter(config => parseBooleanValue(config.values.enabled, true))
+}
+
+function getCavaConfigTarget(config: any, index: number, fallbackName = ''): string {
+    const rawName = String(
+        fallbackName ||
+        config?.name ||
+        config?._name ||
+        config?.section ||
+        config?._section ||
+        config?.config_name ||
+        config?.configName ||
+        ''
+    ).trim()
+
+    if (!rawName) {
+        return index === 0 ? 'default' : `target_${index + 1}`
+    }
+
+    const normalized = rawName.replace(/^cava\s*/i, '').trim()
+
+    return normalized || 'default'
+}
+
+
+function stripCavaMetaValues(config: Record<string, any>): Record<string, any> {
+    const values = { ...config }
+
+    for (const key of [
+        'name',
+        '_name',
+        'section',
+        '_section',
+        'config_name',
+        'configName',
+    ]) {
+        delete values[key]
+    }
+
+    return values
+}
+
+function getCavaConfigPath(target: string): string {
+    const safeTarget = target.replace(/[^a-z0-9_-]+/gi, '_').toLowerCase() || 'default'
+
+    return `${cavaConfigPathPrefix}-${safeTarget}.conf`
+}
+
+function buildCavaConfig(targetConfig: Record<string, any>): string {
     const cavaInput = getConfig(/^cava_input$/g)[0] ?? {}
     const cavaOutput = getConfig(/^cava_output$/g)[0] ?? {}
 
     const general = {
-        bars: 64,
-        ...cavaGeneral,
+        bars: 36,
+        ...targetConfig,
     }
 
     const input = {
