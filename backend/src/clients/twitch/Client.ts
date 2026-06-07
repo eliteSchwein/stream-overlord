@@ -6,6 +6,7 @@ import { EventSubWsListener } from "@twurple/eventsub-ws";
 import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import { waitUntil } from "async-wait-until";
 import { logRegular, logSuccess, logWarn } from "../../helper/LogHelper";
+import { setManagedConnection } from "../../helper/ConnectionHelper";
 import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
 import SubEvent from "./events/SubEvent";
 import CommunitySubEvent from "./events/CommunitySubEvent";
@@ -22,8 +23,8 @@ import MessageDeleteEvent from "./events/event_sub/MessageDeleteEvent";
 
 export default class TwitchClient {
     protected auth: TwitchAuth;
-    protected bot: Bot;
-    protected eventSub: EventSubWsListener;
+    protected bot?: Bot;
+    protected eventSub?: EventSubWsListener;
 
     private warnTwitchNetworkError(context: string, error: unknown): boolean {
         const err = error as any;
@@ -58,7 +59,7 @@ export default class TwitchClient {
         const primaryChannel = getPrimaryChannel();
 
         try {
-            const user = await this.bot.api.users.getUserById(primaryChannel.id);
+            const user = await this.bot?.api.users.getUserById(primaryChannel.id);
 
             if (!user) {
                 logWarn(`could not load twitch user for primary channel id=${primaryChannel.id}`);
@@ -98,12 +99,30 @@ export default class TwitchClient {
         }
 
         logRegular("connect twitch");
+        setManagedConnection("twitch", {
+            enabled: true,
+            state: "connecting",
+            connected: false,
+            message: "connecting"
+        });
 
         this.auth = new TwitchAuth();
 
         let botActive = false;
         const config = getConfig(/twitch/g)[0];
-        const authProvider = await this.auth.getAuthCode();
+        const authRequired = config?.auth_required === true || config?.authRequired === true;
+        const authProvider = await this.auth.getAuthCode(authRequired);
+
+        if (!authProvider) {
+            setManagedConnection("twitch", {
+                enabled: false,
+                state: "auth_required",
+                connected: false,
+                message: "Twitch auth is not configured"
+            });
+            logWarn("twitch client skipped because auth is not configured");
+            return;
+        }
 
         const tempBot = new Bot({
             authProvider,
@@ -123,10 +142,20 @@ export default class TwitchClient {
             botActive = true;
         });
 
-        await waitUntil(() => botActive, {
-            intervalBetweenAttempts: 250,
-            timeout: 30_000
-        });
+        try {
+            await waitUntil(() => botActive, {
+                intervalBetweenAttempts: 250,
+                timeout: 30_000
+            });
+        } catch (error) {
+            setManagedConnection("twitch", {
+                enabled: true,
+                state: "error",
+                connected: false,
+                message: "Twitch chat connection timed out"
+            });
+            throw error;
+        }
 
         await loadPrimaryChannel(this);
 
@@ -148,31 +177,46 @@ export default class TwitchClient {
 
         await this.registerEvents();
 
+        setManagedConnection("twitch", {
+            enabled: true,
+            state: "connected",
+            connected: true,
+            message: "connected"
+        });
+
         logSuccess("twitch client is ready");
     }
 
     public async registerEvents() {
+        if (!this.bot || !this.eventSub) {
+            logWarn("cannot register Twitch events without an active Twitch connection");
+            return;
+        }
+
+        const bot = this.bot;
+        const eventSub = this.eventSub;
+
         // regular events
-        new SubEvent(this.bot).register();
-        new CommunitySubEvent(this.bot).register();
-        new SubGiftEvent(this.bot).register();
-        new RaidEvent(this.bot).register();
+        new SubEvent(bot).register();
+        new CommunitySubEvent(bot).register();
+        new SubGiftEvent(bot).register();
+        new RaidEvent(bot).register();
 
         // eventsub events that work for all channels
-        await this.safeRegister("follow event", () => new FollowEvent(this.eventSub, this.bot).register());
-        await this.safeRegister("channel update event", () => new ChannelUpdateEvent(this.eventSub, this.bot).register());
-        await this.safeRegister("shield event", () => new ShieldEvent(this.eventSub, this.bot).register());
+        await this.safeRegister("follow event", () => new FollowEvent(eventSub, bot).register());
+        await this.safeRegister("channel update event", () => new ChannelUpdateEvent(eventSub, bot).register());
+        await this.safeRegister("shield event", () => new ShieldEvent(eventSub, bot).register());
         await this.safeRegister(
             "shared chat session end event",
-            () => new ChannelSharedChatSessionEnd(this.eventSub, this.bot).register()
+            () => new ChannelSharedChatSessionEnd(eventSub, bot).register()
         );
         await this.safeRegister(
             "shared chat session event",
-            () => new ChannelSharedChatSession(this.eventSub, this.bot).register()
+            () => new ChannelSharedChatSession(eventSub, bot).register()
         );
         await this.safeRegister(
             "message delete event",
-            () => new MessageDeleteEvent(this.eventSub, this.bot).register()
+            () => new MessageDeleteEvent(eventSub, bot).register()
         );
 
         const affiliateOrPartner = await this.isAffiliateOrPartner();
@@ -184,15 +228,15 @@ export default class TwitchClient {
         }
 
         // eventsub events that require affiliate/partner features
-        await this.safeRegister("channel points event", () => new ChannelPointsEvent(this.eventSub, this.bot).register());
-        await this.safeRegister("bits event", () => new BitEvent(this.eventSub, this.bot).register());
+        await this.safeRegister("channel points event", () => new ChannelPointsEvent(eventSub, bot).register());
+        await this.safeRegister("bits event", () => new BitEvent(eventSub, bot).register());
         await this.safeRegister(
             "channel point edit event",
-            () => new ChannelPointEditEvent(this.eventSub, this.bot).register()
+            () => new ChannelPointEditEvent(eventSub, bot).register()
         );
         await this.safeRegister(
             "poll prediction event",
-            () => new PollPredictionEvent(this.eventSub, this.bot).register()
+            () => new PollPredictionEvent(eventSub, bot).register()
         );
     }
 
@@ -208,6 +252,11 @@ export default class TwitchClient {
         const primaryChannel = getPrimaryChannel();
 
         try {
+            if (!this.bot) {
+                logWarn("twitch announce skipped: twitch is not connected");
+                return;
+            }
+
             await this.bot.api.chat.sendAnnouncement(primaryChannel.id, {
                 message: message,
                 // @ts-ignore

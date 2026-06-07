@@ -79,11 +79,35 @@ export default class TwitchAuth {
         return this.scopes.concat(["chat"]);
     }
 
-    public async getAuthCode() {
+    public hasTokenFile(): boolean {
+        return existsSync(this.tokensPath);
+    }
+
+    public async getAuthCode(required = false) {
         const config = getConfig(/twitch/g)[0];
         const clientId = config['client_id'];
         const clientSecret = config['client_secret'];
-        const tokenData = await this.readTokenFile(clientId, clientSecret);
+
+        if (!clientId || !clientSecret) {
+            if (required) {
+                throw new Error("missing twitch client_id/client_secret");
+            }
+
+            logWarn("twitch auth skipped: missing client_id/client_secret");
+            return null;
+        }
+
+        if (!required && !this.hasTokenFile()) {
+            logWarn("twitch auth skipped: token file is missing");
+            logWarn("open the Twitch auth flow manually before enabling Twitch features");
+            return null;
+        }
+
+        const tokenData = await this.readTokenFile(clientId, clientSecret, required);
+
+        if (!tokenData) {
+            return null;
+        }
 
         this.authProvider = new RefreshingAuthProvider({ clientId, clientSecret });
 
@@ -99,8 +123,12 @@ export default class TwitchAuth {
         return this.authProvider;
     }
 
-    private async readTokenFile(clientId: string, clientSecret: string) {
+    private async readTokenFile(clientId: string, clientSecret: string, required = false) {
         if (!existsSync(this.tokensPath)) {
+            if (!required) {
+                return null;
+            }
+
             await this.startAuthapp(clientId, clientSecret);
             await waitUntil(() => this.tempTokenData !== null, { timeout: WAIT_FOREVER });
             await fs.writeFile(this.tokensPath, JSON.stringify(this.tempTokenData, null, 4), 'utf-8');
@@ -111,7 +139,7 @@ export default class TwitchAuth {
         return JSON.parse(tokenData);
     }
 
-    private buildAuthUrl(clientId: string, callbackAddress: string, returnTo: string) {
+    public buildAuthUrl(clientId: string, callbackAddress: string, returnTo: string) {
         const statePayload = {
             returnTo,
             nonce: crypto.randomBytes(16).toString("hex"),
@@ -153,6 +181,135 @@ export default class TwitchAuth {
             return fallback;
         } catch {
             return fallback;
+        }
+    }
+
+
+    public getConfiguredClient() {
+        const config = getConfig(/twitch/g)[0];
+
+        return {
+            clientId: config?.['client_id'],
+            clientSecret: config?.['client_secret']
+        };
+    }
+
+    public buildConfiguredAuthUrl(callbackAddress: string, returnTo: string) {
+        const { clientId, clientSecret } = this.getConfiguredClient();
+
+        if (!clientId || !clientSecret) {
+            throw new Error("missing twitch client_id/client_secret");
+        }
+
+        return this.buildAuthUrl(clientId, callbackAddress, returnTo);
+    }
+
+    private normalizeTokenData(data: any) {
+        const tokenData = {
+            ...data,
+            obtainmentTimestamp: Date.now(),
+            expiresIn: data['expires_in'],
+            accessToken: data['access_token'],
+            refreshToken: data['refresh_token']
+        };
+
+        delete tokenData['token_type'];
+        delete tokenData['expires_in'];
+        delete tokenData['access_token'];
+        delete tokenData['refresh_token'];
+
+        return tokenData;
+    }
+
+    public async handleCallbackRequest(req: Request, res: Response, callbackAddress: string, onSuccess?: () => Promise<void> | void) {
+        const { clientId, clientSecret } = this.getConfiguredClient();
+
+        if (!clientId || !clientSecret) {
+            res.status(500).send('Twitch auth is not configured!');
+            return;
+        }
+
+        const code = req.query.code as string | undefined;
+        const state = req.query.state;
+        const error = req.query.error as string | undefined;
+        const errorDescription = req.query.error_description as string | undefined;
+        const returnTo = this.safeReturnToFromState(state);
+
+        if (!code) {
+            logError(
+                `OAuth callback without code. ` +
+                `error=${error ?? "none"} ` +
+                `error_description=${errorDescription ?? "none"}`
+            );
+
+            res.status(400).send(`
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>OAuth failed</title>
+</head>
+<body>
+  <h1>OAuth failed</h1>
+  <p>error: ${error ?? "(none)"}</p>
+  <p>description: ${errorDescription ?? "(none)"}</p>
+  <p><a href="${returnTo}">Back</a></p>
+</body>
+</html>
+`);
+            return;
+        }
+
+        const params: any = {
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: callbackAddress
+        };
+
+        try {
+            const response = await axios.post(
+                'https://id.twitch.tv/oauth2/token',
+                querystring.stringify(params),
+                {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                }
+            );
+
+            this.tempTokenData = this.normalizeTokenData(response.data);
+            await fs.writeFile(this.tokensPath, JSON.stringify(this.tempTokenData, null, 4), 'utf-8');
+
+            res.on("finish", async () => {
+                if (!onSuccess) return;
+
+                try {
+                    await onSuccess();
+                } catch (e) {
+                    logError(`Failed to run Twitch auth success hook: ${JSON.stringify(e, null, 2)}`);
+                }
+            });
+
+            res.status(200).send(`
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Auth successful</title>
+</head>
+<body>
+  <p>Auth successful. Returning to app…</p>
+  <script>
+    window.location.replace(${JSON.stringify(returnTo)});
+  </script>
+</body>
+</html>
+`);
+        } catch (error) {
+            logError(`Auth Error: ${JSON.stringify(error, null, 4)}`);
+            res.status(500).send('Auth Error!');
         }
     }
 

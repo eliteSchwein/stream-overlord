@@ -11,6 +11,7 @@ export { default as SetVolumeApi } from "./Common/SetVolumeApi";
 export { default as StatusApi } from "./Common/StatusApi";
 export { default as UpdateConfigApi } from "./Common/UpdateConfigApi";
 export { default as WebRequestApi } from "./Common/WebRequestApi";
+export { default as ConnectionAuthApi } from "./Connection/ConnectionAuthApi";
 export { default as GetEffectApi } from "./Effect/GetEffectApi";
 export { default as AllGamesApi } from "./Games/AllGamesApi";
 export { default as CurrentGameApi } from "./Games/CurrentGameApi";
