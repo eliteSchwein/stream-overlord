@@ -449,6 +449,24 @@
                     50% { transform: translate(5px,5px); opacity: .95; }
                 }
 
+
+
+                /* subtle alert-style gradient background */
+                .raid-bg-panel {
+                    fill: url(#raid-bg-gradient);
+                    opacity: 0;
+                    pointer-events: none;
+                    animation:
+                            raid-build-opacity .70s ease forwards .30s,
+                            raid-bg-idle 2.4s ease-in-out 2 3.45s forwards,
+                            raid-dismantle-opacity .45s ease forwards 7.90s;
+                }
+
+                @keyframes raid-bg-idle {
+                    0%, 100% { opacity: .48; }
+                    50% { opacity: .66; }
+                }
+
             </style>
             <linearGradient id="raid-shine-gradient-unique" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
@@ -457,7 +475,16 @@
                 <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
                 <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
             </linearGradient>
+
+            <linearGradient id="raid-bg-gradient" x1="1810" y1="95" x2="85" y2="1018" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#353535" stop-opacity=".05"/>
+                <stop offset=".42" stop-color="#3b3b3b" stop-opacity=".05"/>
+                <stop offset="1" stop-color="var(--raid-accent)" stop-opacity=".16"/>
+                <animateTransform attributeName="gradientTransform" type="translate" values="-42 0; 42 0; -42 0" dur="5.2s" repeatCount="indefinite"/>
+            </linearGradient>
+
         </defs>
+        <polygon class="raid-bg-panel" points="93.4 72.4 1440.55 72.4 1539.01 142.74 1801.37 141.44 1801.37 468.42 1753.18 480.94 1756.42 749.61 1801.37 762.13 1801.37 988.87 669.8 988.87 652.52 1018.72 294.22 1017.79 306.66 1036.03 64.42 1036.03 64.42 673.92 129.05 614.73 132.26 356.43 93.4 311.22"/>
         <polygon class="raid-cls-3 raid-fill-x" points="306.66 1036.03 64.42 1036.03 64.42 998.32 290.69 998.32 306.66 1036.03"/>
         <polyline class="raid-cls-1 raid-line raid-line-outer-1" points="1535.43 141.44 1801.37 140.34 1801.37 468.42 1753.18 480.94 1756.42 749.61 1801.37 762.13 1801.37 988.87 669.8 988.87 652.52 1018.72 294.22 1017.79"/>
         <polyline class="raid-cls-1 raid-line raid-line-outer-2" points="1539.01 142.74 1440.55 72.4 93.4 72.4 93.4 311.22 132.26 356.43 129.05 614.73 72.7 673.92 72.7 874.86"/>
