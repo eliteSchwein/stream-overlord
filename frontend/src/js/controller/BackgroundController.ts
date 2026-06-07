@@ -8,15 +8,18 @@ export default class BackgroundController extends BaseController {
     async handleGameUpdate(websocket: Websocket, data: any) {
         let background = data.media.animated_background
 
+
         if(!background) {
             background = data.media.static_background
         }
 
         this.element.innerHTML = ''
 
-        let extension = background.split('.').pop();
-
-        extension = extension.toLowerCase();
+        let extension = background
+            .split('?')[0]
+            .split('.')
+            .pop()
+            ?.toLowerCase();
 
         if(this.imageExtensions.includes(extension)) {
             this.element.innerHTML = `<img src="${background}">`;

@@ -195,10 +195,6 @@ export async function reload() {
         await redis.connect()
         await webServer?.precacheConfiguredHtmlTemplates()
 
-        await stopMusicPlayer()
-
-        await initAudio()
-
         await getTwitchClient().connect()
         await registerPermissions(getTwitchClient().getBot())
         loadMacros()
@@ -225,7 +221,6 @@ export async function reload() {
         initAutoMacros()
 
         loadMusicConfig()
-        await reloadMusicPlayer(true)
 
         logSuccess('reload finished')
 
