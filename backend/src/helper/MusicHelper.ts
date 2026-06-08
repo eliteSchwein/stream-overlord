@@ -406,15 +406,17 @@ export async function show() {
     getWebsocketServer().send('notify_music_show', getStatus())
 
     const { triggerMacro } = await import('./MacroHelper')
+    const overlayAlreadyActive = musicOverlayTimeout !== null
 
     if (musicOverlayTimeout) {
         clearTimeout(musicOverlayTimeout)
-        musicOverlayTimeout = null
     }
 
-    void triggerMacro('music_start', {
-        music: getStatus(),
-    })
+    if (!overlayAlreadyActive) {
+        void triggerMacro('music_start', {
+            music: getStatus(),
+        })
+    }
 
     musicOverlayTimeout = setTimeout(() => {
         musicOverlayTimeout = null
