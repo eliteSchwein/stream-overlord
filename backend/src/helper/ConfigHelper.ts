@@ -44,6 +44,10 @@ function serializeSystemConfig(configToSerialize: StreambotSettings) {
     return `${JSON.stringify(configToSerialize, null, 2)}\n`;
 }
 
+export function getSystemConfigDirectory() {
+    return systemConfigDir;
+}
+
 function writeSystemConfigFile(configToWrite: StreambotSettings) {
     ensureSystemConfigDir();
 
