@@ -25,7 +25,6 @@ import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
 import {initNeopixels} from "./helper/NeopixelHelper";
 import {
     loadMusicConfig,
-    reloadMusicPlayer,
     startMusicPlayer,
     stopMusicPlayer
 } from "./helper/MusicHelper";

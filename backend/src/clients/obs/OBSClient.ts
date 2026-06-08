@@ -54,8 +54,6 @@ export class OBSClient {
         }
 
         await updateSourceFilters()
-
-        logSuccess(`obs client is ready (${Object.keys(this.connections).join(', ')})`)
     }
 
     private getObsConfigs(): Record<string, OBSConfig> {

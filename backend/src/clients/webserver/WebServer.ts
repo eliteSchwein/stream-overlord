@@ -11,6 +11,7 @@ import { redis } from "../redis/Redis";
 import { Server } from "node:http";
 import YoloboxPreviewApi from "./api/Yolobox/YoloboxPreviewApi";
 import MusicPlaylistAddApi from "./api/Music/MusicPlaylistAddApi";
+import { getRemoteCacheDirectory } from "../../helper/RemoteCacheHelper";
 
 export default class WebServer {
     app: Express;
@@ -67,6 +68,11 @@ export default class WebServer {
         this.app.use(
             "/compressed",
             express.static(path.join(__dirname, "../../compressed_assets"))
+        );
+
+        this.app.use(
+            "/remote-cache",
+            express.static(getRemoteCacheDirectory())
         );
 
         this.app.use(bodyParser.json());

@@ -1,10 +1,12 @@
 import getGameInfo from "./GameHelper";
 import {fetchSourceFilters, generateBaseUrl, getSources} from "../clients/website/WebsiteClient";
 import {logDebug, logWarn} from "./LogHelper";
+import RemoteCacheHelper from "./RemoteCacheHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 
 let currentSourceFilters = {
     background: null,
+    backgrounds: [],
     sources: []
 }
 
@@ -13,19 +15,15 @@ export async function updateSourceFilters() {
     const gameInfo = getGameInfo()
     const obsClient = getOBSClient()
 
-    if(!obsClient.connected) {
-        currentSourceFilters = {
-            background: null,
-            sources: []
-        }
-
-        getWebsocketServer().send('notify_source_update', currentSourceFilters)
-        return
-    }
-
-    currentSourceFilters = (await fetchSourceFilters(gameInfo.data?.game_id)).data
+    currentSourceFilters = await RemoteCacheHelper.cacheSourceUpdate(
+        (await fetchSourceFilters(gameInfo.data?.game_id)).data
+    )
 
     getWebsocketServer().send('notify_source_update', currentSourceFilters)
+
+    if(!obsClient || !obsClient.connected) {
+        return
+    }
 
     for(const sourceUuid in currentSourceFilters.sources) {
         const databaseSource = currentSourceFilters.sources[sourceUuid]
@@ -47,7 +45,7 @@ export async function updateSourceFilters() {
             if(filterName.startsWith("Source|")) {
                 switch (filterName) {
                     case "Source|Transform":
-                        await getOBSClient().getOBSWebSocket().call('SetSceneItemTransform', {
+                        await obsClient?.getOBSWebSocket()?.call('SetSceneItemTransform', {
                             sceneUuid: sourceItemData.scene.uuid,
                             sceneItemId: sourceItemData.id,
                             sceneItemTransform: config
@@ -58,12 +56,12 @@ export async function updateSourceFilters() {
             }
             try {
                 delete config["shader_file_name"]
-                await getOBSClient().getOBSWebSocket().call('SetSourceFilterIndex', {
+                await obsClient?.getOBSWebSocket()?.call('SetSourceFilterIndex', {
                     sourceUuid: sourceUuid,
                     filterName: filterName,
                     filterIndex: filter.index
                 })
-                await getOBSClient().getOBSWebSocket().call('SetSourceFilterSettings', {
+                await obsClient?.getOBSWebSocket()?.call('SetSourceFilterSettings', {
                     sourceUuid: sourceUuid,
                     filterName: filterName,
                     filterSettings: config

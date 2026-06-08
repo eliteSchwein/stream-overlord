@@ -3,6 +3,7 @@ import getWebsocketServer from "../App";
 import {getConfig} from "./ConfigHelper";
 import {setLedColor} from "./WledHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
+import RemoteCacheHelper from "./RemoteCacheHelper";
 
 const gameInfo = {
     data: {
@@ -43,7 +44,7 @@ export async function fetchGameInfo() {
     logRegular('fetch theme from website')
     const newGameInfo = await getGameInfoData()
     if(newGameInfo) {
-        gameInfo.data = newGameInfo
+        gameInfo.data = await RemoteCacheHelper.cacheGameInfo(newGameInfo)
     }
     currentGameId = gameInfo.data?.game_id
 }

@@ -8,23 +8,41 @@ export default class SourceBackgroundController extends BaseController {
     protected imageExtensions = ['gif','png','jpg','webp']
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method !== 'notify_source_update') {
+        if (method !== 'notify_source_update') {
             return
         }
-        const background = data.background
+
+        const backgroundType = this.element.getAttribute('data-source-background-type')
+
+        let background = data.background
+
+        if (
+            backgroundType &&
+            data.backgrounds &&
+            data.backgrounds[backgroundType]
+        ) {
+            background = data.backgrounds[backgroundType]
+        }
 
         this.element.innerHTML = ''
 
-        let extension = background.split('.').pop();
+        // strip URL parameters
+        let extension = background.split('?')[0].split('.').pop()?.toLowerCase()
 
-        extension = extension.toLowerCase();
-
-        if(this.imageExtensions.includes(extension)) {
-            this.element.innerHTML = `<img src="${background}">`;
+        if (!extension) {
+            return
         }
 
-        if(this.videoExtensions.includes(extension)) {
-            this.element.innerHTML = `<video loop muted autoplay><source src="${background}"></video>`;
+        if (this.imageExtensions.includes(extension)) {
+            this.element.innerHTML = `<img src="${background}">`
+        }
+
+        if (this.videoExtensions.includes(extension)) {
+            this.element.innerHTML = `
+            <video loop muted autoplay playsinline>
+                <source src="${background}">
+            </video>
+        `
         }
     }
 }

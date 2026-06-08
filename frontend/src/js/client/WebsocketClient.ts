@@ -16,8 +16,8 @@ export default class WebsocketClient {
     // reconnect/backoff settings
     private reconnecting = false;
     private hasReloadedAfterReconnect = false;
-    private baseDelayMs = 1_000;
-    private maxDelayMs = 30_000;
+    private baseDelayMs = 2_000;
+    private maxDelayMs = 60_000;
 
     // soft reload guard
     private softReloadInProgress = false;
@@ -26,7 +26,7 @@ export default class WebsocketClient {
         const config = getConfig(/websocket/g)[0];
         this.url = `ws://${window.location.hostname}:${config.port}`;
         this.openWebsocket();
-        await sleep(250);
+        await sleep(500);
     }
 
     private openWebsocket() {
