@@ -1,14 +1,15 @@
 import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
 import {logNotice, logRegular} from "./LogHelper";
-import {existsSync, mkdirSync, watchFile, writeFileSync} from "node:fs";
+import {existsSync, mkdirSync, readFileSync, watchFile, writeFileSync} from "node:fs";
 import {reload} from "../App";
-import {readFileSync} from "fs";
 import * as path from "node:path";
 import * as os from "node:os";
 
 let config: any = {};
 let primaryChannel = undefined;
+let configWatcherRegistered = false;
+let reloadTimer: NodeJS.Timeout | undefined;
 
 type StreambotSettings = {
     language: string;
@@ -39,6 +40,39 @@ function ensureSystemConfigDir() {
     mkdirSync(systemConfigDir, {recursive: true});
 }
 
+function serializeSystemConfig(configToSerialize: StreambotSettings) {
+    return `${JSON.stringify(configToSerialize, null, 2)}\n`;
+}
+
+function writeSystemConfigFile(configToWrite: StreambotSettings) {
+    ensureSystemConfigDir();
+
+    const content = serializeSystemConfig(configToWrite);
+
+    if (existsSync(systemConfigPath)) {
+        try {
+            if (readFileSync(systemConfigPath, "utf8") === content) {
+                return;
+            }
+        } catch {
+            // If reading fails, fall through and try to write the normalized config.
+        }
+    }
+
+    writeFileSync(systemConfigPath, content, "utf8");
+}
+
+function scheduleReload() {
+    if (reloadTimer) {
+        clearTimeout(reloadTimer);
+    }
+
+    reloadTimer = setTimeout(async () => {
+        reloadTimer = undefined;
+        await reload();
+    }, 250);
+}
+
 function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
     const language = rawSystemConfig.language?.trim().toLowerCase() || detectSystemLanguage();
 
@@ -57,7 +91,7 @@ function withSystemConfig<T extends object>(parsedConfig: T): T & { system_confi
 export function readSystemConfig() {
     if (!existsSync(systemConfigPath)) {
         systemConfig = normalizeSystemConfig();
-        writeSystemConfig(systemConfig);
+        writeSystemConfigFile(systemConfig);
         return systemConfig;
     }
 
@@ -66,28 +100,28 @@ export function readSystemConfig() {
         const parsed = JSON.parse(raw);
 
         systemConfig = normalizeSystemConfig(parsed);
-        writeSystemConfig(systemConfig);
+
+        // Only repair the file when a required value is missing/invalid.
+        // Do not rewrite on every read, otherwise watchFile sees our own read-normalize-write
+        // cycle as another change and reloads forever.
+        if (typeof parsed?.language !== "string" || parsed.language.trim() !== systemConfig.language) {
+            writeSystemConfigFile(systemConfig);
+        }
     } catch {
         systemConfig = normalizeSystemConfig();
-        writeSystemConfig(systemConfig);
+        writeSystemConfigFile(systemConfig);
     }
 
     return systemConfig;
 }
 
 export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
-    ensureSystemConfigDir();
-
     systemConfig = normalizeSystemConfig({
         ...systemConfig,
         ...newSystemConfig
     });
 
-    writeFileSync(
-        systemConfigPath,
-        JSON.stringify(systemConfig, null, 2),
-        "utf8"
-    );
+    writeSystemConfigFile(systemConfig);
 
     return systemConfig;
 }
@@ -185,17 +219,31 @@ export function getPrimaryChannel() {
 }
 
 export function watchConfig() {
+    if (configWatcherRegistered) {
+        return;
+    }
+
+    configWatcherRegistered = true;
+
     logRegular("watch config file");
+
+    // Make sure the settings file exists before watchFile is registered.
+    // Otherwise the first auto-created file can immediately trigger the watcher.
+    readSystemConfig();
 
     watchFile(
         `${__dirname}/../../.env.conf`,
         {
             persistent: true,
-            interval: 100
+            interval: 250
         },
-        async () => {
+        (curr, prev) => {
+            if (curr.mtimeMs === prev.mtimeMs) {
+                return;
+            }
+
             logNotice("config update detected");
-            await reload();
+            scheduleReload();
         }
     );
 
@@ -203,12 +251,16 @@ export function watchConfig() {
         systemConfigPath,
         {
             persistent: true,
-            interval: 100
+            interval: 250
         },
-        async () => {
+        (curr, prev) => {
+            if (curr.mtimeMs === prev.mtimeMs) {
+                return;
+            }
+
             logNotice("system config update detected");
             readSystemConfig();
-            await reload();
+            scheduleReload();
         }
     );
 }
