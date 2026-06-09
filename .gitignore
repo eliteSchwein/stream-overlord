@@ -10,3 +10,4 @@ music
 compressed_assets
 !compressed_assets/placeholder
 !frontend/src/html/silly.html
+.credentials.conf
