@@ -237,7 +237,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
                 }
 
                 case "function": {
-                    await handleFunction(task.method, task.data);
+                    await handleFunction(task.method, task.data, variables);
                     break;
                 }
 
@@ -443,10 +443,40 @@ async function handleWebhook(method: string, data: any) {
     });
 }
 
-async function handleFunction(method: string, data: any = {}) {
+async function handleFunction(
+    method: string,
+    data: any = {},
+    variables: any = {}
+) {
     logRegular(`trigger function: ${method}`);
 
     switch (method) {
+        case "random": {
+            const min = Number(data.min);
+            const max = Number(data.max);
+
+            if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                logWarn(`random requires min and max`);
+                break;
+            }
+
+            if (!data.key) {
+                logWarn(`random requires key`);
+                break;
+            }
+
+            const value =
+                Math.floor(Math.random() * (max - min + 1)) + min;
+
+            variables[data.key] = value;
+
+            logRegular(
+                `random ${data.key}=${value} (${min}-${max})`
+            );
+
+            break;
+        }
+
         case "toggle_auto_macro": {
             if (data.name && data.enabled !== undefined) {
                 toggleAutoMacro(data.name, data.enabled);
