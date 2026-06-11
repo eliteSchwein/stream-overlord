@@ -4,7 +4,7 @@ import * as fs from "node:fs";
 import { execFileSync } from "node:child_process";
 import { getGpu } from "./SystemInfoHelper";
 import { isDebug, logDebug, logError, logNotice, logRegular, logWarn } from "./LogHelper";
-import { imageRegex, videoRegex } from "./AssetHelper";
+import { imageRegex, videoRegex, audioRegex } from "./AssetHelper";
 import { existsSync } from "node:fs";
 
 type FfmpegInit = {
@@ -33,6 +33,7 @@ export async function compressAssets(
 
     let videoAssets: string[] = [];
     let imageAssets: string[] = [];
+    let audioAssets: string[] = [];
 
     if (file) {
         if (!fs.existsSync(file)) {
@@ -47,6 +48,7 @@ export async function compressAssets(
 
         if (testRegex(videoRegex, file)) videoAssets = [file];
         else if (testRegex(imageRegex, file)) imageAssets = [file];
+        else if (testRegex(audioRegex, file)) audioAssets = [file];
         else {
             logWarn(`Unsupported file type: ${file}`);
             return;
@@ -54,6 +56,7 @@ export async function compressAssets(
     } else {
         videoAssets = getAssetFiles(videoRegex, assetDirectory);
         imageAssets = getAssetFiles(imageRegex, assetDirectory);
+        audioAssets = getAssetFiles(audioRegex, assetDirectory);
     }
 
     const ffmpeg = await initFfmpeg();
@@ -64,9 +67,25 @@ export async function compressAssets(
 
     const imageQuality = numberArg(config?.image_compress_percent, 75);
     const imageCompressionLevel = numberArg(config?.image_compress_level, 4);
+    const audioBitrate = stringArg((config as any)?.audio_bitrate || (config as any)?.audio_compress_bitrate, "128k");
 
     const ensureParentDir = (outPath: string) => {
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    };
+
+    const deleteIfEmpty = (outPath: string) => {
+        try {
+            if (!fs.existsSync(outPath)) return;
+
+            const stat = fs.statSync(outPath);
+
+            if (stat.size > 0) return;
+
+            fs.unlinkSync(outPath);
+            logWarn(`Deleted empty compressed asset: ${outPath}`);
+        } catch (error: any) {
+            logWarn(`Failed to delete empty compressed asset ${outPath}: ${error?.message || String(error)}`);
+        }
     };
 
     // ---- Videos -> .webm ----
@@ -95,12 +114,10 @@ export async function compressAssets(
                 stdio: ["ignore", "pipe", "pipe"],
             });
         } catch (error: any) {
-            if (isDebug()) {
-                logError(`Compressing ${videoAsset} failed:`);
-                logError(error.stderr?.toString?.() || error.message || String(error));
-                continue;
-            }
-            logError(`Compressing ${videoAsset} failed`);
+            logError(`Compressing ${videoAsset} failed:`);
+            logError(error.stderr?.toString?.() || error.message || String(error));
+        } finally {
+            deleteIfEmpty(targetVideoAsset);
         }
     }
 
@@ -135,12 +152,48 @@ export async function compressAssets(
                 stdio: ["ignore", "pipe", "pipe"],
             });
         } catch (error: any) {
-            if (isDebug()) {
-                logError(`Compressing ${imageAsset} failed:`);
-                logError(error.stderr?.toString?.() || error.message || String(error));
-                continue;
-            }
-            logError(`Compressing ${imageAsset} failed`);
+            logError(`Compressing ${imageAsset} failed:`);
+            logError(error.stderr?.toString?.() || error.message || String(error));
+        } finally {
+            deleteIfEmpty(targetImageAsset);
+        }
+    }
+
+    // ---- Audio -> .opus ----
+    if (audioAssets.length) logRegular(`Compressing ${audioAssets.length} audio asset(s)...`);
+
+    for (const audioAsset of audioAssets) {
+        const targetAudioAsset = audioAsset
+            .replace(audioRegex, ".opus")
+            .replace(assetDirectory, compressedAssetDirectory);
+
+        ensureParentDir(targetAudioAsset);
+
+        if (fs.existsSync(targetAudioAsset) && !force) continue;
+        if (fs.existsSync(targetAudioAsset) && force) fs.unlinkSync(targetAudioAsset);
+
+        logNotice(`Compressing ${audioAsset} to ${targetAudioAsset}`);
+
+        const args = [
+            "-i", audioAsset,
+            "-vn",
+            "-c:a", "libopus",
+            "-b:a", audioBitrate,
+            targetAudioAsset,
+        ];
+
+        logDebug(`${ffmpegBin} ${args.map(shellPreviewArg).join(" ")}`);
+
+        try {
+            execFileSync(ffmpegBin, args, {
+                encoding: "utf8",
+                stdio: ["ignore", "pipe", "pipe"],
+            });
+        } catch (error: any) {
+            logError(`Compressing ${audioAsset} failed:`);
+            logError(error.stderr?.toString?.() || error.message || String(error));
+        } finally {
+            deleteIfEmpty(targetAudioAsset);
         }
     }
 }
@@ -198,6 +251,7 @@ async function initFfmpeg(): Promise<FfmpegInit> {
     const accels = runAndCapture(ffmpegBin, ["-hide_banner", "-v", "error", "-hwaccels"]);
 
     const haveNvenc = /\bav1_nvenc\b/.test(encoders);
+    const haveAmf = /\bav1_amf\b/.test(encoders);
     const haveQsv = /\bav1_qsv\b/.test(encoders);
     const haveVaapi = /\bav1_vaapi\b/.test(encoders);
     const haveSVT = /\blibsvtav1\b/.test(encoders);
@@ -207,6 +261,7 @@ async function initFfmpeg(): Promise<FfmpegInit> {
     const vaapiDeviceOk = isReadable(vaapiDevice);
 
     const nvencAllowed = !config?.disable_nv && haveNvenc && hasNvidiaGPU;
+    const amfAllowed = !Boolean((config as any)?.disable_amf) && haveAmf;
     const qsvAllowed = !config?.disable_qsv && haveQsv && hasIntelGPU && vaapiDeviceOk;
     const vaapiAllowed = !Boolean((config as any)?.disable_vaapi) && haveVaapi && vaapiDeviceOk;
 
@@ -219,6 +274,15 @@ async function initFfmpeg(): Promise<FfmpegInit> {
             outputArgs = [
                 "-c:v", "av1_nvenc",
                 "-preset", "p5",
+                "-b:v", "5M",
+                "-maxrate", "5M",
+                "-c:a", "libopus",
+                "-b:a", "128k",
+            ];
+        } else if (amfAllowed) {
+            outputArgs = [
+                "-c:v", "av1_amf",
+                "-quality", "balanced",
                 "-b:v", "5M",
                 "-maxrate", "5M",
                 "-c:a", "libopus",
@@ -378,6 +442,10 @@ function numberArg(value: unknown, fallback: number): number {
     return Number.isFinite(n) ? n : fallback;
 }
 
+function stringArg(value: unknown, fallback: string): string {
+    return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
 function nullableString(value: unknown): string | null {
     return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -411,13 +479,14 @@ function shellPreviewArg(value: string): string {
 export function getAssetFile(file: string) {
     if (!file) return null;
 
-    if (!testRegex(videoRegex, file) && !testRegex(imageRegex, file)) return file;
+    if (!testRegex(videoRegex, file) && !testRegex(imageRegex, file) && !testRegex(audioRegex, file)) return file;
 
     const compressedAssetDirectory = path.join(getSystemConfigDirectory(), "compressed_assets");
 
     const compressedFile = file
         .replace(imageRegex, ".webp")
-        .replace(videoRegex, ".webm");
+        .replace(videoRegex, ".webm")
+        .replace(audioRegex, ".opus");
 
     if (existsSync(`${compressedAssetDirectory}/${compressedFile}`)) {
         return {

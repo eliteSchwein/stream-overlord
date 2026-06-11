@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { compressAssets } from "./AssetTuneHelper";
 import { getAssetFile } from "./AssetTuneHelper";
-import { imageRegex, videoRegex, readAssetFolder, getParsedAssetFiles } from "./AssetHelper";
+import { imageRegex, videoRegex, audioRegex, readAssetFolder, getParsedAssetFiles } from "./AssetHelper";
 import { logRegular, logWarn } from "./LogHelper";
 import getWebsocketServer from "../App";
 import { getSystemConfigDirectory } from "./ConfigHelper";
@@ -44,6 +44,7 @@ function relativeAssetPath(absPath: string): string {
 function compressedRelativePath(relativePath: string): string | null {
     if (videoRegex.test(relativePath)) return relativePath.replace(videoRegex, ".webm");
     if (imageRegex.test(relativePath)) return relativePath.replace(imageRegex, ".webp");
+    if (audioRegex.test(relativePath)) return relativePath.replace(audioRegex, ".opus");
     return null;
 }
 

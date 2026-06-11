@@ -13,6 +13,7 @@ const compressedPath = join(getSystemConfigDirectory(), "compressed_assets")
 
 export const imageRegex = /\.(jpe?g|png)$/i
 export const videoRegex = /\.(mp4|webm)$/i
+export const audioRegex = /\.(mp3)$/i
 
 export function getParsedAssetFiles() {
     return assetFiles
@@ -58,6 +59,7 @@ function cleanOrphanCompressedFile(file: string) {
 
     if(videoRegex.test(compressedFile)) compressedFile = file.replace(videoRegex, '.webm')
     if(imageRegex.test(compressedFile)) compressedFile = file.replace(imageRegex, '.webp')
+    if(audioRegex.test(compressedFile)) compressedFile = file.replace(audioRegex, '.opus')
 
     if(compressedFile === file) return
 
