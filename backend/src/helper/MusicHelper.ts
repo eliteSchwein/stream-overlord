@@ -16,12 +16,10 @@ import path from 'path'
 import getWebsocketServer, {getTwitchClient} from '../App'
 import { getConfig } from './ConfigHelper'
 import {
-    cleanupPipewireAudioSink,
     getAudioData,
     getPipewireSinkOutputVolumePercent,
     getStreambotSinkName,
     setPipewireSinkOutputVolume,
-    setupPipewireAudioSink,
 } from './AudioHelper'
 import {logDebug, logError, logRegular, logSuccess, logWarn} from './LogHelper'
 import https from 'https'
@@ -138,8 +136,6 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         unlinkSync(mpvSocketPath)
     }
 
-    await setupPipewireAudioSink(streambotMusicConfigName)
-
     const initialVolume = getInitialMusicVolumePercent()
 
     const mpvArgs = [
@@ -210,7 +206,6 @@ export async function stopMusicPlayer() {
     stopMusicUpdateInterval()
 
     if (!mpvProcess) {
-        await cleanupPipewireAudioSink(streambotMusicConfigName)
         return
     }
 
@@ -237,8 +232,6 @@ export async function stopMusicPlayer() {
     if (existsSync(mpvSocketPath)) {
         unlinkSync(mpvSocketPath)
     }
-
-    await cleanupPipewireAudioSink(streambotMusicConfigName)
 }
 
 export async function reloadMusicPlayer(restoreModeFromState = false) {
