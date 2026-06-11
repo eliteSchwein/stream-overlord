@@ -31,7 +31,8 @@
       "config": "Konfiguration",
       "connections": "Verbindungen",
       "recovery": "Recovery",
-      "gameScene": "Game Scene"
+      "gameScene": "Game Scene",
+      "variables": "Variablen"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -201,5 +202,44 @@
     "botReload": "BOT RELOAD",
     "compressAssetsText": "Hier kannst du die Assets (Bilder/Videos) manuell komprimieren, das komprimiert alle Assets nochmal neu. Hier bitte Geduld, das dauert ein bisschen.",
     "compressAssets": "COMPRESS ASSETS"
+  },
+  "assets": {
+    "title": "Assets",
+    "upload": "Hochladen",
+    "search": "Asset suchen",
+    "compressed": "komprimiert",
+    "noAssetsFound": "Keine Assets gefunden!",
+    "normalUrl": "Normale URL",
+    "compressedUrl": "Komprimierte URL",
+    "compress": "Komprimieren",
+    "move": "Verschieben",
+    "delete": "Löschen",
+    "open": "Öffnen",
+    "previewFailed": "Vorschau fehlgeschlagen!",
+    "noPreview": "Keine Vorschau verfügbar!",
+    "preview": "Vorschau",
+    "copy": "Kopieren",
+    "storage": "Speicher",
+    "copyDialog": "URLs kopieren",
+    "moveDialog": "Asset verschieben",
+    "storageUsed": "Belegter Speicher",
+    "storageFree": "Freier Speicher",
+    "storageTotal": "Gesamtspeicher",
+    "assetsUsed": "Von Assets belegt"
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "target": "Ziel"
+  },
+  "file": {
+    "name": "Dateiname",
+    "folder": "Ordner"
+  },
+  "variables": {
+    "title": "Variablen",
+    "empty": "Keine Variablen gefunden",
+    "reload": "Neu laden",
+    "save": "Speichern",
+    "delete": "Löschen"
   }
 }
