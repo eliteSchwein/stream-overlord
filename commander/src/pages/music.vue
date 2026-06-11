@@ -165,7 +165,11 @@ export default {
   },
 
   async mounted() {
+    eventBus.$on("websocket:connected", async () => {
+      await this.fetchFiles()
+    })
     await this.fetchFiles()
+
   },
 
   beforeUnmount() {

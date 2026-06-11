@@ -1,4 +1,4 @@
-import { getConfig } from "./ConfigHelper";
+import { getConfig, getSystemConfigDirectory } from "./ConfigHelper";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -28,8 +28,8 @@ export async function compressAssets(
 ) {
     const config = getConfig(/asset_tune/g)[0];
 
-    const assetDirectory = path.resolve(__dirname, "../../assets");
-    const compressedAssetDirectory = path.resolve(__dirname, "../../compressed_assets");
+    const assetDirectory = path.join(getSystemConfigDirectory(), "assets");
+    const compressedAssetDirectory = path.join(getSystemConfigDirectory(), "compressed_assets");
 
     let videoAssets: string[] = [];
     let imageAssets: string[] = [];
@@ -413,7 +413,7 @@ export function getAssetFile(file: string) {
 
     if (!testRegex(videoRegex, file) && !testRegex(imageRegex, file)) return file;
 
-    const compressedAssetDirectory = path.resolve(__dirname, "../../compressed_assets");
+    const compressedAssetDirectory = path.join(getSystemConfigDirectory(), "compressed_assets");
 
     const compressedFile = file
         .replace(imageRegex, ".webp")
@@ -435,7 +435,7 @@ export function getAssetFile(file: string) {
 // TODO: move this to the new assets helper
 export function getAssetFiles(
     query: string | string[] | RegExp,
-    dir: string = path.resolve(__dirname, "../../assets")
+    dir: string = path.join(getSystemConfigDirectory(), "assets")
 ): string[] {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
 

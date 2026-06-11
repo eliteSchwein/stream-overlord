@@ -16,7 +16,8 @@
       "overlay": "Overlay",
       "streamingServices": "Streaming-Dienste",
       "systemTools": "Systemwerkzeuge",
-      "schw31nZone": "SCHW31N Zone"
+      "schw31nZone": "SCHW31N Zone",
+      "audio": "Audio"
     },
     "tabs": {
       "dashboard": "Dashboard",

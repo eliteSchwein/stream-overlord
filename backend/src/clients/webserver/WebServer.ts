@@ -1,4 +1,4 @@
-import { getConfig } from "../../helper/ConfigHelper";
+import {getConfig, getSystemConfigDirectory} from "../../helper/ConfigHelper";
 import cors from "cors";
 import { logDebug, logRegular, logSuccess, logWarn } from "../../helper/LogHelper";
 import express, { Express, NextFunction, Request, Response } from "express";
@@ -12,6 +12,7 @@ import { Server } from "node:http";
 import YoloboxPreviewApi from "./api/Yolobox/YoloboxPreviewApi";
 import MusicPlaylistAddApi from "./api/Music/MusicPlaylistAddApi";
 import { getRemoteCacheDirectory } from "../../helper/RemoteCacheHelper";
+import AssetsUploadApi from "./api/Assets/AssetsUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -64,10 +65,10 @@ export default class WebServer {
         // normal static serving for other files in that folder
         this.app.use(express.static(htmlRoot));
 
-        this.app.use(express.static(path.join(__dirname, "../../assets")));
+        this.app.use(express.static(path.join(getSystemConfigDirectory(), "assets")));
         this.app.use(
             "/compressed",
-            express.static(path.join(__dirname, "../../compressed_assets"))
+            express.static(path.join(getSystemConfigDirectory(), "compressed_assets"))
         );
 
         this.app.use(
@@ -95,6 +96,9 @@ export default class WebServer {
 
         // Music API
         new MusicPlaylistAddApi().register(this.app)
+
+        // Assets API
+        new AssetsUploadApi().register(this.app)
 
         // Yolobox API
         new YoloboxPreviewApi().register(this.app);

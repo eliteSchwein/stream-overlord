@@ -16,7 +16,8 @@
       "overlay": "Overlay",
       "streamingServices": "Streaming services",
       "systemTools": "System tools",
-      "schw31nZone": "SCHW31N Zone"
+      "schw31nZone": "SCHW31N Zone",
+      "audio": "Audio"
     },
     "tabs": {
       "dashboard": "Dashboard",
@@ -200,5 +201,37 @@
     "botReload": "BOT RELOAD",
     "compressAssetsText": "Manually compress the assets (images/videos). This recompresses all assets again. Please be patient, this takes a little while.",
     "compressAssets": "COMPRESS ASSETS"
+  },
+  "assets": {
+    "title": "Assets",
+    "upload": "Upload",
+    "search": "Search Asset",
+    "compressed": "compressed",
+    "noAssetsFound": "No Assets found!",
+    "normalUrl": "Normal URL",
+    "compressedUrl": "Compressed URL",
+    "compress": "Compress",
+    "move": "Move",
+    "delete": "Delete",
+    "open": "Open",
+    "previewFailed": "Preview failed!",
+    "noPreview": "No Preview!",
+    "preview": "Preview",
+    "copy": "Copy",
+    "storage": "Storage",
+    "copyDialog": "Copy URLs",
+    "moveDialog": "Move Asset",
+    "storageUsed": "Used Storage",
+    "storageFree": "Free Storage",
+    "storageTotal": "Total Storage",
+    "assetsUsed": "Used by Assets"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "target": "Target"
+  },
+  "file": {
+    "name": "Filename",
+    "folder": "Folder"
   }
 }

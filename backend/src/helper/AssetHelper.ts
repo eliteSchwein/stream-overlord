@@ -1,14 +1,15 @@
-import {existsSync, readdirSync, unlinkSync, watch} from "node:fs";
+import {existsSync, mkdirSync, readdirSync, unlinkSync, watch} from "node:fs";
 import {logRegular} from "./LogHelper";
-import {join, resolve} from "node:path";
+import {join} from "node:path";
 import {compressAssets, getAssetFile} from "./AssetTuneHelper";
 import getWebsocketServer from "../App";
+import { getSystemConfigDirectory } from "./ConfigHelper";
 
 let files = []
 let assetFiles = []
 
-const assetPath = resolve(`${__dirname}/../../assets`)
-const compressedPath = resolve(`${__dirname}/../../compressed_assets`)
+const assetPath = join(getSystemConfigDirectory(), "assets")
+const compressedPath = join(getSystemConfigDirectory(), "compressed_assets")
 
 export const imageRegex = /\.(jpe?g|png)$/i
 export const videoRegex = /\.(mp4|webm)$/i
@@ -22,6 +23,8 @@ export function readAssetFolder() {
     files = []
     assetFiles = []
 
+    mkdirSync(assetPath, { recursive: true })
+
     readdirSync(assetPath).forEach((file) => {
         files.push(`${assetPath}/${file}`)
         assetFiles.push(getAssetFile(file))
@@ -29,7 +32,10 @@ export function readAssetFolder() {
 }
 
 export function initAssetWatcher() {
-    watch(resolve(assetPath), {recursive: true}, async (eventType, filename) => {
+    mkdirSync(assetPath, { recursive: true })
+    mkdirSync(compressedPath, { recursive: true })
+
+    watch(assetPath, {recursive: true}, async (eventType, filename) => {
         if (!filename) return
         cleanOrphanCompressedFile(filename)
 

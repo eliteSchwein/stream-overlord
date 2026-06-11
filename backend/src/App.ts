@@ -29,6 +29,7 @@ import {
     stopMusicPlayer
 } from "./helper/MusicHelper";
 import { redis } from "./clients/redis/Redis";
+import {initVariables} from "./helper/VariableHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -51,8 +52,13 @@ async function init() {
     logRegular('load config')
     readConfig()
 
+    stage = 'loading cache...'
     await redis.connect()
 
+    stage = 'loading variables...'
+    await initVariables()
+
+    stage = 'loading web components...'
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()

@@ -3,8 +3,6 @@ node_modules
 .env.conf
 twitchTokens.json
 assets/*
-!assets/placeholder
-!assets/ytdl_blacklist.json
 music
 !music/placeholder
 compressed_assets

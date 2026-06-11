@@ -224,15 +224,22 @@ export default {
         color=""
         to="/channelPoints"></v-list-item>
       <v-list-item
+        prepend-icon="mdi-dialpad"
+        :title="$t('navigation.tabs.macros')"
+        color=""
+        to="/macros"></v-list-item>
+      <v-divider></v-divider>
+      <v-list-subheader>{{ $t('navigation.sections.audio') }}</v-list-subheader>
+      <v-list-item
         prepend-icon="mdi-volume-high"
         :title="$t('navigation.tabs.audio')"
         color=""
         to="/audio"></v-list-item>
       <v-list-item
-        prepend-icon="mdi-dialpad"
-        :title="$t('navigation.tabs.macros')"
+        prepend-icon="mdi-music"
+        :title="$t('navigation.tabs.music')"
         color=""
-        to="/macros"></v-list-item>
+        to="/music"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.overlay') }}</v-list-subheader>
       <v-list-item
@@ -245,11 +252,6 @@ export default {
         :title="$t('navigation.tabs.assets')"
         color=""
         to="/assets"></v-list-item>
-      <v-list-item
-        prepend-icon="mdi-music"
-        :title="$t('navigation.tabs.music')"
-        color=""
-        to="/music"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.streamingServices') }}</v-list-subheader>
       <v-list-item
