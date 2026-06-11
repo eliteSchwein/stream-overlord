@@ -8,6 +8,7 @@ import {colorNeopixel} from "./NeopixelHelper";
 import {toggleAutoMacro} from "./AutoMacroHelper";
 import {calculateTTSduration, speak} from "./TTShelper";
 import {addAlert} from "./AlertHelper";
+import {getVariable, setVariable} from "./VariableHelper";
 import {v4 as uuidv4} from "uuid";
 import {
     addSongRequest,
@@ -238,6 +239,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
                 case "function": {
                     await handleFunction(task.method, task.data, variables);
+                    break;
+                }
+
+                case "variable": {
+                    await handleVariable(task.method, task, variables);
                     break;
                 }
 
@@ -539,6 +545,44 @@ async function handleFunction(
 
             await bot.whisper(data.user, data.content);
 
+            break;
+        }
+    }
+}
+
+async function handleVariable(method: string, task: any = {}, variables: any = {}) {
+    const data = task.data ?? task;
+    const key = data.key;
+
+    if (!key) {
+        logWarn(`variable ${method} requires key`);
+        return;
+    }
+
+    switch (method) {
+        case "get": {
+            const value = await getVariable(key);
+            variables[key] = value;
+
+            logRegular(`variable get ${key}=${JSON.stringify(value)}`);
+            break;
+        }
+
+        case "set": {
+            if (data.value === undefined) {
+                logWarn(`variable set requires value`);
+                break;
+            }
+
+            await setVariable(key, data.value, data.to_file === true || data.toFile === true);
+            variables[key] = data.value;
+
+            logRegular(`variable set ${key}=${JSON.stringify(data.value)}`);
+            break;
+        }
+
+        default: {
+            logWarn(`invalid variable method: ${method}`);
             break;
         }
     }
