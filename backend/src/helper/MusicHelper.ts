@@ -51,6 +51,11 @@ let overlayDuration = 15_000
 let musicOverlayTimeout: ReturnType<typeof setTimeout> | null = null
 let lastThumbnailTrackKey: string | null = null
 let musicShuffleEnabled = false
+let lastObservedPlaylistPos: number | null = null
+let lastObservedPlaylistLength: number | null = null
+let suppressPlaylistNavigationMacro = true
+let mprisEnabled = true
+let mprisScriptPath = ''
 
 type MusicCrashState = {
     path: string | null
@@ -85,8 +90,70 @@ export function loadMusicConfig() {
     musicPath = expandPath(musicConfig.path ?? '$HOME/Music/Streambot')
     songRequestEnabled = musicConfig.songrequest === true || musicConfig.songrequest === 'true'
     cavaEnabled = getCavaTargetConfigs().length > 0
+    mprisEnabled = parseBooleanValue(
+        musicConfig.mpris ??
+        musicConfig.mpris_enabled ??
+        musicConfig.mprisEnabled ??
+        musicConfig.playerctl ??
+        musicConfig.playerctl_enabled ??
+        musicConfig.playerctlEnabled ??
+        true,
+        true,
+    )
+    mprisScriptPath = String(
+        musicConfig.mpris_script ??
+        musicConfig.mprisScript ??
+        musicConfig.playerctl_script ??
+        musicConfig.playerctlScript ??
+        '',
+    ).trim()
 
     mkdirSync(songRequestPath, { recursive: true })
+}
+
+
+function getMprisMpvArgs(): string[] {
+    if (!mprisEnabled) return []
+
+    if (mprisScriptPath) {
+        const configuredPath = expandPath(mprisScriptPath)
+
+        if (!existsSync(configuredPath)) {
+            logWarn(`mpris enabled but configured mpv-mpris script was not found: ${configuredPath}`)
+            return []
+        }
+
+        logRegular(`mpris enabled with configured mpv-mpris script: ${configuredPath}`)
+        return [`--script=${configuredPath}`]
+    }
+
+    const autoLoadedScriptPaths = [
+        '/etc/mpv/scripts/mpris.so',
+        path.join(os.homedir(), '.config/mpv/scripts/mpris.so'),
+    ]
+
+    const autoLoadedScriptPath = autoLoadedScriptPaths.find(file => existsSync(file))
+
+    if (autoLoadedScriptPath) {
+        logRegular(`mpris enabled with auto-loaded mpv-mpris script: ${autoLoadedScriptPath}`)
+        return []
+    }
+
+    const manualScriptPaths = [
+        '/usr/lib/mpv-mpris/mpris.so',
+        '/usr/lib64/mpv-mpris/mpris.so',
+        '/usr/local/lib/mpv-mpris/mpris.so',
+    ]
+
+    const manualScriptPath = manualScriptPaths.find(file => existsSync(file))
+
+    if (manualScriptPath) {
+        logRegular(`mpris enabled with mpv-mpris script: ${manualScriptPath}`)
+        return [`--script=${manualScriptPath}`]
+    }
+
+    logWarn('mpris enabled but mpv-mpris was not found. Install mpv-mpris or set music.mpris_script to the full mpris.so path.')
+    return []
 }
 
 function getInitialMusicVolumePercent(): number {
@@ -146,6 +213,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         '--audio-client-name=streambot_music',
         `--audio-device=pulse/${streambotMusicSink}`,
         `--input-ipc-server=${mpvSocketPath}`,
+        ...getMprisMpvArgs(),
     ]
 
     mpvArgs.push(...files)
@@ -186,6 +254,10 @@ export async function startMusicPlayer(restoreModeFromState = true) {
     }
 
     await applyMusicCrashState()
+
+    lastObservedPlaylistPos = await getCurrentPlaylistPos()
+    lastObservedPlaylistLength = await getCurrentPlaylistLength()
+    suppressPlaylistNavigationMacro = false
 
     suppressMusicStateWrite = false
     startMusicUpdateInterval()
@@ -970,6 +1042,10 @@ function startMpvEventListener() {
         socket.write(JSON.stringify({
             command: ['observe_property', 1, 'eof-reached'],
         }) + '\n')
+
+        socket.write(JSON.stringify({
+            command: ['observe_property', 2, 'playlist-pos'],
+        }) + '\n')
     })
 
     socket.on('data', data => {
@@ -994,6 +1070,16 @@ function startMpvEventListener() {
                         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
                     })
                 }
+
+                if (
+                    event.event === 'property-change' &&
+                    event.name === 'playlist-pos'
+                ) {
+                    handlePlaylistPosChanged(event.data).catch(error => {
+                        logWarn('playlist navigation macro handler failed')
+                        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                    })
+                }
             } catch {
                 logDebug(`[mpv event] invalid response: ${line}`)
             }
@@ -1011,10 +1097,71 @@ function startMpvEventListener() {
 }
 
 function stopMpvEventListener() {
+    lastObservedPlaylistPos = null
+    lastObservedPlaylistLength = null
+    suppressPlaylistNavigationMacro = true
+
     if (!mpvEventSocket) return
 
     mpvEventSocket.destroy()
     mpvEventSocket = null
+}
+
+
+async function getCurrentPlaylistPos(): Promise<number | null> {
+    const value = await mpvGetProperty('playlist-pos')
+    const parsed = Number(value)
+
+    return Number.isFinite(parsed) ? parsed : null
+}
+
+async function getCurrentPlaylistLength(): Promise<number> {
+    const playlist = await getPlaylist()
+
+    return Array.isArray(playlist) ? playlist.length : 0
+}
+
+function getPlaylistNavigationDirection(previous: number, current: number, length: number | null): 'next' | 'prev' | null {
+    if (previous === current) return null
+
+    if (length && length > 1) {
+        if (current === (previous + 1) % length) return 'next'
+        if (current === (previous - 1 + length) % length) return 'prev'
+    }
+
+    return current > previous ? 'next' : 'prev'
+}
+
+async function handlePlaylistPosChanged(value: any) {
+    const current = Number(value)
+
+    if (!Number.isFinite(current) || current < 0) return
+
+    const previous = lastObservedPlaylistPos
+    const length = await getCurrentPlaylistLength()
+
+    lastObservedPlaylistPos = current
+    lastObservedPlaylistLength = length
+
+    if (suppressPlaylistNavigationMacro || previous === null) return
+
+    const direction = getPlaylistNavigationDirection(previous, current, lastObservedPlaylistLength)
+
+    if (!direction) return
+
+    await sleep(100)
+    await sync()
+    void show()
+
+    const { triggerMacro } = await import('./MacroHelper')
+    const macroName = direction === 'next' ? 'music_next' : 'music_prev'
+
+    void triggerMacro(macroName, {
+        music: getStatus(),
+        direction,
+        previous_index: previous,
+        current_index: current,
+    })
 }
 
 async function handleSongFinished() {

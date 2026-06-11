@@ -20,7 +20,8 @@ sudo apt install -y \
     python3-pip \
     git \
     pulseaudio-utils \
-    redis-server
+    redis-server \
+    playerctl mpv-mpris
 
 sudo systemctl enable --now redis-server
 
