@@ -22,19 +22,32 @@ export default {
       'getParsedBackendConfig',
       'getObsAudioData'
     ]),
-    currentRouteName() {
-      return this.$route.name;
-    },
     currentRouteTitle() {
-      const routeName = this.currentRouteName;
+      const path = this.$route.path || '/';
+      const firstPathPart = path.split('?')[0].split('#')[0].split('/').filter(Boolean)[0] || 'dashboard';
 
-      if (!routeName) {
-        return this.$t('navigation.tabs.dashboard');
-      }
+      const titleMap = {
+        dashboard: 'dashboard',
+        channelPoints: 'channelPoints',
+        macros: 'macros',
+        variables: 'variables',
+        audio: 'audio',
+        music: 'music',
+        overlay: 'overlay',
+        assets: 'assets',
+        yolobox: 'yolobox',
+        editConfig: 'config',
+        connections: 'connections',
+        recovery: 'recovery',
+        gameScene: 'gameScene'
+      };
 
-      return this.$te(`navigation.routes.${routeName}`)
-        ? this.$t(`navigation.routes.${routeName}`)
-        : routeName;
+      const titleKey = titleMap[firstPathPart] || firstPathPart;
+      const translationKey = `navigation.tabs.${titleKey}`;
+
+      return this.$te(translationKey)
+        ? this.$t(translationKey)
+        : this.$t('navigation.tabs.dashboard');
     }
   },
   methods: {
