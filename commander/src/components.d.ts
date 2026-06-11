@@ -13,7 +13,10 @@ declare module 'vue' {
   export interface GlobalComponents {
     ActiveAlert: typeof import('./components/ActiveAlert.vue')['default']
     AssetCopyDialog: typeof import('./components/dialogs/AssetCopyDialog.vue')['default']
+    AssetCreateFolderDialog: typeof import('./components/dialogs/AssetCreateFolderDialog.vue')['default']
+    AssetDeleteConfirmDialog: typeof import('./components/dialogs/AssetDeleteConfirmDialog.vue')['default']
     AssetMoveDialog: typeof import('./components/dialogs/AssetMoveDialog.vue')['default']
+    AssetPreview: typeof import('./components/AssetPreview.vue')['default']
     AssetPreviewDialog: typeof import('./components/dialogs/AssetPreviewDialog.vue')['default']
     AutoMacro: typeof import('./components/AutoMacro.vue')['default']
     ChannelPoint: typeof import('./components/ChannelPoint.vue')['default']

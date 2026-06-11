@@ -18,12 +18,21 @@
         </div>
       </div>
 
-      <v-btn
-        icon="mdi-refresh"
-        variant="text"
-        :loading="loading"
-        @click="fetchAssets(currentPath)"
-      />
+      <div class="d-flex align-center ga-1">
+        <v-btn
+          icon="mdi-folder-plus"
+          variant="text"
+          :disabled="loading || createFolderLoading"
+          @click="openCreateFolderDialog"
+        />
+
+        <v-btn
+          icon="mdi-refresh"
+          variant="text"
+          :loading="loading"
+          @click="fetchAssets(currentPath)"
+        />
+      </div>
     </v-card-title>
 
     <v-card-text>
@@ -138,7 +147,7 @@
         >
           <v-card
             color="grey-darken-3"
-            class="assets-grid-card h-100"
+            class="assets-grid-card h-100 d-flex flex-column"
             :class="{ 'assets-grid-card--folder': item.type === 'folder' }"
             @click="item.type === 'folder' ? openFolder(item) : undefined"
           >
@@ -173,17 +182,21 @@
               </div>
             </div>
 
-            <v-card-text class="pb-2">
+            <v-card-text class="assets-grid-card__content pb-2">
               <div class="text-subtitle-2 text-truncate" :title="item.name">
                 {{ item.name }}
               </div>
 
-              <div class="text-caption text-grey-lighten-1 text-truncate" :title="getEntrySubtitle(item)">
+              <div
+                v-if="item.type === 'file'"
+                class="text-caption text-grey-lighten-1 text-truncate"
+                :title="getEntrySubtitle(item)"
+              >
                 {{ getEntrySubtitle(item) }}
               </div>
             </v-card-text>
 
-            <v-card-actions class="pt-0">
+            <v-card-actions class="assets-grid-card__actions pt-0">
               <v-btn
                 v-if="item.type === 'file'"
                 icon="mdi-content-copy"
@@ -195,7 +208,7 @@
               />
 
               <v-btn
-                v-if="item.type === 'file'"
+                v-if="isCompressible(item)"
                 icon="mdi-archive-arrow-down-outline"
                 size="small"
                 variant="text"
@@ -222,7 +235,7 @@
                 color="red"
                 :loading="workingPath === item.path && workingAction === 'delete'"
                 :disabled="isWorking(item.path)"
-                @click.stop="deleteEntry(item)"
+                @click.stop="openDeleteDialog(item)"
               />
             </v-card-actions>
           </v-card>
@@ -230,12 +243,28 @@
       </v-row>
     </v-card-text>
 
+    <AssetCreateFolderDialog
+      v-model="createFolderDialog"
+      :loading="createFolderLoading"
+      :error="createFolderError"
+      @create="createFolder"
+    />
+
+    <AssetDeleteConfirmDialog
+      v-model="deleteDialog"
+      :asset="selectedDeleteAsset"
+      :rest-api="getRestApi"
+      :loading="workingAction === 'delete'"
+      @confirm="confirmDeleteEntry"
+    />
+
     <AssetMoveDialog
       v-model="moveDialog"
       v-model:target="moveTarget"
       :source="moveSource"
       :loading="workingAction === 'move'"
       @move="moveEntry"
+      @folder-created="handleMoveDialogFolderCreated"
     />
 
     <AssetCopyDialog
@@ -253,7 +282,7 @@
       @copy="openCopyDialog"
       @compress="compressEntry"
       @move="openMoveDialog"
-      @delete="deleteEntry"
+      @delete="openDeleteDialog"
     />
   </v-card>
 </template>
@@ -265,6 +294,8 @@ import eventBus from '@/eventBus'
 import AssetCopyDialog from '@/components/dialogs/AssetCopyDialog.vue'
 import AssetPreviewDialog from '@/components/dialogs/AssetPreviewDialog.vue'
 import AssetMoveDialog from '@/components/dialogs/AssetMoveDialog.vue'
+import AssetCreateFolderDialog from '@/components/dialogs/AssetCreateFolderDialog.vue'
+import AssetDeleteConfirmDialog from '@/components/dialogs/AssetDeleteConfirmDialog.vue'
 
 type AssetStorageInfo = {
   root: string
@@ -294,6 +325,8 @@ export default {
     AssetCopyDialog,
     AssetPreviewDialog,
     AssetMoveDialog,
+    AssetCreateFolderDialog,
+    AssetDeleteConfirmDialog,
   },
 
   data() {
@@ -314,8 +347,13 @@ export default {
       moveTarget: '',
       copyDialog: false,
       previewDialog: false,
+      createFolderDialog: false,
+      deleteDialog: false,
+      createFolderLoading: false,
+      createFolderError: '',
       selectedCopyAsset: null as AssetEntry | null,
       selectedPreviewAsset: null as AssetEntry | null,
+      selectedDeleteAsset: null as AssetEntry | null,
       storageInfo: null as AssetStorageInfo | null,
       storageLoading: false,
       assetsGridKey: 0,
@@ -347,13 +385,28 @@ export default {
     },
   },
 
+  watch: {
+    '$route.fullPath': {
+      async handler() {
+        const path = this.getRouteAssetPath()
+
+        if (path !== this.currentPath) {
+          await this.fetchAssets(path, false)
+        }
+      },
+    },
+  },
+
   mounted() {
+    this.currentPath = this.getRouteAssetPath()
+
     this.websocketConnectedHandler = () => {
       this.reloadAssetsPage()
     }
 
     eventBus.$on?.('websocket:connected', this.websocketConnectedHandler)
-    this.reloadAssetsPage()
+
+    this.fetchAssets(this.currentPath, false)
   },
 
   beforeUnmount() {
@@ -400,7 +453,7 @@ export default {
       }
     },
 
-    async fetchAssets(path: string = '') {
+    async fetchAssets(path: string = '', syncRoute = true) {
       const requestSequence = ++this.requestSequence
 
       this.loading = true
@@ -420,6 +473,10 @@ export default {
         }
 
         this.currentPath = this.normalizePath(data?.path ?? path)
+
+        if (syncRoute) {
+          await this.updateAssetRoute(this.currentPath, true)
+        }
         this.entries = Array.isArray(data?.files) ? data.files : []
         this.assetsGridKey += 1
 
@@ -489,6 +546,18 @@ export default {
       }
     },
 
+    openDeleteDialog(item: AssetEntry | null) {
+      if (!item?.path || this.workingAction) return
+
+      this.selectedDeleteAsset = item
+      this.deleteDialog = true
+      this.errorMessage = ''
+    },
+
+    async confirmDeleteEntry() {
+      await this.deleteEntry(this.selectedDeleteAsset)
+    },
+
     async deleteEntry(item: AssetEntry | null) {
       if (!item?.path || this.workingAction) return
 
@@ -505,6 +574,9 @@ export default {
           throw new Error(data.error)
         }
 
+        this.deleteDialog = false
+        this.selectedDeleteAsset = null
+
         await Promise.all([
           this.fetchAssets(this.currentPath),
         ])
@@ -518,7 +590,7 @@ export default {
     },
 
     async compressEntry(item: AssetEntry | null) {
-      if (!item?.path || item.type !== 'file' || this.workingAction) return
+      if (!item?.path || !this.isCompressible(item) || this.workingAction) return
 
       this.workingPath = item.path
       this.workingAction = 'compress'
@@ -545,6 +617,45 @@ export default {
       }
     },
 
+    openCreateFolderDialog() {
+      this.createFolderError = ''
+      this.createFolderDialog = true
+    },
+
+    async createFolder(folderName: string) {
+      if (this.createFolderLoading) return
+
+      const name = this.normalizePath(folderName)
+
+      if (!name) {
+        this.createFolderError = 'folder name missing'
+        return
+      }
+
+      this.createFolderLoading = true
+      this.createFolderError = ''
+      this.errorMessage = ''
+
+      try {
+        const data = await this.requestAssetWebsocket('assets_create_folder', {
+          path: this.currentPath,
+          name,
+        })
+
+        if (data?.error) {
+          throw new Error(data.error)
+        }
+
+        this.createFolderDialog = false
+        await this.fetchAssets(this.currentPath)
+      } catch (error: any) {
+        this.createFolderError = error?.message ?? 'create folder failed'
+        console.error('asset create folder failed', error)
+      } finally {
+        this.createFolderLoading = false
+      }
+    },
+
     openMoveDialog(item: AssetEntry | null) {
       if (!item?.path) return
 
@@ -552,6 +663,21 @@ export default {
       this.moveTarget = item.path
       this.moveDialog = true
       this.errorMessage = ''
+    },
+
+
+    async handleMoveDialogFolderCreated(folderPath: string) {
+      const normalizedPath = this.normalizePath(folderPath)
+      const parentPath = this.getParentPath(normalizedPath)
+
+      await this.fetchAssets(parentPath || this.currentPath)
+    },
+
+    getParentPath(path: string): string {
+      const parts = this.normalizePath(path).split('/').filter(Boolean)
+      parts.pop()
+
+      return parts.join('/')
     },
 
     async moveEntry() {
@@ -612,14 +738,88 @@ export default {
     openFolder(item: AssetEntry) {
       if (item.type !== 'folder') return
 
-      this.fetchAssets(this.resolveEntryPath(item))
+      this.openAssetPath(this.resolveEntryPath(item))
     },
 
     openParentFolder() {
-      const parts = this.currentPath.split('/').filter(Boolean)
-      parts.pop()
+      this.openAssetPath(this.getParentPath(this.currentPath))
+    },
 
-      this.fetchAssets(parts.join('/'))
+    async openAssetPath(path: string, replace = false) {
+      const normalized = this.normalizePath(path)
+
+      await this.updateAssetRoute(normalized, replace)
+
+      if (normalized === this.currentPath) {
+        await this.fetchAssets(normalized, false)
+      }
+    },
+
+    getRouteAssetPath(): string {
+      const raw = this.$route?.params?.assetPath
+
+      if (Array.isArray(raw)) {
+        return this.normalizePath(raw.map(part => this.decodeRoutePart(String(part))).join('/'))
+      }
+
+      if (typeof raw === 'string') {
+        return this.normalizePath(raw.split('/').map(part => this.decodeRoutePart(part)).join('/'))
+      }
+
+      return this.getAssetPathFromUrl()
+    },
+
+    decodeRoutePart(part: string): string {
+      try {
+        return decodeURIComponent(part)
+      } catch {
+        return part
+      }
+    },
+
+    getAssetPathFromUrl(): string {
+      const pathname = window.location.pathname
+      const marker = '/assets'
+      const index = pathname.indexOf(marker)
+
+      if (index === -1) return ''
+
+      const rawPath = pathname
+        .slice(index + marker.length)
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '')
+
+      if (!rawPath) return ''
+
+      return rawPath
+        .split('/')
+        .filter(Boolean)
+        .map(part => this.decodeRoutePart(part))
+        .join('/')
+    },
+
+    getAssetRoutePath(path: string): string {
+      const normalized = this.normalizePath(path)
+      const encodedPath = normalized
+        .split('/')
+        .filter(Boolean)
+        .map(part => encodeURIComponent(part))
+        .join('/')
+
+      return encodedPath ? `/assets/${encodedPath}` : '/assets'
+    },
+
+    async updateAssetRoute(path: string, replace = false) {
+      const nextPath = this.getAssetRoutePath(path)
+
+      if (this.$route?.path === nextPath) return
+
+      if (replace) {
+        await this.$router.replace({ path: nextPath })
+        return
+      }
+
+      await this.$router.push({ path: nextPath })
     },
 
     resolveEntryPath(item: AssetEntry): string {
@@ -704,6 +904,17 @@ export default {
       return item.type === 'file' && /\.(jpe?g|png|webp|gif|svg)$/i.test(item.path)
     },
 
+    isSvg(item: AssetEntry | null): boolean {
+      return item?.type === 'file' && /\.svg$/i.test(item.path)
+    },
+
+    isCompressible(item: AssetEntry | null): boolean {
+      if (!item?.path || item.type !== 'file') return false
+      if (this.isSvg(item)) return false
+
+      return this.isImage(item) || this.isVideo(item) || this.isAudio(item)
+    },
+
     isVideo(item: AssetEntry): boolean {
       return item.type === 'file' && /\.(mp4|webm|mov|mkv)$/i.test(item.path)
     },
@@ -738,9 +949,21 @@ export default {
   overflow-y: auto;
 }
 
+
 .assets-grid-card {
   cursor: default;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.assets-grid-card__content {
+  flex: 1 1 auto;
+}
+
+.assets-grid-card__actions {
+  margin-top: auto;
+  min-height: 44px;
 }
 
 .assets-grid-card--folder {

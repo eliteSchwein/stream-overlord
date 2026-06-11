@@ -62,6 +62,31 @@
 
           <v-divider />
 
+          <div class="asset-folder-explorer__create pa-3">
+            <v-text-field
+              v-model="createFolderName"
+              :label="$t('assets.createFolder')"
+              variant="outlined"
+              density="compact"
+              hide-details
+              :disabled="explorerLoading || createFolderLoading"
+              @keyup.enter="createFolder"
+            >
+              <template #append-inner>
+                <v-btn
+                  icon="mdi-folder-plus"
+                  size="small"
+                  variant="text"
+                  :loading="createFolderLoading"
+                  :disabled="!normalizedCreateFolderName || explorerLoading"
+                  @click.prevent.stop="createFolder"
+                />
+              </template>
+            </v-text-field>
+          </div>
+
+          <v-divider />
+
           <v-card-text class="pa-0">
             <v-alert
               v-if="explorerError"
@@ -94,6 +119,18 @@
               <v-divider />
 
               <v-list-item
+                v-if="canGoUp"
+                prepend-icon="mdi-arrow-up"
+                :disabled="explorerLoading"
+                @click.prevent.stop="openParentFolder"
+              >
+                <v-list-item-title>{{ $t('file.folderUp') }}</v-list-item-title>
+                <v-list-item-subtitle>/{{ parentExplorerPath || '' }}</v-list-item-subtitle>
+              </v-list-item>
+
+              <v-divider v-if="canGoUp" />
+
+              <v-list-item
                 v-for="folder in folders"
                 :key="folder.path"
                 prepend-icon="mdi-folder"
@@ -104,7 +141,7 @@
                 <v-list-item-subtitle>{{ folder.path }}</v-list-item-subtitle>
               </v-list-item>
 
-              <v-list-item v-if="!explorerLoading && folders.length === 0">
+              <v-list-item v-if="!explorerLoading && !canGoUp && folders.length === 0">
                 <v-list-item-title class="text-grey-lighten-1">
                   {{ $t('assets.noAssetsFound') }}
                 </v-list-item-title>
@@ -175,6 +212,7 @@ export default {
     'update:modelValue',
     'update:target',
     'move',
+    'folder-created',
   ],
 
   data() {
@@ -184,12 +222,26 @@ export default {
       explorerLoading: false,
       explorerError: '',
       explorerRequestSequence: 0,
+      createFolderName: '',
+      createFolderLoading: false,
     }
   },
 
   computed: {
+    normalizedCreateFolderName(): string {
+      return this.normalizeFolderName(this.createFolderName)
+    },
+
     folders(): AssetEntry[] {
       return this.explorerEntries.filter((entry: AssetEntry) => entry.type === 'folder')
+    },
+
+    canGoUp(): boolean {
+      return Boolean(this.explorerPath)
+    },
+
+    parentExplorerPath(): string {
+      return this.getParentPath(this.explorerPath)
     },
 
   },
@@ -213,6 +265,7 @@ export default {
       const startPath = this.getParentPath(this.target || this.source)
 
       this.explorerPath = startPath
+      this.createFolderName = ''
       this.updateTargetForFolder(startPath)
       this.fetchFolders(startPath)
     },
@@ -227,6 +280,40 @@ export default {
           reject,
         })
       })
+    },
+
+    async createFolder() {
+      const folderName = this.normalizedCreateFolderName
+
+      if (!folderName || this.createFolderLoading || this.explorerLoading) return
+
+      const folderPath = this.joinPath(this.explorerPath, folderName)
+
+      this.createFolderLoading = true
+      this.explorerError = ''
+
+      try {
+        const response = await this.requestAssetWebsocket('assets_create_folder', {
+          path: folderPath,
+        })
+        const data = response?.data ?? response
+
+        if (data?.error) {
+          this.explorerError = data.error
+          return
+        }
+
+        this.createFolderName = ''
+        this.explorerPath = folderPath
+        this.updateTargetForFolder(folderPath)
+        this.$emit('folder-created', folderPath)
+        await this.fetchFolders(folderPath)
+      } catch (error: any) {
+        this.explorerError = error?.message ?? 'create folder failed'
+        console.error('creating asset folder failed', error)
+      } finally {
+        this.createFolderLoading = false
+      }
     },
 
     async fetchFolders(path: string = '') {
@@ -321,6 +408,13 @@ export default {
         .join('/')
     },
 
+    normalizeFolderName(value: string): string {
+      return this.normalizePath(value)
+        .split('/')
+        .filter(Boolean)
+        .pop() ?? ''
+    },
+
     normalizePath(value: string): string {
       return String(value ?? '')
         .replace(/\\/g, '/')
@@ -335,6 +429,10 @@ export default {
 <style scoped>
 .asset-folder-explorer {
   overflow: hidden;
+}
+
+.asset-folder-explorer__create {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .asset-folder-explorer__list {

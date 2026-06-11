@@ -225,7 +225,10 @@
     "storageUsed": "Belegter Speicher",
     "storageFree": "Freier Speicher",
     "storageTotal": "Gesamtspeicher",
-    "assetsUsed": "Von Assets belegt"
+    "assetsUsed": "Von Assets belegt",
+    "createFolder": "Ordner erstellen",
+    "deleteConfirmTitle": "Datei/Ordner löschen",
+    "deleteConfirmText": "Möchtest du diese Datei oder diesen Ordner wirklich löschen?"
   },
   "common": {
     "cancel": "Abbrechen",
@@ -233,7 +236,9 @@
   },
   "file": {
     "name": "Dateiname",
-    "folder": "Ordner"
+    "folder": "Ordner",
+    "delete": "Löschen",
+    "folderUp": "Übergeordneter Ordner"
   },
   "variables": {
     "title": "Variablen",

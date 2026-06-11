@@ -103,6 +103,29 @@ export function listAssets(inputPath: string = ""): AssetListEntry[] {
         });
 }
 
+
+export function createAssetFolder(inputPath: string = "", name?: string) {
+    const folderPath = name
+        ? path.join(normalizeInputPath(inputPath), normalizeInputPath(name))
+        : normalizeInputPath(inputPath);
+
+    if (!folderPath) throw new Error("folder path missing");
+
+    const target = resolveAssetPath(folderPath);
+
+    if (fs.existsSync(target)) {
+        throw new Error("folder already exists");
+    }
+
+    fs.mkdirSync(target, { recursive: true });
+
+    const relPath = relativeAssetPath(target);
+
+    emitAssetUpdate();
+
+    return { path: relPath };
+}
+
 export function deleteAsset(inputPath: string) {
     if (!inputPath) throw new Error("path missing");
 

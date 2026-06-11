@@ -225,7 +225,10 @@
     "storageUsed": "Used Storage",
     "storageFree": "Free Storage",
     "storageTotal": "Total Storage",
-    "assetsUsed": "Used by Assets"
+    "assetsUsed": "Used by Assets",
+    "createFolder": "Create Folder",
+    "deleteConfirmTitle": "Delete File/Folder",
+    "deleteConfirmText": "Are you sure you want to delete this File/Folder?"
   },
   "common": {
     "cancel": "Cancel",
@@ -233,7 +236,9 @@
   },
   "file": {
     "name": "Filename",
-    "folder": "Folder"
+    "folder": "Folder",
+    "delete": "Delete",
+    "folderUp": "Parent folder"
   },
   "variables": {
     "title": "Variables",

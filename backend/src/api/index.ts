@@ -4,6 +4,7 @@
 export { default as AlertApi } from "./Alert/AlertApi";
 export { default as RemoveAlertApi } from "./Alert/RemoveAlertApi";
 export { default as AssetsCompressApi } from "./Assets/AssetsCompressApi";
+export { default as AssetsCreateFolderApi } from "./Assets/AssetsCreateFolderApi";
 export { default as AssetsDeleteApi } from "./Assets/AssetsDeleteApi";
 export { default as AssetsListApi } from "./Assets/AssetsListApi";
 export { default as AssetsMoveApi } from "./Assets/AssetsMoveApi";
@@ -65,6 +66,7 @@ export { default as HaltSystemApi } from "./System/HaltSystemApi";
 export { default as LanguageApi } from "./System/LanguageApi";
 export { default as RestartApi } from "./System/RestartApi";
 export { default as UpdateApi } from "./System/UpdateApi";
+export { default as VariableDeleteApi } from "./Variables/VariableDeleteApi";
 export { default as VariableGetApi } from "./Variables/VariableGetApi";
 export { default as VariableListApi } from "./Variables/VariableListApi";
 export { default as VariableSetApi } from "./Variables/VariableSetApi";

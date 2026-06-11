@@ -21,42 +21,13 @@
       </v-toolbar>
 
       <v-card-text>
-        <div class="asset-preview-dialog__stage">
-          <v-img
-            v-if="isImage(asset)"
-            :src="previewUrl"
-            contain
-            max-height="70vh"
-            class="asset-preview-dialog__image"
-          >
-            <template #error>
-              <div class="asset-preview-dialog__placeholder">
-                <v-icon icon="mdi-image-broken" size="72" />
-                <div>{{ $t('assets.previewFailed') }}</div>
-              </div>
-            </template>
-          </v-img>
-
-          <video
-            v-else-if="isVideo(asset)"
-            :src="previewUrl"
-            class="asset-preview-dialog__video"
-            controls
-            autoplay
-          />
-
-          <audio
-            v-else-if="isAudio(asset)"
-            :src="previewUrl"
-            class="asset-preview-dialog__audio"
-            controls
-          />
-
-          <div v-else class="asset-preview-dialog__placeholder">
-            <v-icon :icon="getEntryIcon(asset)" size="72" />
-            <div>{{ $t('assets.noPreview') }}</div>
-          </div>
-        </div>
+        <AssetPreview
+          :asset="asset"
+          :rest-api="restApi"
+          variant="dialog"
+          :controls="true"
+          :autoplay="isVideo(asset)"
+        />
 
         <v-divider class="my-4" />
 
@@ -87,7 +58,7 @@
 
       <v-card-actions class="flex-wrap ga-2">
         <v-btn
-          v-if="asset?.type === 'file'"
+          v-if="canCompress"
           color="primary"
           variant="tonal"
           prepend-icon="mdi-archive-arrow-down-outline"
@@ -144,8 +115,14 @@ type AssetEntry = {
   } | string | null
 }
 
+import AssetPreview from '@/components/AssetPreview.vue'
+
 export default {
-  name: 'assets',
+  name: 'AssetPreviewDialog',
+
+  components: {
+    AssetPreview,
+  },
 
   props: {
     modelValue: {
@@ -200,6 +177,10 @@ export default {
 
       return this.toPublicPath(compressed)
     },
+
+    canCompress(): boolean {
+      return this.asset?.type === 'file' && !this.isSvg(this.asset)
+    },
   },
 
   methods: {
@@ -247,6 +228,10 @@ export default {
       return asset?.type === 'file' && /\.(jpe?g|png|webp|gif|svg)$/i.test(asset.path ?? '')
     },
 
+    isSvg(asset: AssetEntry | null): boolean {
+      return asset?.type === 'file' && /\.svg$/i.test(asset.path ?? '')
+    },
+
     isVideo(asset: AssetEntry | null): boolean {
       return asset?.type === 'file' && /\.(mp4|webm|mov|mkv)$/i.test(asset.path ?? '')
     },
@@ -257,40 +242,3 @@ export default {
   },
 }
 </script>
-
-<style scoped>
-.asset-preview-dialog__stage {
-  min-height: 320px;
-  max-height: 70vh;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.asset-preview-dialog__image,
-.asset-preview-dialog__video {
-  width: 100%;
-  max-height: 70vh;
-}
-
-.asset-preview-dialog__video {
-  object-fit: contain;
-}
-
-.asset-preview-dialog__audio {
-  width: min(720px, 100%);
-}
-
-.asset-preview-dialog__placeholder {
-  min-height: 320px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: rgba(255, 255, 255, 0.65);
-}
-</style>

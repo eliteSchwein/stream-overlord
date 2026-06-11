@@ -9,9 +9,20 @@ import { createRouter, createWebHistory } from 'vue-router/auto'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { routes } from 'vue-router/auto-routes'
 
+const assetsRoute = {
+  path: '/assets/:assetPath(.*)*',
+  name: 'assets-path',
+  component: () => import('@/pages/assets.vue'),
+}
+
+const appRoutes = [
+  assetsRoute,
+  ...routes.filter((route) => route.path !== '/assets'),
+]
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: setupLayouts(routes),
+  routes: setupLayouts(appRoutes),
 })
 
 // Workaround for https://github.com/vitejs/vite/issues/11804
