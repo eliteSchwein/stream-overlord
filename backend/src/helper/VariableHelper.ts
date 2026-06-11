@@ -91,3 +91,9 @@ export async function deleteVariable(key: string, fromFile: boolean = false) {
     delete variables[key];
     await writeStaticVariables(variables);
 }
+
+export async function listVariables(): Promise<string[]> {
+    const keys = await redis.keys(`${REDIS_PREFIX}*`);
+
+    return keys.map((key: string) => key.substring(REDIS_PREFIX.length));
+}

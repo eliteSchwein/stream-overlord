@@ -66,5 +66,6 @@ export { default as LanguageApi } from "./System/LanguageApi";
 export { default as RestartApi } from "./System/RestartApi";
 export { default as UpdateApi } from "./System/UpdateApi";
 export { default as VariableGetApi } from "./Variables/VariableGetApi";
+export { default as VariableListApi } from "./Variables/VariableListApi";
 export { default as VariableSetApi } from "./Variables/VariableSetApi";
 export { default as YoloboxExecuteApi } from "./Yolobox/YoloboxExecuteApi";

@@ -104,6 +104,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/variables': RouteRecordInfo<
+      '/variables',
+      '/variables',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/yolobox': RouteRecordInfo<
       '/yolobox',
       '/yolobox',
@@ -187,6 +194,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/recovery.vue': {
       routes:
         | '/recovery'
+      views:
+        | never
+    }
+    'src/pages/variables.vue': {
+      routes:
+        | '/variables'
       views:
         | never
     }

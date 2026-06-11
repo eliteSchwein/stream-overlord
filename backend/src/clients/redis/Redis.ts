@@ -66,6 +66,20 @@ export default class Redis {
 
         await this.redisClient.del(key)
     }
+
+    public async keys(pattern: string) {
+        if (!this.redisClient?.isReady) return []
+
+        const keys: string[] = []
+
+        for await (const key of this.redisClient.scanIterator({
+            MATCH: pattern,
+        })) {
+            keys.push(String(key))
+        }
+
+        return keys
+    }
 }
 
 export const redis = new Redis()

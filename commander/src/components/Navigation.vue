@@ -228,6 +228,11 @@ export default {
         :title="$t('navigation.tabs.macros')"
         color=""
         to="/macros"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-variable"
+        :title="$t('navigation.tabs.variables')"
+        color=""
+        to="/variables"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.audio') }}</v-list-subheader>
       <v-list-item

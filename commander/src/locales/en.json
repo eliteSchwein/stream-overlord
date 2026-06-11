@@ -31,7 +31,8 @@
       "config": "Config",
       "connections": "Connections",
       "recovery": "Recovery",
-      "gameScene": "Game scene"
+      "gameScene": "Game scene",
+      "variables": "Variables"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -233,5 +234,12 @@
   "file": {
     "name": "Filename",
     "folder": "Folder"
+  },
+  "variables": {
+    "title": "Variables",
+    "empty": "No variables found",
+    "reload": "Reload",
+    "save": "Save",
+    "delete": "Delete"
   }
 }
