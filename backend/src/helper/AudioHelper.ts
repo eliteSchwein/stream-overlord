@@ -6,6 +6,7 @@ import getWebsocketServer from "../App";
 import { execute } from "./CommandHelper";
 import { logRegular, logWarn } from "./LogHelper";
 import { updateMusicVolumeFromAudio } from "./MusicHelper";
+import {sleep} from "../../../helper/GeneralHelper";
 
 const audioVolumeSavePath = path.join(getSystemConfigDirectory(), "streambot-audio.json");
 
@@ -21,9 +22,15 @@ const audioOutputsRefreshIntervalMs = 2000;
 const pipewireLoopbackModuleIds: Record<string, string[]> = {};
 const pipewireLoopbackSinkInputIds: Record<string, string[]> = {};
 
+type PipewireLoopbackModule = {
+    moduleId: string;
+    outputName: string | null;
+};
+
 export async function initAudio() {
     const config = getConfig(/audio /g, true);
     const savedVolumes = loadSavedAudioVolumes();
+    const initTasks: Promise<void>[] = [];
 
     audioData = {};
 
@@ -48,19 +55,32 @@ export async function initAudio() {
             : Number(audioData[key].default_volume ?? 0.2);
 
         if (isEnabled(audioData[key].pipewire_sink)) {
-            await setupPipewireAudioSink(key, audioData[key].linked_outputs ?? []);
-            await setPipewireSinkOutputVolume(key, volume);
-
-            const sinkVolume = await getPipewireSinkOutputVolume(key);
-            applyAudioVolumeState(key, sinkVolume ?? volume);
-            saveAudioVolumes();
+            initTasks.push(initializePipewireAudioSink(key, linkedOutputs, volume));
             continue;
         }
 
-        await setVolume(key, volume, false, false);
+        initTasks.push(setVolume(key, volume, false, false));
     }
 
+    await Promise.all(initTasks);
+    saveAudioVolumes();
     await sendAudioUpdate();
+}
+
+async function initializePipewireAudioSink(
+    key: string,
+    linkedOutputs: string[],
+    volume: number,
+): Promise<void> {
+    await setupPipewireAudioSink(key, linkedOutputs);
+    await setPipewireSinkOutputVolume(key, volume);
+
+    // PipeWire sometimes creates the loopback sink-input a little later.
+    // Force the configured volume again shortly after setup so late inputs do not stay at 0%.
+    await forcePipewireSinkOutputVolumeWithRetry(key, volume);
+
+    const sinkVolume = await getPipewireSinkOutputVolume(key);
+    applyAudioVolumeState(key, sinkVolume ?? volume);
 }
 
 export async function setVolume(
@@ -572,9 +592,63 @@ export async function setupPipewireAudioSink(
 ) {
     const sinkName = getStreambotSinkName(configName);
     const linkedOutputs = normalizeLinkedOutputs(outputNames);
+    const wantedOutputs = linkedOutputs.length > 0 ? linkedOutputs : [null];
 
-    await cleanupPipewireAudioSink(configName);
-    await cleanupExistingPipewireAudioSinkModules(configName);
+    await ensurePipewireAudioSink(sinkName);
+    await forcePipewireSinkAliveWithRetry(sinkName);
+
+    const existingLoopbacks = await getExistingPipewireLoopbackModules(configName);
+    const keptModuleIds: string[] = [];
+    const wantedKeys = new Set(wantedOutputs.map(outputName => getPipewireLoopbackTargetKey(outputName)));
+    const usedKeys = new Set<string>();
+    const modulesToUnload: string[] = [];
+
+    for (const loopback of existingLoopbacks) {
+        const targetKey = getPipewireLoopbackTargetKey(loopback.outputName);
+
+        if (!wantedKeys.has(targetKey) || usedKeys.has(targetKey)) {
+            modulesToUnload.push(loopback.moduleId);
+            continue;
+        }
+
+        usedKeys.add(targetKey);
+        keptModuleIds.push(loopback.moduleId);
+    }
+
+    await Promise.all(modulesToUnload.map(async moduleId => {
+        try {
+            await runCommand("pactl", ["unload-module", moduleId]);
+        } catch {}
+    }));
+
+    const missingOutputs = wantedOutputs.filter(outputName =>
+        !usedKeys.has(getPipewireLoopbackTargetKey(outputName)),
+    );
+
+    const createdModuleIds = await Promise.all(
+        missingOutputs.map(outputName => loadPipewireLoopback(configName, sinkName, outputName)),
+    );
+
+    pipewireLoopbackModuleIds[configName] = [
+        ...keptModuleIds,
+        ...createdModuleIds.filter((moduleId): moduleId is string => Boolean(moduleId)),
+    ];
+
+    await sleep(25);
+
+    pipewireLoopbackSinkInputIds[configName] =
+        await findPipewireLoopbackSinkInputIds(configName);
+
+    // PipeWire/Pulse can restore the null sink state slightly after module creation.
+    // Keep the virtual streambot sink itself at 100% and unmuted; per-interface volume
+    // is controlled on the loopback sink-inputs instead.
+    await forcePipewireSinkAliveWithRetry(sinkName);
+}
+
+async function ensurePipewireAudioSink(sinkName: string): Promise<void> {
+    if (await pipewireSinkExists(sinkName)) {
+        return;
+    }
 
     try {
         await runCommand("pactl", [
@@ -591,39 +665,164 @@ export async function setupPipewireAudioSink(
                 "media.class=Audio/Sink",
             ].join(" "),
         ]);
+    } catch (error) {
+        if (await pipewireSinkExists(sinkName)) {
+            return;
+        }
+
+        logWarn(`creating pipewire sink ${sinkName} failed:`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+}
+
+async function pipewireSinkExists(sinkName: string): Promise<boolean> {
+    try {
+        const output = await runCommandWithOutput("pactl", [
+            "list",
+            "sinks",
+            "short",
+        ]);
+
+        return output.split(/\r?\n/).some(line => {
+            const name = line.trim().split(/\s+/)[1];
+            return name === sinkName;
+        });
     } catch {
-        // sink probably already exists
+        return false;
     }
+}
 
-    const targets = linkedOutputs.length > 0 ? linkedOutputs : [null];
-    const moduleIds: string[] = [];
+async function getExistingPipewireLoopbackModules(
+    configName: string,
+): Promise<PipewireLoopbackModule[]> {
+    const sinkName = getStreambotSinkName(configName);
+    const result: PipewireLoopbackModule[] = [];
 
-    for (const outputName of targets) {
+    try {
+        const modules = await runCommandWithOutput("pactl", [
+            "list",
+            "modules",
+            "short",
+        ]);
+
+        for (const line of modules.split(/\r?\n/)) {
+            if (!line.includes("module-loopback")) continue;
+            if (!line.includes(`source=${sinkName}.monitor`)) continue;
+
+            const moduleId = line.trim().split(/\s+/)[0];
+            if (!moduleId) continue;
+
+            result.push({
+                moduleId,
+                outputName: parsePipewireLoopbackSinkName(line),
+            });
+        }
+    } catch {}
+
+    return result;
+}
+
+function parsePipewireLoopbackSinkName(moduleLine: string): string | null {
+    const match = moduleLine.match(/(?:^|\s)sink=([^\s]+)/);
+    return match?.[1]?.trim() || null;
+}
+
+function getPipewireLoopbackTargetKey(outputName: string | null): string {
+    return outputName ?? "__default__";
+}
+
+async function forcePipewireSinkAlive(sinkName: string): Promise<void> {
+    try {
+        await runCommand("pactl", ["set-sink-mute", sinkName, "0"]);
+        await runCommand("pactl", ["set-sink-volume", sinkName, "100%"]);
+    } catch {}
+}
+
+async function forcePipewireSinkAliveWithRetry(
+    sinkName: string,
+    attempts = 12,
+    delayMs = 150,
+): Promise<void> {
+    for (let attempt = 0; attempt < attempts; attempt++) {
+        await forcePipewireSinkAlive(sinkName);
+
+        if (attempt < attempts - 1) {
+            await sleep(delayMs);
+        }
+    }
+}
+
+async function forcePipewireSinkInputsVolume(
+    configName: string,
+    sinkInputIds: string[],
+    volume: number,
+): Promise<void> {
+    const safeVolume = normalizeVolume(volume);
+
+    await Promise.all(sinkInputIds.map(async sinkInputId => {
         try {
-            const loopbackArgs = [
-                "load-module",
-                "module-loopback",
-                `source=${sinkName}.monitor`,
-                "latency_msec=30",
-            ];
+            await runCommand("pactl", ["set-sink-input-mute", sinkInputId, "0"]);
+            await runCommand("pactl", [
+                "set-sink-input-volume",
+                sinkInputId,
+                `${Math.round(safeVolume * 100)}%`,
+            ]);
+        } catch (error) {
+            logWarn(`forcing volume for ${configName} sink-input ${sinkInputId} failed:`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+    }));
+}
 
-            if (outputName) {
-                loopbackArgs.push(`sink=${outputName}`);
-            }
 
-            const output = await runCommandWithOutput("pactl", loopbackArgs);
-            const moduleId = output.trim();
+async function forcePipewireSinkOutputVolumeWithRetry(
+    configName: string,
+    volume: number,
+    attempts = 8,
+    delayMs = 150,
+): Promise<void> {
+    const safeVolume = normalizeVolume(volume);
 
-            if (moduleId) moduleIds.push(moduleId);
-        } catch {}
+    for (let attempt = 0; attempt < attempts; attempt++) {
+        const sinkInputIds = await findPipewireLoopbackSinkInputIds(configName);
+
+        if (sinkInputIds.length > 0) {
+            pipewireLoopbackSinkInputIds[configName] = sinkInputIds;
+            await forcePipewireSinkInputsVolume(configName, sinkInputIds, safeVolume);
+        }
+
+        if (attempt < attempts - 1) {
+            await sleep(delayMs);
+        }
     }
+}
 
-    pipewireLoopbackModuleIds[configName] = moduleIds;
+async function loadPipewireLoopback(
+    configName: string,
+    sinkName: string,
+    outputName: string | null,
+): Promise<string | null> {
+    try {
+        const loopbackArgs = [
+            "load-module",
+            "module-loopback",
+            `source=${sinkName}.monitor`,
+            "latency_msec=30",
+        ];
 
-    await sleep(500);
+        if (outputName) {
+            loopbackArgs.push(`sink=${outputName}`);
+        }
 
-    pipewireLoopbackSinkInputIds[configName] =
-        await findPipewireLoopbackSinkInputIds(configName);
+        const output = await runCommandWithOutput("pactl", loopbackArgs);
+        const moduleId = output.trim();
+
+        return moduleId || null;
+    } catch (error) {
+        logWarn(`loading loopback for ${configName}${outputName ? ` -> ${outputName}` : ""} failed:`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return null;
+    }
 }
 
 export async function cleanupPipewireAudioSink(configName: string) {
@@ -702,6 +901,7 @@ export async function setPipewireSinkOutputVolume(
     volume: number,
 ): Promise<void> {
     const safeVolume = normalizeVolume(volume);
+    await forcePipewireSinkAliveWithRetry(getStreambotSinkName(configName), 4, 100);
 
     if (!pipewireLoopbackSinkInputIds[configName]?.length) {
         pipewireLoopbackSinkInputIds[configName] =
@@ -712,21 +912,11 @@ export async function setPipewireSinkOutputVolume(
 
     if (!sinkInputIds.length) {
         logWarn(`${getStreambotSinkName(configName)} loopback sink-input not found`);
+        await forcePipewireSinkOutputVolumeWithRetry(configName, safeVolume, 8, 150);
         return;
     }
 
-    for (const sinkInputId of sinkInputIds) {
-        try {
-            await runCommand("pactl", [
-                "set-sink-input-volume",
-                sinkInputId,
-                `${Math.round(safeVolume * 100)}%`,
-            ]);
-        } catch (error) {
-            logWarn(`setting volume for ${configName} sink-input ${sinkInputId} failed:`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        }
-    }
+    await forcePipewireSinkInputsVolume(configName, sinkInputIds, safeVolume);
 }
 
 export async function getPipewireSinkOutputVolumePercent(
@@ -833,10 +1023,6 @@ async function findPipewireLoopbackSinkInputIds(
     } catch {}
 
     return Array.from(new Set(result));
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function runCommand(command: string, args: string[]): Promise<void> {

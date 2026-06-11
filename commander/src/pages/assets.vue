@@ -734,7 +734,7 @@ export default {
 
 <style scoped>
 .assets-grid {
-  max-height: calc(100vh - 353px);
+  max-height: calc(100vh - 342px);
   overflow-y: auto;
 }
 
