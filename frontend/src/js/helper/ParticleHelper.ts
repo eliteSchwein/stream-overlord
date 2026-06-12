@@ -2,14 +2,16 @@ import {Container, tsParticles} from "@tsparticles/engine"
 import sciencePreset from "../../particles/science.json"
 import matrixPreset from "../../particles/matrix.json"
 import firePreset from "../../particles/fire.json"
+import spacePreset from "../../particles/space.json"
 
-type ParticlePresetName = "science" | "matrix" | "fire"
+type ParticlePresetName = "science" | "matrix" | "fire" | "space"
 type ParticleConfig = any
 
 const presets: Record<ParticlePresetName, ParticleConfig> = {
     science: sciencePreset,
     matrix: matrixPreset,
     fire: firePreset,
+    space: spacePreset,
 };
 
 export default class ParticleHelper {
