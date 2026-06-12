@@ -32,7 +32,8 @@
       "connections": "Verbindungen",
       "recovery": "Recovery",
       "gameScene": "Game Scene",
-      "variables": "Variablen"
+      "variables": "Variablen",
+      "obs": "OBS"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -134,15 +135,25 @@
   },
   "obs": {
     "settings": {
+      "name": "Name",
       "title": "OBS-Szenen",
       "uuid": "UUID",
       "index": "Index",
-      "id": "ID"
+      "id": "ID",
+      "activeScene": "Aktive Szene",
+      "empty": "Keine Szenen erkannt",
+      "addSource": "Quelle hinzufügen auf der Webseite"
     },
     "audioMixer": {
       "title": "OBS-Audiomixer",
-      "balance": "Balance"
-    }
+      "balance": "Balance",
+      "search": "Audiospur suchen",
+      "volumeControl": "Lautstärke",
+      "name": "Name",
+      "empty": "Keine Audiospuren erkannt"
+    },
+    "instance": "OBS Instanz",
+    "disclaimer": "Die OBS-Adminpanel-Integration ist aktuell noch stark experimentell und sehr rudimentär umgesetzt. Sie wurde vorerst speziell dafür entwickelt, die Quellenelemente (Sources) einfacher in meine Remote-API integrieren zu können."
   },
   "power": {
     "dialog": {

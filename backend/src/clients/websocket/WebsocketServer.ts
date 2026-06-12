@@ -46,7 +46,9 @@ export default class WebsocketServer {
         'notify_connection_update',
         'notify_config_update',
         'notify_obs_scene_update',
+        'notify_obs_scene_update_named',
         'notify_obs_audio_update',
+        'notify_obs_audio_update_named',
         'notify_test_mode',
         'notify_power_button',
         'notify_voice_list_update',
@@ -189,8 +191,21 @@ export default class WebsocketServer {
                 this.send("notify_music_update", getStatus(), client)
                 this.send("notify_connection", this.getConnections(), client)
                 this.send("notify_connection_update", getManagedConnections(), client)
-                this.send("notify_obs_scene_update", getOBSClient()?.getSceneData(), client)
-                this.send("notify_obs_audio_update", getOBSClient()?.getAudioData(), client)
+                const obsClient = getOBSClient()
+
+                this.send("notify_obs_scene_update", obsClient?.getSceneData(), client)
+                this.send("notify_obs_audio_update", obsClient?.getAudioData(), client)
+
+                for(const connectionName of obsClient?.getConnectionNames?.() ?? []) {
+                    this.send("notify_obs_scene_update_named", {
+                        connection: connectionName,
+                        scenes: obsClient?.getSceneData(connectionName) ?? [],
+                    }, client)
+                    this.send("notify_obs_audio_update_named", {
+                        connection: connectionName,
+                        audio: obsClient?.getAudioData(connectionName) ?? {},
+                    }, client)
+                }
                 this.send("notify_config_update", {data: getRawConfig()}, client)
                 this.send("notify_test_mode", {active: isTestModeActive()}, client)
                 this.send("notify_voice_list_update", {voices: getVoices()}, client)

@@ -39,7 +39,8 @@ export default {
         editConfig: 'config',
         connections: 'connections',
         recovery: 'recovery',
-        gameScene: 'gameScene'
+        gameScene: 'gameScene',
+        obs: 'obs'
       };
 
       const titleKey = titleMap[firstPathPart] || firstPathPart;
@@ -48,6 +49,23 @@ export default {
       return this.$te(translationKey)
         ? this.$t(translationKey)
         : this.$t('navigation.tabs.dashboard');
+    },
+    hasObsConfig() {
+      const config = this.getParsedBackendConfig || {}
+
+      return Object.entries(config).some(([key, value]) => {
+        if(!/^obs/i.test(key)) return false
+
+        if(Array.isArray(value)) {
+          return value.some((entry) => !!entry?.ip)
+        }
+
+        if(value && typeof value === 'object') {
+          return !!value.ip || Object.values(value).some((entry) => !!entry?.ip)
+        }
+
+        return false
+      })
     }
   },
   methods: {
@@ -272,6 +290,12 @@ export default {
         to="/assets"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.streamingServices') }}</v-list-subheader>
+      <v-list-item
+        v-if="hasObsConfig"
+        prepend-icon="mdi-video-box"
+        :title="$t('navigation.tabs.obs')"
+        color=""
+        to="/obs"></v-list-item>
       <v-list-item
         v-if="getParsedBackendConfig?.yolobox?.enable"
         prepend-icon="mdi-video-box"

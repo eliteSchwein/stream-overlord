@@ -32,7 +32,8 @@
       "connections": "Connections",
       "recovery": "Recovery",
       "gameScene": "Game scene",
-      "variables": "Variables"
+      "variables": "Variables",
+      "obs": "OBS"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -134,15 +135,25 @@
   },
   "obs": {
     "settings": {
+      "name": "Name",
       "title": "OBS Scenes",
       "uuid": "UUID",
       "index": "Index",
-      "id": "ID"
+      "id": "ID",
+      "activeScene": "Active Scene",
+      "empty": "No Scenes detected",
+      "addSource": "Add Source to Website"
     },
     "audioMixer": {
       "title": "OBS Audio Mixer",
-      "balance": "Balance"
-    }
+      "balance": "Balance",
+      "search": "Search Audio Track",
+      "volumeControl": "Volume",
+      "name": "Name",
+      "empty": "No Audio Tracks detected"
+    },
+    "instance": "OBS Instance",
+    "disclaimer": "The OBS Admin Panel Integration is super experimental and bare metal. Its specific designed for now that i can easier integrate the source stuff to my remote api."
   },
   "power": {
     "dialog": {

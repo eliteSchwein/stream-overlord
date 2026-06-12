@@ -201,6 +201,7 @@ export class OBSClient {
             "SceneItemRemoved",
             "SceneItemListReindexed",
             "InputNameChanged",
+            "CurrentProgramSceneChanged",
         ]
 
         events.forEach(event =>
@@ -329,6 +330,18 @@ export class OBSClient {
 
         const {scenes} = await connection.obsWebsocket.call('GetSceneList')
 
+        let currentProgramSceneUuid = ''
+        let currentProgramSceneName = ''
+
+        try {
+            const currentProgramScene = await connection.obsWebsocket.call('GetCurrentProgramScene')
+            currentProgramSceneUuid = String(currentProgramScene.currentProgramSceneUuid ?? '')
+            currentProgramSceneName = String(currentProgramScene.currentProgramSceneName ?? '')
+        } catch (error) {
+            logDebug(`failed to get current obs program scene (${connectionName})`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
+
         const scenesData = []
 
         for(const scene of scenes) {
@@ -342,6 +355,10 @@ export class OBSClient {
                 index: scene.sceneIndex,
                 name: scene.sceneName,
                 uuid: scene.sceneUuid,
+                active: Boolean(
+                    (currentProgramSceneUuid && scene.sceneUuid === currentProgramSceneUuid)
+                    || (currentProgramSceneName && scene.sceneName === currentProgramSceneName)
+                ),
                 items: []
             }
 

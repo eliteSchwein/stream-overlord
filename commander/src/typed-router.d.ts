@@ -97,6 +97,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/obs': RouteRecordInfo<
+      '/obs',
+      '/obs',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/recovery': RouteRecordInfo<
       '/recovery',
       '/recovery',
@@ -188,6 +195,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/music.vue': {
       routes:
         | '/music'
+      views:
+        | never
+    }
+    'src/pages/obs.vue': {
+      routes:
+        | '/obs'
       views:
         | never
     }

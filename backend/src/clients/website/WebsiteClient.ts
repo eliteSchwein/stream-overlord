@@ -11,7 +11,7 @@ export async function requestApi(slug: string)
     try {
         return await (await fetch(url)).json()
     } catch (error) {
-        logWarn('api request failed:')
+        logWarn(`api request ${url} failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         return null
     }

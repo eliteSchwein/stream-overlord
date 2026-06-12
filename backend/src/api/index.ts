@@ -60,6 +60,7 @@ export { default as DeleteAuthApi } from "./Recovery/DeleteAuthApi";
 export { default as ReloadApi } from "./Recovery/ReloadApi";
 export { default as RemoveEventApi } from "./Recovery/RemoveEventApi";
 export { default as ShieldApi } from "./Security/ShieldApi";
+export { default as AddSourceApi } from "./Sources/AddSourceApi";
 export { default as RefreshSourcesApi } from "./Sources/RefreshSourcesApi";
 export { default as SaveSourcesApi } from "./Sources/SaveSourcesApi";
 export { default as HaltSystemApi } from "./System/HaltSystemApi";
