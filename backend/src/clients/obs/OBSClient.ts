@@ -45,8 +45,6 @@ export class OBSClient {
         this.sceneData = []
         this.connections = {}
 
-        console.log(configs)
-
         if(Object.keys(configs).length === 0) {
             logDebug("OBS Config not found, disable OBS Client")
             return
@@ -138,8 +136,8 @@ export class OBSClient {
                 eventSubscriptions: EventSubscription.All
             })
         } catch (error) {
-            logDebug(`obs connection failed (${name}):`)
-            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logWarn(`obs connection failed (${name}):`)
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             this.reconnectSingle(name)
             return
         }
@@ -150,8 +148,8 @@ export class OBSClient {
                 eventSubscriptions: EventSubscription.InputVolumeMeters
             })
         } catch (error) {
-            logDebug(`obs mixer connection failed (${name}):`)
-            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logWarn(`obs mixer connection failed (${name}):`)
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
 
             await connection.obsWebsocket?.disconnect()
             this.reconnectSingle(name)
