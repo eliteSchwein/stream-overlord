@@ -1,267 +1,47 @@
-import {Container, tsParticles} from "@tsparticles/engine";
+import {Container, tsParticles} from "@tsparticles/engine"
+import sciencePreset from "../../particles/science.json"
+import matrixPreset from "../../particles/matrix.json"
+import firePreset from "../../particles/fire.json"
+
+type ParticlePresetName = "science" | "matrix" | "fire"
+type ParticleConfig = any
+
+const presets: Record<ParticlePresetName, ParticleConfig> = {
+    science: sciencePreset,
+    matrix: matrixPreset,
+    fire: firePreset,
+};
 
 export default class ParticleHelper {
-    private config = {
-        "autoPlay": true,
-        "background": {
-            "opacity": 0
-        },
-        "clear": true,
-        "defaultThemes": {},
-        "delay": 0,
-        "fullScreen": {
-            "enable": false,
-            "zIndex": 0
-        },
-        "duration": 0,
-        "fpsLimit": 60,
-        "interactivity": {
-            "detectsOn": "window",
-            "events": {
-                "onClick": {
-                    "enable": false
-                },
-                "onDiv": {
-                    "enable": false
-                },
-                "onHover": {
-                    "enable": false
-                },
-                "resize": {
-                    "enable": false
-                }
-            }
-        },
-        "manualParticles": [],
-        "particles": {
-            "bounce": {
-                "horizontal": {
-                    "value": 1
-                },
-                "vertical": {
-                    "value": 1
-                }
-            },
-            "color": {
-                "value": "#FFA5A5",
-                "animation": {
-                    "h": {
-                        "count": 0,
-                        "enable": false,
-                        "speed": 20,
-                        "decay": 0,
-                        "delay": 0,
-                        "sync": true,
-                        "offset": 0
-                    },
-                    "s": {
-                        "count": 0,
-                        "enable": false,
-                        "speed": 1,
-                        "decay": 0,
-                        "delay": 0,
-                        "sync": true,
-                        "offset": 0
-                    },
-                    "l": {
-                        "count": 0,
-                        "enable": false,
-                        "speed": 1,
-                        "decay": 0,
-                        "delay": 0,
-                        "sync": true,
-                        "offset": 0
-                    }
-                }
-            },
-            "effect": {
-                "close": true,
-                "fill": true,
-                "options": {},
-                "type": {}
-            },
-            "groups": [],
-            "move": {
-                "angle": {
-                    "offset": 0,
-                    "value": 90
-                },
-                "center": {
-                    "x": 50,
-                    "y": 50,
-                    "mode": "percent",
-                    "radius": 0
-                },
-                "decay": 0,
-                "distance": {},
-                "direction": "none",
-                "drift": 0,
-                "enable": true,
-                "outModes": {
-                    "default": "out",
-                    "bottom": "out",
-                    "left": "out",
-                    "right": "out",
-                    "top": "out"
-                },
-                "random": false,
-                "size": false,
-                "speed": 3,
-                "straight": false,
-                "vibrate": false,
-                "warp": false
-            },
-            "number": {
-                "density": {
-                    "enable": true,
-                    "width": 854,
-                    "height": 480
-                },
-                "limit": {
-                    "mode": "delete",
-                    "value": 0
-                },
-                "value": 80
-            },
-            "opacity": {
-                "value": 0.5,
-                "animation": {
-                    "count": 0,
-                    "enable": false,
-                    "speed": 2,
-                    "decay": 0,
-                    "delay": 0,
-                    "sync": false,
-                    "mode": "auto",
-                    "startValue": "random",
-                    "destroy": "none"
-                }
-            },
-            "reduceDuplicates": false,
-            "shape": {
-                "close": true,
-                "fill": true,
-                "options": {},
-                "type": "circle"
-            },
-            "size": {
-                "value": {
-                    "min": 1,
-                    "max": 3
-                },
-                "animation": {
-                    "count": 0,
-                    "enable": false,
-                    "speed": 5,
-                    "decay": 0,
-                    "delay": 0,
-                    "sync": false,
-                    "mode": "auto",
-                    "startValue": "random",
-                    "destroy": "none"
-                }
-            },
-            "stroke": {
-                "width": 0
-            },
-            "zIndex": {
-                "value": 0,
-                "opacityRate": 1,
-                "sizeRate": 1,
-                "velocityRate": 1
-            },
-            "destroy": {
-                "bounds": {},
-                "mode": "none",
-                "split": {
-                    "count": 1,
-                    "factor": {
-                        "value": 3
-                    },
-                    "rate": {
-                        "value": {
-                            "min": 4,
-                            "max": 9
-                        }
-                    },
-                    "sizeOffset": true,
-                    "particles": {}
-                }
-            },
-            "life": {
-                "count": 0,
-                "delay": {
-                    "value": 0,
-                    "sync": false
-                },
-                "duration": {
-                    "value": 0,
-                    "sync": false
-                }
-            },
-            "rotate": {
-                "value": 0,
-                "animation": {
-                    "enable": false,
-                    "speed": 0,
-                    "decay": 0,
-                    "sync": false
-                },
-                "direction": "clockwise",
-                "path": false
-            },
-            "links": {
-                "blink": false,
-                "color": {
-                    "value": "#FFA5A5"
-                },
-                "consent": false,
-                "distance": 170,
-                "enable": true,
-                "frequency": 1,
-                "opacity": 0.3,
-                "shadow": {
-                    "blur": 5,
-                    "color": {
-                        "value": "#000"
-                    },
-                    "enable": false
-                },
-                "triangles": {
-                    "enable": false,
-                    "frequency": 1
-                },
-                "width": 1,
-                "warp": false
-            },
-        },
-        "smooth": true,
-        "zLayers": 100,
-        "name": "Basic",
-        "motion": {
-            "disable": false,
-            "reduce": {
-                "factor": 4,
-                "value": true
-            }
-        }
-    }
+    private config: ParticleConfig = this.createConfig("science")
     private container: Container
     private element: HTMLElement
+    private themeColor: string
 
     public async loadParticle(element: HTMLElement) {
-        if(!element) return
-        if(element.hasAttribute("data-disable-particles")) return
+        if (!element) return
+        if (element.hasAttribute("data-disable-particles")) return
 
         this.destroyParticle()
 
         this.element = element
+        this.config = this.createConfig(this.getPresetFromElement(element))
+
+        this.config.autoPlay = true
+        this.config.fullScreen = {
+            "enable": false,
+            "zIndex": 0
+        }
+        delete this.config.interactivity
+
+        if (this.themeColor) {
+            this.applyThemeColor(this.themeColor)
+        }
 
         this.container = await tsParticles.load({
             element: element,
-            // @ts-ignore
             options: this.config
-        });
+        })
     }
 
     public destroyParticle() {
@@ -270,10 +50,52 @@ export default class ParticleHelper {
         }
     }
 
-    public  async loadThemeColor(color: string) {
-        this.config.particles.color.value = color
-        this.config.particles.links.color.value = color
+    private setValueByPath(target: any, path: string, value: any) {
+        const keys = path.split(".").filter(Boolean);
+        let current = target
 
+        for (let i = 0; i < keys.length - 1; i++) {
+            if (!current[keys[i]]) return
+            current = current[keys[i]]
+        }
+
+        current[keys[keys.length - 1]] = value
+    }
+
+    public async loadThemeColor(color: string) {
+        this.themeColor = color
         await this.loadParticle(this.element)
+    }
+
+    private getPresetFromElement(element: HTMLElement): ParticlePresetName {
+        const preset = element.getAttribute("data-particles-preset") as ParticlePresetName | null
+
+        if(preset && presets[preset]) {
+            return preset
+        }
+
+        return "science"
+    }
+
+    private createConfig(preset: ParticlePresetName): ParticleConfig {
+        return structuredClone(presets[preset])
+    }
+
+    private applyThemeColor(color: string) {
+        const themeKeys = this.config?.themeKeys
+
+        if (Array.isArray(themeKeys) && themeKeys.length) {
+            for (const themeKey of themeKeys) {
+                this.setValueByPath(this.config, themeKey, color)
+            }
+
+            return
+        }
+
+        this.config.particles.color.value = color
+
+        if (this.config.particles.links?.color?.value) {
+            this.config.particles.links.color.value = color
+        }
     }
 }

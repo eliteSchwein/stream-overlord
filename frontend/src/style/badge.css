@@ -16,7 +16,7 @@
     width: 100px;
     margin-top: 5px;
     background-size: cover;
-    background-image: url("/logo.webp");
+    background-image: url("/compressed/logo.webp");
 }
 
 .badge .badge-container {
@@ -48,7 +48,7 @@
     height: 50%;
     text-align: left;
     font-size: 25px;
-    font-family: 'Silkscreen', sans-serif;
+    font-family: 'Orbitron', sans-serif;
 }
 
 .badge .badge-container .badge-title {
@@ -57,17 +57,12 @@
     height: 60%;
     text-align: left;
     font-size: 40px;
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Doto', sans-serif;
     grid-template-columns: 1fr;
     align-items: start;
     justify-content: start;
     align-content: start;
-}
-
-.badge .badge-container .badge-title img {
-    width: 370px!important;
-    height: 40px!important;
-    object-fit: contain;
+    font-weight: 700;
 }
 
 .badge .expand-container {
@@ -137,4 +132,10 @@
     top: unset;
     left: unset;
     margin-top: 30px;
+}
+
+.badge-image-only {
+    width: 100%!important;
+    height: 100%!important;
+    object-fit: contain;
 }
