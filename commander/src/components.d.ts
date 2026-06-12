@@ -28,7 +28,6 @@ declare module 'vue' {
     Macro: typeof import('./components/Macro.vue')['default']
     MusicControls: typeof import('./components/MusicControls.vue')['default']
     Navigation: typeof import('./components/Navigation.vue')['default']
-    ObsAudio: typeof import('./components/obs/ObsAudio.vue')['default']
     ObsAudioMixer: typeof import('./components/obs/ObsAudioMixer.vue')['default']
     ObsSceneBrowser: typeof import('./components/obs/ObsSceneBrowser.vue')['default']
     OBSSettings: typeof import('./components/obs/OBSSettings.vue')['default']
