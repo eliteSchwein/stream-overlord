@@ -23,80 +23,88 @@ function parseFilterConfig(config: any) {
 }
 
 export async function updateSourceFilters() {
-    logDebug("update source filters")
-    const gameInfo = getGameInfo()
-    const obsClient = getOBSClient()
+    try {
+        logDebug("update source filters")
+        const gameInfo = getGameInfo()
+        const obsClient = getOBSClient()
 
-    const response = await fetchSourceFilters(gameInfo.data?.game_id)
+        const response = await fetchSourceFilters(gameInfo.data?.game_id)
 
-    if (!response?.data) {
-        logWarn("source filter update skipped: website returned no data")
-        currentSourceFilters = {
-            background: null,
-            backgrounds: [],
-            sources: []
+        if (!response?.data) {
+            logWarn("source filter update skipped: website returned no data")
+            currentSourceFilters = {
+                background: null,
+                backgrounds: [],
+                sources: []
+            }
+
+            getWebsocketServer().send('notify_source_update', currentSourceFilters)
+            return
         }
+
+        currentSourceFilters = await RemoteCacheHelper.cacheSourceUpdate(response.data)
 
         getWebsocketServer().send('notify_source_update', currentSourceFilters)
-        return
-    }
 
-    currentSourceFilters = await RemoteCacheHelper.cacheSourceUpdate(response.data)
+        if(!obsClient || !obsClient.connected) {
+            return
+        }
 
-    getWebsocketServer().send('notify_source_update', currentSourceFilters)
+        for(const sourceUuid in currentSourceFilters.sources) {
+            const databaseSource = currentSourceFilters.sources[sourceUuid]
+            const obsId = getSourceObsId(databaseSource)
+            const sourceItemData = obsClient.getSceneItemByUuid(sourceUuid, obsId)
+            const obsWebsocket = obsClient.getOBSWebSocket(obsId)
 
-    if(!obsClient || !obsClient.connected) {
-        return
-    }
+            if(!sourceItemData || !obsWebsocket) continue
 
-    for(const sourceUuid in currentSourceFilters.sources) {
-        const databaseSource = currentSourceFilters.sources[sourceUuid]
-        const obsId = getSourceObsId(databaseSource)
-        const sourceItemData = obsClient.getSceneItemByUuid(sourceUuid, obsId)
-        const obsWebsocket = obsClient.getOBSWebSocket(obsId)
+            for(const filterName in databaseSource.filters ?? {}) {
+                try {
+                    const filter = databaseSource.filters[filterName]
+                    const config = parseFilterConfig(filter.config)
 
-        if(!sourceItemData || !obsWebsocket) continue
+                    if(config.boundsType === "OBS_BOUNDS_NONE") {
+                        delete config["boundsAlignment"]
+                        delete config["boundsHeight"]
+                        delete config["boundsWidth"]
+                        delete config["boundsType"]
+                    }
 
-        for(const filterName in databaseSource.filters) {
-            const filter = databaseSource.filters[filterName]
-            const config = parseFilterConfig(filter.config)
+                    if(filterName.startsWith("Source|")) {
+                        switch (filterName) {
+                            case "Source|Transform":
+                                await obsWebsocket.call('SetSceneItemTransform', {
+                                    sceneUuid: sourceItemData.scene.uuid,
+                                    sceneItemId: sourceItemData.id,
+                                    sceneItemTransform: config
+                                })
+                                break
+                        }
+                        continue
+                    }
 
-            if(config.boundsType === "OBS_BOUNDS_NONE") {
-                delete config["boundsAlignment"]
-                delete config["boundsHeight"]
-                delete config["boundsWidth"]
-                delete config["boundsType"]
-            }
+                    delete config["shader_file_name"]
 
-            if(filterName.startsWith("Source|")) {
-                switch (filterName) {
-                    case "Source|Transform":
-                        await obsWebsocket.call('SetSceneItemTransform', {
-                            sceneUuid: sourceItemData.scene.uuid,
-                            sceneItemId: sourceItemData.id,
-                            sceneItemTransform: config
-                        })
-                        break;
+                    await obsWebsocket.call('SetSourceFilterIndex', {
+                        sourceUuid,
+                        filterName,
+                        filterIndex: filter.index ?? filter.sourceIndex ?? 0
+                    })
+
+                    await obsWebsocket.call('SetSourceFilterSettings', {
+                        sourceUuid,
+                        filterName,
+                        filterSettings: config
+                    })
+                } catch (error) {
+                    logWarn(`obs source filter update failed (${obsId}):`)
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
                 }
-                continue
-            }
-            try {
-                delete config["shader_file_name"]
-                await obsWebsocket.call('SetSourceFilterIndex', {
-                    sourceUuid: sourceUuid,
-                    filterName: filterName,
-                    filterIndex: filter.index ?? filter.sourceIndex ?? 0
-                })
-                await obsWebsocket.call('SetSourceFilterSettings', {
-                    sourceUuid: sourceUuid,
-                    filterName: filterName,
-                    filterSettings: config
-                })
-            } catch (error) {
-                logWarn(`obs source filter update failed (${obsId}):`)
-                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             }
         }
+    } catch (error) {
+        logWarn("source filter update failed:")
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
 }
 

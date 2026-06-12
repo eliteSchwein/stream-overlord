@@ -53,7 +53,15 @@ export class OBSClient {
             await this.connectSingle(name, config)
         }
 
-        await updateSourceFilters()
+        this.updateSourceFiltersSafe()
+    }
+
+
+    private updateSourceFiltersSafe() {
+        updateSourceFilters().catch(error => {
+            logWarn("source filter update failed, obs connection continues:")
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        })
     }
 
     private getObsConfigs(): Record<string, OBSConfig> {
@@ -231,7 +239,7 @@ export class OBSClient {
 
         this.syncDefaultConnection()
 
-        await updateSourceFilters()
+        this.updateSourceFiltersSafe()
 
         logWarn(`reconnect obs ${name} now...`)
 
