@@ -45,6 +45,8 @@ export class OBSClient {
         this.sceneData = []
         this.connections = {}
 
+        console.log(configs)
+
         if(Object.keys(configs).length === 0) {
             logDebug("OBS Config not found, disable OBS Client")
             return
