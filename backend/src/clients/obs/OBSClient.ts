@@ -38,6 +38,9 @@ export class OBSClient {
     public async connect() {
         const configs = this.getObsConfigs()
 
+        // Important: disconnect old sockets before clearing the connection map.
+        await this.disconnect()
+
         this.connected = false
         this.sceneData = []
         this.connections = {}
@@ -47,8 +50,6 @@ export class OBSClient {
             return
         }
 
-        await this.disconnect()
-
         for (const [name, config] of Object.entries(configs)) {
             await this.connectSingle(name, config)
         }
@@ -56,10 +57,21 @@ export class OBSClient {
         this.updateSourceFiltersSafe()
     }
 
-
     private updateSourceFiltersSafe() {
         updateSourceFilters().catch(error => {
             logWarn("source filter update failed, obs connection continues:")
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        })
+    }
+
+    private syncConnectionDataSafe(name: string) {
+        this.reloadAllBrowserScenes(name).catch(error => {
+            logWarn(`obs browser source reload failed (${name}), obs connection continues:`)
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        })
+
+        this.fetchItems(name).catch(error => {
+            logWarn(`obs scene/audio fetch failed (${name}), obs connection continues:`)
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         })
     }
@@ -150,11 +162,9 @@ export class OBSClient {
 
         this.syncDefaultConnection()
 
-        await this.reloadAllBrowserScenes(name)
-
-        await this.fetchItems(name)
-
         logSuccess(`obs client is ready: ${name}`)
+
+        this.syncConnectionDataSafe(name)
     }
 
     private reconnectSingle(name: string) {
@@ -217,7 +227,12 @@ export class OBSClient {
             connection.obsWebsocket.on(event, async () => {
                 if(connection.eventFetching) return
                 connection.eventFetching = true
-                await this.fetchItems(connection.name)
+                try {
+                    await this.fetchItems(connection.name)
+                } catch (error) {
+                    logWarn(`obs event fetch failed (${connection.name}):`)
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                }
                 connection.eventFetching = false
             })
         )
