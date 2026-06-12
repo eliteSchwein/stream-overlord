@@ -133,16 +133,10 @@ export class OBSClient {
         try {
             connection.obsWebsocket = new OBSWebSocket()
             await connection.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password ?? '', {
-                eventSubscriptions: EventSubscription.General
-                    | EventSubscription.Scenes
-                    | EventSubscription.Inputs
-                    | EventSubscription.Transitions
-                    | EventSubscription.Filters
-                    | EventSubscription.SceneItems
-                    | EventSubscription.MediaInputs
+                eventSubscriptions: EventSubscription.All
             })
         } catch (error) {
-            logWarn(`obs connection failed (${name}):`)
+            logWarn(`obs connection failed events stage 1 (${name}):`)
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             this.reconnectSingle(name)
             return
@@ -154,7 +148,7 @@ export class OBSClient {
                 eventSubscriptions: EventSubscription.InputVolumeMeters
             })
         } catch (error) {
-            logWarn(`obs mixer connection failed (${name}):`)
+            logWarn(`obs mixer connection failed events stage 2 (${name}):`)
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
 
             await connection.obsWebsocket?.disconnect()
