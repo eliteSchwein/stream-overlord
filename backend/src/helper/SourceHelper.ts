@@ -27,9 +27,21 @@ export async function updateSourceFilters() {
     const gameInfo = getGameInfo()
     const obsClient = getOBSClient()
 
-    currentSourceFilters = await RemoteCacheHelper.cacheSourceUpdate(
-        (await fetchSourceFilters(gameInfo.data?.game_id)).data
-    )
+    const response = await fetchSourceFilters(gameInfo.data?.game_id)
+
+    if (!response?.data) {
+        logWarn("source filter update skipped: website returned no data")
+        currentSourceFilters = {
+            background: null,
+            backgrounds: [],
+            sources: []
+        }
+
+        getWebsocketServer().send('notify_source_update', currentSourceFilters)
+        return
+    }
+
+    currentSourceFilters = await RemoteCacheHelper.cacheSourceUpdate(response.data)
 
     getWebsocketServer().send('notify_source_update', currentSourceFilters)
 
