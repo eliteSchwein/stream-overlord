@@ -133,7 +133,13 @@ export class OBSClient {
         try {
             connection.obsWebsocket = new OBSWebSocket()
             await connection.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password ?? '', {
-                eventSubscriptions: EventSubscription.All
+                eventSubscriptions: EventSubscription.General
+                    | EventSubscription.Scenes
+                    | EventSubscription.Inputs
+                    | EventSubscription.Transitions
+                    | EventSubscription.Filters
+                    | EventSubscription.SceneItems
+                    | EventSubscription.MediaInputs
             })
         } catch (error) {
             logWarn(`obs connection failed (${name}):`)
