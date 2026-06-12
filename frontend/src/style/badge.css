@@ -139,3 +139,87 @@
     height: 100%!important;
     object-fit: contain;
 }
+
+.badge.wall-badge.hologram-badge {
+    background:
+            radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--theme-color) 35%, transparent), transparent 45%),
+            linear-gradient(180deg, color-mix(in srgb, var(--theme-color) 18%, transparent), rgba(0, 8, 14, 0.38)),
+            rgba(0, 8, 14, 0.38);
+
+    border: 1px solid color-mix(in srgb, var(--theme-color) 65%, transparent);
+    box-shadow:
+            0 0 18px color-mix(in srgb, var(--theme-color) var(--theme-glow-alpha-high, 70%), transparent),
+            inset 0 0 35px color-mix(in srgb, var(--theme-color) var(--theme-glow-alpha-low, 25%), transparent);
+
+    overflow: hidden;
+    backdrop-filter: blur(3px);
+    animation: hologram-flicker 3.5s infinite;
+}
+
+.badge.wall-badge.hologram-badge::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 998;
+    background: repeating-linear-gradient(
+            180deg,
+            color-mix(in srgb, var(--theme-color) 22%, transparent) 0,
+            color-mix(in srgb, var(--theme-color) 22%, transparent) 1px,
+            transparent 2px,
+            transparent 6px
+    );
+    mix-blend-mode: screen;
+    animation: hologram-scanlines 2.5s linear infinite;
+}
+
+.badge.wall-badge.hologram-badge::after {
+    content: "";
+    position: absolute;
+    inset: -30%;
+    pointer-events: none;
+    z-index: 997;
+    background: linear-gradient(
+            115deg,
+            transparent 35%,
+            color-mix(in srgb, var(--theme-color) var(--theme-shine-opacity-peak, 55%), transparent) 48%,
+            rgba(255, 255, 255, var(--theme-glow-alpha-white, 0.18)) 52%,
+            transparent 65%
+    );
+    animation: hologram-sweep 5s ease-in-out infinite;
+}
+
+.badge.wall-badge.hologram-badge .badge-container {
+    color: white;
+    text-shadow:
+            0 0 4px color-mix(in srgb, var(--theme-color) 90%, transparent),
+            0 0 12px color-mix(in srgb, var(--theme-color) 60%, transparent);
+}
+
+.badge.wall-badge.hologram-badge .logo {
+    filter:
+            drop-shadow(0 0 8px color-mix(in srgb, var(--theme-color) 90%, transparent))
+            drop-shadow(0 0 18px color-mix(in srgb, var(--theme-color) 55%, transparent));
+    opacity: 0.88;
+}
+
+@keyframes hologram-scanlines {
+    from { transform: translateY(-12px); }
+    to { transform: translateY(12px); }
+}
+
+@keyframes hologram-sweep {
+    0%, 100% { transform: translateX(-45%) rotate(0deg); opacity: 0; }
+    45% { opacity: 0.75; }
+    60% { transform: translateX(45%) rotate(0deg); opacity: 0; }
+}
+
+@keyframes hologram-flicker {
+    0%, 100% { opacity: 1; transform: translateZ(0); }
+    8% { opacity: 0.92; }
+    9% { opacity: 1; }
+    38% { opacity: 0.96; }
+    39% { opacity: 1; }
+    72% { opacity: 0.9; }
+    73% { opacity: 1; }
+}
