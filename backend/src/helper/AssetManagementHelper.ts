@@ -251,8 +251,6 @@ export async function addAssetFilesFromUpload(files: any[], targetPath: string =
 
         const relPath = relativeAssetPath(target);
         added.push(relPath);
-
-        await compressAssets(true, target);
     }
 
     emitAssetUpdate();

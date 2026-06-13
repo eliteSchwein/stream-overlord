@@ -6,6 +6,7 @@ import { getGpu } from "./SystemInfoHelper";
 import { isDebug, logDebug, logError, logNotice, logRegular, logWarn } from "./LogHelper";
 import { imageRegex, videoRegex, audioRegex } from "./AssetHelper";
 import { existsSync } from "node:fs";
+import {emitAssetUpdate} from "./AssetManagementHelper";
 
 type FfmpegInit = {
     ffmpegBin: string;
@@ -196,6 +197,8 @@ export async function compressAssets(
             deleteIfEmpty(targetAudioAsset);
         }
     }
+
+    emitAssetUpdate()
 }
 
 async function initFfmpeg(): Promise<FfmpegInit> {

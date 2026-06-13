@@ -4,6 +4,7 @@ import {join} from "node:path";
 import {compressAssets, getAssetFile} from "./AssetTuneHelper";
 import getWebsocketServer from "../App";
 import { getSystemConfigDirectory } from "./ConfigHelper";
+import {emitAssetUpdate} from "./AssetManagementHelper";
 
 let files = []
 let assetFiles = []
@@ -70,4 +71,6 @@ function cleanOrphanCompressedFile(file: string) {
     logRegular(`delete orphan compressed asset ${compressedFile}`)
 
     unlinkSync(absCompressed);
+
+    emitAssetUpdate()
 }
