@@ -230,26 +230,33 @@
     "noPreview": "No Preview!",
     "preview": "Preview",
     "copy": "Copy",
-    "storage": "Storage",
     "copyDialog": "Copy URLs",
     "moveDialog": "Move Asset",
-    "storageUsed": "Used Storage",
-    "storageFree": "Free Storage",
-    "storageTotal": "Total Storage",
-    "assetsUsed": "Used by Assets",
     "createFolder": "Create Folder",
     "deleteConfirmTitle": "Delete File/Folder",
     "deleteConfirmText": "Are you sure you want to delete this File/Folder?"
   },
+  "system": {
+    "storage": "Storage",
+    "storageUsed": "Used Storage",
+    "storageFree": "Free Storage",
+    "storageTotal": "Total Storage",
+    "assetsUsed": "Used by Assets",
+    "musicUsed": "Used by Music",
+    "overlayUsed": "Used by Overlays"
+  },
   "common": {
     "cancel": "Cancel",
-    "target": "Target"
+    "target": "Target",
+    "save": "Save"
   },
   "file": {
     "name": "Filename",
     "folder": "Folder",
     "delete": "Delete",
-    "folderUp": "Parent folder"
+    "folderUp": "Parent folder",
+    "dropFiles": "Drop Files here to upload",
+    "noFoldersFound": "No Folders found"
   },
   "variables": {
     "title": "Variables",
@@ -257,5 +264,31 @@
     "reload": "Reload",
     "save": "Save",
     "delete": "Delete"
+  },
+  "overlay": {
+    "title": "Overlays",
+    "upload": "Upload overlays",
+    "search": "Search overlays",
+    "createFile": "Create file",
+    "createFolder": "Create folder",
+    "noOverlayFound": "No overlays found",
+    "open": "Open",
+    "move": "Move",
+    "delete": "Delete",
+    "copyDialog": "Copy overlay URL",
+    "moveDialog": "Move overlay",
+    "deleteConfirmTitle": "Delete overlay?",
+    "deleteConfirmText": "Do you really want to delete this overlay?",
+    "editor": "Overlay editor",
+    "code": "Code",
+    "preview": "Preview",
+    "content": "Content",
+    "url": "URL",
+    "template": "Template",
+    "templatePreviewWarning": "Template includes are rendered by the backend preview.",
+    "previewMode": "Preview mode",
+    "previewPreset": "Preview preset",
+    "previewWidth": "Preview width",
+    "previewHeight": "Preview height"
   }
 }

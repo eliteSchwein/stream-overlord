@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="module" src="/dist/app.js"></script>
+    <link rel="stylesheet" href="/dist/app.css">
+    <meta charset="UTF-8">
+    <title>Simple Alert Box</title>
+
+    <style>
+        :root {
+            --alert-bg: rgb(18 18 18 / 0.92);
+            --alert-border: var(--theme-color, #00e5ff);
+            --alert-text: var(--theme-color, #00e5ff);
+            --alert-muted: rgb(255 255 255 / 0.72);
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .alert-overlay-root {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 48px;
+            font-family: 'Doto', system-ui, sans-serif;
+        }
+
+        .alert-box {
+            min-width: 520px;
+            max-width: 1200px;
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            padding: 36px 44px;
+            box-sizing: border-box;
+            background: var(--alert-bg);
+            border: 4px solid var(--alert-border);
+            border-radius: 18px;
+            box-shadow:
+                    0 0 24px rgb(0 0 0 / 0.55),
+                    0 0 28px rgb(from var(--alert-border) r g b / 0.35);
+        }
+
+        .alert-logo {
+            flex: 0 0 auto;
+            color: var(--alert-text);
+            font-size: 96px;
+            line-height: 1;
+        }
+
+        .alert-content {
+            flex: 1 1 auto;
+            color: var(--alert-text);
+            font-size: clamp(48px, 5vw, 92px);
+            font-weight: 600;
+            line-height: 1.08;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .alert-content:empty::before {
+            content: 'Alert message';
+            color: var(--alert-muted);
+        }
+
+        .alert-media {
+            width: 100%;
+            max-width: 780px;
+            max-height: 430px;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+
+        [data-alert-active-type] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div
+        data-alert-channel="general"
+        data-controller="alert"
+        class="alert-overlay-root">
+
+    <div class="alert-box">
+        <div data-alert-active-type="icon">
+            <i class="alert-logo mdi mdi-alert" data-alert-target="element" data-alert-element-type="icon"></i>
+        </div>
+
+        <div class="alert-content" data-alert-active-type="text" data-alert-target="element" data-alert-element-type="content">
+            Alert message
+        </div>
+
+        <video
+                class="alert-media"
+                data-alert-active-type="video"
+                data-alert-target="element"
+                data-alert-element-type="video"
+                muted="muted"
+                playsinline="playsinline">
+            <source src="" type="video/mp4">
+        </video>
+
+        <img
+                class="alert-media d-none"
+                data-alert-active-type="image"
+                data-alert-target="element"
+                data-alert-element-type="image"
+                alt="Alert image">
+
+        <img
+                class="alert-media d-none"
+                data-alert-active-type="logo"
+                data-alert-target="element"
+                data-alert-element-type="logo"
+                alt="Alert logo">
+
+        <iframe
+                class="alert-media d-none"
+                data-alert-active-type="iframe"
+                data-alert-target="element"
+                data-alert-element-type="iframe"
+                title="Alert iframe"></iframe>
+    </div>
+</div>
+</body>
+</html>

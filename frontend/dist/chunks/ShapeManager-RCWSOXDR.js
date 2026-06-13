@@ -1,1 +1,0 @@
-import"/dist/chunks/chunk-GGFEJDP7.js";var t=new Map,r=class{addShapeGenerator(e,a){this.getShapeGenerator(e)||t.set(e,a)}getShapeGenerator(e){return t.get(e)}getSupportedShapeGenerators(){return t.keys()}};export{r as ShapeManager};

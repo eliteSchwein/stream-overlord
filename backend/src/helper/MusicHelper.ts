@@ -1762,3 +1762,7 @@ export function isSongRequestQueryAlreadyPresent(url: string): boolean {
         return false;
     }
 }
+
+export function getRegularMusicPath(): string {
+    return musicPath
+}

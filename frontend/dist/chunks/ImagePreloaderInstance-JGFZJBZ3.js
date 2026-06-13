@@ -1,1 +1,0 @@
-import{d as i,e,f as h}from"/dist/chunks/chunk-GGFEJDP7.js";var t,s,o=class{constructor(c,n){e(this,t);e(this,s);h(this,s,c),h(this,t,n)}destroy(){i(this,s).images?.delete(i(this,t))}};t=new WeakMap,s=new WeakMap;export{o as ImagePreloaderInstance};

@@ -230,16 +230,20 @@
     "noPreview": "Keine Vorschau verfügbar!",
     "preview": "Vorschau",
     "copy": "Kopieren",
-    "storage": "Speicher",
     "copyDialog": "URLs kopieren",
     "moveDialog": "Asset verschieben",
+    "createFolder": "Ordner erstellen",
+    "deleteConfirmTitle": "Datei/Ordner löschen",
+    "deleteConfirmText": "Möchtest du diese Datei oder diesen Ordner wirklich löschen?"
+  },
+  "system": {
+    "storage": "Speicher",
     "storageUsed": "Belegter Speicher",
     "storageFree": "Freier Speicher",
     "storageTotal": "Gesamtspeicher",
     "assetsUsed": "Von Assets belegt",
-    "createFolder": "Ordner erstellen",
-    "deleteConfirmTitle": "Datei/Ordner löschen",
-    "deleteConfirmText": "Möchtest du diese Datei oder diesen Ordner wirklich löschen?"
+    "overlayUsed": "Von Überlagerungen belegt",
+    "musicUsed": "Von Musik belegt"
   },
   "common": {
     "cancel": "Abbrechen",
@@ -249,7 +253,8 @@
     "name": "Dateiname",
     "folder": "Ordner",
     "delete": "Löschen",
-    "folderUp": "Übergeordneter Ordner"
+    "folderUp": "Übergeordneter Ordner",
+    "dropFiles": "Dateien hier ablegen, um sie hochzuladen"
   },
   "variables": {
     "title": "Variablen",
@@ -257,5 +262,31 @@
     "reload": "Neu laden",
     "save": "Speichern",
     "delete": "Löschen"
+  },
+  "overlay": {
+    "title": "Overlays",
+    "upload": "Overlays hochladen",
+    "search": "Overlays suchen",
+    "createFile": "Datei erstellen",
+    "createFolder": "Ordner erstellen",
+    "noOverlayFound": "Keine Overlays gefunden",
+    "open": "Öffnen",
+    "move": "Verschieben",
+    "delete": "Löschen",
+    "copyDialog": "Overlay-URL kopieren",
+    "moveDialog": "Overlay verschieben",
+    "deleteConfirmTitle": "Overlay löschen?",
+    "deleteConfirmText": "Möchtest du dieses Overlay wirklich löschen?",
+    "editor": "Overlay-Editor",
+    "code": "Code",
+    "preview": "Vorschau",
+    "content": "Inhalt",
+    "url": "URL",
+    "template": "Template",
+    "templatePreviewWarning": "Template-Includes werden über die Backend-Vorschau gerendert.",
+    "previewMode": "Vorschaumodus",
+    "previewPreset": "Vorschau-Preset",
+    "previewWidth": "Vorschau-Breite",
+    "previewHeight": "Vorschau-Höhe"
   }
 }

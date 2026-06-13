@@ -13,6 +13,7 @@ import YoloboxPreviewApi from "./api/Yolobox/YoloboxPreviewApi";
 import MusicPlaylistAddApi from "./api/Music/MusicPlaylistAddApi";
 import { getRemoteCacheDirectory } from "../../helper/RemoteCacheHelper";
 import AssetsUploadApi from "./api/Assets/AssetsUploadApi";
+import OverlaysUploadApi from "./api/Overlay/OverlaysUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -93,6 +94,9 @@ export default class WebServer {
         this.app.get("/config.json", (req, res) => {
             res.json(getConfig());
         });
+
+        // Overlay API
+        new OverlaysUploadApi().register(this.app);
 
         // Music API
         new MusicPlaylistAddApi().register(this.app)
@@ -185,7 +189,7 @@ export default class WebServer {
     }
 
     private getHtmlRoot() {
-        return path.join(__dirname, "../../frontend/src/html");
+        return path.join(getSystemConfigDirectory(), "streambot-overlays");
     }
 
     private async precacheConfiguredTemplates(rootDir: string) {

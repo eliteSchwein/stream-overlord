@@ -104,6 +104,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/overlay': RouteRecordInfo<
+      '/overlay',
+      '/overlay',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/recovery': RouteRecordInfo<
       '/recovery',
       '/recovery',
@@ -201,6 +208,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/obs.vue': {
       routes:
         | '/obs'
+      views:
+        | never
+    }
+    'src/pages/overlay.vue': {
+      routes:
+        | '/overlay'
       views:
         | never
     }

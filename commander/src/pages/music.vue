@@ -13,18 +13,27 @@
     </v-card-title>
 
     <v-card-text>
-      <v-file-input
-        :key="fileInputKey"
-        v-model="uploadFiles"
-        :label="$t('musicPlaylist.addSongs')"
-        accept=".mp3,.flac,.wav,.ogg,.m4a,.opus,audio/*"
-        prepend-icon="mdi-music"
-        multiple
-        variant="outlined"
-        :disabled="uploading"
-        :loading="uploading"
-        @update:model-value="uploadMusicFiles"
-      />
+      <v-row density="compact" class="mb-3">
+        <v-col cols="12" md="6">
+          <StorageCard
+            ref="storageCard"
+            :hide-assets-used="true"
+            :hide-overlay-used="true"
+          />
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <UploadCard
+            ref="uploadCard"
+            :label="$t('musicPlaylist.addSongs')"
+            :drop-label="$t('file.dropFiles')"
+            icon="mdi-music"
+            accept=".mp3,.flac,.wav,.ogg,.m4a,.opus,audio/*"
+            :loading="uploading"
+            @upload="uploadMusicFiles"
+          />
+        </v-col>
+      </v-row>
 
       <v-divider class="my-4" />
 
@@ -121,6 +130,8 @@
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import eventBus from '@/eventBus'
+import StorageCard from '@/components/cards/StorageCard.vue'
+import UploadCard from '@/components/cards/UploadCard.vue'
 
 type MusicPlaylistItem = {
   filename?: string
@@ -133,11 +144,14 @@ type MusicPlaylistItem = {
 }
 
 export default {
+  components: {
+    StorageCard,
+    UploadCard,
+  },
+
   data() {
     return {
       files: [] as MusicPlaylistItem[],
-      uploadFiles: [] as File[],
-      fileInputKey: 0,
       loading: false,
       uploading: false,
       startIndex: 0,
@@ -179,6 +193,12 @@ export default {
   },
 
   methods: {
+    refreshStorageCard() {
+      this.$nextTick(() => {
+        ;(this.$refs.storageCard as any)?.fetchStorageInfo?.()
+      })
+    },
+
     async fetchFiles(startIndex: number | null = null, mode: 'replace' | 'append' | 'prepend' = 'replace') {
       if (this.loading && mode !== 'replace') return
 
@@ -234,6 +254,7 @@ export default {
         if (requestSequence === this.playlistRequestSequence) {
           this.loading = false
           this.searching = false
+          this.refreshStorageCard()
         }
       }
     },
@@ -364,8 +385,7 @@ export default {
       if (selectedFiles.length === 0) return
 
       if (selectedFiles.length > 30) {
-        this.uploadFiles = []
-        this.fileInputKey += 1
+        ;(this.$refs.uploadCard as any)?.reset()
         return
       }
 
@@ -383,8 +403,7 @@ export default {
 
         await this.requestMusicWebsocket('music_playlist_add', { files }, 60_000)
 
-        this.uploadFiles = []
-        this.fileInputKey += 1
+        ;(this.$refs.uploadCard as any)?.reset()
 
         await this.fetchFiles(this.getNormalizedSearchQuery().length >= 2 ? 0 : this.startIndex, 'replace')
       } catch (error) {
