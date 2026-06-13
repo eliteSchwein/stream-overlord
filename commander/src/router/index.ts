@@ -15,9 +15,16 @@ const assetsRoute = {
   component: () => import('@/pages/assets.vue'),
 }
 
+const overlayRoute = {
+  path: '/overlay/:overlayPath(.*)*',
+  name: 'overlay-path',
+  component: () => import('@/pages/overlay.vue'),
+}
+
 const appRoutes = [
   assetsRoute,
-  ...routes.filter((route) => route.path !== '/assets'),
+  overlayRoute,
+  ...routes.filter((route) => !['/assets', '/overlay'].includes(route.path)),
 ]
 
 const router = createRouter({

@@ -112,6 +112,7 @@
                   theme="vs-dark"
                   height="100%"
                   :options="editorOptions"
+                  @mount="handleEditorMount"
                 />
               </div>
             </v-card>
@@ -234,6 +235,10 @@ export default {
       previewMode: 'rendered',
       cacheBust: Date.now(),
       rawPreviewKey: 0,
+      monacoInstance: null as any,
+      templatePathSuggestions: [] as string[],
+      completionProvider: [] as any[],
+      assetPathSuggestions: [] as string[],
       previewPresets: [
         { titleKey: 'overlay.previewPresets.4kHorizontal', title: '4K horizontal', value: '3840x2160', width: 3840, height: 2160 },
         { titleKey: 'overlay.previewPresets.1440pHorizontal', title: '1440p horizontal', value: '2560x1440', width: 2560, height: 1440 },
@@ -333,6 +338,13 @@ export default {
         bracketPairColorization: {
           enabled: true,
         },
+        quickSuggestions: {
+          other: true,
+          comments: false,
+          strings: true,
+        },
+        quickSuggestionsDelay: 50,
+        suggestOnTriggerCharacters: true,
         readOnly: this.loading || this.saving,
       }
     },
@@ -420,7 +432,213 @@ export default {
     },
   },
 
+  beforeUnmount() {
+    this.disposeCompletionProviders()
+  },
+
   methods: {
+    async handleEditorMount(editor: any, monaco: any) {
+      this.monacoInstance = monaco
+
+      this.registerCompletionProviders()
+
+      void this.loadTemplatePathSuggestions()
+    },
+
+    async loadTemplatePathSuggestions(path = '') {
+      const visited = new Set<string>()
+      const suggestions = new Set<string>()
+
+      const loadPath = async (currentPath: string) => {
+        const normalizedCurrentPath = this.normalizePath(currentPath)
+        if (visited.has(normalizedCurrentPath)) return
+
+        visited.add(normalizedCurrentPath)
+
+        const response = await this.requestWebsocket('overlay_list', { path: normalizedCurrentPath })
+        const data = response?.data ?? response
+
+        if (data?.error) throw new Error(data.error)
+
+        const files = Array.isArray(data?.files) ? data.files : []
+
+        await Promise.all(files.map(async (file: FileEntry) => {
+          const filePath = this.normalizePath(file.path || [normalizedCurrentPath, file.name].filter(Boolean).join('/'))
+
+          if (!filePath) return
+
+          if (file.type === 'folder') {
+            await loadPath(filePath)
+            return
+          }
+
+          if (/\.html?$/i.test(filePath)) {
+            suggestions.add(filePath)
+          }
+        }))
+      }
+
+      try {
+        await loadPath(path)
+        this.templatePathSuggestions = Array.from(suggestions).sort((a, b) => a.localeCompare(b))
+      } catch (error) {
+        console.error('loading template path suggestions failed', error)
+      }
+    },
+
+    async loadAssetPathSuggestions(path = '') {
+      const suggestions = new Set<string>()
+      const normalizedPath = this.normalizePath(path)
+
+      const addAssetSuggestions = (filePath: string) => {
+        const normalized = this.normalizePath(filePath)
+        if (!normalized) return
+
+        if (!normalized.startsWith('compressed/')) {
+          suggestions.add(`/compressed/${normalized}`)
+        }
+
+        suggestions.add(`/${normalized}`)
+      }
+
+      try {
+        const data = await this.requestListWithFallback('assets_list', 'assets/list', normalizedPath)
+        const files = Array.isArray(data?.files) ? data.files : []
+
+        files.forEach((file: FileEntry) => {
+          const filePath = this.normalizePath(file.path || [normalizedPath, file.name].filter(Boolean).join('/'))
+
+          if (!filePath || file.type === 'folder') return
+
+          addAssetSuggestions(filePath)
+        })
+
+        this.assetPathSuggestions = Array.from(suggestions).sort((a, b) => {
+          const aCompressed = a.startsWith('/compressed/')
+          const bCompressed = b.startsWith('/compressed/')
+
+          if (aCompressed !== bCompressed) return aCompressed ? -1 : 1
+
+          return a.localeCompare(b)
+        })
+      } catch (error) {
+        console.error('loading asset path suggestions failed', error)
+      }
+    },
+
+    async ensureAssetPathSuggestions() {
+      if (this.assetPathSuggestions.length > 0) return
+
+      await this.loadAssetPathSuggestions('')
+    },
+
+    async requestListWithFallback(method: string, restEndpoint: string, path = '') {
+      try {
+        const response = await this.requestWebsocket(method, { path }, 5_000)
+        const data = response?.data ?? response
+
+        if (data?.error) throw new Error(data.error)
+
+        return data
+      } catch (websocketError) {
+        const base = String(this.getRestApi || '').replace(/\/+$/, '')
+        const endpoint = restEndpoint.replace(/^\/+/, '')
+        const response = await fetch(`${base}/${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ path }),
+        })
+
+        if (!response.ok) {
+          throw websocketError
+        }
+
+        const data = await response.json()
+
+        if (data?.error) throw new Error(data.error)
+
+        return data?.data ?? data
+      }
+    },
+
+    registerCompletionProviders() {
+      if (!this.monacoInstance) return
+
+      this.disposeCompletionProviders()
+
+      const provider = {
+        triggerCharacters: ['"', "'", '/', '(', '=', ' ', ':'],
+
+        provideCompletionItems: async (model: any, position: any) => {
+          const textUntilPosition = model.getValueInRange({
+            startLineNumber: position.lineNumber,
+            startColumn: 1,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          })
+
+          const templateMatch = textUntilPosition.match(/<template\b[^>]*\bpath=(["'])([^"']*)$/i)
+          if (templateMatch) {
+            const currentValue = templateMatch[2] || ''
+            const startColumn = position.column - currentValue.length
+
+            return {
+              suggestions: this.templatePathSuggestions.map((path: string) => ({
+                label: path,
+                kind: this.monacoInstance.languages.CompletionItemKind.File,
+                insertText: path,
+                detail: 'Overlay template',
+                range: {
+                  startLineNumber: position.lineNumber,
+                  endLineNumber: position.lineNumber,
+                  startColumn,
+                  endColumn: position.column,
+                },
+              })),
+            }
+          }
+
+          const assetMatch =
+            textUntilPosition.match(/<(?:img|image|video|source|audio|iframe|embed|track|script)\b[^>]*\bsrc=(["'])([^"']*)$/i) ||
+            textUntilPosition.match(/\bbackground(?:-image)?\s*:\s*(?:url\(\s*)?\(?\s*(["']?)([^"')\s]*)$/i)
+
+          if (!assetMatch) return { suggestions: [] }
+
+          await this.ensureAssetPathSuggestions()
+
+          const currentValue = assetMatch[2] || ''
+          const startColumn = position.column - currentValue.length
+
+          return {
+            suggestions: this.assetPathSuggestions.map((path: string) => ({
+              label: path,
+              kind: this.monacoInstance.languages.CompletionItemKind.File,
+              insertText: path,
+              detail: path.startsWith('/compressed/') ? 'Compressed asset' : 'Asset',
+              sortText: `${path.startsWith('/compressed/') ? '0' : '1'}_${path}`,
+              range: {
+                startLineNumber: position.lineNumber,
+                endLineNumber: position.lineNumber,
+                startColumn,
+                endColumn: position.column,
+              },
+            })),
+          }
+        },
+      }
+
+      this.completionProvider = ['html', 'css'].map((language: string) => (
+        this.monacoInstance.languages.registerCompletionItemProvider(language, provider)
+      ))
+    },
+
+    disposeCompletionProviders() {
+      this.completionProvider.forEach((provider: any) => provider?.dispose?.())
+      this.completionProvider = []
+    },
+
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
       return new Promise((resolve, reject) => {
         eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
