@@ -256,7 +256,8 @@
     "delete": "Delete",
     "folderUp": "Parent folder",
     "dropFiles": "Drop Files here to upload",
-    "noFoldersFound": "No Folders found"
+    "noFoldersFound": "No Folders found",
+    "noPresetsFound": "No presets found"
   },
   "variables": {
     "title": "Variables",
@@ -289,6 +290,19 @@
     "previewMode": "Preview mode",
     "previewPreset": "Preview preset",
     "previewWidth": "Preview width",
-    "previewHeight": "Preview height"
+    "previewHeight": "Preview height",
+    "previewPresets": {
+      "4kHorizontal": "4K horizontal",
+      "1440pHorizontal": "1440p horizontal",
+      "1080pHorizontal": "1080p horizontal",
+      "1080pVertical": "1080p vertical",
+      "720pHorizontal": "720p horizontal",
+      "720pVertical": "720p vertical",
+      "custom": "Custom"
+    },
+    "previewModes": {
+      "rendered": "Rendered saved file",
+      "raw": "Raw unsaved HTML"
+    }
   }
 }

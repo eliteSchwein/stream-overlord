@@ -9,7 +9,7 @@
       <v-toolbar flat density="compact">
         <v-toolbar-title class="d-flex align-center min-width-0">
           <v-icon icon="mdi-application-edit-outline" class="mr-2" />
-          <span class="text-truncate">{{ entry?.path || title }}</span>
+          <span class="text-truncate">{{ entry?.path || displayTitle }}</span>
         </v-toolbar-title>
 
         <v-btn
@@ -27,7 +27,7 @@
           :disabled="!entry?.path || loading"
           @click="saveFile"
         >
-          {{ saveLabel }}
+          {{ displaySaveLabel }}
         </v-btn>
 
         <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)" />
@@ -47,7 +47,7 @@
           <v-col cols="12" md="3">
             <v-text-field
               v-model.number="previewWidth"
-              :label="widthLabel"
+              :label="displayWidthLabel"
               type="number"
               min="1"
               variant="outlined"
@@ -59,7 +59,7 @@
           <v-col cols="12" md="3">
             <v-text-field
               v-model.number="previewHeight"
-              :label="heightLabel"
+              :label="displayHeightLabel"
               type="number"
               min="1"
               variant="outlined"
@@ -71,10 +71,10 @@
           <v-col cols="12" md="3">
             <v-select
               v-model="previewPreset"
-              :items="previewPresets"
+              :items="localizedPreviewPresets"
               item-title="title"
               item-value="value"
-              :label="presetLabel"
+              :label="displayPresetLabel"
               variant="outlined"
               density="compact"
               hide-details
@@ -85,10 +85,10 @@
           <v-col cols="12" md="3">
             <v-select
               v-model="previewMode"
-              :items="previewModes"
+              :items="localizedPreviewModes"
               item-title="title"
               item-value="value"
-              :label="previewModeLabel"
+              :label="displayPreviewModeLabel"
               variant="outlined"
               density="compact"
               hide-details
@@ -100,7 +100,7 @@
           <v-col cols="12" lg="6" class="overlay-editor-dialog__pane">
             <v-card color="grey-darken-3" variant="flat" class="h-100 d-flex flex-column">
               <v-card-title class="py-2 d-flex align-center justify-space-between">
-                <span class="text-subtitle-2">{{ codeLabel }}</span>
+                <span class="text-subtitle-2">{{ displayCodeLabel }}</span>
                 <v-chip size="small" variant="tonal">{{ editorLanguage }}</v-chip>
               </v-card-title>
               <v-divider />
@@ -121,7 +121,7 @@
             <v-card color="grey-darken-3" variant="flat" class="h-100 d-flex flex-column">
               <v-card-title class="py-2 d-flex align-center justify-space-between">
                 <div>
-                  <div class="text-subtitle-2">{{ previewLabel }}</div>
+                  <div class="text-subtitle-2">{{ displayPreviewLabel }}</div>
                   <div class="text-caption text-grey-lighten-1">
                     {{ previewWidth }} × {{ previewHeight }} · {{ aspectRatioLabel }}
                   </div>
@@ -135,7 +135,7 @@
                   target="_blank"
                   :disabled="!renderedPreviewUrl"
                 >
-                  {{ openLabel }}
+                  {{ displayOpenLabel }}
                 </v-btn>
               </v-card-title>
               <v-divider />
@@ -169,7 +169,7 @@
                 color="amber-darken-4"
                 density="compact"
                 class="ma-3 mt-0"
-                :text="templateWarningLabel"
+                :text="displayTemplateWarningLabel"
               />
             </v-card>
           </v-col>
@@ -204,18 +204,18 @@ export default {
     readMethod: { type: String, default: 'overlays_read_text' },
     updateMethod: { type: String, default: 'overlays_update_text' },
     publicPrefix: { type: String, default: '' },
-    title: { type: String, default: 'Overlay editor' },
-    saveLabel: { type: String, default: 'Save' },
-    codeLabel: { type: String, default: 'Code' },
-    previewLabel: { type: String, default: 'Preview' },
-    widthLabel: { type: String, default: 'Width' },
-    heightLabel: { type: String, default: 'Height' },
-    presetLabel: { type: String, default: 'Preset' },
-    previewModeLabel: { type: String, default: 'Preview mode' },
-    openLabel: { type: String, default: 'Open' },
+    title: { type: String, default: '' },
+    saveLabel: { type: String, default: '' },
+    codeLabel: { type: String, default: '' },
+    previewLabel: { type: String, default: '' },
+    widthLabel: { type: String, default: '' },
+    heightLabel: { type: String, default: '' },
+    presetLabel: { type: String, default: '' },
+    previewModeLabel: { type: String, default: '' },
+    openLabel: { type: String, default: '' },
     templateWarningLabel: {
       type: String,
-      default: 'Raw preview does not expand <template path="..."> tags. Save and use rendered preview for the real overlay output.',
+      default: '',
     },
   },
 
@@ -235,23 +235,77 @@ export default {
       cacheBust: Date.now(),
       rawPreviewKey: 0,
       previewPresets: [
-        { title: '4K horizontal', value: '3840x2160', width: 3840, height: 2160 },
-        { title: '1440p horizontal', value: '2560x1440', width: 2560, height: 1440 },
-        { title: '1080p horizontal', value: '1920x1080', width: 1920, height: 1080 },
-        { title: '1080p vertical', value: '1080x1920', width: 1080, height: 1920 },
-        { title: '720p horizontal', value: '1280x720', width: 1280, height: 720 },
-        { title: '720p vertical', value: '720x1280', width: 720, height: 1280 },
-        { title: 'Custom', value: 'custom', width: null, height: null },
+        { titleKey: 'overlay.previewPresets.4kHorizontal', title: '4K horizontal', value: '3840x2160', width: 3840, height: 2160 },
+        { titleKey: 'overlay.previewPresets.1440pHorizontal', title: '1440p horizontal', value: '2560x1440', width: 2560, height: 1440 },
+        { titleKey: 'overlay.previewPresets.1080pHorizontal', title: '1080p horizontal', value: '1920x1080', width: 1920, height: 1080 },
+        { titleKey: 'overlay.previewPresets.1080pVertical', title: '1080p vertical', value: '1080x1920', width: 1080, height: 1920 },
+        { titleKey: 'overlay.previewPresets.720pHorizontal', title: '720p horizontal', value: '1280x720', width: 1280, height: 720 },
+        { titleKey: 'overlay.previewPresets.720pVertical', title: '720p vertical', value: '720x1280', width: 720, height: 1280 },
+        { titleKey: 'overlay.previewPresets.custom', title: 'Custom', value: 'custom', width: null, height: null },
       ],
       previewModes: [
-        { title: 'Rendered saved file', value: 'rendered' },
-        { title: 'Raw unsaved HTML', value: 'raw' },
+        { titleKey: 'overlay.previewModes.rendered', title: 'Rendered saved file', value: 'rendered' },
+        { titleKey: 'overlay.previewModes.raw', title: 'Raw unsaved HTML', value: 'raw' },
       ],
     }
   },
 
   computed: {
     ...mapState(useAppStore, ['getRestApi']),
+
+    displayTitle(): string {
+      return this.title || this.$t('overlay.editor')
+    },
+
+    displaySaveLabel(): string {
+      return this.saveLabel || this.$t('common.save')
+    },
+
+    displayCodeLabel(): string {
+      return this.codeLabel || this.$t('overlay.code')
+    },
+
+    displayPreviewLabel(): string {
+      return this.previewLabel || this.$t('overlay.preview')
+    },
+
+    displayWidthLabel(): string {
+      return this.widthLabel || this.$t('overlay.previewWidth')
+    },
+
+    displayHeightLabel(): string {
+      return this.heightLabel || this.$t('overlay.previewHeight')
+    },
+
+    displayPresetLabel(): string {
+      return this.presetLabel || this.$t('overlay.previewPreset')
+    },
+
+    displayPreviewModeLabel(): string {
+      return this.previewModeLabel || this.$t('overlay.previewMode')
+    },
+
+    displayOpenLabel(): string {
+      return this.openLabel || this.$t('overlay.open')
+    },
+
+    displayTemplateWarningLabel(): string {
+      return this.templateWarningLabel || this.$t('overlay.templatePreviewWarning')
+    },
+
+    localizedPreviewPresets(): any[] {
+      return this.previewPresets.map((item: any) => ({
+        ...item,
+        title: this.$t(item.titleKey),
+      }))
+    },
+
+    localizedPreviewModes(): any[] {
+      return this.previewModes.map((item: any) => ({
+        ...item,
+        title: this.$t(item.titleKey),
+      }))
+    },
 
     editorLanguage(): string {
       const ext = this.extension

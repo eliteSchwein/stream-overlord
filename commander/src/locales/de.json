@@ -247,14 +247,17 @@
   },
   "common": {
     "cancel": "Abbrechen",
-    "target": "Ziel"
+    "target": "Ziel",
+    "save": "Speichern"
   },
   "file": {
     "name": "Dateiname",
     "folder": "Ordner",
     "delete": "Löschen",
     "folderUp": "Übergeordneter Ordner",
-    "dropFiles": "Dateien hier ablegen, um sie hochzuladen"
+    "dropFiles": "Dateien hier ablegen, um sie hochzuladen",
+    "noFoldersFound": "Keine Ordner gefunden",
+    "noPresetsFound": "Keine Presets gefunden"
   },
   "variables": {
     "title": "Variablen",
@@ -287,6 +290,19 @@
     "previewMode": "Vorschaumodus",
     "previewPreset": "Vorschau-Preset",
     "previewWidth": "Vorschau-Breite",
-    "previewHeight": "Vorschau-Höhe"
+    "previewHeight": "Vorschau-Höhe",
+    "previewPresets": {
+      "4kHorizontal": "4K horizontal",
+      "1440pHorizontal": "1440p horizontal",
+      "1080pHorizontal": "1080p horizontal",
+      "1080pVertical": "1080p vertikal",
+      "720pHorizontal": "720p horizontal",
+      "720pVertical": "720p vertikal",
+      "custom": "Benutzerdefiniert"
+    },
+    "previewModes": {
+      "rendered": "Gerenderte gespeicherte Datei",
+      "raw": "Rohes ungespeichertes HTML"
+    }
   }
 }

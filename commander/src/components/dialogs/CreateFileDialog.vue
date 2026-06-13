@@ -7,7 +7,7 @@
     <v-card color="grey-darken-4">
       <v-card-title class="d-flex align-center ga-2">
         <v-icon :icon="icon" />
-        <span>{{ title || $t('file.createFile') }}</span>
+        <span>{{ title || $t('overlay.createFile') }}</span>
       </v-card-title>
 
       <v-card-text>
@@ -27,7 +27,7 @@
           v-if="presetItems.length"
           v-model="selectedPreset"
           :items="presetItems"
-          :label="presetLabel || $t('file.preset')"
+          :label="presetLabel || $t('overlay.previewPreset')"
           variant="outlined"
           density="compact"
           hide-details="auto"
@@ -51,7 +51,7 @@
           variant="text"
           @click="close"
         >
-          {{ cancelLabel || $t('actions.cancel') }}
+          {{ cancelLabel || $t('common.cancel') }}
         </v-btn>
 
         <v-btn
@@ -61,7 +61,7 @@
           :disabled="!canCreate"
           @click="createFile"
         >
-          {{ createLabel || $t('actions.create') }}
+          {{ createLabel || $t('overlay.createFile') }}
         </v-btn>
       </v-card-actions>
     </v-card>
