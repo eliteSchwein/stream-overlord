@@ -1,0 +1,5 @@
+apis: []
+tasks:
+  - channel: alert
+    message: ${event.gifterDisplayName} schenkt ${event.userDisplayName} ein Abo auf Stufe ${plan}
+    asset: sub

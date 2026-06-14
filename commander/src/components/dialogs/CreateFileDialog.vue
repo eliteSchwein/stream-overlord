@@ -71,7 +71,7 @@
 <script lang="ts">
 import eventBus from '@/eventBus'
 
-const presetFiles = import.meta.glob('../../presets/**/*.html', {
+const presetFiles = import.meta.glob('../../presets/**/*.{html,yaml,yml}', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -173,7 +173,7 @@ export default {
         .filter((file) => file.includes(`/presets/${folder}/`))
         .sort((a, b) => a.localeCompare(b))
         .map((file) => {
-          const presetName = file.split('/').pop()?.replace(/\.html$/i, '') ?? file
+          const presetName = file.split('/').pop()?.replace(/\.(html|ya?ml)$/i, '') ?? file
 
           return {
             title: this.formatPresetName(presetName),

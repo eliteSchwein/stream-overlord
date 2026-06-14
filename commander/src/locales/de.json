@@ -243,12 +243,15 @@
     "storageTotal": "Gesamtspeicher",
     "assetsUsed": "Von Assets belegt",
     "overlayUsed": "Von Überlagerungen belegt",
-    "musicUsed": "Von Musik belegt"
+    "musicUsed": "Von Musik belegt",
+    "macroUsed": "Von Markos belegt"
   },
   "common": {
     "cancel": "Abbrechen",
     "target": "Ziel",
-    "save": "Speichern"
+    "save": "Speichern",
+    "edit": "Bearbeiten",
+    "delete": "Löschen"
   },
   "file": {
     "name": "Dateiname",

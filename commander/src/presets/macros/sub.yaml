@@ -1,0 +1,5 @@
+apis: []
+tasks:
+  - channel: alert
+    message: ${event.userDisplayName} abonniert im ${event.months}. Monat auf Stufe ${plan}
+    asset: sub

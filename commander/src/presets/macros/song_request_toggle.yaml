@@ -1,0 +1,9 @@
+apis: []
+tasks:
+  - channel: function
+    method: song_request_toggle
+    data: {}
+  - channel: function
+    method: send_message
+    data:
+      content: 'Songrequests: ${songrequest.enabled}'

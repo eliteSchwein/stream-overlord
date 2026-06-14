@@ -1,0 +1,5 @@
+apis: []
+tasks:
+  - channel: alert
+    message: ${event.count} subs gifted from ${event.gifterDisplayName} on tier ${plan}
+    asset: sub

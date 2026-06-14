@@ -1,0 +1,1 @@
+import{At as e,Ft as t,Xt as n}from"./dimensions-ByyfAtul.js";import{E as r,M as i}from"./index-BONQMO2v.js";var a=t({__name:`CopyButton`,props:[`content`],setup(t){function a(e){i.$emit(`config:write`,e)}return(i,o)=>(n(),e(r,{icon:`mdi-content-copy`,size:`x-small`,onClick:o[0]||=e=>a(t.content)}))}});export{a as t};

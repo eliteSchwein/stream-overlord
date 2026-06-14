@@ -1,0 +1,5 @@
+apis: []
+tasks:
+  - channel: alert
+    message: ${event.userDisplayName} folgt nun
+    asset: follow

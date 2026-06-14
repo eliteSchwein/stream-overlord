@@ -1,4 +1,7 @@
-import {getAssetConfig, getConfig, getPrimaryChannel} from "./ConfigHelper";
+import {getAssetConfig, getConfig, getPrimaryChannel, getSystemConfigDirectory} from "./ConfigHelper";
+import fs from "fs";
+import path from "path";
+import * as yaml from "js-yaml";
 import getWebsocketServer, {getOBSClient, getTwitchClient, getYoloboxClient} from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
@@ -29,8 +32,516 @@ import {
     toggleMusicShuffle, togglePause,
     toggleSongRequest,
 } from "./MusicHelper";
+import {redis} from "../clients/redis/Redis";
 
 let macros: any = {};
+
+const MACRO_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
+
+
+const macroRawMemoryCache = new Map<string, string>();
+
+function getMacroCacheKey(name: string) {
+    return `macro_${name}`;
+}
+
+function getMacroCacheNameFromContent(filePath: string, content: string) {
+    try {
+        const extension = path.extname(filePath).toLowerCase();
+        const macroConfig = extension === ".json"
+            ? JSON.parse(content)
+            : yaml.load(content) ?? {};
+
+        return (macroConfig as any)?.name ?? getMacroNameFromFile(filePath);
+    } catch (error) {
+        return getMacroNameFromFile(filePath);
+    }
+}
+
+function updateMacroRawCache(name: string, content: string) {
+    if (!name) return;
+
+    const cacheKey = getMacroCacheKey(name);
+    macroRawMemoryCache.set(cacheKey, content);
+
+    Promise.resolve(redis.setVariable(cacheKey, content)).catch((error: any) => {
+        logWarn(`failed to update macro cache ${cacheKey}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    });
+}
+
+function deleteMacroRawCache(name: string) {
+    if (!name) return;
+
+    const cacheKey = getMacroCacheKey(name);
+    macroRawMemoryCache.delete(cacheKey);
+
+    Promise.resolve(redis.deleteVariable(cacheKey)).catch((error: any) => {
+        logWarn(`failed to delete macro cache ${cacheKey}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    });
+}
+
+function warmMacroRawCacheFromRedis(name: string) {
+    if (!name) return;
+
+    const cacheKey = getMacroCacheKey(name);
+
+    Promise.resolve(redis.getVariable(cacheKey)).then((content: string | null | undefined) => {
+        if (typeof content === "string") {
+            macroRawMemoryCache.set(cacheKey, content);
+        }
+    }).catch((error: any) => {
+        logWarn(`failed to read macro cache ${cacheKey}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    });
+}
+
+function readMacroRawContent(filePath: string) {
+    const content = fs.readFileSync(filePath, "utf8");
+    updateMacroRawCache(getMacroCacheNameFromContent(filePath, content), content);
+    return content;
+}
+
+async function readMacroRawContentCached(filePath: string) {
+    const fileNameMacroName = getMacroNameFromFile(filePath);
+    const fileNameCacheKey = getMacroCacheKey(fileNameMacroName);
+    const memoryCachedFileContent = macroRawMemoryCache.get(fileNameCacheKey);
+
+    if (memoryCachedFileContent !== undefined) {
+        return memoryCachedFileContent;
+    }
+
+    try {
+        const redisCachedFileContent = await redis.getVariable(fileNameCacheKey);
+
+        if (typeof redisCachedFileContent === "string") {
+            macroRawMemoryCache.set(fileNameCacheKey, redisCachedFileContent);
+            return redisCachedFileContent;
+        }
+    } catch (error: any) {
+        logWarn(`failed to read macro cache ${fileNameCacheKey}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+
+    const content = fs.readFileSync(filePath, "utf8");
+    const macroName = getMacroCacheNameFromContent(filePath, content);
+    const macroCacheKey = getMacroCacheKey(macroName);
+
+    if (macroCacheKey !== fileNameCacheKey) {
+        const memoryCachedMacroContent = macroRawMemoryCache.get(macroCacheKey);
+
+        if (memoryCachedMacroContent !== undefined) {
+            return memoryCachedMacroContent;
+        }
+
+        try {
+            const redisCachedMacroContent = await redis.getVariable(macroCacheKey);
+
+            if (typeof redisCachedMacroContent === "string") {
+                macroRawMemoryCache.set(macroCacheKey, redisCachedMacroContent);
+                return redisCachedMacroContent;
+            }
+        } catch (error: any) {
+            logWarn(`failed to read macro cache ${macroCacheKey}`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+    }
+
+    updateMacroRawCache(macroName, content);
+
+    return content;
+}
+
+type MacroFileEntry = {
+    name: string;
+    path: string;
+    type: "file" | "directory";
+    extension?: string;
+};
+
+export function getMacroDirectory() {
+    return path.join(getSystemConfigDirectory(), "macros");
+}
+
+function ensureMacroDirectory() {
+    fs.mkdirSync(getMacroDirectory(), {recursive: true});
+}
+
+function normalizeMacroPath(inputPath: string = "") {
+    const normalized = path.normalize(inputPath).replace(/^([/\\])+/, "");
+
+    if (normalized === ".") return "";
+
+    if (normalized.split(path.sep).includes("..")) {
+        throw new Error("invalid macro path");
+    }
+
+    return normalized;
+}
+
+function resolveMacroPath(inputPath: string = "") {
+    ensureMacroDirectory();
+
+    const macroDirectory = getMacroDirectory();
+    const resolvedPath = path.resolve(macroDirectory, normalizeMacroPath(inputPath));
+
+    if (resolvedPath !== macroDirectory && !resolvedPath.startsWith(`${macroDirectory}${path.sep}`)) {
+        throw new Error("invalid macro path");
+    }
+
+    return resolvedPath;
+}
+
+function isMacroFile(filePath: string) {
+    return MACRO_FILE_EXTENSIONS.includes(path.extname(filePath).toLowerCase());
+}
+
+function getMacroNameFromFile(filePath: string) {
+    return path.basename(filePath, path.extname(filePath));
+}
+
+function parseMacroConfigContent(filePath: string, content: string) {
+    const extension = path.extname(filePath).toLowerCase();
+
+    if (extension === ".json") {
+        return JSON.parse(content);
+    }
+
+    return yaml.load(content) ?? {};
+}
+
+function readMacroConfigFile(filePath: string) {
+    return parseMacroConfigContent(filePath, readMacroRawContent(filePath));
+}
+
+function walkMacroFiles(directory: string): string[] {
+    if (!fs.existsSync(directory)) return [];
+
+    const result: string[] = [];
+
+    for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
+        const entryPath = path.join(directory, entry.name);
+
+        if (entry.isDirectory()) {
+            result.push(...walkMacroFiles(entryPath));
+            continue;
+        }
+
+        if (entry.isFile() && isMacroFile(entryPath)) {
+            result.push(entryPath);
+        }
+    }
+
+    return result;
+}
+
+
+function sanitizeMacroFileName(name: string) {
+    return String(name)
+        .trim()
+        .replace(/[\\/]+/g, "_")
+        .replace(/[^a-zA-Z0-9_.-]+/g, "_")
+        .replace(/^\.+/, "")
+        || "macro";
+}
+
+function getMacroFilePathForName(name: string) {
+    return path.join(getMacroDirectory(), `${sanitizeMacroFileName(name)}.yaml`);
+}
+
+
+function findMacroFileByName(name: string): string | undefined {
+    ensureMacroDirectory();
+
+    for (const filePath of walkMacroFiles(getMacroDirectory())) {
+        try {
+            const macroConfig = readMacroConfigFile(filePath) as any;
+            const macroName = macroConfig?.name ?? getMacroNameFromFile(filePath);
+
+            if (macroName === name || getMacroNameFromFile(filePath) === name) {
+                return filePath;
+            }
+        } catch (error) {
+            logWarn(`failed to inspect macro file ${filePath}`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+    }
+
+    return undefined;
+}
+
+function resolveExistingMacroFile(inputPathOrName: string = "") {
+    if (!inputPathOrName) {
+        throw new Error("macro path or name is required");
+    }
+
+    const normalized = normalizeMacroPath(inputPathOrName);
+    const directPath = resolveMacroPath(normalized);
+
+    if (fs.existsSync(directPath)) {
+        return directPath;
+    }
+
+    if (!path.extname(normalized)) {
+        const yamlPath = resolveMacroPath(`${normalized}.yaml`);
+        if (fs.existsSync(yamlPath)) return yamlPath;
+
+        const ymlPath = resolveMacroPath(`${normalized}.yml`);
+        if (fs.existsSync(ymlPath)) return ymlPath;
+
+        const jsonPath = resolveMacroPath(`${normalized}.json`);
+        if (fs.existsSync(jsonPath)) return jsonPath;
+
+        const namedFilePath = findMacroFileByName(normalized);
+        if (namedFilePath) return namedFilePath;
+    }
+
+    throw new Error("macro file not found");
+}
+
+function resolveEditableMacroFile(inputPathOrName: string = "") {
+    if (!inputPathOrName) {
+        throw new Error("macro path or name is required");
+    }
+
+    try {
+        return resolveExistingMacroFile(inputPathOrName);
+    } catch (error) {
+        const normalized = normalizeMacroPath(inputPathOrName);
+
+        if (!path.extname(normalized)) {
+            return resolveMacroPath(`${sanitizeMacroFileName(normalized)}.yaml`);
+        }
+
+        return resolveMacroPath(normalized);
+    }
+}
+
+function relativeMacroPath(filePath: string) {
+    return path.relative(getMacroDirectory(), filePath).replace(/\\/g, "/");
+}
+
+function isMacroAlreadyStoredAsFile(name: string) {
+    const macroDirectory = getMacroDirectory();
+
+    for (const filePath of walkMacroFiles(macroDirectory)) {
+        try {
+            const macroConfig = readMacroConfigFile(filePath) as any;
+            const macroName = macroConfig?.name ?? getMacroNameFromFile(filePath);
+
+            if (macroName === name) {
+                return true;
+            }
+        } catch (error) {
+            logWarn(`failed to check macro file ${filePath}`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+    }
+
+    return false;
+}
+
+function migrateConfigMacrosToFiles() {
+    ensureMacroDirectory();
+
+    const configMacros = getConfig(/^macro /g, true);
+    let migrated = 0;
+
+    for (const macroName in configMacros) {
+        if (isMacroAlreadyStoredAsFile(macroName)) {
+            continue;
+        }
+
+        const macroConfig = configMacros[macroName] ?? {};
+        const filePath = getMacroFilePathForName(macroName);
+
+        if (fs.existsSync(filePath)) {
+            logWarn(`macro migration skipped ${macroName}: ${path.basename(filePath)} already exists`);
+            continue;
+        }
+
+        const fileContent = yaml.dump({
+            apis: macroConfig.apis ?? [],
+            tasks: macroConfig.tasks ?? [],
+        }, {
+            noRefs: true,
+            lineWidth: -1,
+            sortKeys: false,
+        });
+
+        fs.writeFileSync(filePath, fileContent, "utf8");
+        updateMacroRawCache(macroName, fileContent);
+        migrated++;
+
+        logRegular(`migrated config macro ${macroName} to ${path.relative(getSystemConfigDirectory(), filePath)}`);
+    }
+
+    if (migrated > 0) {
+        logNotice(`migrated ${migrated} config macro${migrated === 1 ? "" : "s"} to yaml files`);
+    }
+}
+
+function loadMacrosFromFiles() {
+    ensureMacroDirectory();
+
+    for (const filePath of walkMacroFiles(getMacroDirectory())) {
+        try {
+            const macroConfig = readMacroConfigFile(filePath) as any;
+            const macroName = macroConfig?.name ?? getMacroNameFromFile(filePath);
+
+            if (!macroName) continue;
+
+            macros[macroName] = {
+                apis: macroConfig?.apis ?? [],
+                tasks: macroConfig?.tasks ?? [],
+                file: relativeMacroPath(filePath),
+            };
+        } catch (error) {
+            logWarn(`failed to load macro file ${filePath}`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+    }
+}
+
+export function listMacroFiles(inputPath: string = ""): MacroFileEntry[] {
+    const directory = resolveMacroPath(inputPath);
+
+    if (!fs.existsSync(directory)) {
+        return [];
+    }
+
+    if (!fs.statSync(directory).isDirectory()) {
+        throw new Error("macro path is not a directory");
+    }
+
+    return fs.readdirSync(directory, {withFileTypes: true})
+        .filter(entry => entry.isDirectory() || (entry.isFile() && isMacroFile(entry.name)))
+        .map(entry => ({
+            name: entry.name,
+            path: path.join(normalizeMacroPath(inputPath), entry.name).replace(/\\/g, "/"),
+            type: entry.isDirectory() ? "directory" : "file",
+            extension: entry.isFile() ? path.extname(entry.name).replace(/^\./, "") : undefined,
+        }))
+        .sort((a, b) => {
+            if (a.type !== b.type) return a.type === "directory" ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        });
+}
+
+export async function readMacroFile(inputPathOrName: string) {
+    const filePath = resolveExistingMacroFile(inputPathOrName);
+
+    if (!fs.statSync(filePath).isFile()) {
+        throw new Error("macro file not found");
+    }
+
+    if (!isMacroFile(filePath)) {
+        throw new Error("unsupported macro file type");
+    }
+
+    return {
+        path: relativeMacroPath(filePath),
+        content: await readMacroRawContentCached(filePath),
+    };
+}
+
+export function editMacroFile(inputPathOrName: string, content: string) {
+    const filePath = resolveEditableMacroFile(inputPathOrName);
+
+    if (!isMacroFile(filePath)) {
+        throw new Error("macro file must be .yaml, .yml or .json");
+    }
+
+    fs.mkdirSync(path.dirname(filePath), {recursive: true});
+    fs.writeFileSync(filePath, content, "utf8");
+
+    const macroName = getMacroCacheNameFromContent(filePath, content);
+    updateMacroRawCache(macroName, content);
+
+    loadMacros();
+
+    return {
+        path: relativeMacroPath(filePath),
+    };
+}
+
+export function deleteMacroFile(inputPathOrName: string) {
+    const filePath = resolveExistingMacroFile(inputPathOrName);
+    const deletedMacroNames = fs.statSync(filePath).isDirectory()
+        ? walkMacroFiles(filePath).map(file => {
+            try {
+                return (readMacroConfigFile(file) as any)?.name ?? getMacroNameFromFile(file);
+            } catch (error) {
+                return getMacroNameFromFile(file);
+            }
+        })
+        : (() => {
+            try {
+                return [(readMacroConfigFile(filePath) as any)?.name ?? getMacroNameFromFile(filePath)];
+            } catch (error) {
+                return [getMacroNameFromFile(filePath)];
+            }
+        })();
+
+    if (fs.statSync(filePath).isDirectory()) {
+        fs.rmSync(filePath, {recursive: true, force: true});
+    } else {
+        fs.unlinkSync(filePath);
+    }
+
+    for (const macroName of deletedMacroNames) {
+        deleteMacroRawCache(macroName);
+    }
+
+    loadMacros();
+
+    return {
+        path: relativeMacroPath(filePath),
+    };
+}
+
+export function moveMacroFile(source: string, target: string) {
+    const sourcePath = resolveMacroPath(source);
+    const targetPath = resolveMacroPath(target);
+
+    if (!fs.existsSync(sourcePath)) {
+        throw new Error("source macro path not found");
+    }
+
+    if (fs.existsSync(targetPath)) {
+        throw new Error("target macro path already exists");
+    }
+
+    fs.mkdirSync(path.dirname(targetPath), {recursive: true});
+    fs.renameSync(sourcePath, targetPath);
+
+    if (fs.statSync(targetPath).isFile() && isMacroFile(targetPath)) {
+        const content = fs.readFileSync(targetPath, "utf8");
+        updateMacroRawCache(getMacroCacheNameFromContent(targetPath, content), content);
+    }
+
+    loadMacros();
+
+    return {
+        source: normalizeMacroPath(source).replace(/\\/g, "/"),
+        target: normalizeMacroPath(target).replace(/\\/g, "/"),
+    };
+}
+
+export function createMacroFolder(inputPath: string = "", name: string) {
+    if (!name) {
+        throw new Error("folder name is required");
+    }
+
+    const folderPath = resolveMacroPath(path.join(inputPath, name));
+    fs.mkdirSync(folderPath, {recursive: true});
+
+    return {
+        path: path.join(normalizeMacroPath(inputPath), name).replace(/\\/g, "/"),
+    };
+}
+
 
 const cancelledEvents = new Set<string>()
 
@@ -52,9 +563,17 @@ export default function loadMacros() {
     logRegular("load macros");
     macros = {};
 
+    migrateConfigMacrosToFiles();
+    loadMacrosFromFiles();
+
     const config = getConfig(/^macro /g, true);
 
     for (const macroName in config) {
+        if (macros[macroName] !== undefined) {
+            logWarn(`macro ${macroName} exists as file and config block - using file macro`);
+            continue;
+        }
+
         macros[macroName] = config[macroName];
     }
 

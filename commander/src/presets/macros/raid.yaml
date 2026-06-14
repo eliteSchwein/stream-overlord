@@ -1,0 +1,5 @@
+apis: []
+tasks:
+  - channel: alert
+    message: ${event.userDisplayName} raidet mit ${event.viewerCount} Leuten
+    asset: raid

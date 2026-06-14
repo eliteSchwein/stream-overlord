@@ -1,0 +1,13 @@
+apis: []
+tasks:
+  - channel: animation
+    method: play
+    data:
+      target: raid_animation
+      startFrame: 462
+      stopFrame: 570
+      frameRate: 60
+  - channel: function
+    method: sleep
+    data:
+      time: 1800

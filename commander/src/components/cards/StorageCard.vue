@@ -47,6 +47,11 @@
           <span class="text-caption text-grey-lighten-1">{{ $t('system.musicUsed') }}</span>
           <span>{{ formatFileSize(musicUsed) }}</span>
         </div>
+
+        <div v-if="!hideMacroUsed && macroUsed !== null">
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.macroUsed') }}</span>
+          <span>{{ formatFileSize(macroUsed) }}</span>
+        </div>
       </div>
     </v-card-text>
   </v-card>
@@ -66,6 +71,10 @@ export default {
       default: false,
     },
     hideMusicUsed: {
+      type: Boolean,
+      default: false,
+    },
+    hideMacroUsed: {
       type: Boolean,
       default: false,
     },
@@ -97,6 +106,12 @@ export default {
     musicUsed(): number | null {
       if (this.storageInfo?.folders?.music !== undefined) return this.storageInfo.folders.music
       if (this.storageInfo?.musicUsed !== undefined) return this.storageInfo.musicUsed
+      return null
+    },
+
+    macroUsed(): number | null {
+      if (this.storageInfo?.folders?.macro !== undefined) return this.storageInfo.folders.macro
+      if (this.storageInfo?.macroUsed !== undefined) return this.storageInfo.macroUsed
       return null
     },
   },

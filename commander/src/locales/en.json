@@ -74,7 +74,17 @@
       "channel": "Channel",
       "method": "Method",
       "data": "Data"
-    }
+    },
+    "title": "Macros",
+    "upload": "Upload macro",
+    "search": "Search macros",
+    "noMacrosFound": "No macros found",
+    "create": "Create macro",
+    "createFile": "Add macro",
+    "name": "Macro name",
+    "editor": "Macro editor",
+    "deleteConfirmTitle": "Delete macro?",
+    "deleteConfirmText": "Do you really want to delete this macro?"
   },
   "giveaway": {
     "title": "Giveaway",
@@ -243,12 +253,15 @@
     "storageTotal": "Total Storage",
     "assetsUsed": "Used by Assets",
     "musicUsed": "Used by Music",
-    "overlayUsed": "Used by Overlays"
+    "overlayUsed": "Used by Overlays",
+    "macroUsed": "Used by Macros"
   },
   "common": {
     "cancel": "Cancel",
     "target": "Target",
-    "save": "Save"
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "file": {
     "name": "Filename",

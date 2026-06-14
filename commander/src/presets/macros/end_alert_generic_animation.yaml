@@ -1,0 +1,13 @@
+apis: []
+tasks:
+  - channel: animation
+    method: play
+    data:
+      target: generic_alert_animation
+      startFrame: 363
+      stopFrame: 477
+      frameRate: 60
+  - channel: function
+    method: sleep
+    data:
+      time: 1900

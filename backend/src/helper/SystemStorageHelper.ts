@@ -5,6 +5,7 @@ import { assetRoot } from "./AssetManagementHelper";
 import { overlayRoot } from "./OverlayManagementHelper";
 import { logWarn } from "./LogHelper";
 import {getRegularMusicPath} from "./MusicHelper";
+import {getMacroDirectory} from "./MacroHelper";
 
 export type SystemStorageInfo = {
     root: string;
@@ -16,6 +17,7 @@ export type SystemStorageInfo = {
         assets: number;
         overlays: number;
         music: number;
+        macros: number;
     };
 };
 
@@ -43,6 +45,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             assets: getDirectorySize(assetRoot),
             overlays: getDirectorySize(overlayRoot),
             music: getDirectorySize(getRegularMusicPath()),
+            macros: getDirectorySize(getMacroDirectory()),
         },
     };
 }
