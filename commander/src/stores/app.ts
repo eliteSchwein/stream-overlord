@@ -128,6 +128,7 @@ export const useAppStore = defineStore('app', {
       const config = await request.json()
 
       this.$patch(state => state.config = {
+        ...config,
         websocketPort: config.websocket.port,
         webserverPort: config.webserver.port,
       })

@@ -1,4 +1,6 @@
 <script lang="ts">
+import {useAppStore} from '@/stores/app'
+
 type WledControl = {
   name: string;
   red: number | null;
@@ -84,14 +86,14 @@ export default {
   name: "AssetEditorDialog",
 
   props: {
-    modelValue: { type: Boolean, default: false },
-    assetName: { type: String, default: "" },
-    asset: { type: Object, default: null },
-    loading: { type: Boolean, default: false },
-    error: { type: String, default: "" },
-    macroItems: { type: Array, default: () => [] },
-    mediaEntries: { type: Array, default: () => [] },
-    wledItems: { type: Array, default: () => [] },
+    modelValue: {type: Boolean, default: false},
+    assetName: {type: String, default: ""},
+    asset: {type: Object, default: null},
+    loading: {type: Boolean, default: false},
+    error: {type: String, default: ""},
+    macroItems: {type: Array, default: () => []},
+    mediaEntries: {type: Array, default: () => []},
+    wledItems: {type: Array, default: () => []},
   },
 
   emits: ["update:modelValue", "save"],
@@ -100,7 +102,9 @@ export default {
     return {
       form: emptyForm(),
       colorMenu: false,
+      wledColorMenus: [] as boolean[],
       mdiSuggestions,
+      wledEffectsByLamp: {} as Record<string, Array<{ title: string; value: number }>>,
     };
   },
 
@@ -137,12 +141,13 @@ export default {
     },
 
     wledOptions(): string[] {
-      return (this.wledItems as any[])
-        .map((item: any) => (typeof item === "string" ? item : item?.name))
+      return this.getWledConfigEntries()
+        .map((item: any) => item.name)
         .filter(Boolean)
         .map(String)
         .sort((a: string, b: string) => a.localeCompare(b));
     },
+
 
     iconOptions(): string[] {
       const current = this.normalizeIconName(this.form.icon);
@@ -164,9 +169,22 @@ export default {
     },
   },
 
+  mounted() {
+
+    this.initializeWledData("mounted");
+  },
+
   watch: {
     modelValue(value: boolean) {
-      if (value) this.resetForm();
+      if (!value) return;
+      this.resetForm();
+      this.initializeWledData("modelValue watcher");
+    },
+    wledItems: {
+      deep: true,
+      handler() {
+        if (this.modelValue) this.initializeWledData("wledItems watcher");
+      },
     },
     asset: {
       deep: true,
@@ -180,6 +198,149 @@ export default {
   },
 
   methods: {
+    async initializeWledData(reason = "unknown") {
+      const appStore = useAppStore();
+
+
+      try {
+        await appStore.fetchConfig();
+      } catch (error) {
+      }
+
+      const entries = this.getWledConfigEntries();
+
+      await this.loadWledEffectsForAllLamps(`initialize: ${reason}`);
+    },
+
+    stripWledPrefix(value: any): string {
+      const stripped = String(value ?? "")
+        .trim()
+        .replace(/^wled[\s_-]*/i, "")
+        .replace(/^wled(?=[A-Z0-9])/i, "")
+        .trim();
+
+      return stripped || String(value ?? "").trim();
+    },
+
+    getWledConfigEntries(): Array<Record<string, any>> {
+      const appStore = useAppStore();
+      const config = appStore.getConfig ?? {};
+      const wledKeyRegex = /^wled/i;
+      const configEntries = Object.entries(config as Record<string, any>);
+
+      const entriesFromConfig = configEntries
+        .filter(([key]) => wledKeyRegex.test(key))
+        .map(([key, value]: [string, any]) => {
+          const name = this.stripWledPrefix(key);
+          return value && typeof value === "object"
+            ? { name, configKey: key, ...value }
+            : { name, configKey: key, url: value };
+        });
+
+      const entriesFromProps = (this.wledItems as any[])
+        .map((item: any) => {
+          if (typeof item === "string") return { name: this.stripWledPrefix(item) };
+          const rawName = item?.name ?? item?.key ?? item?.title ?? item?.value;
+          return rawName ? { name: this.stripWledPrefix(rawName), ...item } : null;
+        })
+        .filter(Boolean);
+
+      const byName = new Map<string, Record<string, any>>();
+      for (const entry of [...entriesFromConfig, ...entriesFromProps]) {
+        if (!entry?.name) continue;
+        const key = String(entry.name).toLowerCase();
+        if (byName.has(key)) continue;
+        byName.set(key, entry);
+      }
+
+      const entries = [...byName.values()];
+
+
+      return entries;
+    },
+
+    getWledBaseUrl(lamp: any): string {
+      const rawUrl = String(
+        lamp?.url ??
+        lamp?.host ??
+        lamp?.hostname ??
+        lamp?.address ??
+        lamp?.ip ??
+        lamp?.website ??
+        lamp?.api ??
+        "",
+      ).trim();
+
+      if (!rawUrl) {
+        return "";
+      }
+
+      const urlWithProtocol = /^https?:\/\//i.test(rawUrl)
+        ? rawUrl
+        : `http://${rawUrl}`;
+      const baseUrl = urlWithProtocol.replace(/\/+$/, "");
+
+
+      return baseUrl;
+    },
+
+    getWledLampEntry(name: any): Record<string, any> | undefined {
+      const normalizedName = this.stripWledPrefix(name).toLowerCase();
+      return this.getWledConfigEntries().find(
+        (entry: any) => String(entry.name).toLowerCase() === normalizedName,
+      );
+    },
+
+    getWledEffectCacheKey(name: any): string {
+      return this.stripWledPrefix(name).toLowerCase();
+    },
+
+    wledEffectOptions(name: any): Array<{ title: string; value: number }> {
+      const key = this.getWledEffectCacheKey(name);
+      return key ? this.wledEffectsByLamp[key] ?? [] : [];
+    },
+
+    async loadWledEffectsForAllLamps(reason = "unknown") {
+      const entries = this.getWledConfigEntries();
+
+      await Promise.all(entries.map((entry: any) => this.loadWledEffects(entry.name, reason)));
+    },
+
+    async loadWledEffects(name: any, reason = "unknown") {
+      const lamp = this.getWledLampEntry(name);
+      const baseUrl = this.getWledBaseUrl(lamp);
+      const cacheKey = this.getWledEffectCacheKey(name);
+      const url = baseUrl ? `${baseUrl}/json/eff` : "";
+
+
+      if (!cacheKey || !url) {
+        return;
+      }
+
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+
+        const effects = await response.json();
+        const mappedEffects = Array.isArray(effects)
+          ? effects.map((effect: any, index: number) => ({
+            title: `${index} - ${String(effect)}`,
+            value: index,
+          }))
+          : [];
+
+        this.wledEffectsByLamp = {
+          ...this.wledEffectsByLamp,
+          [cacheKey]: mappedEffects,
+        };
+
+      } catch (error) {
+        this.wledEffectsByLamp = {
+          ...this.wledEffectsByLamp,
+          [cacheKey]: [],
+        };
+      }
+    },
+
     resetForm() {
       const asset: any = this.asset ?? {};
       const form = emptyForm();
@@ -202,6 +363,7 @@ export default {
       form.wled = this.toWledControls(asset?.wled);
 
       this.form = form;
+      this.wledColorMenus = form.wled.map(() => false);
     },
 
     normalizeIconName(value: any): string {
@@ -293,7 +455,7 @@ export default {
       if (!value || typeof value !== "object") return [];
 
       return Object.entries(value).map(([name, control]: [string, any]) => ({
-        name,
+        name: this.stripWledPrefix(name),
         red: this.toNullableNumber(control?.red),
         green: this.toNullableNumber(control?.green),
         blue: this.toNullableNumber(control?.blue),
@@ -303,6 +465,7 @@ export default {
     },
 
     addWledControl() {
+
       this.form.wled.push({
         name: "",
         red: null,
@@ -311,10 +474,12 @@ export default {
         white: null,
         effect: null,
       });
+      this.wledColorMenus.push(false);
     },
 
     removeWledControl(index: number) {
       this.form.wled.splice(index, 1);
+      this.wledColorMenus.splice(index, 1);
     },
 
     cleanString(value: any): string | undefined {
@@ -333,6 +498,40 @@ export default {
       const numberValue = this.cleanNumber(value);
       if (numberValue === undefined) return undefined;
       return Math.min(255, Math.max(0, Math.round(numberValue)));
+    },
+
+    byteToHex(value: any): string {
+      const numberValue = this.cleanByte(value) ?? 0;
+      return numberValue.toString(16).padStart(2, "0").toUpperCase();
+    },
+
+    getWledRgbHex(control: WledControl): string {
+      return `#${this.byteToHex(control.red)}${this.byteToHex(control.green)}${this.byteToHex(control.blue)}`;
+    },
+
+    setWledRgbHex(control: WledControl, value: any) {
+      const rawColor = value && typeof value === "object"
+        ? (value.hex ?? value.hexa ?? value.hex8 ?? value.value ?? value.raw?.hex ?? "")
+        : value;
+
+      const hex = String(rawColor ?? "")
+        .replace(/^#/, "")
+        .trim();
+
+      const normalizedHex = hex.length === 8 ? hex.slice(0, 6) : hex;
+
+      if (!/^[0-9a-f]{6}$/i.test(normalizedHex)) return;
+
+      control.red = parseInt(normalizedHex.slice(0, 2), 16);
+      control.green = parseInt(normalizedHex.slice(2, 4), 16);
+      control.blue = parseInt(normalizedHex.slice(4, 6), 16);
+    },
+
+    setWledEffect(control: WledControl, value: any) {
+      const rawValue = value && typeof value === "object"
+        ? (value.value ?? value.raw?.value ?? value.raw ?? value.title)
+        : value;
+      control.effect = this.toNullableNumber(rawValue);
     },
 
     buildAssetPayload() {
@@ -369,6 +568,7 @@ export default {
       for (const control of this.form.wled) {
         const name = this.cleanString(control.name);
         if (!name) continue;
+        const normalizedName = this.stripWledPrefix(name);
 
         const data: Record<string, any> = {};
         for (const key of ["red", "green", "blue", "white", "effect"]) {
@@ -376,7 +576,7 @@ export default {
           if (value !== undefined) data[key] = value;
         }
 
-        if (Object.keys(data).length) wled[name] = data;
+        if (Object.keys(data).length) wled[normalizedName] = data;
       }
 
       if (Object.keys(wled).length) asset.wled = wled;
@@ -410,10 +610,11 @@ export default {
     @update:model-value="$emit('update:modelValue', $event)"
   >
     <v-card color="grey-darken-4">
-      <v-toolbar flat density="compact">
+      <v-toolbar density="compact" flat>
         <v-toolbar-title class="d-flex align-center">{{
             title
-          }}</v-toolbar-title>
+          }}
+        </v-toolbar-title>
         <v-btn
           icon="mdi-close"
           variant="text"
@@ -424,10 +625,10 @@ export default {
       <v-card-text>
         <v-alert
           v-if="error"
-          type="error"
-          color="red-darken-3"
-          class="mb-3"
           :text="error"
+          class="mb-3"
+          color="red-darken-3"
+          type="error"
         />
 
         <v-form @submit.prevent="submit">
@@ -435,59 +636,59 @@ export default {
             <v-col cols="12" md="6">
               <v-text-field
                 v-model="form.name"
+                :disabled="Boolean(assetName) || loading"
                 :label="$t('assets.name')"
+                hide-details="auto"
                 prepend-inner-icon="mdi-palette"
                 variant="outlined"
-                :disabled="Boolean(assetName) || loading"
-                hide-details="auto"
               />
             </v-col>
 
             <v-col cols="12" md="6">
               <v-combobox
                 v-model="form.channel"
+                :disabled="loading"
                 :label="$t('assets.channel')"
+                hide-details="auto"
                 prepend-inner-icon="mdi-broadcast"
                 variant="outlined"
-                :disabled="loading"
-                hide-details="auto"
               />
             </v-col>
 
             <v-col cols="12">
               <v-text-field
                 v-model="form.message"
+                :disabled="loading"
                 :label="$t('assets.message')"
+                hide-details="auto"
                 prepend-inner-icon="mdi-message-text"
                 variant="outlined"
-                :disabled="loading"
-                hide-details="auto"
               />
             </v-col>
 
             <v-col cols="12" md="6">
               <v-autocomplete
                 v-model="form.sound"
+                :disabled="loading"
                 :items="soundOptions"
                 :label="$t('assets.sound')"
+                clearable
+                hide-details="auto"
                 prepend-inner-icon="mdi-volume-high"
                 variant="outlined"
-                clearable
-                :disabled="loading"
-                hide-details="auto"
               />
             </v-col>
 
             <v-col cols="12" md="6">
               <v-combobox
                 v-model="form.icon"
+                :disabled="loading"
                 :items="iconOptions"
                 :label="$t('assets.icon') || 'Icon'"
+                clearable
+                hide-details="auto"
                 prepend-inner-icon="mdi-emoticon"
                 variant="outlined"
-                clearable
-                :disabled="loading"
-                hide-details="auto"
                 @update:model-value="form.icon = normalizeIconName($event)"
               >
                 <template #item="{ props, item }">
@@ -501,11 +702,12 @@ export default {
                     </template>
                     <v-list-item-title>{{
                         normalizeIconName(item?.raw ?? item?.title ?? item?.value)
-                      }}</v-list-item-title>
+                      }}
+                    </v-list-item-title>
                   </v-list-item>
                 </template>
                 <template #chip="{ item, props }">
-                  <v-chip v-bind="props" :prepend-icon="iconValue(form.icon)" />
+                  <v-chip :prepend-icon="iconValue(form.icon)" v-bind="props"/>
                 </template>
               </v-combobox>
             </v-col>
@@ -514,18 +716,18 @@ export default {
               <v-menu v-model="colorMenu" :close-on-content-click="false">
                 <template #activator="{ props }">
                   <v-text-field
-                    v-bind="props"
                     v-model="form.color"
-                    :label="$t('assets.color')"
-                    prepend-inner-icon="mdi-palette"
-                    variant="outlined"
                     :disabled="loading"
+                    :label="$t('assets.color')"
                     hide-details="auto"
+                    prepend-inner-icon="mdi-palette"
+                    v-bind="props"
+                    variant="outlined"
                   >
                     <template #append-inner>
                       <div
-                        class="asset-color-preview"
                         :style="{ backgroundColor: normalizedColor }"
+                        class="asset-color-preview"
                       />
                     </template>
                   </v-text-field>
@@ -533,8 +735,8 @@ export default {
                 <v-card color="grey-darken-3">
                   <v-color-picker
                     v-model="normalizedColor"
-                    mode="hex"
                     hide-inputs
+                    mode="hex"
                   />
                 </v-card>
               </v-menu>
@@ -543,104 +745,104 @@ export default {
             <v-col cols="12" md="4">
               <v-number-input
                 v-model="form.duration"
+                :disabled="loading"
                 :label="$t('assets.duration')"
+                :step="0.1"
+                hide-details="auto"
                 prepend-inner-icon="mdi-timer"
                 variant="outlined"
-                :disabled="loading"
-                hide-details="auto"
-                :step="0.1"
               />
             </v-col>
 
             <v-col cols="12" md="4">
               <v-number-input
                 v-model="form.volume"
+                :disabled="loading"
                 :label="$t('assets.volume')"
+                :max="1"
+                :step="0.1"
+                hide-details="auto"
                 prepend-inner-icon="mdi-volume-medium"
                 variant="outlined"
-                :disabled="loading"
-                hide-details="auto"
-                :step="0.1"
-                :max="1"
               />
             </v-col>
 
             <v-col cols="12" md="4">
               <v-autocomplete
                 v-model="form.image"
+                :disabled="loading"
                 :items="imageOptions"
                 :label="$t('assets.image')"
+                clearable
+                hide-details="auto"
                 prepend-inner-icon="mdi-image"
                 variant="outlined"
-                clearable
-                :disabled="loading"
-                hide-details="auto"
               />
             </v-col>
 
             <v-col cols="12" md="4">
               <v-autocomplete
                 v-model="form.video"
+                :disabled="loading"
                 :items="videoOptions"
                 :label="$t('assets.video')"
+                clearable
+                hide-details="auto"
                 prepend-inner-icon="mdi-video"
                 variant="outlined"
-                clearable
-                :disabled="loading"
-                hide-details="auto"
               />
             </v-col>
 
             <v-col cols="12" md="4">
               <v-combobox
                 v-model="form.start_macros"
+                :disabled="loading"
                 :items="macroOptions"
                 :label="$t('assets.startMacros')"
-                multiple
                 chips
                 closable-chips
-                variant="outlined"
-                :disabled="loading"
                 hide-details="auto"
+                multiple
+                variant="outlined"
               />
             </v-col>
             <v-col cols="12" md="4">
               <v-combobox
                 v-model="form.idle_macros"
+                :disabled="loading"
                 :items="macroOptions"
                 :label="$t('assets.idleMacros')"
-                multiple
                 chips
                 closable-chips
-                variant="outlined"
-                :disabled="loading"
                 hide-details="auto"
+                multiple
+                variant="outlined"
               />
             </v-col>
             <v-col cols="12" md="4">
               <v-combobox
                 v-model="form.end_macros"
+                :disabled="loading"
                 :items="macroOptions"
                 :label="$t('assets.endMacros')"
-                multiple
                 chips
                 closable-chips
-                variant="outlined"
-                :disabled="loading"
                 hide-details="auto"
+                multiple
+                variant="outlined"
               />
             </v-col>
           </v-row>
 
-          <v-divider class="my-4" />
+          <v-divider class="my-4"/>
 
           <div class="d-flex align-center justify-space-between mb-3">
             <div class="text-subtitle-2">{{ $t("assets.wled") || "WLED" }}</div>
             <v-btn
+              :disabled="loading"
+              prepend-icon="mdi-plus"
               size="small"
               variant="tonal"
-              prepend-icon="mdi-plus"
-              :disabled="loading"
               @click="addWledControl"
             >
               {{ $t("assets.addWled") || "Add WLED control" }}
@@ -650,76 +852,93 @@ export default {
           <v-card
             v-for="(control, index) in form.wled"
             :key="index"
+            class="mb-3"
             color="grey-darken-3"
             variant="flat"
-            class="mb-3"
           >
             <v-card-text>
               <div class="d-flex align-center ga-2 mb-3">
                 <v-combobox
                   v-model="control.name"
+                  :disabled="loading"
                   :items="wledOptions"
                   :label="$t('assets.wledName') || 'WLED name'"
-                  variant="outlined"
                   density="compact"
-                  :disabled="loading"
                   hide-details="auto"
+                  variant="outlined"
+                  @update:model-value="loadWledEffects($event, 'lamp selected')"
                 />
                 <v-btn
-                  icon="mdi-delete"
-                  color="red"
-                  variant="text"
                   :disabled="loading"
+                  color="red"
+                  icon="mdi-delete"
+                  variant="text"
                   @click="removeWledControl(index)"
                 />
               </div>
 
               <v-row density="compact">
-                <v-col cols="6" md="2"
-                ><v-number-input
-                  v-model="control.red"
-                  :label="$t('assets.red') || 'Red'"
-                  variant="outlined"
-                  density="compact"
-                  :disabled="loading"
-                  hide-details="auto"
-                /></v-col>
-                <v-col cols="6" md="2"
-                ><v-number-input
-                  v-model="control.green"
-                  :label="$t('assets.green') || 'Green'"
-                  variant="outlined"
-                  density="compact"
-                  :disabled="loading"
-                  hide-details="auto"
-                /></v-col>
-                <v-col cols="6" md="2"
-                ><v-number-input
-                  v-model="control.blue"
-                  :label="$t('assets.blue') || 'Blue'"
-                  variant="outlined"
-                  density="compact"
-                  :disabled="loading"
-                  hide-details="auto"
-                /></v-col>
-                <v-col cols="6" md="2"
-                ><v-number-input
-                  v-model="control.white"
-                  :label="$t('assets.white') || 'White'"
-                  variant="outlined"
-                  density="compact"
-                  :disabled="loading"
-                  hide-details="auto"
-                /></v-col>
-                <v-col cols="6" md="2"
-                ><v-number-input
-                  v-model="control.effect"
-                  :label="$t('assets.effect') || 'Effect'"
-                  variant="outlined"
-                  density="compact"
-                  :disabled="loading"
-                  hide-details="auto"
-                /></v-col>
+                <v-col cols="12" md="4">
+                  <v-menu v-model="wledColorMenus[index]" :close-on-content-click="false">
+                    <template #activator="{ props }">
+                      <v-text-field
+                        :model-value="getWledRgbHex(control)"
+                        :disabled="loading"
+                        :label="$t('assets.color') || 'Color'"
+                        density="compact"
+                        hide-details="auto"
+                        prepend-inner-icon="mdi-palette"
+                        readonly
+                        v-bind="props"
+                        variant="outlined"
+                      >
+                        <template #append-inner>
+                          <div
+                            :style="{ backgroundColor: getWledRgbHex(control) }"
+                            class="asset-color-preview"
+                          />
+                        </template>
+                      </v-text-field>
+                    </template>
+                    <v-card color="grey-darken-4">
+                      <v-color-picker
+                        :model-value="getWledRgbHex(control)"
+                        hide-inputs
+                        mode="hex"
+                        @update:model-value="setWledRgbHex(control, $event)"
+                      />
+                    </v-card>
+                  </v-menu>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-slider
+                    v-model="control.white"
+                    :disabled="loading"
+                    :label="$t('assets.white') || 'White'"
+                    :max="255"
+                    :min="0"
+                    :step="1"
+                    density="compact"
+                    hide-details="auto"
+                    thumb-label
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-autocomplete
+                    :model-value="control.effect"
+                    :items="wledEffectOptions(control.name)"
+                    item-title="title"
+                    item-value="value"
+                    :label="$t('assets.effect') || 'Effect'"
+                    variant="outlined"
+                    density="compact"
+                    :disabled="loading"
+                    hide-details="auto"
+                    clearable
+                    @focus="loadWledEffects(control.name, 'effect focus')"
+                    @update:model-value="setWledEffect(control, $event)"
+                  />
+                </v-col>
               </v-row>
             </v-card-text>
           </v-card>
@@ -727,33 +946,36 @@ export default {
       </v-card-text>
 
       <v-card-actions>
-        <v-spacer />
+        <v-spacer/>
         <v-btn
-          variant="text"
           :disabled="loading"
+          variant="text"
           @click="$emit('update:modelValue', false)"
-        >{{ $t("common.cancel") || "Cancel" }}</v-btn
+        >{{ $t("common.cancel") || "Cancel" }}
+        </v-btn
         >
         <v-btn
+          :disabled="!canSave"
+          :loading="loading"
           color="primary"
           variant="flat"
-          :loading="loading"
-          :disabled="!canSave"
           @click="submit"
-        >{{ $t("common.save") || "Save" }}</v-btn
+        >{{ $t("common.save") || "Save" }}
+        </v-btn
         >
       </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .asset-color-preview {
   width: 20px;
   height: 20px;
   border-radius: 4px;
   border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
+
 .min-width-0 {
   min-width: 0;
 }

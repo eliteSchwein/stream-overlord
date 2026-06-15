@@ -34,6 +34,7 @@ import {
 } from "./MusicHelper";
 import {redis} from "../clients/redis/Redis";
 import {getAssetConfig, getWledConfigs, normalizeWledControls} from "./AssetHelper";
+import {setLedColor} from "./WledHelper";
 
 let macros: any = {};
 
@@ -767,6 +768,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
                     break;
                 }
 
+                case "wled": {
+                    await handleWled(task.method, task.data);
+                    break;
+                }
+
                 case "music": {
                     await handleMusic(task.method, task.data);
                     break;
@@ -1382,6 +1388,32 @@ function handleEffect(method: string, data: any) {
         content: data.content ?? '',
         options: data.options ?? {},
     })
+}
+
+async function handleWled(method: string, data: any = {}) {
+    logRegular(`trigger wled: ${method}`);
+
+    switch (method) {
+        case "custom": {
+            if (!data || typeof data !== "object") {
+                logWarn(`wled custom requires data`);
+                return;
+            }
+
+            await setLedColor(data);
+            break;
+        }
+
+        case "off": {
+            await setLedColor({});
+            break;
+        }
+
+        default: {
+            logWarn(`invalid wled method: ${method}`);
+            break;
+        }
+    }
 }
 
 function handleAnimation(method: string, data: any) {

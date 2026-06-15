@@ -58,8 +58,8 @@ export default function initialAlerts() {
                     pushGameInfo()
                 }
 
-                if(activeAlert.lamp_color) {
-                    void setLedColor(activeAlert.lamp_color)
+                if (activeAlert.wled) {
+                    void setLedColor(activeAlert.wled)
                 }
 
                 void startAlertLifecycle(activeAlert)
