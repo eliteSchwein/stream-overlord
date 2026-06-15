@@ -15,6 +15,12 @@ const assetsRoute = {
   component: () => import('@/pages/assets.vue'),
 }
 
+const mediaRoute = {
+  path: '/media/:mediaPath(.*)*',
+  name: 'media-path',
+  component: () => import('@/pages/media.vue'),
+}
+
 const overlayRoute = {
   path: '/overlay/:overlayPath(.*)*',
   name: 'overlay-path',
@@ -23,8 +29,9 @@ const overlayRoute = {
 
 const appRoutes = [
   assetsRoute,
+  mediaRoute,
   overlayRoute,
-  ...routes.filter((route) => !['/assets', '/overlay'].includes(route.path)),
+  ...routes.filter((route) => !['/assets', '/media', '/overlay'].includes(route.path)),
 ]
 
 const router = createRouter({

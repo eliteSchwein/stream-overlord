@@ -502,7 +502,7 @@ export default {
       }
 
       try {
-        const data = await this.requestListWithFallback('assets_list', 'assets/list', normalizedPath)
+        const data = await this.requestListWithFallback('media_list', 'assets/media/list', normalizedPath)
         const files = Array.isArray(data?.files) ? data.files : []
 
         files.forEach((file: FileEntry) => {
@@ -522,7 +522,7 @@ export default {
           return a.localeCompare(b)
         })
       } catch (error) {
-        console.error('loading asset path suggestions failed', error)
+        console.error('loading media path suggestions failed', error)
       }
     },
 
@@ -616,7 +616,7 @@ export default {
               label: path,
               kind: this.monacoInstance.languages.CompletionItemKind.File,
               insertText: path,
-              detail: path.startsWith('/compressed/') ? 'Compressed asset' : 'Asset',
+              detail: path.startsWith('/compressed/') ? 'Compressed media' : 'Media',
               sortText: `${path.startsWith('/compressed/') ? '0' : '1'}_${path}`,
               range: {
                 startLineNumber: position.lineNumber,

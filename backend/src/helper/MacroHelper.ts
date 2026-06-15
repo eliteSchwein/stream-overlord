@@ -1,4 +1,4 @@
-import {getAssetConfig, getConfig, getPrimaryChannel, getSystemConfigDirectory} from "./ConfigHelper";
+import {getConfig, getPrimaryChannel, getSystemConfigDirectory} from "./ConfigHelper";
 import fs from "fs";
 import path from "path";
 import * as yaml from "js-yaml";
@@ -33,6 +33,7 @@ import {
     toggleSongRequest,
 } from "./MusicHelper";
 import {redis} from "../clients/redis/Redis";
+import {getAssetConfig, getWledConfigs, normalizeWledControls} from "./AssetHelper";
 
 let macros: any = {};
 
@@ -929,7 +930,7 @@ async function handleAlert(
         message,
         "event-uuid": eventUuid,
         video: theme.video,
-        lamp_color: theme.lamp_color,
+        wled: mergeWledDefaults(theme.wled),
         volume: theme.volume,
         image: theme.image,
         channel: theme.channel,
@@ -942,6 +943,24 @@ async function handleAlert(
             eventUuid,
         },
     });
+}
+
+
+function mergeWledDefaults(value: any) {
+    const controls = normalizeWledControls(value);
+    const configs = getWledConfigs();
+
+    const result: Record<string, any> = {};
+
+    for (const name in controls) {
+        const baseConfig = configs[name] ?? {};
+        result[name] = {
+            ...baseConfig,
+            ...controls[name],
+        };
+    }
+
+    return result;
 }
 
 async function handleWebhook(method: string, data: any) {

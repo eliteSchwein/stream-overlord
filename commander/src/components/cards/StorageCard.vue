@@ -33,9 +33,9 @@
           <span>{{ formatFileSize(storageInfo.total) }}</span>
         </div>
 
-        <div v-if="!hideAssetsUsed && assetUsed !== null">
-          <span class="text-caption text-grey-lighten-1">{{ $t('system.assetsUsed') }}</span>
-          <span>{{ formatFileSize(assetUsed) }}</span>
+        <div v-if="!hideMediaUsed && mediaUsed !== null">
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.mediaUsed') }}</span>
+          <span>{{ formatFileSize(mediaUsed) }}</span>
         </div>
 
         <div v-if="!hideOverlayUsed && overlayUsed !== null">
@@ -62,7 +62,7 @@ import eventBus from '@/eventBus'
 
 export default {
   props: {
-    hideAssetsUsed: {
+    hideMediaUsed: {
       type: Boolean,
       default: false,
     },
@@ -92,7 +92,9 @@ export default {
       return Math.min(100, Math.max(0, (this.storageInfo.used / this.storageInfo.total) * 100))
     },
 
-    assetUsed(): number | null {
+    mediaUsed(): number | null {
+      if (this.storageInfo?.folders?.media !== undefined) return this.storageInfo.folders.media
+      if (this.storageInfo?.mediaUsed !== undefined) return this.storageInfo.mediaUsed
       if (this.storageInfo?.folders?.assets !== undefined) return this.storageInfo.folders.assets
       if (this.storageInfo?.assetUsed !== undefined) return this.storageInfo.assetUsed
       return null

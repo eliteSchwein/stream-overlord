@@ -139,7 +139,7 @@ export default class AlertController extends BaseController {
 
             try {
                 this.videoTarget.muted = true
-                this.videoTarget.querySelector('source')!.src = data.video
+                this.videoTarget.querySelector('source')!.src = this.normalizeMediaUrl(data.video)
                 this.videoTarget.load()
 
                 await sleep(50)
@@ -188,7 +188,7 @@ export default class AlertController extends BaseController {
 
         if (data.image && this.imageTarget) {
             this.imageTarget.classList.remove('d-none')
-            this.imageTarget.src = `/compressed/${data.image}.webp`
+            this.imageTarget.src = this.normalizeMediaUrl(data.image)
         }
 
         if (data.logo && this.logoTarget) {
@@ -253,7 +253,18 @@ export default class AlertController extends BaseController {
         this.visible = false
     }
 
+    protected normalizeMediaUrl(value: string): string {
+        const normalized = String(value ?? '').replace(/\\/g, '/').replace(/^\/+/, '')
+
+        if (!normalized) return ''
+        if (/^https?:\/\//i.test(normalized)) return normalized
+        if (normalized.startsWith('data:')) return normalized
+
+        return `/${normalized}`
+    }
+
     async handleGameUpdate(websocket: Websocket, data: any) {
+
         if (this.element.hasAttribute('data-disable-theme')) return
 
         if (this.iconTarget) {

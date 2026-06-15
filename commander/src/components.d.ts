@@ -12,6 +12,8 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ActiveAlert: typeof import('./components/ActiveAlert.vue')['default']
+    Asset: typeof import('./components/Asset.vue')['default']
+    AssetEditorDialog: typeof import('./components/dialogs/AssetEditorDialog.vue')['default']
     AssetPreview: typeof import('./components/AssetPreview.vue')['default']
     AutoMacro: typeof import('./components/AutoMacro.vue')['default']
     ChannelPoint: typeof import('./components/ChannelPoint.vue')['default']

@@ -35,6 +35,7 @@ export default {
         music: 'music',
         overlay: 'overlay',
         assets: 'assets',
+        media: 'media',
         yolobox: 'yolobox',
         editConfig: 'config',
         connections: 'connections',
@@ -284,10 +285,15 @@ export default {
         color=""
         to="/overlay"></v-list-item>
       <v-list-item
-        prepend-icon="mdi-multimedia"
+        prepend-icon="mdi-palette"
         :title="$t('navigation.tabs.assets')"
         color=""
         to="/assets"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-multimedia"
+        :title="$t('navigation.tabs.media')"
+        color=""
+        to="/media"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.streamingServices') }}</v-list-subheader>
       <v-list-item

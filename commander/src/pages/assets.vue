@@ -1,49 +1,395 @@
 <template>
-  <FileManagerPage
-    :title="$t('assets.title')"
-    route-base="assets"
-    route-param="assetPath"
-    list-method="assets_list"
-    delete-method="assets_delete"
-    move-method="assets_move"
-    create-folder-method="assets_create_folder"
-    compress-method="assets_compress"
-    upload-endpoint="assets/upload"
-    :can-compress="true"
-    :upload-label="$t('assets.upload')"
-    :drop-label="$t('file.dropFiles')"
-    upload-icon="mdi-upload"
-    :search-label="$t('assets.search')"
-    :empty-label="$t('assets.noAssetsFound')"
-    :create-folder-label="$t('assets.createFolder')"
-    :folder-label="$t('file.folder')"
-    :folder-up-label="$t('file.folderUp')"
-    :no-folders-label="$t('file.noFoldersFound')"
-    :move-dialog-title="$t('assets.moveDialog')"
-    :copy-dialog-title="$t('assets.copyDialog')"
-    :preview-label="$t('assets.preview')"
-    :delete-confirm-title="$t('assets.deleteConfirmTitle')"
-    :delete-confirm-text="$t('assets.deleteConfirmText')"
-    :target-label="$t('common.target') + ' ' + $t('file.name')"
-    :target-folder-label="$t('common.target') + ' ' + $t('file.folder')"
-    :normal-url-label="$t('assets.normalUrl')"
-    :compressed-url-label="$t('assets.compressedUrl')"
-    :compress-label="$t('assets.compress')"
-    :move-label="$t('assets.move')"
-    :delete-label="$t('assets.delete')"
-    :cancel-label="$t('common.cancel')"
-    :open-label="$t('assets.open')"
-    :hide-overlay-used="true"
-    :hide-music-used="true"
-  />
+  <v-card class="overflow-auto mx-auto" max-height="100%" elevation="0" color="transparent" max-width="100%">
+    <v-card-title class="d-flex align-center justify-space-between px-3 pt-3">
+      <div class="d-flex align-center ga-2 min-width-0">
+        <v-icon icon="mdi-palette" />
+        <div class="min-width-0">
+          <div class="text-truncate">{{ $t('assets.title') || 'Assets' }}</div>
+          <div class="text-caption text-grey-lighten-1">
+            {{ filteredAssets.length }} / {{ assetList.length }}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex align-center ga-2">
+        <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="openCreateEditor">
+          {{ $t('assets.createFile') || 'Add asset' }}
+        </v-btn>
+
+        <v-btn icon="mdi-refresh" variant="text" :loading="loading" @click="refreshAssets" />
+      </div>
+    </v-card-title>
+
+    <v-card-text>
+      <v-row density="compact" class="mb-3">
+        <v-col cols="12" md="6">
+          <StorageCard ref="storageCard" :hide-assets-used="false" :hide-overlay-used="true" :hide-music-used="true" :hide-macro-used="true" />
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <UploadCard
+            ref="uploadCard"
+            :label="$t('assets.uploadConfig') || 'Upload asset config'"
+            :drop-label="$t('file.dropFiles') || 'Drop files here'"
+            icon="mdi-upload"
+            accept=".yaml,.yml,.json"
+            :loading="uploading"
+            @upload="uploadFiles"
+          />
+        </v-col>
+      </v-row>
+
+      <v-text-field
+        v-model="searchQuery"
+        :label="$t('assets.search') || 'Search assets'"
+        prepend-inner-icon="mdi-magnify"
+        clearable
+        variant="outlined"
+        density="comfortable"
+        hide-details
+        class="mb-3"
+      />
+
+      <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
+      <v-alert v-if="filteredAssets.length === 0" type="info" color="grey-darken-3" :text="$t('assets.noAssetsFound') || 'No assets found'" />
+
+      <v-expansion-panels v-else class="asset-list" variant="accordion">
+        <Asset
+          v-for="item in filteredAssets"
+          :key="item.name"
+          :name="item.name"
+          :asset="item.asset"
+          :disabled="workingAction !== null"
+          :deleting="workingName === item.name && workingAction === 'delete'"
+          @edit="openEditor"
+          @delete="openDeleteDialog"
+        />
+      </v-expansion-panels>
+    </v-card-text>
+
+    <AssetEditorDialog
+      v-model="editorDialog"
+      :asset-name="selectedAssetName"
+      :asset="selectedAsset"
+      :loading="workingAction === 'save'"
+      :error="editorError"
+      :macro-items="macroItems"
+      :media-entries="mediaEntries"
+      :wled-items="wledItems"
+      @save="saveEditor"
+    />
+
+    <FileDeleteConfirmDialog
+      v-model="deleteDialog"
+      :entry="deleteEntry"
+      :loading="workingAction === 'delete'"
+      :rest-api="getRestApi"
+      public-prefix="assets_configs"
+      :title="$t('assets.deleteConfirmTitle') || 'Delete asset?'"
+      :text="$t('assets.deleteConfirmText') || 'Do you really want to delete this asset config?'"
+      :cancel-label="$t('common.cancel') || 'Cancel'"
+      :delete-label="$t('common.delete') || 'Delete'"
+      @confirm="confirmDeleteAsset"
+    />
+  </v-card>
 </template>
 
 <script lang="ts">
-import FileManagerPage from '@/components/files/FileManagerPage.vue'
+import { mapActions, mapState } from 'pinia'
+import { useAppStore } from '@/stores/app'
+import eventBus from '@/eventBus'
+import StorageCard from '@/components/cards/StorageCard.vue'
+import UploadCard from '@/components/cards/UploadCard.vue'
+import Asset from '@/components/Asset.vue'
+import AssetEditorDialog from '@/components/dialogs/AssetEditorDialog.vue'
+import FileDeleteConfirmDialog from '@/components/dialogs/FileDeleteConfirmDialog.vue'
+
+type AssetEntry = {
+  name: string
+  asset: any
+}
 
 export default {
+  name: 'Assets',
+
   components: {
-    FileManagerPage,
+    StorageCard,
+    UploadCard,
+    Asset,
+    AssetEditorDialog,
+    FileDeleteConfirmDialog,
+  },
+
+  data() {
+    return {
+      searchQuery: '',
+      loading: false,
+      uploading: false,
+      errorMessage: '',
+      editorDialog: false,
+      deleteDialog: false,
+      editorError: '',
+      selectedAssetName: '',
+      selectedAsset: null as any,
+      selectedDeleteName: '',
+      selectedDeleteAsset: null as any,
+      workingName: null as string | null,
+      workingAction: null as string | null,
+      localAssets: {} as Record<string, any>,
+      localWledConfigs: {} as Record<string, any>,
+      mediaEntries: [] as any[],
+    }
+  },
+
+  computed: {
+    ...mapState(useAppStore, ['getAssets', 'getRestApi', 'getMacros']),
+
+    assetConfigs(): Record<string, any> {
+      const storeAssets = this.getAssets
+      return storeAssets && !Array.isArray(storeAssets) && Object.keys(storeAssets).length
+        ? storeAssets as Record<string, any>
+        : this.localAssets
+    },
+
+
+
+    macroItems(): string[] {
+      return Object.keys(this.getMacros ?? {}).sort((a, b) => a.localeCompare(b))
+    },
+
+    wledItems(): string[] {
+      return Object.keys(this.localWledConfigs ?? {}).sort((a, b) => a.localeCompare(b))
+    },
+
+    assetList(): AssetEntry[] {
+      return Object.entries(this.assetConfigs ?? {})
+        .map(([name, asset]) => ({ name, asset }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    },
+
+    filteredAssets(): AssetEntry[] {
+      const query = String(this.searchQuery ?? '').trim().toLowerCase()
+      if (!query) return this.assetList
+
+      return this.assetList.filter((item) => {
+        return item.name.toLowerCase().includes(query) || JSON.stringify(item.asset ?? {}).toLowerCase().includes(query)
+      })
+    },
+
+    deleteEntry(): any {
+      if (!this.selectedDeleteName) return null
+
+      const path = this.selectedDeleteAsset?.file ?? `${this.selectedDeleteName}.yaml`
+
+      return {
+        name: this.selectedDeleteName,
+        path,
+        type: 'file',
+      }
+    },
+  },
+
+  mounted() {
+    eventBus.$on('websocket:connected', this.refreshAssets)
+    this.refreshAssets()
+  },
+
+  beforeUnmount() {
+    eventBus.$off('websocket:connected', this.refreshAssets)
+  },
+
+  methods: {
+    ...mapActions(useAppStore, ['setAssets']),
+
+    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
+      return new Promise((resolve, reject) => {
+        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
+      })
+    },
+
+    async requestAssetEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
+      try {
+        const response = await this.requestWebsocket(method, params, timeout)
+        return response?.data ?? response
+      } catch (websocketError) {
+        const response = await fetch(`${this.getRestApi}/api/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(params),
+        })
+
+        const data = await response.json().catch(() => ({}))
+        const responseData = data?.data ?? data
+
+        if (!response.ok || responseData?.error || data?.error) {
+          throw new Error(responseData?.error ?? data?.error ?? `${endpoint} failed`)
+        }
+
+        return responseData
+      }
+    },
+
+    async refreshAssets() {
+      this.loading = true
+      this.errorMessage = ''
+
+      try {
+        const data = await this.requestAssetEndpoint('assets_list', 'assets/list')
+        if (data?.error) throw new Error(data.error)
+
+        this.localAssets = data?.assets ?? {}
+        this.localWledConfigs = data?.wled ?? {}
+        this.setAssets(this.localAssets)
+        await this.fetchMediaEntries()
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'loading assets failed'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchMediaEntries(path: string = ''): Promise<any[]> {
+      try {
+        const data = await this.requestAssetEndpoint('media_list', 'assets/media/list', { path }, 15_000)
+        const files = Array.isArray(data?.files) ? data.files : []
+        const result: any[] = []
+
+        for (const entry of files) {
+          result.push(entry)
+
+          if (entry?.type === 'folder' && entry?.path) {
+            result.push(...await this.fetchMediaEntries(entry.path))
+          }
+        }
+
+        if (!path) this.mediaEntries = result.filter((entry) => entry?.type === 'file')
+        return result
+      } catch (error) {
+        if (!path) this.mediaEntries = []
+        return []
+      }
+    },
+
+    async uploadFiles(files: File[] | FileList) {
+      const fileList = Array.from(files as any)
+      if (fileList.length === 0) return
+
+      this.uploading = true
+      this.errorMessage = ''
+
+      try {
+        const formData = new FormData()
+        fileList.forEach((file) => formData.append('files', file))
+
+        const response = await fetch(`${this.getRestApi}/api/assets/upload`, { method: 'POST', body: formData })
+        const data = await response.json().catch(() => ({}))
+        const responseData = data?.data ?? data
+
+        if (!response.ok || responseData?.error || data?.error) {
+          throw new Error(responseData?.error ?? data?.error ?? 'asset upload failed')
+        }
+
+        await this.refreshAssets()
+        await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'asset upload failed'
+      } finally {
+        this.uploading = false
+      }
+    },
+
+    openCreateEditor() {
+      this.selectedAssetName = ''
+      this.selectedAsset = null
+      this.editorError = ''
+      this.editorDialog = true
+    },
+
+    openEditor(name: string, asset: any) {
+      this.selectedAssetName = name
+      this.selectedAsset = asset
+      this.editorError = ''
+      this.editorDialog = true
+    },
+
+    async saveEditor(payload: { name: string; path: string; asset: any }) {
+      if (!payload?.name || this.workingAction) return
+
+      this.workingName = payload.name
+      this.workingAction = 'save'
+      this.editorError = ''
+
+      try {
+        const data = await this.requestAssetEndpoint('assets_edit', 'assets/edit', {
+          path: payload.path || `${payload.name}.yaml`,
+          name: payload.name,
+          asset: payload.asset,
+        })
+
+        if (data?.error) throw new Error(data.error)
+
+        this.editorDialog = false
+        await this.refreshAssets()
+        await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
+      } catch (error: any) {
+        this.editorError = error?.message ?? 'save asset failed'
+      } finally {
+        this.workingName = null
+        this.workingAction = null
+      }
+    },
+
+    openDeleteDialog(name: string, asset: any) {
+      this.selectedDeleteName = name
+      this.selectedDeleteAsset = asset
+      this.deleteDialog = true
+    },
+
+    async confirmDeleteAsset() {
+      if (!this.selectedDeleteName || this.workingAction) return
+
+      this.workingName = this.selectedDeleteName
+      this.workingAction = 'delete'
+      this.errorMessage = ''
+
+      try {
+        const data = await this.requestAssetEndpoint('assets_delete', 'assets/delete', {
+          path: this.selectedDeleteAsset?.file ?? undefined,
+          name: this.selectedDeleteName,
+        })
+        if (data?.error) throw new Error(data.error)
+
+        this.deleteDialog = false
+        this.selectedDeleteName = ''
+        this.selectedDeleteAsset = null
+        await this.refreshAssets()
+        await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'delete asset failed'
+      } finally {
+        this.workingName = null
+        this.workingAction = null
+      }
+    },
   },
 }
 </script>
+
+<style scoped lang="scss">
+:deep(.asset-list .v-expansion-panel-title) {
+  min-height: 56px;
+  padding: 0 18px;
+}
+
+:deep(.asset-list .v-expansion-panel-title__overlay) {
+  display: none;
+}
+
+:deep(.asset-list .v-expansion-panel:not(:first-child)::after) {
+  border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.min-width-0 {
+  min-width: 0;
+}
+</style>

@@ -25,7 +25,6 @@
       "audio": "Audio",
       "macros": "Macros",
       "overlay": "Overlay",
-      "assets": "Assets",
       "music": "Music",
       "yolobox": "YoloBox",
       "config": "Config",
@@ -33,7 +32,9 @@
       "recovery": "Recovery",
       "gameScene": "Game scene",
       "variables": "Variables",
-      "obs": "OBS"
+      "obs": "OBS",
+      "media": "Media",
+      "assets": "Assets"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -41,13 +42,13 @@
       "audio": "Audio",
       "macros": "Macros",
       "overlay": "Overlay",
-      "assets": "Assets",
       "music": "Music",
       "yolobox": "YoloBox",
       "editConfig": "Config",
       "connections": "Connections",
       "recovery": "Recovery",
-      "gameScene": "Game scene"
+      "gameScene": "Game scene",
+      "media": "Media"
     }
   },
   "music": {
@@ -221,40 +222,18 @@
     "authReset": "AUTH RESET",
     "botReloadText": "Reload the bot internally. This usually should not break anything.",
     "botReload": "BOT RELOAD",
-    "compressAssetsText": "Manually compress the assets (images/videos). This recompresses all assets again. Please be patient, this takes a little while.",
-    "compressAssets": "COMPRESS ASSETS"
-  },
-  "assets": {
-    "title": "Assets",
-    "upload": "Upload",
-    "search": "Search Asset",
-    "compressed": "compressed",
-    "noAssetsFound": "No Assets found!",
-    "normalUrl": "Normal URL",
-    "compressedUrl": "Compressed URL",
-    "compress": "Compress",
-    "move": "Move",
-    "delete": "Delete",
-    "open": "Open",
-    "previewFailed": "Preview failed!",
-    "noPreview": "No Preview!",
-    "preview": "Preview",
-    "copy": "Copy",
-    "copyDialog": "Copy URLs",
-    "moveDialog": "Move Asset",
-    "createFolder": "Create Folder",
-    "deleteConfirmTitle": "Delete File/Folder",
-    "deleteConfirmText": "Are you sure you want to delete this File/Folder?"
+    "compressAssetsText": "Manually compress the media (images/videos). This recompresses all media again. Please be patient, this takes a little while.",
+    "compressAssets": "COMPRESS MEDIA"
   },
   "system": {
     "storage": "Storage",
     "storageUsed": "Used Storage",
     "storageFree": "Free Storage",
     "storageTotal": "Total Storage",
-    "assetsUsed": "Used by Assets",
     "musicUsed": "Used by Music",
     "overlayUsed": "Used by Overlays",
-    "macroUsed": "Used by Macros"
+    "macroUsed": "Used by Macros",
+    "mediaUsed": "Used by Media"
   },
   "common": {
     "cancel": "Cancel",
@@ -317,5 +296,61 @@
       "rendered": "Rendered saved file",
       "raw": "Raw unsaved HTML"
     }
+  },
+  "media": {
+    "title": "Media",
+    "upload": "Upload",
+    "search": "Search media",
+    "compressed": "compressed",
+    "normalUrl": "Normal URL",
+    "compressedUrl": "Compressed URL",
+    "compress": "Compress",
+    "move": "Move",
+    "delete": "Delete",
+    "open": "Open",
+    "previewFailed": "Preview failed!",
+    "noPreview": "No Preview!",
+    "preview": "Preview",
+    "copy": "Copy",
+    "copyDialog": "Copy URLs",
+    "moveDialog": "Move Asset",
+    "createFolder": "Create Folder",
+    "deleteConfirmTitle": "Delete File/Folder",
+    "deleteConfirmText": "Are you sure you want to delete this File/Folder?",
+    "noMediaFound": "No media found!",
+    "noAssetsFound": "No media found!"
+  },
+  "assets": {
+    "title": "Assets",
+    "bits": "Bits",
+    "sound": "Sound",
+    "icon": "Icon",
+    "color": "Color",
+    "channel": "Channel",
+    "duration": "Duration",
+    "volume": "Volume",
+    "image": "Image",
+    "video": "Video",
+    "message": "Message",
+    "name": "Asset name",
+    "editor": "Asset editor",
+    "createFile": "Add asset",
+    "uploadConfig": "Upload asset config",
+    "startMacros": "Start macros",
+    "idleMacros": "Idle macros",
+    "endMacros": "End macros",
+    "wled": "WLED",
+    "addWled": "Add WLED control",
+    "wledName": "WLED name",
+    "red": "Red",
+    "green": "Green",
+    "blue": "Blue",
+    "white": "White",
+    "effect": "Effect",
+    "noValuesSet": "No values set",
+    "configFile": "Asset config",
+    "deleteConfirmTitle": "Delete asset",
+    "deleteConfirmText": "Are you sure you want to delete this asset?",
+    "search": "Search assets"
   }
 }

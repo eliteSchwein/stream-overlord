@@ -90,6 +90,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/media': RouteRecordInfo<
+      '/media',
+      '/media',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/music': RouteRecordInfo<
       '/music',
       '/music',
@@ -196,6 +203,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/macros.vue': {
       routes:
         | '/macros'
+      views:
+        | never
+    }
+    'src/pages/media.vue': {
+      routes:
+        | '/media'
       views:
         | never
     }

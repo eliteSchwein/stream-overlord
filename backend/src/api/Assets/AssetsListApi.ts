@@ -1,4 +1,4 @@
-import {listAssets} from "../../helper/AssetManagementHelper";
+import {getAssetConfigs, getWledConfigs, loadAssetConfigs} from "../../helper/AssetHelper";
 import BaseApi from "../../abstracts/BaseApi";
 
 export default class AssetsListApi extends BaseApi {
@@ -6,14 +6,16 @@ export default class AssetsListApi extends BaseApi {
     restPost = true;
     websocketMethod = "assets_list";
 
-    async handle(data: any): Promise<any> {
+    async handle(): Promise<any> {
         try {
+            loadAssetConfigs();
+
             return {
-                path: data?.path ?? "",
-                files: listAssets(data?.path ?? ""),
+                assets: getAssetConfigs(),
+                wled: getWledConfigs(),
             };
         } catch (error: any) {
-            return { error: error?.message ?? "list failed" };
+            return { error: error?.message ?? "list assets failed" };
         }
     }
 }

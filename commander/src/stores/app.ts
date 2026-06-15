@@ -5,6 +5,7 @@ import { setI18nLanguage, setI18nLanguageFromConfig } from '@/plugins/i18n'
 export const useAppStore = defineStore('app', {
   state: () => ({
     assets: [],
+    wledConfigs: {},
     status: {},
     config: {
       websocketPort: 8100,
@@ -79,6 +80,7 @@ export const useAppStore = defineStore('app', {
     getYoloboxData: (state) => state.yoloboxData,
     getObsAudioData: (state) => state.obsAudioData,
     getAssets: (state) => state.assets,
+    getWledConfigs: (state) => state.wledConfigs,
     getStatus: (state) => state.status,
     getMusicData: (state) => state.musicData,
     getMusicCavaData: (state) => state.musicCavaData,
@@ -249,9 +251,13 @@ export const useAppStore = defineStore('app', {
       this.obsAudioData = obsAudioData
       this.$patch(state => state.obsAudioData = obsAudioData)
     },
-    setAssets(assets: []) {
+    setAssets(assets: any) {
       this.assets = assets
       this.$patch(state => state.assets = assets)
+    },
+    setWledConfigs(wledConfigs: any) {
+      this.wledConfigs = wledConfigs
+      this.$patch(state => state.wledConfigs = wledConfigs)
     },
     setStatus(status: any) {
       this.status = status

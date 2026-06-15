@@ -184,51 +184,79 @@ export default class WebServer {
     }
 
     public async precacheConfiguredHtmlTemplates() {
-        logRegular(`pre-caching configured html templates`)
-        await this.precacheConfiguredTemplates(this.getHtmlRoot());
+        logRegular(`pre-caching all html templates`);
+        await this.precacheAllHtmlTemplates(this.getHtmlRoot());
     }
 
     private getHtmlRoot() {
         return path.join(getSystemConfigDirectory(), "streambot-overlays");
     }
 
-    private async precacheConfiguredTemplates(rootDir: string) {
-        const config = getConfig(/precache/g)[0];
-        const templates = Array.isArray(config?.templates) ? config.templates : [];
+    private async precacheAllHtmlTemplates(rootDir: string) {
+        const resolvedRoot = path.resolve(rootDir);
+
+        try {
+            await fs.mkdir(resolvedRoot, { recursive: true });
+        } catch (error) {
+            logWarn(
+                `failed to create html template root "${resolvedRoot}": ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
+            return;
+        }
+
+        const templates = await this.findHtmlTemplates(resolvedRoot, resolvedRoot);
 
         if (!templates.length) return;
 
-        const resolvedRoot = path.resolve(rootDir);
-
         for (const template of templates) {
-            const templateName = String(template ?? "").trim();
-
-            if (!templateName) continue;
-
-            const candidates = this.resolveTemplateCandidates(templateName, resolvedRoot);
-            let cached = false;
-
-            for (const candidate of candidates) {
-                if (!this.isPathInsideRoot(candidate, resolvedRoot)) continue;
-
-                try {
-                    await fs.access(candidate);
-                    await this.renderHtmlFile(candidate, resolvedRoot, [], true);
-                    cached = true;
-                    break;
-                } catch (error) {
-                    logWarn(
-                        `failed to precache template "${templateName}" from "${candidate}": ${
-                            error instanceof Error ? error.message : String(error)
-                        }`
-                    );
-                }
-            }
-
-            if (!cached) {
-                logWarn(`precache template not found: ${templateName}`);
+            try {
+                await this.renderHtmlFile(template, resolvedRoot, [], true);
+            } catch (error) {
+                logWarn(
+                    `failed to precache template "${path.relative(resolvedRoot, template)}": ${
+                        error instanceof Error ? error.message : String(error)
+                    }`
+                );
             }
         }
+    }
+
+    private async findHtmlTemplates(directory: string, rootDir: string): Promise<string[]> {
+        if (!this.isPathInsideRoot(directory, rootDir)) return [];
+
+        let entries: import("node:fs").Dirent[];
+
+        try {
+            entries = await fs.readdir(directory, { withFileTypes: true });
+        } catch (error) {
+            logWarn(
+                `failed to read html template directory "${directory}": ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
+            return [];
+        }
+
+        const templates: string[] = [];
+
+        for (const entry of entries) {
+            const fullPath = path.join(directory, entry.name);
+
+            if (!this.isPathInsideRoot(fullPath, rootDir)) continue;
+
+            if (entry.isDirectory()) {
+                templates.push(...await this.findHtmlTemplates(fullPath, rootDir));
+                continue;
+            }
+
+            if (entry.isFile() && path.extname(entry.name).toLowerCase() === ".html") {
+                templates.push(fullPath);
+            }
+        }
+
+        return templates.sort((a, b) => a.localeCompare(b));
     }
 
     private async renderHtmlFile(

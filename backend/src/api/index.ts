@@ -3,11 +3,16 @@
 
 export { default as AlertApi } from "./Alert/AlertApi";
 export { default as RemoveAlertApi } from "./Alert/RemoveAlertApi";
-export { default as AssetsCompressApi } from "./Assets/AssetsCompressApi";
-export { default as AssetsCreateFolderApi } from "./Assets/AssetsCreateFolderApi";
 export { default as AssetsDeleteApi } from "./Assets/AssetsDeleteApi";
+export { default as AssetsEditApi } from "./Assets/AssetsEditApi";
 export { default as AssetsListApi } from "./Assets/AssetsListApi";
-export { default as AssetsMoveApi } from "./Assets/AssetsMoveApi";
+export { default as AssetsReadApi } from "./Assets/AssetsReadApi";
+export { default as AssetsUploadApi } from "./Assets/AssetsUploadApi";
+export { default as MediaCompressApi } from "./Assets/MediaCompressApi";
+export { default as MediaCreateFolderApi } from "./Assets/MediaCreateFolderApi";
+export { default as MediaDeleteApi } from "./Assets/MediaDeleteApi";
+export { default as MediaListApi } from "./Assets/MediaListApi";
+export { default as MediaMoveApi } from "./Assets/MediaMoveApi";
 export { default as GetChannePointsApi } from "./ChannelPoints/GetChannePointsApi";
 export { default as ToggleChannelPointApi } from "./ChannelPoints/ToggleChannelPointApi";
 export { default as LinkSinkApi } from "./Common/LinkSinkApi";

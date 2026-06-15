@@ -1,4 +1,4 @@
-import {deleteAsset} from "../../helper/AssetManagementHelper";
+import {deleteAssetConfigFile} from "../../helper/AssetHelper";
 import BaseApi from "../../abstracts/BaseApi";
 
 export default class AssetsDeleteApi extends BaseApi {
@@ -10,10 +10,10 @@ export default class AssetsDeleteApi extends BaseApi {
         try {
             return {
                 status: "okay",
-                ...deleteAsset(data?.path),
+                ...await deleteAssetConfigFile(data?.path ?? data?.name),
             };
         } catch (error: any) {
-            return { error: error?.message ?? "delete failed" };
+            return { error: error?.message ?? "delete asset failed" };
         }
     }
 }
