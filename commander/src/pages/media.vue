@@ -1,5 +1,6 @@
 <template>
   <FileManagerPage
+    ref="fileManager"
     :title="$t('media.title')"
     route-base="media"
     route-param="mediaPath"
@@ -44,6 +45,11 @@ import FileManagerPage from '@/components/files/FileManagerPage.vue'
 export default {
   components: {
     FileManagerPage,
+  },
+
+  beforeRouteUpdate(to: any, _from: any, next: any) {
+    ;(this.$refs.fileManager as any)?.openRoute?.(to)
+    next()
   },
 }
 </script>

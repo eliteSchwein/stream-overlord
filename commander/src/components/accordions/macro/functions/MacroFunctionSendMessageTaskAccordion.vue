@@ -10,7 +10,7 @@
     @move-down="$emit('move-down')"
   >
     <template #default="{ data }">
-      <v-col cols="12" md="8">
+      <v-col cols="12" md="12">
         <v-text-field v-model="data.content" label="Message" density="compact" variant="outlined" hide-details />
       </v-col>
     </template>

@@ -1,5 +1,6 @@
 <template>
   <FileManagerPage
+    ref="fileManager"
     :title="$t('overlay.title')"
     route-base="overlay"
     route-param="overlayPath"
@@ -63,6 +64,11 @@ import FileManagerPage from '@/components/files/FileManagerPage.vue'
 export default {
   components: {
     FileManagerPage,
+  },
+
+  beforeRouteUpdate(to: any, _from: any, next: any) {
+    ;(this.$refs.fileManager as any)?.openRoute?.(to)
+    next()
   },
 }
 </script>

@@ -169,35 +169,12 @@ export default {
     },
   },
 
-  mounted() {
-
-    this.initializeWledData("mounted");
-  },
-
-  watch: {
-    modelValue(value: boolean) {
-      if (!value) return;
-      this.resetForm();
-      this.initializeWledData("modelValue watcher");
-    },
-    wledItems: {
-      deep: true,
-      handler() {
-        if (this.modelValue) this.initializeWledData("wledItems watcher");
-      },
-    },
-    asset: {
-      deep: true,
-      handler() {
-        if (this.modelValue) this.resetForm();
-      },
-    },
-    assetName() {
-      if (this.modelValue) this.resetForm();
-    },
-  },
-
   methods: {
+    async open() {
+      this.resetForm();
+      await this.initializeWledData("open");
+    },
+
     async initializeWledData(reason = "unknown") {
       const appStore = useAppStore();
 

@@ -10,10 +10,10 @@
     @move-down="$emit('move-down')"
   >
     <template #default="{ data }">
-      <v-col cols="12" md="5">
+      <v-col cols="12" md="7">
         <v-text-field v-model="data.name" label="Auto macro name" density="compact" variant="outlined" hide-details />
       </v-col>
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="5">
         <v-switch v-model="data.enabled" label="Enabled" color="primary" density="compact" hide-details inset />
       </v-col>
     </template>

@@ -10,7 +10,7 @@
     @move-down="$emit('move-down')"
   >
     <template #default="{ data }">
-      <v-col cols="12" md="4">
+      <v-col cols="12" md="12">
         <v-text-field v-model.number="data.time" label="Time" type="number" density="compact" variant="outlined" hide-details />
       </v-col>
     </template>

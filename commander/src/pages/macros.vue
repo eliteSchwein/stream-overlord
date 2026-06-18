@@ -100,6 +100,7 @@
     </v-card-text>
 
     <MacroEditorDialog
+      ref="macroEditorDialog"
       v-model="editorDialog"
       :name="selectedMacroName"
       :macro="selectedMacro"
@@ -203,6 +204,7 @@ export default {
 
   mounted() {
     eventBus.$on('websocket:connected', this.refreshMacros)
+    this.refreshMacros()
   },
 
   beforeUnmount() {
@@ -275,6 +277,9 @@ export default {
       this.selectedMacro = macro
       this.selectedMacroFile = macro?.file ?? `${name}.yaml`
       this.editorDialog = true
+      this.$nextTick(() => {
+        ;(this.$refs.macroEditorDialog as any)?.open?.()
+      })
     },
 
     openDeleteDialog(name: string, macro: any) {

@@ -10,7 +10,7 @@
     @move-down="$emit('move-down')"
   >
     <template #default>
-      <v-col cols="12" md="8">
+      <v-col cols="12" md="12">
         <v-alert type="info" color="grey-darken-3" density="compact" variant="tonal" text="No settings needed. This toggles song requests." />
       </v-col>
     </template>

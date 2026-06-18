@@ -11,11 +11,9 @@
     </v-expansion-panel-title>
 
     <v-expansion-panel-text>
-      <v-row density="comfortable">
-        <v-col cols="12" md="4">
-          <v-text-field v-model="task.method" label="Function" density="compact" variant="outlined" hide-details />
-        </v-col>
+      <v-text-field class="d-none" v-model="task.method" label="Function" density="compact" variant="outlined" hide-details />
 
+      <v-row density="comfortable">
         <slot :task="task" :data="data" />
       </v-row>
 

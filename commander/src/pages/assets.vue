@@ -68,6 +68,7 @@
     </v-card-text>
 
     <AssetEditorDialog
+      ref="assetEditorDialog"
       v-model="editorDialog"
       :asset-name="selectedAssetName"
       :asset="selectedAsset"
@@ -298,18 +299,22 @@ export default {
       }
     },
 
-    openCreateEditor() {
+    async openCreateEditor() {
       this.selectedAssetName = ''
       this.selectedAsset = null
       this.editorError = ''
       this.editorDialog = true
+      await this.$nextTick()
+      await (this.$refs.assetEditorDialog as any)?.open?.()
     },
 
-    openEditor(name: string, asset: any) {
+    async openEditor(name: string, asset: any) {
       this.selectedAssetName = name
       this.selectedAsset = asset
       this.editorError = ''
       this.editorDialog = true
+      await this.$nextTick()
+      await (this.$refs.assetEditorDialog as any)?.open?.()
     },
 
     async saveEditor(payload: { name: string; path: string; asset: any }) {

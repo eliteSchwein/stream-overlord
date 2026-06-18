@@ -10,13 +10,13 @@
     @move-down="$emit('move-down')"
   >
     <template #default="{ data }">
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="4">
         <v-text-field v-model="data.key" label="Variable key" density="compact" variant="outlined" hide-details />
       </v-col>
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="4">
         <v-text-field v-model.number="data.min" label="Min" type="number" density="compact" variant="outlined" hide-details />
       </v-col>
-      <v-col cols="12" md="3">
+      <v-col cols="12" md="4">
         <v-text-field v-model.number="data.max" label="Max" type="number" density="compact" variant="outlined" hide-details />
       </v-col>
     </template>

@@ -3,7 +3,7 @@
     :model-value="modelValue"
     fullscreen
     scrollable
-    @update:model-value="$emit('update:modelValue', $event)"
+    @update:model-value="handleDialogModelValueUpdate"
   >
     <v-card color="grey-darken-4" class="overlay-editor-dialog">
       <v-toolbar flat density="compact">
@@ -53,6 +53,7 @@
               variant="outlined"
               density="compact"
               hide-details
+              @update:model-value="markPreviewCustom"
             />
           </v-col>
 
@@ -65,6 +66,7 @@
               variant="outlined"
               density="compact"
               hide-details
+              @update:model-value="markPreviewCustom"
             />
           </v-col>
 
@@ -113,6 +115,7 @@
                   height="100%"
                   :options="editorOptions"
                   @mount="handleEditorMount"
+                  @update:value="handleContentUpdate"
                 />
               </div>
             </v-card>
@@ -408,35 +411,30 @@ export default {
     },
   },
 
-  watch: {
-    async modelValue(value: boolean) {
-      if (value) await this.loadFile()
-    },
-
-    entry: {
-      async handler() {
-        if (this.modelValue) await this.loadFile()
-      },
-    },
-
-    content() {
-      this.rawPreviewKey += 1
-    },
-
-    previewWidth() {
-      this.previewPreset = 'custom'
-    },
-
-    previewHeight() {
-      this.previewPreset = 'custom'
-    },
-  },
 
   beforeUnmount() {
     this.disposeCompletionProviders()
   },
 
   methods: {
+    async open() {
+      await this.loadFile()
+    },
+
+    async handleDialogModelValueUpdate(value: boolean) {
+      this.$emit('update:modelValue', value)
+
+      if (value) await this.loadFile()
+    },
+
+    handleContentUpdate() {
+      this.rawPreviewKey += 1
+    },
+
+    markPreviewCustom() {
+      this.previewPreset = 'custom'
+    },
+
     async handleEditorMount(editor: any, monaco: any) {
       this.monacoInstance = monaco
 

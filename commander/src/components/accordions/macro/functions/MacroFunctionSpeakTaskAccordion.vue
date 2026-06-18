@@ -10,12 +10,10 @@
     @move-down="$emit('move-down')"
   >
     <template #default="{ data }">
-      <v-col cols="12" md="5">
+      <v-col cols="12">
         <v-text-field v-model="data.content" label="Text" density="compact" variant="outlined" hide-details />
       </v-col>
-      <v-col cols="12" md="3">
-        <v-text-field v-model="data.event_uuid" label="Event UUID" density="compact" variant="outlined" hide-details />
-      </v-col>
+      <v-text-field class="d-none" v-model="data.event_uuid" label="Event ID" density="compact" variant="outlined" hide-details />
     </template>
   </MacroFunctionBaseTaskAccordion>
 </template>

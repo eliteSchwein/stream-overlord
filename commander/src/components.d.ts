@@ -34,6 +34,7 @@ declare module 'vue' {
     Macro: typeof import('./components/Macro.vue')['default']
     MacroAlertTaskAccordion: typeof import('./components/accordions/macro/MacroAlertTaskAccordion.vue')['default']
     MacroAnimationTaskAccordion: typeof import('./components/accordions/macro/MacroAnimationTaskAccordion.vue')['default']
+    MacroAssetSelect: typeof import('./components/accordions/macro/MacroAssetSelect.vue')['default']
     MacroChannelPointTaskAccordion: typeof import('./components/accordions/macro/MacroChannelPointTaskAccordion.vue')['default']
     MacroConditionTaskAccordion: typeof import('./components/accordions/macro/MacroConditionTaskAccordion.vue')['default']
     MacroDeleteConfirmDialog: typeof import('./components/dialogs/MacroDeleteConfirmDialog.vue')['default']

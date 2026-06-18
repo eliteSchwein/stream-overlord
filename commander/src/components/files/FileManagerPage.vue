@@ -217,6 +217,7 @@
 
     <OverlayEditorDialog
       v-if="enableEditor"
+      ref="overlayEditorDialog"
       v-model="editorDialog"
       :entry="selectedEditorEntry"
       :read-method="readTextMethod"
@@ -567,19 +568,6 @@ export default {
       })
     },
   },
-
-  watch: {
-    '$route.fullPath': {
-      async handler() {
-        const path = this.getRoutePath()
-
-        if (path !== this.currentPath) {
-          await this.fetchEntries(path, false)
-        }
-      },
-    },
-  },
-
   mounted() {
     this.currentPath = this.getRoutePath()
 
@@ -899,6 +887,10 @@ export default {
       this.selectedEditorEntry = item
       this.editorDialog = true
       this.errorMessage = ''
+
+      this.$nextTick(() => {
+        ;(this.$refs.overlayEditorDialog as any)?.open?.(item)
+      })
     },
 
     async handleEditorSaved() {
@@ -924,15 +916,25 @@ export default {
     async openPath(path: string, replace = false) {
       const normalized = this.normalizePath(path)
 
+      this.currentPath = normalized
       await this.updateRoute(normalized, replace)
-
-      if (normalized === this.currentPath) {
-        await this.fetchEntries(normalized, false)
-      }
+      await this.fetchEntries(normalized, false)
     },
 
-    getRoutePath(): string {
-      const raw = this.$route?.params?.[this.routeParam]
+    async openRoutePath(path: string) {
+      const normalized = this.normalizePath(path)
+
+      if (normalized === this.currentPath) return
+
+      await this.fetchEntries(normalized, false)
+    },
+
+    async openRoute(route: any) {
+      await this.openRoutePath(this.getRoutePath(route))
+    },
+
+    getRoutePath(route: any = this.$route): string {
+      const raw = route?.params?.[this.routeParam]
 
       if (Array.isArray(raw)) {
         return this.normalizePath(raw.map(part => this.decodeRoutePart(String(part))).join('/'))

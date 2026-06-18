@@ -18,14 +18,14 @@
     <v-alert
       v-else
       type="info"
-      color="grey-darken-3"
+      color="warning"
       density="comfortable"
       variant="tonal"
       class="mb-3"
       text="No tasks yet"
     />
 
-    <v-menu>
+    <v-menu v-model="addTaskMenuOpen" :close-on-content-click="false">
       <template #activator="{ props }">
         <v-btn
           v-bind="props"
@@ -40,13 +40,33 @@
       </template>
 
       <v-list density="comfortable">
-        <v-list-item
-          v-for="preset in presets"
-          :key="preset.title"
-          :prepend-icon="preset.icon"
-          :title="preset.title"
-          @click="addTask(preset.factory())"
-        />
+        <template v-for="preset in presets" :key="preset.title">
+          <v-list-group v-if="preset.children?.length" :value="preset.title">
+            <template #activator="{ props: groupProps }">
+              <v-list-item
+                v-bind="groupProps"
+                :prepend-icon="preset.icon"
+                :title="preset.title"
+                @click.stop
+              />
+            </template>
+
+            <v-list-item
+              v-for="child in preset.children"
+              :key="child.title"
+              :prepend-icon="child.icon"
+              :title="child.title"
+              @click.stop="addTaskAndClose(child.factory())"
+            />
+          </v-list-group>
+
+          <v-list-item
+            v-else
+            :prepend-icon="preset.icon"
+            :title="preset.title"
+            @click.stop="addTaskAndClose(preset.factory())"
+          />
+        </template>
       </v-list>
     </v-menu>
   </div>
@@ -133,6 +153,7 @@ export default {
 
   data() {
     return {
+      addTaskMenuOpen: false,
       presets: [
         {
           title: 'If condition',
@@ -150,49 +171,9 @@ export default {
           factory: () => this.createTask({ channel: 'alert', message: '', asset: '' }),
         },
         {
-          title: 'Function: send DM',
-          icon: 'mdi-message-lock-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'send_dm', data: { user: '', content: '' } }),
-        },
-        {
-          title: 'Function: chat message',
-          icon: 'mdi-message-text-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'send_message', data: { content: '' } }),
-        },
-        {
-          title: 'Function: sleep',
-          icon: 'mdi-timer-sand',
-          factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 1000 } }),
-        },
-        {
-          title: 'Function: speak',
-          icon: 'mdi-account-voice',
-          factory: () => this.createTask({ channel: 'function', method: 'speak', data: { content: '', event_uuid: '' } }),
-        },
-        {
-          title: 'Function: random',
-          icon: 'mdi-dice-multiple-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'random', data: { key: '', min: 0, max: 100 } }),
-        },
-        {
-          title: 'Function: song request',
-          icon: 'mdi-music-note-plus',
-          factory: () => this.createTask({ channel: 'function', method: 'song_request', data: { url: '' } }),
-        },
-        {
-          title: 'Function: toggle song requests',
-          icon: 'mdi-music-note-off-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'song_request_toggle', data: {} }),
-        },
-        {
-          title: 'Function: toggle auto macro',
-          icon: 'mdi-toggle-switch-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'toggle_auto_macro', data: { name: '', enabled: true } }),
-        },
-        {
-          title: 'Websocket',
-          icon: 'mdi-connection',
-          factory: () => this.createTask({ channel: 'websocket', method: '', data: {} }),
+          title: 'Animation',
+          icon: 'mdi-animation-play',
+          factory: () => this.createTask({ channel: 'animation', method: 'play' }),
         },
         {
           title: 'Channel point',
@@ -200,9 +181,60 @@ export default {
           factory: () => this.createTask({ channel: 'channel_point', method: 'accept' }),
         },
         {
-          title: 'Raw task',
-          icon: 'mdi-code-json',
-          factory: () => this.createTask({ channel: '', method: '', data: {} }),
+          title: 'Send DM',
+          icon: 'mdi-message-lock-outline',
+          factory: () => this.createTask({ channel: 'function', method: 'send_dm', data: { user: '', content: '' } }),
+        },
+        {
+          title: 'Chat message',
+          icon: 'mdi-message-text-outline',
+          factory: () => this.createTask({ channel: 'function', method: 'send_message', data: { content: '' } }),
+        },
+        {
+          title: 'Song request',
+          icon: 'mdi-music-note-plus',
+          factory: () => this.createTask({ channel: 'function', method: 'song_request', data: { url: '' } }),
+        },
+        {
+          title: 'Toggle song requests',
+          icon: 'mdi-music-note-off-outline',
+          factory: () => this.createTask({ channel: 'function', method: 'song_request_toggle', data: {} }),
+        },
+        {
+          title: 'Sleep',
+          icon: 'mdi-timer-sand',
+          factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 1000 } }),
+        },
+        {
+          title: 'Speak',
+          icon: 'mdi-account-voice',
+          factory: () => this.createTask({ channel: 'function', method: 'speak', data: { content: '', event_uuid: "${eventUuid}" } }),
+        },
+        {
+          title: 'Random',
+          icon: 'mdi-dice-multiple-outline',
+          factory: () => this.createTask({ channel: 'function', method: 'random', data: { key: '', min: 0, max: 100 } }),
+        },
+        {
+          title: 'Toggle auto macro',
+          icon: 'mdi-toggle-switch-outline',
+          factory: () => this.createTask({ channel: 'function', method: 'toggle_auto_macro', data: { name: '', enabled: true } }),
+        },
+        {
+          title: 'Expert',
+          icon: 'mdi-function',
+          children: [
+            {
+              title: 'Websocket',
+              icon: 'mdi-connection',
+              factory: () => this.createTask({ channel: 'websocket', method: '', data: {} }),
+            },
+            {
+              title: 'Raw task',
+              icon: 'mdi-code-json',
+              factory: () => this.createTask({ channel: '', method: '', data: {} }),
+            },
+          ],
         },
       ],
     }
@@ -263,6 +295,11 @@ export default {
 
     addTask(item: any) {
       ;(this.items as any[]).push(item)
+    },
+
+    addTaskAndClose(item: any) {
+      this.addTask(item)
+      this.addTaskMenuOpen = false
     },
 
     removeItem(index: number) {
