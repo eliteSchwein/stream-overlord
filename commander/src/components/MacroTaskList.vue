@@ -9,6 +9,7 @@
         :index="index"
         :depth="depth"
         :task-list-component="currentTaskListComponent"
+        :inside-loop="isItemInsideLoop(item)"
         @remove="removeItem(index)"
         @move-up="moveItem(index, -1)"
         @move-down="moveItem(index, 1)"
@@ -40,7 +41,7 @@
       </template>
 
       <v-list density="comfortable">
-        <template v-for="preset in presets" :key="preset.title">
+        <template v-for="preset in availablePresets" :key="preset.title">
           <v-list-group v-if="preset.children?.length" :value="preset.title">
             <template #activator="{ props: groupProps }">
               <v-list-item
@@ -83,6 +84,10 @@ import {
   MacroEndMacroTaskAccordion,
   MacroFunctionTaskAccordion,
   MacroMacroTaskAccordion,
+  MacroFileTaskAccordion,
+  MacroLoopControlTaskAccordion,
+  MacroLoopTaskAccordion,
+  MacroMediaTaskAccordion,
   MacroMusicTaskAccordion,
   MacroNeopixelTaskAccordion,
   MacroObsTaskAccordion,
@@ -117,6 +122,10 @@ export default {
     MacroWledTaskAccordion,
     MacroMusicTaskAccordion,
     MacroMacroTaskAccordion,
+    MacroFileTaskAccordion,
+    MacroLoopControlTaskAccordion,
+    MacroLoopTaskAccordion,
+    MacroMediaTaskAccordion,
     MacroWebhookTaskAccordion,
     MacroYoloboxTaskAccordion,
     MacroNeopixelTaskAccordion,
@@ -143,11 +152,33 @@ export default {
       type: [Object, Function, String],
       default: null,
     },
+    insideLoop: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   computed: {
     currentTaskListComponent(): any {
       return this.taskListComponent || this.$options
+    },
+
+    availablePresets(): any[] {
+      return this.presets
+        .map((preset: any) => {
+          if (!preset.children?.length) return preset
+
+          const children = preset.children.filter((child: any) => {
+            if (child.loopOnly === true) return this.insideLoop
+            return true
+          })
+
+          return {
+            ...preset,
+            children,
+          }
+        })
+        .filter((preset: any) => !preset.children || preset.children.length > 0)
     },
   },
 
@@ -156,9 +187,32 @@ export default {
       addTaskMenuOpen: false,
       presets: [
         {
-          title: 'If condition',
+          title: 'Conditions',
           icon: 'mdi-source-branch',
-          factory: () => this.createConditionTask(),
+          children: [
+            {
+              title: 'If condition',
+              icon: 'mdi-source-branch',
+              factory: () => this.createConditionTask(),
+            },
+            {
+              title: 'For loop',
+              icon: 'mdi-repeat',
+              factory: () => this.createLoopTask(),
+            },
+            {
+              title: 'Loop: break',
+              icon: 'mdi-stop-circle-outline',
+              loopOnly: true,
+              factory: () => this.createTask({ channel: 'loop', method: 'break' }),
+            },
+            {
+              title: 'Loop: continue',
+              icon: 'mdi-skip-next-outline',
+              loopOnly: true,
+              factory: () => this.createTask({ channel: 'loop', method: 'continue' }),
+            },
+          ],
         },
         {
           title: 'End macro',
@@ -191,24 +245,9 @@ export default {
           factory: () => this.createTask({ channel: 'function', method: 'send_message', data: { content: '' } }),
         },
         {
-          title: 'Song request',
-          icon: 'mdi-music-note-plus',
-          factory: () => this.createTask({ channel: 'function', method: 'song_request', data: { url: '' } }),
-        },
-        {
-          title: 'Toggle song requests',
-          icon: 'mdi-music-note-off-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'song_request_toggle', data: {} }),
-        },
-        {
           title: 'Sleep',
           icon: 'mdi-timer-sand',
           factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 1000 } }),
-        },
-        {
-          title: 'Speak',
-          icon: 'mdi-account-voice',
-          factory: () => this.createTask({ channel: 'function', method: 'speak', data: { content: '', event_uuid: "${eventUuid}" } }),
         },
         {
           title: 'Random',
@@ -219,6 +258,32 @@ export default {
           title: 'Toggle auto macro',
           icon: 'mdi-toggle-switch-outline',
           factory: () => this.createTask({ channel: 'function', method: 'toggle_auto_macro', data: { name: '', enabled: true } }),
+        },
+        {
+          title: 'File: read asset folder',
+          icon: 'mdi-folder-open-outline',
+          factory: () => this.createTask({ channel: 'file', method: 'read_folder', data: { path: null, key: 'files', fileExtension: null } }),
+        },
+        {
+          title: 'Audio',
+          icon: 'mdi-volume-high',
+          children: [
+            {
+              title: 'Speak',
+              icon: 'mdi-account-voice',
+              factory: () => this.createTask({ channel: 'function', method: 'speak', data: { content: '', event_uuid: "${eventUuid}" } }),
+            },
+            {
+              title: 'Song request',
+              icon: 'mdi-music-note-plus',
+              factory: () => this.createTask({ channel: 'function', method: 'song_request', data: { url: '' } }),
+            },
+            {
+              title: 'Toggle song requests',
+              icon: 'mdi-music-note-off-outline',
+              factory: () => this.createTask({ channel: 'function', method: 'song_request_toggle', data: {} }),
+            },
+          ],
         },
         {
           title: 'Expert',
@@ -243,6 +308,8 @@ export default {
   methods: {
     componentFor(item: any) {
       if (item?.type === 'condition') return 'MacroConditionTaskAccordion'
+      if (item?.type === 'loop' || (item?.task?.channel === 'loop' && item?.task?.method === 'for')) return 'MacroLoopTaskAccordion'
+      if (item?.task?.channel === 'loop' && ['break', 'continue', 'end_for'].includes(item?.task?.method)) return 'MacroLoopControlTaskAccordion'
       if (item?.task?.channel === 'condition' && item?.task?.method === 'end_macro') return 'MacroEndMacroTaskAccordion'
 
       const componentsByChannel: Record<string, string> = {
@@ -256,6 +323,8 @@ export default {
         wled: 'MacroWledTaskAccordion',
         music: 'MacroMusicTaskAccordion',
         macro: 'MacroMacroTaskAccordion',
+        file: 'MacroFileTaskAccordion',
+        media: 'MacroMediaTaskAccordion',
         webhook: 'MacroWebhookTaskAccordion',
         yolobox: 'MacroYoloboxTaskAccordion',
         neopixel: 'MacroNeopixelTaskAccordion',
@@ -291,6 +360,27 @@ export default {
         children: [],
         branches: [],
       }
+    },
+
+    createLoopTask() {
+      return {
+        id: this.uid(),
+        type: 'loop',
+        task: {
+          channel: 'loop',
+          method: 'for',
+          data: {
+            key: 'item',
+            from: 1,
+            to: 10,
+          },
+        },
+        children: [],
+      }
+    },
+
+    isItemInsideLoop(item: any) {
+      return this.insideLoop || item?.type === 'loop' || (item?.task?.channel === 'loop' && item?.task?.method === 'for')
     },
 
     addTask(item: any) {

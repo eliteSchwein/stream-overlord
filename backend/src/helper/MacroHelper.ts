@@ -241,10 +241,10 @@ function walkMacroFiles(directory: string): string[] {
 
 function sanitizeMacroFileName(name: string) {
     return String(name)
-        .trim()
-        .replace(/[\\/]+/g, "_")
-        .replace(/[^a-zA-Z0-9_.-]+/g, "_")
-        .replace(/^\.+/, "")
+            .trim()
+            .replace(/[\\/]+/g, "_")
+            .replace(/[^a-zA-Z0-9_.-]+/g, "_")
+            .replace(/^\.+/, "")
         || "macro";
 }
 
@@ -595,19 +595,29 @@ function getNestedValue(obj: any, path: string): any {
 }
 
 function interpolateTemplate(input: string, variables: any): string {
-    return input.replace(/\$\{([^}]+)\}/g, (_, path) => {
-        const value = getNestedValue(variables, path.trim());
+    return input
+        .replace(/"\$\{([^}]+)\}"/g, (_, variablePath) => {
+            const value = getNestedValue(variables, variablePath.trim());
 
-        if (value === undefined || value === null) {
-            return "";
-        }
+            if (value === undefined) {
+                return JSON.stringify("");
+            }
 
-        if (typeof value === "object") {
             return JSON.stringify(value);
-        }
+        })
+        .replace(/\$\{([^}]+)\}/g, (_, variablePath) => {
+            const value = getNestedValue(variables, variablePath.trim());
 
-        return String(value);
-    });
+            if (value === undefined || value === null) {
+                return "";
+            }
+
+            if (typeof value === "object") {
+                return JSON.stringify(value);
+            }
+
+            return String(value);
+        });
 }
 
 function evaluateCheck(value: any, check: string = ""): boolean {
@@ -626,6 +636,84 @@ function shouldExecute(controlStack: any[]): boolean {
 
 function parentsShouldExecute(controlStack: any[]): boolean {
     return controlStack.slice(0, -1).every(block => block.active);
+}
+
+function buildNumericLoopValues(data: any = {}) {
+    const from = Number(data.from);
+    const to = Number(data.to);
+    const requestedStep = data.step === undefined ? undefined : Number(data.step);
+
+    if (!Number.isFinite(from) || !Number.isFinite(to)) {
+        logWarn(`loop for requires numeric from and to`);
+        return [];
+    }
+
+    const step = Number.isFinite(requestedStep) && requestedStep !== 0
+        ? requestedStep
+        : from <= to ? 1 : -1;
+
+    if ((from < to && step < 0) || (from > to && step > 0)) {
+        logWarn(`loop for step does not move from ${from} to ${to}`);
+        return [];
+    }
+
+    const values = [];
+
+    for (let value = from; step > 0 ? value <= to : value >= to; value += step) {
+        values.push(value);
+    }
+
+    return values;
+}
+
+function normalizeLoopDataValues(value: any) {
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    if (value && typeof value === "object") {
+        return Object.values(value);
+    }
+
+    if (typeof value === "string" && value.trim()) {
+        try {
+            const parsed = JSON.parse(value);
+
+            if (Array.isArray(parsed)) return parsed;
+            if (parsed && typeof parsed === "object") return Object.values(parsed);
+        } catch (error) {
+            return value
+                .split(",")
+                .map((item: string) => item.trim())
+                .filter((item: string) => item.length > 0);
+        }
+    }
+
+    return [];
+}
+
+function getLoopValues(data: any = {}, variables: any = {}) {
+    if (data.from !== undefined && data.to !== undefined) {
+        return buildNumericLoopValues(data);
+    }
+
+    if (data.data !== undefined) {
+        const loopData = typeof data.data === "string"
+            ? getNestedValue(variables, data.data) ?? data.data
+            : data.data;
+
+        return normalizeLoopDataValues(loopData);
+    }
+
+    if (data.values !== undefined) {
+        return normalizeLoopDataValues(data.values);
+    }
+
+    return [];
+}
+
+function setLoopVariables(block: any, variables: any) {
+    variables[block.key] = block.values[block.index];
 }
 
 export async function triggerMacro(name: string, variables: any = {}) {
@@ -663,7 +751,8 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
     const controlStack: any[] = [];
 
-    for (const preTask of tasks) {
+    for (let taskIndex = 0; taskIndex < tasks.length; taskIndex++) {
+        const preTask = tasks[taskIndex];
         if (isMacroEventCancelled(variables)) {
             logWarn(`macro ${name} cancelled for event ${variables.eventUuid}`)
             return false
@@ -738,6 +827,92 @@ export async function triggerMacro(name: string, variables: any = {}) {
                 }
             }
 
+            if (task.channel === "loop") {
+                logRegular(`loop: ${task.method}`);
+
+                switch (task.method) {
+                    case "for": {
+                        const parentActive = shouldExecute(controlStack);
+                        const data = task.data ?? {};
+                        const key = data.key ?? data.variable ?? "item";
+                        const values = parentActive ? getLoopValues(data, variables) : [];
+                        const active = parentActive && values.length > 0;
+
+                        const block = {
+                            type: "loop",
+                            active,
+                            key,
+                            values,
+                            index: 0,
+                            startTaskIndex: taskIndex,
+                        };
+
+                        if (active) {
+                            setLoopVariables(block, variables);
+                        }
+
+                        controlStack.push(block);
+                        continue;
+                    }
+
+                    case "end_for": {
+                        const block = controlStack[controlStack.length - 1];
+
+                        if (!block || block.type !== "loop") {
+                            continue;
+                        }
+
+                        block.index++;
+
+                        if (block.index < block.values.length) {
+                            setLoopVariables(block, variables);
+                            taskIndex = block.startTaskIndex;
+                        } else {
+                            controlStack.pop();
+                        }
+
+                        continue;
+                    }
+
+                    case "break": {
+                        if (!shouldExecute(controlStack)) {
+                            continue;
+                        }
+
+                        const block = [...controlStack].reverse().find(item => item.type === "loop");
+
+                        if (block) {
+                            block.index = block.values.length;
+                            block.active = false;
+                        }
+
+                        continue;
+                    }
+
+                    case "continue": {
+                        if (!shouldExecute(controlStack)) {
+                            continue;
+                        }
+
+                        const block = [...controlStack].reverse().find(item => item.type === "loop");
+
+                        if (block) {
+                            block.index++;
+
+                            if (block.index < block.values.length) {
+                                setLoopVariables(block, variables);
+                                taskIndex = block.startTaskIndex;
+                            } else {
+                                block.index = block.values.length;
+                                block.active = false;
+                            }
+                        }
+
+                        continue;
+                    }
+                }
+            }
+
             if (!shouldExecute(controlStack)) {
                 continue;
             }
@@ -765,6 +940,16 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
                 case "variable": {
                     await handleVariable(task.method, task, variables);
+                    break;
+                }
+
+                case "file": {
+                    await handleFile(task.method, task.data, variables);
+                    break;
+                }
+
+                case "media": {
+                    handleMedia(task.method, task.data);
                     break;
                 }
 
@@ -1127,6 +1312,120 @@ async function handleVariable(method: string, task: any = {}, variables: any = {
 
         default: {
             logWarn(`invalid variable method: ${method}`);
+            break;
+        }
+    }
+}
+
+
+function getAssetDirectory() {
+    return path.join(getSystemConfigDirectory(), "assets");
+}
+
+function normalizeAssetReadPath(inputPath: string = "") {
+    const normalized = path.normalize(String(inputPath || "")).replace(/^([/\\])+/, "");
+
+    if (normalized === ".") return "";
+
+    if (normalized.split(path.sep).includes("..")) {
+        throw new Error("invalid asset path");
+    }
+
+    return normalized;
+}
+
+function resolveAssetReadPath(inputPath: string = "") {
+    const baseDirectory = getAssetDirectory();
+    const resolvedPath = path.resolve(baseDirectory, normalizeAssetReadPath(inputPath));
+
+    if (resolvedPath !== baseDirectory && !resolvedPath.startsWith(`${baseDirectory}${path.sep}`)) {
+        throw new Error("invalid asset path");
+    }
+
+    return resolvedPath;
+}
+
+function normalizeFileExtension(fileExtension: string = "") {
+    const extension = String(fileExtension || "").trim().toLowerCase();
+
+    if (!extension) return "";
+
+    return extension.startsWith(".") ? extension : `.${extension}`;
+}
+
+async function handleFile(method: string, data: any = {}, variables: any = {}) {
+    logRegular(`trigger file: ${method}`);
+
+    switch (method) {
+        case "read_folder": {
+            const directory = resolveAssetReadPath(data.path ?? "");
+            const variableKey = data.key ?? "files";
+            const fileExtension = normalizeFileExtension(data.fileExtension ?? data.file_extension ?? "");
+
+            if (!fs.existsSync(directory)) {
+                logWarn(`file read_folder asset path not found: ${data.path ?? ""}`);
+                variables[variableKey] = [];
+                break;
+            }
+
+            if (!fs.statSync(directory).isDirectory()) {
+                logWarn(`file read_folder asset path is not a directory: ${data.path ?? ""}`);
+                variables[variableKey] = [];
+                break;
+            }
+
+            const files = fs.readdirSync(directory, {withFileTypes: true})
+                .filter(entry => entry.isFile())
+                .filter(entry => !fileExtension || path.extname(entry.name).toLowerCase() === fileExtension)
+                .map(entry => {
+                    const relativePath = path
+                        .join(normalizeAssetReadPath(data.path ?? ""), entry.name)
+                        .replace(/\\/g, "/");
+
+                    return {
+                        name: entry.name,
+                        path: relativePath,
+                        extension: path.extname(entry.name).replace(/^\./, ""),
+                    };
+                })
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            variables[variableKey] = files;
+
+            logRegular(`file read_folder ${variableKey}=${files.length} file(s)`);
+            break;
+        }
+
+        default: {
+            logWarn(`invalid file method: ${method}`);
+            break;
+        }
+    }
+}
+
+function handleMedia(method: string, data: any = {}) {
+    const websocket = getWebsocketServer();
+
+    logRegular(`trigger media: ${method}`);
+
+    switch (method) {
+        case "show_media": {
+            if (!data.path) {
+                logWarn(`media show_media requires path`);
+                break;
+            }
+
+            websocket.send("notify_media_update", {
+                media: method,
+                path: data.path,
+                options: data.options ?? {},
+            });
+
+            break;
+        }
+
+        default: {
+            logWarn(`invalid media method: ${method}`);
             break;
         }
     }

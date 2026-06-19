@@ -21,7 +21,7 @@
       />
 
       <div class="text-caption text-medium-emphasis mb-2">Then</div>
-      <component :is="taskListComponent" :items="item.children" :depth="depth + 1" nested />
+      <component :is="taskListComponent" :items="item.children" :depth="depth + 1" :inside-loop="insideLoop" nested />
 
       <div v-for="(branch, branchIndex) in item.branches" :key="branch.id" class="mt-4">
         <div class="d-flex align-center mb-2">
@@ -49,7 +49,7 @@
           <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="removeBranch(branchIndex)" />
         </div>
 
-        <component :is="taskListComponent" :items="branch.children" :depth="depth + 1" nested />
+        <component :is="taskListComponent" :items="branch.children" :depth="depth + 1" :inside-loop="insideLoop" nested />
       </div>
 
       <div class="d-flex flex-wrap ga-2 mt-4">
@@ -84,6 +84,10 @@ export default {
     taskListComponent: {
       type: [Object, Function, String],
       required: true,
+    },
+    insideLoop: {
+      type: Boolean,
+      default: false,
     },
   },
 

@@ -162,17 +162,11 @@ export default {
     }
   },
 
-  watch: {
-    modelValue(value: boolean) {
-      if (value) this.loadMacro()
-    },
-
-    name() {
-      if (this.modelValue) this.loadMacro()
-    },
-  },
-
   methods: {
+    open() {
+      return this.loadMacro()
+    },
+
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
       return new Promise((resolve, reject) => {
         eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })

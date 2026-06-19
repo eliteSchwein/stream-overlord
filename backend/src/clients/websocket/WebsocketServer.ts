@@ -61,7 +61,8 @@ export default class WebsocketServer {
         'notify_music_update',
         'notify_music_cava',
         'notify_animation_update',
-        'notify_audio_outputs_update'
+        'notify_audio_outputs_update',
+        'notify_media_update'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []

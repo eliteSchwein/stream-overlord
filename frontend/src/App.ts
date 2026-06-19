@@ -42,6 +42,7 @@ import {initEffects} from "./js/helper/EffectHelper";
 import CavaController from "./js/controller/CavaController";
 import AnimationController from "./js/controller/AnimationController";
 import ParticlesController from "./js/controller/ParticlesController";
+import MediaController from "./js/controller/MediaController";
 
 // variables
 let websocketClient: WebsocketClient
@@ -78,6 +79,7 @@ async function init(){
     stimulus.register('cava', CavaController)
     stimulus.register('animation', AnimationController)
     stimulus.register('particles', ParticlesController)
+    stimulus.register('media', MediaController)
 
     await sleep(250)
 

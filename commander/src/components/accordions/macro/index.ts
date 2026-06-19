@@ -7,6 +7,10 @@ export { default as MacroEffectTaskAccordion } from './MacroEffectTaskAccordion.
 export { default as MacroEndMacroTaskAccordion } from './MacroEndMacroTaskAccordion.vue'
 export { default as MacroFunctionTaskAccordion } from './MacroFunctionTaskAccordion.vue'
 export { default as MacroMacroTaskAccordion } from './MacroMacroTaskAccordion.vue'
+export { default as MacroFileTaskAccordion } from './MacroFileTaskAccordion.vue'
+export { default as MacroLoopControlTaskAccordion } from './MacroLoopControlTaskAccordion.vue'
+export { default as MacroLoopTaskAccordion } from './MacroLoopTaskAccordion.vue'
+export { default as MacroMediaTaskAccordion } from './MacroMediaTaskAccordion.vue'
 export { default as MacroMusicTaskAccordion } from './MacroMusicTaskAccordion.vue'
 export { default as MacroNeopixelTaskAccordion } from './MacroNeopixelTaskAccordion.vue'
 export { default as MacroObsTaskAccordion } from './MacroObsTaskAccordion.vue'
@@ -26,3 +30,5 @@ export { default as MacroFunctionSongRequestTaskAccordion } from './functions/Ma
 export { default as MacroFunctionSongRequestToggleTaskAccordion } from './functions/MacroFunctionSongRequestToggleTaskAccordion.vue'
 export { default as MacroFunctionSpeakTaskAccordion } from './functions/MacroFunctionSpeakTaskAccordion.vue'
 export { default as MacroFunctionToggleAutoMacroTaskAccordion } from './functions/MacroFunctionToggleAutoMacroTaskAccordion.vue'
+
+export { default as MacroAssetSelect } from './MacroAssetSelect.vue'
