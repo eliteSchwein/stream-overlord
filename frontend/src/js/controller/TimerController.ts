@@ -5,12 +5,14 @@ import {sleep} from "../../../../helper/GeneralHelper";
 export default class TimerController extends BaseController {
     websocketEndpoints = ['notify_timer']
 
-    static targets = ['leadingMinute', 'lastMinute', 'leadingSecond', 'lastSecond', 'progressBar']
+    static targets = ['leadingMinute', 'lastMinute', 'leadingSecond', 'lastSecond', 'progressBar', 'progressBg']
 
     declare readonly leadingMinuteTargets: HTMLDivElement[]
     declare readonly lastMinuteTargets: HTMLDivElement[]
     declare readonly leadingSecondTargets: HTMLDivElement[]
     declare readonly lastSecondTargets: HTMLDivElement[]
+    declare readonly progressBarTargets: HTMLDivElement[]
+    declare readonly progressBgTargets: HTMLDivElement[]
 
     protected name: string
 
@@ -27,6 +29,7 @@ export default class TimerController extends BaseController {
         if(data.name !== this.name) return
 
         this.alertBoxHelper.setTopBarProgress(data.progress)
+        this.setCircleProgress(data.progress)
 
         switch (data.action) {
             case "update":
@@ -86,6 +89,25 @@ export default class TimerController extends BaseController {
 
         if(this.lastSecondTargets[0].innerHTML !== lastSecond) {
             void this.updateContent('lastSecond', lastSecond)
+        }
+    }
+
+    private setCircleProgress(progress: any) {
+        const progressNumber = Number(progress)
+
+        if (Number.isNaN(progressNumber)) return
+
+        const normalizedProgress = progressNumber <= 1
+            ? progressNumber * 100
+            : progressNumber
+
+        const clampedProgress = Math.min(100, Math.max(0, normalizedProgress))
+
+        for (const element of [
+            ...this.progressBarTargets,
+            ...this.progressBgTargets,
+        ]) {
+            element.style.setProperty('--progress', `${clampedProgress}%`)
         }
     }
 
