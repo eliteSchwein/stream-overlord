@@ -531,6 +531,69 @@ export function moveMacroFile(source: string, target: string) {
     };
 }
 
+
+
+type MacroUploadFile = {
+    originalname?: string;
+    buffer?: Buffer;
+};
+
+function sanitizeMacroUploadFileName(name: string) {
+    const extension = path.extname(name).toLowerCase();
+    const baseName = path.basename(name, extension);
+
+    return `${sanitizeMacroFileName(baseName)}${extension || ".yaml"}`;
+}
+
+export async function addMacroFilesFromUpload(files: MacroUploadFile[] = [], targetPath: string = "") {
+    ensureMacroDirectory();
+
+    const targetDirectory = resolveMacroPath(targetPath);
+    fs.mkdirSync(targetDirectory, {recursive: true});
+
+    const added: MacroFileEntry[] = [];
+
+    for (const file of files) {
+        if (!file?.buffer) continue;
+
+        const originalName = file.originalname ?? "macro.yaml";
+        const fileName = sanitizeMacroUploadFileName(originalName);
+        const extension = path.extname(fileName).toLowerCase();
+
+        if (!MACRO_FILE_EXTENSIONS.includes(extension)) {
+            throw new Error(`unsupported macro file type: ${originalName}`);
+        }
+
+        const filePath = path.join(targetDirectory, fileName);
+        const resolvedFilePath = path.resolve(filePath);
+
+        if (resolvedFilePath !== getMacroDirectory() && !resolvedFilePath.startsWith(`${getMacroDirectory()}${path.sep}`)) {
+            throw new Error("invalid macro upload path");
+        }
+
+        const content = file.buffer.toString("utf8");
+
+        // Validate before writing so broken yaml/json uploads do not poison the macro directory.
+        parseMacroConfigContent(resolvedFilePath, content);
+
+        fs.writeFileSync(resolvedFilePath, content, "utf8");
+
+        const macroName = getMacroCacheNameFromContent(resolvedFilePath, content);
+        updateMacroRawCache(macroName, content);
+
+        added.push({
+            name: path.basename(resolvedFilePath),
+            path: relativeMacroPath(resolvedFilePath),
+            type: "file",
+            extension: extension.replace(/^\./, ""),
+        });
+    }
+
+    loadMacros();
+
+    return added;
+}
+
 export function createMacroFolder(inputPath: string = "", name: string) {
     if (!name) {
         throw new Error("folder name is required");

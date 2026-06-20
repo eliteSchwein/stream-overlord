@@ -6,6 +6,48 @@ import getWebsocketServer from "../App";
 
 export const overlayRoot = path.join(getSystemConfigDirectory(), "streambot-overlays");
 
+let overlayCacheRebuildHandler: (() => void | Promise<void>) | undefined;
+let overlayCacheRebuildRunning = false;
+let overlayCacheRebuildQueued = false;
+
+export function setOverlayCacheRebuildHandler(handler: () => void | Promise<void>) {
+    overlayCacheRebuildHandler = handler;
+}
+
+export function rebuildOverlayCache() {
+    if (!overlayCacheRebuildHandler) return;
+
+    if (overlayCacheRebuildRunning) {
+        overlayCacheRebuildQueued = true;
+        return;
+    }
+
+    overlayCacheRebuildRunning = true;
+
+    Promise.resolve()
+        .then(() => overlayCacheRebuildHandler?.())
+        .catch((error) => {
+            logWarn(
+                `failed to rebuild overlay cache: ${
+                    error instanceof Error ? error.message : String(error)
+                }`
+            );
+        })
+        .finally(() => {
+            overlayCacheRebuildRunning = false;
+
+            if (overlayCacheRebuildQueued) {
+                overlayCacheRebuildQueued = false;
+                rebuildOverlayCache();
+            }
+        });
+}
+
+function emitOverlayChanged() {
+    emitOverlayUpdate();
+    rebuildOverlayCache();
+}
+
 export type OverlayListEntry = {
     name: string;
     path: string;
@@ -92,7 +134,7 @@ export function createOverlayFolder(inputPath: string = "", name?: string) {
 
     const relPath = relativeOverlayPath(target);
 
-    emitOverlayUpdate();
+    emitOverlayChanged();
 
     return { path: relPath };
 }
@@ -115,7 +157,7 @@ export function deleteOverlay(inputPath: string) {
         fs.unlinkSync(target);
     }
 
-    emitOverlayUpdate();
+    emitOverlayChanged();
 
     return { path: relPath };
 }
@@ -141,7 +183,7 @@ export function moveOverlay(source: string, target: string) {
     const sourceRel = relativeOverlayPath(sourcePath);
     const targetRel = relativeOverlayPath(targetPath);
 
-    emitOverlayUpdate();
+    emitOverlayChanged();
 
     return {
         source: sourceRel,
@@ -173,7 +215,7 @@ export async function addOverlayFilesFromUpload(files: any[], targetPath: string
         added.push(relativeOverlayPath(target));
     }
 
-    emitOverlayUpdate();
+    emitOverlayChanged();
 
     return added;
 }
@@ -247,7 +289,7 @@ export function editOverlayFile(inputPath: string, content: string) {
     const relPath = relativeOverlayPath(target);
     const stat = fs.statSync(target);
 
-    emitOverlayUpdate();
+    emitOverlayChanged();
 
     return {
         path: relPath,

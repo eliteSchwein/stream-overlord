@@ -14,6 +14,8 @@ import MusicPlaylistAddApi from "./api/Music/MusicPlaylistAddApi";
 import { getRemoteCacheDirectory } from "../../helper/RemoteCacheHelper";
 import AssetsUploadApi from "./api/Assets/AssetsUploadApi";
 import OverlaysUploadApi from "./api/Overlay/OverlaysUploadApi";
+import { setOverlayCacheRebuildHandler } from "../../helper/OverlayManagementHelper";
+import MacrosUploadApi from "./api/Macros/MacrosUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -57,6 +59,8 @@ export default class WebServer {
         );
 
         const htmlRoot = this.getHtmlRoot();
+
+        setOverlayCacheRebuildHandler(() => this.precacheConfiguredHtmlTemplates());
 
         await this.precacheConfiguredHtmlTemplates();
 
@@ -105,7 +109,10 @@ export default class WebServer {
         new AssetsUploadApi().register(this.app)
 
         // Yolobox API
-        new YoloboxPreviewApi().register(this.app);
+        new YoloboxPreviewApi().register(this.app)
+
+        // Macro API
+        new MacrosUploadApi().register(this.app)
 
         await registerApiEndpoints();
 
