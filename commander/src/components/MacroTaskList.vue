@@ -230,6 +230,11 @@ export default {
           factory: () => this.createTask({ channel: 'animation', method: 'play' }),
         },
         {
+          title: 'Run Macro',
+          icon: 'macro-task-accordion',
+          factory: () => this.createTask({ channel: 'macro', method: '', data: {} }),
+        },
+        {
           title: 'Channel point',
           icon: 'mdi-star-circle',
           factory: () => this.createTask({ channel: 'channel_point', method: 'accept' }),
