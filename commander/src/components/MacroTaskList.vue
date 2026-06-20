@@ -77,7 +77,6 @@
 import {
   MacroAlertTaskAccordion,
   MacroAnimationTaskAccordion,
-  MacroChannelPointTaskAccordion,
   MacroConditionTaskAccordion,
   MacroDummyAlertTaskAccordion,
   MacroEffectTaskAccordion,
@@ -93,11 +92,11 @@ import {
   MacroObsTaskAccordion,
   MacroRestTaskAccordion,
   MacroTaskAccordion,
-  MacroVariableTaskAccordion,
   MacroWebhookTaskAccordion,
   MacroWebsocketTaskAccordion,
   MacroWledTaskAccordion,
-  MacroYoloboxTaskAccordion,
+  MacroYoloboxTaskAccordion, MacroVariableSetTaskAccordion, MacroVariableGetTaskAccordion,
+  MacroChannelPointAcceptTaskAccordion, MacroChannelPointCancelTaskAccordion,
 } from '@/components/accordions/macro'
 
 export default {
@@ -118,7 +117,6 @@ export default {
     MacroWebsocketTaskAccordion,
     MacroRestTaskAccordion,
     MacroObsTaskAccordion,
-    MacroVariableTaskAccordion,
     MacroWledTaskAccordion,
     MacroMusicTaskAccordion,
     MacroMacroTaskAccordion,
@@ -129,10 +127,13 @@ export default {
     MacroWebhookTaskAccordion,
     MacroYoloboxTaskAccordion,
     MacroNeopixelTaskAccordion,
-    MacroChannelPointTaskAccordion,
     MacroEffectTaskAccordion,
     MacroAnimationTaskAccordion,
     MacroEndMacroTaskAccordion,
+    MacroVariableGetTaskAccordion,
+    MacroVariableSetTaskAccordion,
+    MacroChannelPointAcceptTaskAccordion,
+    MacroChannelPointCancelTaskAccordion,
   },
 
   props: {
@@ -215,9 +216,20 @@ export default {
           ],
         },
         {
-          title: 'End macro',
-          icon: 'mdi-stop-circle-outline',
-          factory: () => this.createTask({ channel: 'condition', method: 'end_macro' }),
+          title: 'Macro',
+          icon: 'mdi-star-circle',
+          children: [
+            {
+              title: 'Run Macro',
+              icon: 'mdi-playlist-play',
+              factory: () => this.createTask({ channel: 'macro', method: '', data: {} }),
+            },
+            {
+              title: 'End macro',
+              icon: 'mdi-stop-circle-outline',
+              factory: () => this.createTask({ channel: 'condition', method: 'end_macro' }),
+            },
+          ],
         },
         {
           title: 'Alert',
@@ -228,16 +240,6 @@ export default {
           title: 'Animation',
           icon: 'mdi-animation-play',
           factory: () => this.createTask({ channel: 'animation', method: 'play' }),
-        },
-        {
-          title: 'Run Macro',
-          icon: 'macro-task-accordion',
-          factory: () => this.createTask({ channel: 'macro', method: '', data: {} }),
-        },
-        {
-          title: 'Channel point',
-          icon: 'mdi-star-circle',
-          factory: () => this.createTask({ channel: 'channel_point', method: 'accept' }),
         },
         {
           title: 'Send DM',
@@ -270,6 +272,39 @@ export default {
           factory: () => this.createTask({ channel: 'file', method: 'read_folder', data: { path: null, key: 'files', fileExtension: null } }),
         },
         {
+          title: 'Channel point',
+          icon: 'mdi-star-circle',
+          children: [
+            {
+              title: 'Accept reward',
+              icon: 'mdi-check-circle-outline',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'accept' }),
+            },
+            {
+              title: 'Cancel reward',
+              icon: 'mdi-close-circle-outline',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'cancel' }),
+            },
+          ],
+        },
+        {
+
+          title: 'Variables',
+          icon: 'mdi-variable',
+          children: [
+            {
+              title: 'Set Variable',
+              icon: 'mdi-database-export-outline',
+              factory: () => this.createTask({ channel: 'variable', method: 'set', data: { value: null, key: '', to_file: false } }),
+            },
+            {
+              title: 'Get Variable',
+              icon: 'mdi-database-import-outline',
+              factory: () => this.createTask({ channel: 'variable', method: 'get', data: { key: '' } }),
+            },
+          ]
+        },
+        {
           title: 'Audio',
           icon: 'mdi-volume-high',
           children: [
@@ -300,6 +335,11 @@ export default {
               factory: () => this.createTask({ channel: 'websocket', method: '', data: {} }),
             },
             {
+              title: 'Rest',
+              icon: 'mdi-web',
+              factory: () => this.createTask({ channel: 'rest', method: '', data: {} }),
+            },
+            {
               title: 'Raw task',
               icon: 'mdi-code-json',
               factory: () => this.createTask({ channel: '', method: '', data: {} }),
@@ -317,6 +357,22 @@ export default {
       if (item?.task?.channel === 'loop' && ['break', 'continue', 'end_for'].includes(item?.task?.method)) return 'MacroLoopControlTaskAccordion'
       if (item?.task?.channel === 'condition' && item?.task?.method === 'end_macro') return 'MacroEndMacroTaskAccordion'
 
+      if (item?.task?.channel === 'variable' && item?.task?.method === 'get') {
+        return 'MacroVariableGetTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'variable' && item?.task?.method === 'set') {
+        return 'MacroVariableSetTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'channel_point' && item?.task?.method === 'accept') {
+        return 'MacroChannelPointAcceptTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'channel_point' && item?.task?.method === 'cancel') {
+        return 'MacroChannelPointCancelTaskAccordion'
+      }
+
       const componentsByChannel: Record<string, string> = {
         alert: 'MacroAlertTaskAccordion',
         dummy_alert: 'MacroDummyAlertTaskAccordion',
@@ -324,7 +380,6 @@ export default {
         websocket: 'MacroWebsocketTaskAccordion',
         rest: 'MacroRestTaskAccordion',
         obs: 'MacroObsTaskAccordion',
-        variable: 'MacroVariableTaskAccordion',
         wled: 'MacroWledTaskAccordion',
         music: 'MacroMusicTaskAccordion',
         macro: 'MacroMacroTaskAccordion',
@@ -333,7 +388,6 @@ export default {
         webhook: 'MacroWebhookTaskAccordion',
         yolobox: 'MacroYoloboxTaskAccordion',
         neopixel: 'MacroNeopixelTaskAccordion',
-        channel_point: 'MacroChannelPointTaskAccordion',
         effect: 'MacroEffectTaskAccordion',
         animation: 'MacroAnimationTaskAccordion',
       }

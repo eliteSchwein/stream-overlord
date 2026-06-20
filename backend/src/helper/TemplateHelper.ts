@@ -13,6 +13,7 @@ import {
     isSongRequestQueryAlreadyPresent,
     isSongRequestQueryBlocked,
 } from "./MusicHelper";
+import {getCachedVariables} from "./VariableHelper";
 
 export default function fillTemplate(tpl: string, data: any) {
     const ctx = getTemplateVariables(data);
@@ -48,8 +49,11 @@ export function getTemplateVariables(data: any = {}) {
         query_already_present: isSongRequestQueryAlreadyPresent(songRequestUrl),
     };
 
+    const variables = getCachedVariables();
+
     const ctx: Record<string, any> = {
         data,
+        variables,
         primarychannel: getPrimaryChannel(),
         gameinfo: getGameInfo(),
 

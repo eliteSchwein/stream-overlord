@@ -1,14 +1,14 @@
 <template>
-  <v-expansion-panel class="macro-macro-task-accordion">
+  <v-expansion-panel class="macro-variable-task-accordion">
     <v-expansion-panel-title>
       <div class="d-flex align-center min-width-0 w-100">
-        <v-icon icon="mdi-playlist-play" size="20" class="mr-2" />
+        <v-icon icon="mdi-database-export-outline" size="20" class="mr-2" />
         <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
         <span class="text-truncate font-weight-medium">
-          Macro: {{ task.method || 'Select macro' }}
+          Set variable: {{ variableData.key || 'Select key' }}
         </span>
         <v-spacer />
-        <v-chip size="x-small" color="purple" variant="tonal">macro</v-chip>
+        <v-chip size="x-small" color="cyan" variant="tonal">variable set</v-chip>
       </div>
     </v-expansion-panel-title>
 
@@ -16,13 +16,35 @@
       <v-row>
         <v-col cols="12">
           <v-combobox
-            v-model="task.method"
-            :items="macroOptions"
-            label="Macro"
+            v-model="variableData.key"
+            :items="variableOptions"
+            label="Variable key"
             density="comfortable"
             variant="outlined"
             hide-details
             clearable
+          />
+        </v-col>
+
+        <v-col cols="12">
+          <v-textarea
+            v-model="variableData.value"
+            label="Value"
+            density="comfortable"
+            variant="outlined"
+            hide-details
+            auto-grow
+            rows="2"
+          />
+        </v-col>
+
+        <v-col cols="12">
+          <v-switch
+            v-model="variableData.to_file"
+            label="Save to file"
+            density="comfortable"
+            color="primary"
+            hide-details
           />
         </v-col>
       </v-row>
@@ -41,12 +63,11 @@
 import { useAppStore } from '@/stores/app'
 
 export default {
-  name: 'MacroMacroTaskAccordion',
+  name: 'MacroVariableSetTaskAccordion',
 
   props: {
     item: { type: Object, required: true },
     index: { type: Number, required: true },
-    depth: { type: Number, default: 0 },
   },
 
   emits: ['remove', 'move-up', 'move-down'],
@@ -55,26 +76,22 @@ export default {
     task(): any {
       const task = (this.item as any).task
 
-      task.channel = 'macro'
+      task.channel = 'variable'
+      task.method = 'set'
+      task.data ??= {}
 
       return task
     },
 
-    macroOptions(): string[] {
-      const appStore = useAppStore()
-      const macros = appStore.getMacros ?? {}
+    variableData(): any {
+      return this.task.data
+    },
 
-      if (Array.isArray(macros)) {
-        return macros
-          .map((item: any) => (typeof item === 'string' ? item : item?.name))
-          .filter(Boolean)
-          .map(String)
-          .sort((a: string, b: string) => a.localeCompare(b))
-      }
-
-      return Object.keys(macros)
-        .filter(Boolean)
-        .sort((a: string, b: string) => a.localeCompare(b))
+    variableOptions(): string[] {
+      const variables = useAppStore().getVariables ?? {}
+      return Array.isArray(variables)
+        ? variables.map(String).sort()
+        : Object.keys(variables).sort()
     },
   },
 }

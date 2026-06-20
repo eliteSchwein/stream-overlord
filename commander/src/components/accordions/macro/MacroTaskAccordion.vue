@@ -119,7 +119,6 @@ export default {
     title(): string {
       if (this.task.channel === 'alert') return `Alert: ${this.task.message || 'empty message'}`
       if (this.task.channel === 'dummy_alert') return `Dummy alert: ${this.task.message || 'empty message'}`
-      if (this.task.channel === 'channel_point') return `Channel point: ${this.task.method || 'method'}`
       if (this.task.channel === 'function') return `Function: ${this.task.method || 'method'}`
       if (this.task.channel === 'websocket') return `Websocket: ${this.task.method || 'method'}`
       if (this.task.channel === 'macro') return `Macro: ${this.task.method || 'name'}`
@@ -130,27 +129,23 @@ export default {
       const icons: Record<string, string> = {
         alert: 'mdi-bell-ring',
         dummy_alert: 'mdi-bell-outline',
-        channel_point: 'mdi-star-circle',
         function: 'mdi-function',
         websocket: 'mdi-connection',
-        rest: 'mdi-api',
+        rest: 'mdi-web',
         obs: 'mdi-video-box',
-        variable: 'mdi-variable',
         wled: 'mdi-led-strip-variant',
         music: 'mdi-music',
-        macro: 'mdi-playlist-play',
         webhook: 'mdi-webhook',
         yolobox: 'mdi-video-switch',
         neopixel: 'mdi-lightbulb-on',
         effect: 'mdi-auto-fix',
-        animation: 'mdi-animation-play',
       }
 
       return icons[this.task.channel] ?? 'mdi-code-json'
     },
 
     usesData(): boolean {
-      return ['obs', 'rest', 'websocket', 'function', 'variable', 'wled', 'music', 'macro', 'webhook', 'yolobox', 'neopixel', 'effect', 'animation'].includes(this.task.channel)
+      return ['obs', 'rest', 'websocket', 'function', 'wled', 'music', 'macro', 'webhook', 'yolobox', 'neopixel', 'effect'].includes(this.task.channel)
     },
   },
 
