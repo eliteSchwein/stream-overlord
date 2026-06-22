@@ -97,6 +97,8 @@ import {
   MacroWledTaskAccordion,
   MacroYoloboxTaskAccordion, MacroVariableSetTaskAccordion, MacroVariableGetTaskAccordion,
   MacroChannelPointAcceptTaskAccordion, MacroChannelPointCancelTaskAccordion,
+  MacroChannelPointPauseTaskAccordion, MacroChannelPointToggleTaskAccordion,
+  MacroKeyboardTaskAccordion,
 } from '@/components/accordions/macro'
 
 export default {
@@ -134,6 +136,9 @@ export default {
     MacroVariableSetTaskAccordion,
     MacroChannelPointAcceptTaskAccordion,
     MacroChannelPointCancelTaskAccordion,
+    MacroChannelPointPauseTaskAccordion,
+    MacroChannelPointToggleTaskAccordion,
+    MacroKeyboardTaskAccordion,
   },
 
   props: {
@@ -285,6 +290,36 @@ export default {
               icon: 'mdi-close-circle-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'cancel' }),
             },
+            {
+              title: 'Pause reward',
+              icon: 'mdi-pause-circle-outline',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'pause', data: { name: '' } }),
+            },
+            {
+              title: 'Unpause reward',
+              icon: 'mdi-play-circle-outline',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'unpause', data: { name: '' } }),
+            },
+            {
+              title: 'Set pause state',
+              icon: 'mdi-toggle-switch-outline',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'toggle_pause', data: { name: '', state: 'pause' } }),
+            },
+            {
+              title: 'Enable reward',
+              icon: 'mdi-toggle-switch',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'enable', data: { name: '' } }),
+            },
+            {
+              title: 'Disable reward',
+              icon: 'mdi-toggle-switch-off-outline',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'disable', data: { name: '' } }),
+            },
+            {
+              title: 'Set enabled state',
+              icon: 'mdi-toggle-switch-outline',
+              factory: () => this.createTask({ channel: 'channel_point', method: 'toggle', data: { name: '', state: 'enable' } }),
+            },
           ],
         },
         {
@@ -344,6 +379,19 @@ export default {
               icon: 'mdi-code-json',
               factory: () => this.createTask({ channel: '', method: '', data: {} }),
             },
+            {
+              title: 'Keyboard',
+              icon: 'mdi-keyboard-outline',
+              factory: () => this.createTask({
+                channel: 'keyboard',
+                method: 'press',
+                data: {
+                  name: 'macro',
+                  keys: [],
+                  duration: undefined,
+                },
+              }),
+            },
           ],
         },
       ],
@@ -371,6 +419,18 @@ export default {
 
       if (item?.task?.channel === 'channel_point' && item?.task?.method === 'cancel') {
         return 'MacroChannelPointCancelTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'channel_point' && ['pause', 'unpause', 'toggle_pause'].includes(item?.task?.method)) {
+        return 'MacroChannelPointPauseTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'channel_point' && ['enable', 'disable', 'toggle'].includes(item?.task?.method)) {
+        return 'MacroChannelPointToggleTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'keyboard') {
+        return 'MacroKeyboardTaskAccordion'
       }
 
       const componentsByChannel: Record<string, string> = {

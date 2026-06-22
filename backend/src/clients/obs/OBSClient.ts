@@ -1,5 +1,5 @@
 import {getConfig} from "../../helper/ConfigHelper";
-import OBSWebSocket, {EventSubscription, OBSWebSocketError} from "obs-websocket-js";
+import OBSWebSocket, {OBSWebSocketError} from "obs-websocket-js";
 import {getLogConfig, logCustom, logDebug, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {updateSourceFilters} from "../../helper/SourceHelper";
 import getWebsocketServer from "../../App";
@@ -17,7 +17,6 @@ type OBSConnection = {
     name: string
     config: OBSConfig
     obsWebsocket?: OBSWebSocket
-    mixerObsWebsocket?: OBSWebSocket
     connected: boolean
     sceneData: any[]
     eventFetching: boolean
@@ -59,20 +58,20 @@ export class OBSClient {
 
     private updateSourceFiltersSafe() {
         updateSourceFilters().catch(error => {
-            logWarn("source filter update failed, obs connection continues:")
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logDebug("source filter update failed, obs connection continues:")
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         })
     }
 
     private syncConnectionDataSafe(name: string) {
         this.reloadAllBrowserScenes(name).catch(error => {
-            logWarn(`obs browser source reload failed (${name}), obs connection continues:`)
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logDebug(`obs browser source reload failed (${name}), obs connection continues:`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         })
 
         this.fetchItems(name).catch(error => {
-            logWarn(`obs scene/audio fetch failed (${name}), obs connection continues:`)
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logDebug(`obs scene/audio fetch failed (${name}), obs connection continues:`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         })
     }
 
@@ -132,26 +131,10 @@ export class OBSClient {
 
         try {
             connection.obsWebsocket = new OBSWebSocket()
-            await connection.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password ?? '', {
-                eventSubscriptions: EventSubscription.All
-            })
+            await connection.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password ?? '')
         } catch (error) {
-            logWarn(`obs connection failed events stage 1 (${name}):`)
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-            this.reconnectSingle(name)
-            return
-        }
-
-        try {
-            connection.mixerObsWebsocket = new OBSWebSocket()
-            await connection.mixerObsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password ?? '', {
-                eventSubscriptions: EventSubscription.InputVolumeMeters
-            })
-        } catch (error) {
-            logWarn(`obs mixer connection failed events stage 2 (${name}):`)
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-
-            await connection.obsWebsocket?.disconnect()
+            logDebug(`obs connection failed events stage 1 (${name}):`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             this.reconnectSingle(name)
             return
         }
@@ -192,7 +175,6 @@ export class OBSClient {
 
         for(const connection of Object.values(this.connections)) {
             await connection.obsWebsocket?.disconnect()
-            await connection.mixerObsWebsocket?.disconnect()
         }
     }
 
@@ -230,8 +212,8 @@ export class OBSClient {
                 try {
                     await this.fetchItems(connection.name)
                 } catch (error) {
-                    logWarn(`obs event fetch failed (${connection.name}):`)
-                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                    logDebug(`obs event fetch failed (${connection.name}):`)
+                    logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
                 }
                 connection.eventFetching = false
             })
@@ -282,7 +264,7 @@ export class OBSClient {
         // @ts-ignore
         this.obsWebsocket = connection?.obsWebsocket
         // @ts-ignore
-        this.mixerObsWebsocket = connection?.mixerObsWebsocket
+        this.mixerObsWebsocket = connection?.obsWebsocket
         this.connected = connection?.connected ?? false
         // @ts-ignore
         this.sceneData = connection?.sceneData ?? []
@@ -303,7 +285,7 @@ export class OBSClient {
     }
 
     public getMixerObsWebSocket(connectionName = 'default') {
-        return this.getConnection(connectionName)?.mixerObsWebsocket
+        return this.getConnection(connectionName)?.obsWebsocket
     }
 
     public getAudioData(connectionName = 'default') {

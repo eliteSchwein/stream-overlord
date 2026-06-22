@@ -46,6 +46,13 @@
           />
         </v-col>
       </v-row>
+
+      <div class="d-flex flex-wrap ga-2 mt-4">
+        <v-spacer />
+        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
+        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
+        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
+      </div>
     </v-expansion-panel-text>
   </v-expansion-panel>
 </template>
@@ -60,6 +67,8 @@ export default {
     item: { type: Object, required: true },
     index: { type: Number, required: true },
   },
+
+  emits: ['remove', 'move-up', 'move-down'],
 
   data() {
     return {

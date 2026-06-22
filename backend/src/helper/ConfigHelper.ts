@@ -206,10 +206,6 @@ export function getFullConfig() {
     return withSystemConfig(config);
 }
 
-export function getAssetConfig(asset: string) {
-    return getConfig(/asset /g, true)[asset];
-}
-
 export async function loadPrimaryChannel(client: TwitchClient) {
     logRegular("fetch primary channel");
 

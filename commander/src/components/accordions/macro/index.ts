@@ -32,5 +32,8 @@ export { default as MacroVariableGetTaskAccordion } from './MacroVariableGetTask
 export { default as MacroVariableSetTaskAccordion } from './MacroVariableSetTaskAccordion.vue'
 export { default as MacroChannelPointAcceptTaskAccordion } from './MacroChannelPointAcceptTaskAccordion.vue'
 export { default as MacroChannelPointCancelTaskAccordion } from './MacroChannelPointCancelTaskAccordion.vue'
+export { default as MacroChannelPointPauseTaskAccordion } from './MacroChannelPointPauseTaskAccordion.vue'
+export { default as MacroChannelPointToggleTaskAccordion } from './MacroChannelPointToggleTaskAccordion.vue'
+export { default as MacroKeyboardTaskAccordion } from './MacroKeyboardTaskAccordion.vue'
 
 export { default as MacroAssetSelect } from './MacroAssetSelect.vue'

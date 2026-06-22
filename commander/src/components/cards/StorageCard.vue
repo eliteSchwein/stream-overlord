@@ -52,6 +52,11 @@
           <span class="text-caption text-grey-lighten-1">{{ $t('system.macroUsed') }}</span>
           <span>{{ formatFileSize(macroUsed) }}</span>
         </div>
+
+        <div v-if="!hideChannelPointUsed && channelPointUsed !== null">
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.channelPointUsed') || 'Channel points' }}</span>
+          <span>{{ formatFileSize(channelPointUsed) }}</span>
+        </div>
       </div>
     </v-card-text>
   </v-card>
@@ -77,6 +82,10 @@ export default {
     hideMacroUsed: {
       type: Boolean,
       default: false,
+    },
+    hideChannelPointUsed: {
+      type: Boolean,
+      default: true,
     },
   },
 
@@ -112,8 +121,16 @@ export default {
     },
 
     macroUsed(): number | null {
+      if (this.storageInfo?.folders?.macros !== undefined) return this.storageInfo.folders.macros
       if (this.storageInfo?.folders?.macro !== undefined) return this.storageInfo.folders.macro
       if (this.storageInfo?.macroUsed !== undefined) return this.storageInfo.macroUsed
+      return null
+    },
+
+    channelPointUsed(): number | null {
+      if (this.storageInfo?.folders?.channel_points !== undefined) return this.storageInfo.folders.channel_points
+      if (this.storageInfo?.folders?.channelPoints !== undefined) return this.storageInfo.folders.channelPoints
+      if (this.storageInfo?.channelPointUsed !== undefined) return this.storageInfo.channelPointUsed
       return null
     },
   },

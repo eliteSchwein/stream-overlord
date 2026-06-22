@@ -1,25 +1,490 @@
 <template>
-  <v-card
-    class="overflow-auto mx-auto"
-    max-height="100%"
-    elevation="0"
-    color="transparent"
-    max-width="100%"
-  >
-    <v-row class="mx-3 my-2">
-      <template v-for="(channelPoint, index) in getChannelPoints">
-        <ChannelPoint :channelPoint="channelPoint"></ChannelPoint>
-      </template>
-    </v-row>
+  <v-card class="overflow-auto mx-auto" max-height="100%" elevation="0" color="transparent" max-width="100%">
+    <v-card-title class="d-flex align-center justify-space-between px-3 pt-3">
+      <div class="d-flex align-center ga-2 min-width-0">
+        <v-icon icon="mdi-star-circle" />
+        <div class="min-width-0">
+          <div class="text-truncate">{{ $t('channelPoints.title') }}</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-center ga-2">
+        <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="openCreateDialog">
+          {{ $t('channelPoints.add') }}
+        </v-btn>
+
+        <v-btn icon="mdi-refresh" variant="text" :loading="loading" @click="refreshChannelPoints" />
+      </div>
+    </v-card-title>
+
+    <v-card-text>
+      <v-row density="compact" class="mb-3">
+        <v-col cols="12" md="6">
+          <StorageCard
+            ref="storageCard"
+            :hide-media-used="true"
+            :hide-overlay-used="true"
+            :hide-music-used="true"
+            :hide-macro-used="true"
+            :hide-channel-point-used="false"
+          />
+        </v-col>
+
+        <v-col cols="12" md="6">
+          <UploadCard
+            ref="uploadCard"
+            :label="$t('channelPoints.upload') || 'Upload channel points'"
+            :drop-label="$t('file.dropFiles') || 'Drop files here'"
+            icon="mdi-upload"
+            accept=".yaml,.yml,.json"
+            :loading="uploading"
+            :disabled="workingAction !== null"
+            @upload="uploadFiles"
+          />
+        </v-col>
+      </v-row>
+
+      <v-text-field
+        v-model="searchQuery"
+        :label="$t('channelPoints.search') || 'Search channel points'"
+        prepend-inner-icon="mdi-magnify"
+        clearable
+        variant="outlined"
+        density="comfortable"
+        hide-details
+        class="mb-3"
+      />
+
+      <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
+      <v-alert v-if="filteredChannelPoints.length === 0" type="info" color="warning" :text="$t('channelPoints.none') || 'No channel points found'" />
+
+      <v-expansion-panels v-else variant="accordion" class="channel-point-list">
+        <ChannelPoint
+          v-for="channelPoint in filteredChannelPoints"
+          :key="channelPoint.name"
+          :channel-point="channelPoint"
+          :disabled="workingAction !== null"
+          :deleting="workingName === channelPoint.name && workingAction === 'delete'"
+          :toggling="workingName === channelPoint.name && workingAction === 'toggle'"
+          @edit="openEditDialog"
+          @delete="deleteChannelPoint"
+          @toggle="toggleChannelPoint"
+        />
+      </v-expansion-panels>
+    </v-card-text>
+
+    <ChannelPointCreateDialog
+      ref="createDialog"
+      v-model="createDialog"
+      :loading="workingAction === 'save'"
+      :error="editorError"
+      @save="saveChannelPoint"
+    />
+
+    <ChannelPointEditorDialog
+      ref="editorDialog"
+      v-model="editorDialog"
+      :channel-point="selectedChannelPoint"
+      :loading="workingAction === 'save'"
+      :error="editorError"
+      @save="saveChannelPoint"
+    />
   </v-card>
 </template>
 
 <script lang="ts">
-import {mapState} from "pinia";
-import {useAppStore} from "@/stores/app";
+import { mapActions, mapState } from 'pinia'
+import { useAppStore } from '@/stores/app'
+import eventBus from '@/eventBus'
+import StorageCard from '@/components/cards/StorageCard.vue'
+import UploadCard from '@/components/cards/UploadCard.vue'
+import ChannelPoint from '@/components/ChannelPoint.vue'
+import ChannelPointCreateDialog from '@/components/dialogs/ChannelPointCreateDialog.vue'
+import ChannelPointEditorDialog from '@/components/dialogs/ChannelPointEditorDialog.vue'
+
+type ChannelPointEntry = {
+  name: string
+  label: string
+  asset: string
+  macro: string
+  enable_default?: boolean
+  auto_accept?: boolean
+  strip_emotes?: boolean
+  file?: string
+  active?: boolean
+  id?: string
+  background?: string
+  image?: string
+  raw?: any
+}
+
 export default {
+  name: 'ChannelPoints',
+
+  components: {
+    StorageCard,
+    UploadCard,
+    ChannelPoint,
+    ChannelPointCreateDialog,
+    ChannelPointEditorDialog,
+  },
+
+  data() {
+    return {
+      loading: false,
+      uploading: false,
+      errorMessage: '',
+      editorError: '',
+      searchQuery: '',
+      createDialog: false,
+      editorDialog: false,
+      selectedChannelPoint: null as ChannelPointEntry | null,
+      localChannelPoints: [] as ChannelPointEntry[],
+      workingName: null as string | null,
+      workingAction: null as null | 'save' | 'delete' | 'toggle',
+    }
+  },
+
   computed: {
-    ...mapState(useAppStore, ['getChannelPoints']),
-  }
+    ...mapState(useAppStore, ['getRestApi', 'getChannelPoints']),
+
+    channelPointList(): ChannelPointEntry[] {
+      const byKey = new Map<string, ChannelPointEntry>()
+
+      for (const point of this.localChannelPoints) {
+        const key = this.channelPointMergeKey(point)
+        if (!key) continue
+
+        byKey.set(key, point)
+      }
+
+      for (const point of (this.getChannelPoints as any[] ?? [])) {
+        const label = String(point?.label ?? point?.name ?? '').trim()
+        const key = this.channelPointMergeKey(point)
+
+        if (!label || !key) continue
+
+        const existing = byKey.get(key)
+        const name = existing?.name ?? this.normalizeChannelPointName(label)
+        const generated = this.generatedName(name)
+
+        byKey.set(key, {
+          ...(existing ?? {}),
+          ...point,
+          name,
+          label: existing?.label ?? label,
+          asset: existing?.asset ?? generated,
+          macro: existing?.macro ?? generated,
+        })
+      }
+
+      return [...byKey.values()].sort((a, b) => String(a.label ?? a.name).localeCompare(String(b.label ?? b.name)))
+    },
+
+    filteredChannelPoints(): ChannelPointEntry[] {
+      const query = String(this.searchQuery ?? '').trim().toLowerCase()
+      if (!query) return this.channelPointList
+
+      return this.channelPointList.filter((point) =>
+        [point.name, point.label, point.asset, point.macro]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query)),
+      )
+    },
+  },
+
+  mounted() {
+    this.refreshChannelPoints()
+  },
+
+  methods: {
+    ...mapActions(useAppStore, ['setChannelPoints']),
+
+    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      return new Promise((resolve, reject) => {
+        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
+      })
+    },
+
+    async requestEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      try {
+        const response = await this.requestWebsocket(method, params, timeout)
+        return response?.data ?? response
+      } catch (websocketError) {
+        const response = await fetch(`${this.getRestApi}/api/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(params),
+        })
+
+        const data = await response.json().catch(() => ({}))
+        const responseData = data?.data ?? data
+
+        if (!response.ok || responseData?.error || data?.error) {
+          throw new Error(responseData?.error ?? responseData?.message ?? data?.error ?? `${endpoint} failed`)
+        }
+
+        return responseData
+      }
+    },
+
+    normalizeChannelPointName(value: any): string {
+      return String(value ?? '')
+        .trim()
+        .replace(/^channel_point_/, '')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9_.-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+    },
+
+    generatedName(name: string): string {
+      return `channel_point_${this.normalizeChannelPointName(name)}`
+    },
+
+    channelPointMergeKey(point: any): string {
+      return String(point?.label ?? point?.name ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_.-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+    },
+
+    normalizeChannelPointEntry(raw: any): ChannelPointEntry | null {
+      const content = raw?.channel_point ?? raw?.config ?? raw?.raw ?? raw
+      const rawFileName = String(raw?.path ?? raw?.file ?? '').replace(/\\/g, '/').split('/').pop()?.replace(/\.(ya?ml|json)$/i, '') ?? ''
+      const label = String(content?.label ?? raw?.label ?? content?.name ?? raw?.name ?? '').trim()
+      const name = this.normalizeChannelPointName(rawFileName || raw?.name || label)
+
+      if (!name) return null
+
+      return {
+        name,
+        label: label || name,
+        asset: String(content?.asset ?? this.generatedName(name)),
+        macro: String(content?.macro ?? this.generatedName(name)),
+        enable_default: content?.enable_default === true,
+        auto_accept: content?.auto_accept === true,
+        strip_emotes: content?.strip_emotes === true,
+        file: raw?.path ?? raw?.file ?? `${name}.yaml`,
+        active: raw?.active,
+        id: raw?.id,
+        background: raw?.background,
+        image: raw?.image,
+        raw: content,
+      }
+    },
+
+    normalizeListPayload(data: any): ChannelPointEntry[] {
+      const source =
+        data?.channel_points ??
+        data?.channelPoints ??
+        data?.points ??
+        data?.files ??
+        data?.items ??
+        data
+
+      if (Array.isArray(source)) {
+        return source.map(this.normalizeChannelPointEntry).filter(Boolean) as ChannelPointEntry[]
+      }
+
+      if (source && typeof source === 'object') {
+        return Object.entries(source)
+          .map(([name, value]: [string, any]) => this.normalizeChannelPointEntry({ name, ...(value ?? {}) }))
+          .filter(Boolean) as ChannelPointEntry[]
+      }
+
+      return []
+    },
+
+    async refreshChannelPoints() {
+      this.loading = true
+      this.errorMessage = ''
+
+      try {
+        const data = await this.requestEndpoint('channel_points_list', 'channel_points/list')
+        if (data?.error) throw new Error(data.error)
+
+        this.localChannelPoints = this.normalizeListPayload(data)
+
+        if (typeof this.setChannelPoints === 'function') {
+          this.setChannelPoints(this.channelPointList as any)
+        }
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'loading channel points failed'
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async uploadFiles(files: File[] | FileList) {
+      const fileList = Array.from(files as any)
+      if (!fileList.length || this.uploading) return
+
+      this.uploading = true
+      this.errorMessage = ''
+
+      try {
+        const formData = new FormData()
+        fileList.forEach((file) => formData.append('files', file))
+
+        const response = await fetch(`${this.getRestApi}/api/channel_points/upload`, {
+          method: 'POST',
+          body: formData,
+        })
+
+        const data = await response.json().catch(() => ({}))
+        const responseData = data?.data ?? data
+
+        if (!response.ok || responseData?.error || data?.error) {
+          throw new Error(responseData?.message ?? responseData?.error ?? data?.error ?? 'channel point upload failed')
+        }
+
+        await this.refreshChannelPoints()
+        await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
+        ;(this.$refs.uploadCard as any)?.reset?.()
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'channel point upload failed'
+      } finally {
+        this.uploading = false
+      }
+    },
+
+    async openCreateDialog() {
+      this.editorError = ''
+      this.createDialog = true
+      await this.$nextTick()
+      await (this.$refs.createDialog as any)?.open?.()
+    },
+
+    async openEditDialog(channelPoint: ChannelPointEntry) {
+      this.selectedChannelPoint = channelPoint
+      this.editorError = ''
+      this.editorDialog = true
+      await this.$nextTick()
+      await (this.$refs.editorDialog as any)?.open?.()
+    },
+
+    async saveChannelPoint(payload: any) {
+      const name = this.normalizeChannelPointName(payload?.name)
+      if (!name || this.workingAction) return
+
+      const generated = this.generatedName(name)
+
+      this.workingName = name
+      this.workingAction = 'save'
+      this.editorError = ''
+
+      try {
+        const channelPoint = {
+          label: payload.label || name,
+          asset: generated,
+          macro: generated,
+          enable_default: payload.enable_default === true,
+          auto_accept: payload.auto_accept === true,
+          strip_emotes: payload.strip_emotes === true,
+        }
+
+        await this.requestEndpoint('assets_edit', 'assets/edit', {
+          path: `${generated}.yaml`,
+          name: generated,
+          asset: payload.asset ?? {},
+        }, 30_000)
+
+        await this.requestEndpoint('macro_edit', 'macro/edit', {
+          path: `${generated}.yaml`,
+          name: generated,
+          content: payload.macroContent ?? this.defaultMacroContent(generated),
+        }, 30_000)
+
+        const data = await this.requestEndpoint('channel_points_edit', 'channel_points/edit', {
+          path: `${name}.yaml`,
+          name,
+          channel_point: channelPoint,
+          content: this.channelPointToYaml(channelPoint),
+        }, 30_000)
+
+        if (data?.error) throw new Error(data.error)
+
+        this.createDialog = false
+        this.editorDialog = false
+        await this.refreshChannelPoints()
+        await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
+      } catch (error: any) {
+        this.editorError = error?.message ?? 'saving channel point failed'
+      } finally {
+        this.workingName = null
+        this.workingAction = null
+      }
+    },
+
+    defaultMacroContent(name: string) {
+      return `name: ${name}\napis: []\ntasks: []\n`
+    },
+
+    channelPointToYaml(channelPoint: any) {
+      return [
+        `label: ${this.yamlScalar(channelPoint.label)}`,
+        `asset: ${this.yamlScalar(channelPoint.asset)}`,
+        `macro: ${this.yamlScalar(channelPoint.macro)}`,
+        `enable_default: ${channelPoint.enable_default === true ? 'true' : 'false'}`,
+        `auto_accept: ${channelPoint.auto_accept === true ? 'true' : 'false'}`,
+        `strip_emotes: ${channelPoint.strip_emotes === true ? 'true' : 'false'}`,
+        '',
+      ].join('\n')
+    },
+
+    yamlScalar(value: any) {
+      const stringValue = String(value ?? '')
+      if (/^[a-zA-Z0-9_.-]+$/.test(stringValue)) return stringValue
+      return JSON.stringify(stringValue)
+    },
+
+    async deleteChannelPoint(channelPoint: ChannelPointEntry) {
+      if (!channelPoint?.name || this.workingAction) return
+
+      this.workingName = channelPoint.name
+      this.workingAction = 'delete'
+      this.errorMessage = ''
+
+      try {
+        const data = await this.requestEndpoint('channel_points_delete', 'channel_points/delete', {
+          path: `${channelPoint.name}.yaml`,
+          name: channelPoint.name,
+        })
+        if (data?.error) throw new Error(data.error)
+        await this.refreshChannelPoints()
+        await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'delete channel point failed'
+      } finally {
+        this.workingName = null
+        this.workingAction = null
+      }
+    },
+
+    async toggleChannelPoint(channelPoint: ChannelPointEntry) {
+      if (!channelPoint?.id || this.workingAction) return
+
+      this.workingName = channelPoint.name
+      this.workingAction = 'toggle'
+
+      try {
+        await fetch(`${this.getRestApi}/api/channel_points/toggle`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channel_point: channelPoint,
+            state: channelPoint.active ? 'disable' : 'enable',
+          }),
+        })
+
+        channelPoint.active = !channelPoint.active
+      } finally {
+        this.workingName = null
+        this.workingAction = null
+      }
+    },
+  },
 }
 </script>

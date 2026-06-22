@@ -1,18 +1,17 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelRedemptionAddEvent} from "@twurple/eventsub-base";
 import {logError, logNotice, logRegular, logWarn} from "../../../../helper/LogHelper";
-import {getAssetConfig, getConfig, getPrimaryChannel} from "../../../../helper/ConfigHelper";
+import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../helper/CooldownHelper";
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
-import {addAlert, isAlertActive} from "../../../../helper/AlertHelper";
+import {addAlert} from "../../../../helper/AlertHelper";
 import {triggerMacro} from "../../../../helper/MacroHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
-import getWebsocketServer from "../../../../App";
-import {getGameMacro, getKeyCombos, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
+import {getConfiguredChannelPoint, getConfiguredChannelPoints, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {getGameInfoData} from "../../../website/WebsiteClient";
-import {waitUntil} from "async-wait-until";
 import {stripEmotes} from "../../../../helper/DataHelper";
+import {getAssetConfig} from "../../../../helper/AssetHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = "ChannelPointsEvent";
@@ -25,7 +24,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id);
         const rewardNames = presentChannelPoints.map(reward => reward.title);
-        const configChannelPoints = getConfig(/channel_point /g);
+        const configChannelPoints = getConfiguredChannelPoints();
         const gameData = await getGameInfoData();
         const gameChannelPoints = gameData?.channel_points ?? [];
 
@@ -77,7 +76,6 @@ export default class ChannelPointsEvent extends BaseEvent {
     async handle(event: EventSubChannelRedemptionAddEvent) {
         let isValid = false;
 
-        const configChannelPoints = getConfig(/channel_point /g);
         const eventUuid = uuidv4();
 
         if (isShieldActive()) {
@@ -107,105 +105,24 @@ export default class ChannelPointsEvent extends BaseEvent {
             return;
         }
 
-        for (const configChannelPoint of configChannelPoints) {
-            if (configChannelPoint.label !== event.rewardTitle) continue;
+        const configChannelPoint = getConfiguredChannelPoint(event.rewardTitle);
 
-            if (!configChannelPoint.auto_accept) {
-                addEventToCooldown(eventUuid, this.name, event.broadcasterName);
-            }
+        if (configChannelPoint) {
+            await this.handleConfiguredChannelPoint(configChannelPoint, event, eventUuid, "file");
+            return;
+        }
 
-            const asset = getAssetConfig(configChannelPoint.asset);
+        const gameData = await getGameInfoData();
+        const gameChannelPoint = (gameData?.channel_points ?? []).find(channelPoint => channelPoint?.name === event.rewardTitle);
 
-            if (asset) {
-                addAlert({
-                    channel: asset.channel,
-                    sound: asset.sound,
-                    duration: asset.duration,
-                    icon: asset.icon ? asset.icon : "",
-                    message: asset.message ? asset.message : "",
-                    "event-uuid": `alert-${configChannelPoint.label}_${uuidv4()}`,
-                    video: asset.video ? asset.video : "",
-                    lamp_color: asset.lamp_color,
-                    volume: asset.volume,
-                    image: asset.image,
-                });
-            }
-
-            switch (configChannelPoint.type) {
-                case "alert": {
-                    if (!asset) {
-                        if (event.broadcasterName !== event.userName) {
-                            await this.bot.whisper(
-                                event.userName,
-                                "Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.",
-                            );
-                        }
-
-                        logWarn(`channel point denied for ${event.userName} because asset is invalid configured!`);
-                        await event.updateStatus("CANCELED");
-                        return;
-                    }
-
-                    break;
-                }
-
-                case "keystrokes": {
-                    const keyStrokes = configChannelPoint.key_strokes ?? [];
-
-                    for (const keyStroke of keyStrokes) {
-                        const subKeyStrokes = keyStroke.split(",");
-                        const websocketServer = getWebsocketServer();
-
-                        websocketServer.send("trigger_keyboard", {
-                            name: configChannelPoint.label,
-                            keys: subKeyStrokes,
-                        });
-                    }
-
-                    break;
-                }
-
-                case "macro": {
-                    const macroTriggered = await triggerMacro(configChannelPoint.macro, this.getMacroVariables(event, {
-                        eventUuid,
-                        channelPoint: {
-                            title: event.rewardTitle,
-                            userName: event.userName,
-                            userDisplayName: event.userDisplayName,
-                            broadcasterName: event.broadcasterName,
-                            input: configChannelPoint.strip_emotes === true
-                                ? stripEmotes(String(event.input ?? ""), event as any)
-                                : event.input,
-                        },
-                    }));
-
-                    if (!macroTriggered) {
-                        if (event.broadcasterName !== event.userName) {
-                            await this.bot.whisper(
-                                event.userName,
-                                "Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.",
-                            );
-                        }
-
-                        logWarn(`channel point denied for ${event.userName} because macro was not found!`);
-                        await event.updateStatus("CANCELED");
-                        return;
-                    }
-
-                    break;
-                }
-            }
-
-            logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`);
-
-            if (configChannelPoint.auto_accept) {
-                await event.updateStatus("FULFILLED");
-                return;
-            }
-
-            await sleep(this.eventCooldown * 1000);
-
-            removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
+        if (gameChannelPoint) {
+            await this.handleConfiguredChannelPoint({
+                label: gameChannelPoint.name,
+                asset: gameChannelPoint.asset,
+                macro: gameChannelPoint.macro,
+                auto_accept: gameChannelPoint.auto_accept,
+                strip_emotes: gameChannelPoint.strip_emotes,
+            }, event, eventUuid, "api");
             return;
         }
 
@@ -217,92 +134,15 @@ export default class ChannelPointsEvent extends BaseEvent {
             break;
         }
 
-        const gameKeyCombos = getKeyCombos(event.rewardTitle);
-        const gameMacro = getGameMacro(event.rewardTitle);
-
-        if (gameKeyCombos || gameMacro) {
-            isValid = true;
-        }
-
         if (!isValid) return;
 
         addEventToCooldown(eventUuid, this.name, event.broadcasterName);
 
         try {
-            if (gameMacro) {
-                logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`);
+            for (const channelPoint of this.channelPoints) {
+                if (typeof channelPoint.handleChannelPoint !== "function") continue;
 
-                const macroTriggered = await triggerMacro(gameMacro, this.getMacroVariables(event, {
-                    eventUuid,
-                    channelPoint: {
-                        title: event.rewardTitle,
-                        userName: event.userName,
-                        userDisplayName: event.userDisplayName,
-                        broadcasterName: event.broadcasterName,
-                        input: event.input,
-                    },
-                }));
-
-                if (!macroTriggered) {
-                    if (event.broadcasterName !== event.userName) {
-                        await this.bot.whisper(
-                            event.userName,
-                            "Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.",
-                        );
-                    }
-
-                    logWarn(`channel point denied for ${event.userName} because game macro was not found: ${gameMacro}`);
-                    await event.updateStatus("CANCELED");
-                    return;
-                }
-            } else if (gameKeyCombos && gameKeyCombos.length > 0) {
-                const websocketServer = getWebsocketServer();
-                const theme = getAssetConfig("generic_channel_point");
-                const comboUuid = `${event.rewardTitle}_${uuidv4()}`;
-
-                let alertDuration = 5;
-
-                for (const keyCombo of gameKeyCombos) {
-                    alertDuration += keyCombo.delays.release / 1000;
-                    alertDuration += keyCombo.delays.follow_up;
-                }
-
-                logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`);
-
-                addAlert({
-                    sound: theme.sound,
-                    duration: alertDuration.toFixed(0),
-                    color: theme.color,
-                    icon: theme.icon,
-                    message: `${event.userDisplayName} löst ${event.rewardTitle} aus`,
-                    "event-uuid": comboUuid,
-                    video: theme.video,
-                    lamp_color: theme.lamp_color,
-                    volume: theme.volume,
-                    image: theme.image,
-                    channel: theme.channel,
-                });
-
-                await waitUntil(() => isAlertActive(comboUuid), {timeout: 600_000});
-
-                for (const keyCombo of gameKeyCombos) {
-                    logRegular(`trigger key combo ${keyCombo.name}`);
-
-                    websocketServer.send("trigger_keyboard", {
-                        name: keyCombo.name,
-                        keys: keyCombo.keys,
-                        duration: keyCombo.delays.release,
-                    });
-
-                    await sleep(keyCombo.delays.release);
-                    await sleep(keyCombo.delays.follow_up * 1000);
-                }
-            } else {
-                for (const channelPoint of this.channelPoints) {
-                    if (typeof channelPoint.handleChannelPoint !== "function") continue;
-
-                    await channelPoint.handleChannelPoint(event);
-                }
+                await channelPoint.handleChannelPoint(event);
             }
         } catch (error) {
             if (event.broadcasterName !== event.userName) {
@@ -315,11 +155,104 @@ export default class ChannelPointsEvent extends BaseEvent {
             logError(`channel point denied for ${event.userName} because of a exception:`);
             logError(JSON.stringify(error, Object.getOwnPropertyNames(error)));
             await event.updateStatus("CANCELED");
+            removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
             return;
         }
 
         await sleep(this.eventCooldown * 1000);
 
         removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
+    }
+
+    private async handleConfiguredChannelPoint(configChannelPoint: any, event: EventSubChannelRedemptionAddEvent, eventUuid: string, source: string) {
+        let cooldownAdded = false;
+
+        try {
+            if (!configChannelPoint.asset) {
+                await this.denyConfiguredChannelPoint(event, `${source} channel point asset is missing`);
+                return;
+            }
+
+            if (!configChannelPoint.macro) {
+                await this.denyConfiguredChannelPoint(event, `${source} channel point macro is missing`);
+                return;
+            }
+
+            const asset = getAssetConfig(configChannelPoint.asset);
+
+            if (!asset) {
+                await this.denyConfiguredChannelPoint(event, `${source} channel point asset was not found: ${configChannelPoint.asset}`);
+                return;
+            }
+
+            if (!configChannelPoint.auto_accept) {
+                addEventToCooldown(eventUuid, this.name, event.broadcasterName);
+                cooldownAdded = true;
+            }
+
+            const macroVariables = this.getMacroVariables(event, {
+                eventUuid,
+                channelPoint: {
+                    title: event.rewardTitle,
+                    userName: event.userName,
+                    userDisplayName: event.userDisplayName,
+                    broadcasterName: event.broadcasterName,
+                    input: configChannelPoint.strip_emotes === true
+                        ? stripEmotes(String(event.input ?? ""), event as any)
+                        : event.input,
+                },
+            });
+
+            addAlert({
+                ...asset,
+                asset: configChannelPoint.asset,
+                variables: macroVariables,
+                "event-uuid": `alert-${configChannelPoint.label}_${eventUuid}`,
+            });
+
+            const macroTriggered = await triggerMacro(configChannelPoint.macro, macroVariables);
+
+            if (!macroTriggered) {
+                await this.denyConfiguredChannelPoint(event, `${source} channel point macro was not found: ${configChannelPoint.macro}`);
+                return;
+            }
+
+            logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`);
+
+            if (configChannelPoint.auto_accept) {
+                await event.updateStatus("FULFILLED");
+                return;
+            }
+
+            await sleep(this.eventCooldown * 1000);
+            removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
+        } catch (error) {
+            if (cooldownAdded) {
+                removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
+            }
+
+            if (event.broadcasterName !== event.userName) {
+                await this.bot.whisper(
+                    event.userName,
+                    "Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.",
+                );
+            }
+
+            logError(`channel point denied for ${event.userName} because of a exception:`);
+            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            await event.updateStatus("CANCELED");
+        }
+    }
+
+    private async denyConfiguredChannelPoint(event: EventSubChannelRedemptionAddEvent, reason: string) {
+        if (event.broadcasterName !== event.userName) {
+            await this.bot.whisper(
+                event.userName,
+                "Deine Kanalpunkte wurden dir zurück gegeben weil ein Fehler aufgetreten ist.",
+            );
+        }
+
+        logWarn(`channel point denied for ${event.userName} because ${reason}!`);
+        await event.updateStatus("CANCELED");
     }
 }

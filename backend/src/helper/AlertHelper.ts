@@ -202,8 +202,8 @@ export function isAlertActive(eventUuid: string|undefined = undefined) {
 }
 
 export function addAlert(alert: any) {
-    if(alert.video) alert.video = `${alert.video}.webm`
-    if(alert.sound) alert.sound = `${alert.sound}.mp3`
+    if(alert.video) alert.video = `${alert.video}`
+    if(alert.sound) alert.sound = `${alert.sound}`
     if(!alert.channel) alert.channel = 'general'
 
     let active = false

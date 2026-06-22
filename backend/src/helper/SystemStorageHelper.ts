@@ -1,11 +1,11 @@
 import * as fs from "node:fs";
-import * as path from "node:path";
 import { getSystemConfigDirectory } from "./ConfigHelper";
 import { assetRoot } from "./AssetManagementHelper";
 import { overlayRoot } from "./OverlayManagementHelper";
 import { logWarn } from "./LogHelper";
 import {getRegularMusicPath} from "./MusicHelper";
 import {getMacroDirectory} from "./MacroHelper";
+import {getChannelPointConfigDirectory} from "./ChannelPointHelper";
 
 export type SystemStorageInfo = {
     root: string;
@@ -18,15 +18,19 @@ export type SystemStorageInfo = {
         overlays: number;
         music: number;
         macros: number;
+        channel_points: number;
     };
 };
 
 export function getSystemStorageInfo(): SystemStorageInfo {
     const root = getSystemConfigDirectory();
+    const channelPointRoot = getChannelPointConfigDirectory();
 
     fs.mkdirSync(root, { recursive: true });
     fs.mkdirSync(assetRoot, { recursive: true });
     fs.mkdirSync(overlayRoot, { recursive: true });
+    fs.mkdirSync(getMacroDirectory(), { recursive: true });
+    fs.mkdirSync(channelPointRoot, { recursive: true });
 
     const statfs = fs.statfsSync(root);
 
@@ -46,6 +50,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             overlays: getDirectorySize(overlayRoot),
             music: getDirectorySize(getRegularMusicPath()),
             macros: getDirectorySize(getMacroDirectory()),
+            channel_points: getDirectorySize(channelPointRoot),
         },
     };
 }
@@ -56,7 +61,7 @@ function getDirectorySize(directory: string): number {
     let size = 0;
 
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-        const fullPath = path.join(directory, entry.name);
+        const fullPath = `${directory}/${entry.name}`;
 
         try {
             if (entry.isDirectory()) {

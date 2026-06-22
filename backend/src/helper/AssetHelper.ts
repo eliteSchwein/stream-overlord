@@ -548,11 +548,18 @@ export async function editAssetConfigFile(inputPathOrName: string, content: stri
     const previousContent = fs.existsSync(filePath) && fs.statSync(filePath).isFile()
         ? fs.readFileSync(filePath, "utf8")
         : undefined;
+    const nextContent = String(content ?? "");
+
+    if (previousContent !== undefined && !nextContent.trim()) {
+        throw new Error("refusing to overwrite existing asset config with empty content");
+    }
+
+    parseAssetConfigContent(filePath, nextContent);
 
     fs.mkdirSync(path.dirname(filePath), {recursive: true});
-    fs.writeFileSync(filePath, content ?? "", "utf8");
+    fs.writeFileSync(filePath, nextContent, "utf8");
 
-    await replaceCachedAssetRawFile(filePath, content ?? "", previousContent);
+    await replaceCachedAssetRawFile(filePath, nextContent, previousContent);
 
     loadAssetConfigs();
     emitAssetConfigUpdate();

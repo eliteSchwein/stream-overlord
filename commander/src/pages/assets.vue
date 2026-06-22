@@ -4,10 +4,7 @@
       <div class="d-flex align-center ga-2 min-width-0">
         <v-icon icon="mdi-palette" />
         <div class="min-width-0">
-          <div class="text-truncate">{{ $t('assets.title') || 'Assets' }}</div>
-          <div class="text-caption text-grey-lighten-1">
-            {{ filteredAssets.length }} / {{ assetList.length }}
-          </div>
+          <div class="text-truncate">{{ $t('assets.title') }}</div>
         </div>
       </div>
 

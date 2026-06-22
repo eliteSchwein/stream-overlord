@@ -35,6 +35,7 @@ import {
 import {redis} from "../clients/redis/Redis";
 import {getAssetConfig, getWledConfigs, normalizeWledControls} from "./AssetHelper";
 import {setLedColor} from "./WledHelper";
+import {toggleChannelPoint, toggleChannelPointPause} from "./ChannelPointHelper";
 
 let macros: any = {};
 
@@ -455,11 +456,22 @@ export function editMacroFile(inputPathOrName: string, content: string) {
         throw new Error("macro file must be .yaml, .yml or .json");
     }
 
-    fs.mkdirSync(path.dirname(filePath), {recursive: true});
-    fs.writeFileSync(filePath, content, "utf8");
+    const previousContent = fs.existsSync(filePath) && fs.statSync(filePath).isFile()
+        ? fs.readFileSync(filePath, "utf8")
+        : undefined;
+    const nextContent = String(content ?? "");
 
-    const macroName = getMacroCacheNameFromContent(filePath, content);
-    updateMacroRawCache(macroName, content);
+    if (previousContent !== undefined && !nextContent.trim()) {
+        throw new Error("refusing to overwrite existing macro with empty content");
+    }
+
+    parseMacroConfigContent(filePath, nextContent);
+
+    fs.mkdirSync(path.dirname(filePath), {recursive: true});
+    fs.writeFileSync(filePath, nextContent, "utf8");
+
+    const macroName = getMacroCacheNameFromContent(filePath, nextContent);
+    updateMacroRawCache(macroName, nextContent);
 
     loadMacros();
 
@@ -1071,6 +1083,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
                     handleAnimation(task.method, task.data)
                     break
                 }
+
+                case "keyboard": {
+                    handleKeyboard(task.method, task.data);
+                    break;
+                }
             }
         } catch (error) {
             logWarn(`task failed:`);
@@ -1681,20 +1698,114 @@ async function handleNeopixel(method: string, data: any) {
     await colorNeopixel(data.name, data.color, data.index);
 }
 
-async function handleChannelPoint(method: string, event: any) {
-    if (!event) {
-        logWarn(`channel_point requires event`);
-        return;
-    }
+async function handleChannelPoint(method: string, data: any = {}, variables: any = {}) {
+    const event = variables?.event;
+    const channelPointName =
+        data?.name ??
+        data?.label ??
+        data?.channel_point ??
+        data?.channelPoint ??
+        variables?.channelPoint?.title ??
+        variables?.channelPoint?.name ??
+        event?.rewardTitle;
+
+    const channelPoint = {
+        name: channelPointName,
+        label: channelPointName,
+    };
 
     switch (method) {
         case "cancel": {
+            if (!event) {
+                logWarn(`channel_point cancel requires event`);
+                return;
+            }
+
             await event.updateStatus("CANCELED");
             break;
         }
 
         case "accept": {
+            if (!event) {
+                logWarn(`channel_point accept requires event`);
+                return;
+            }
+
             await event.updateStatus("FULFILLED");
+            break;
+        }
+
+        case "pause": {
+            if (!channelPointName) {
+                logWarn(`channel_point pause requires name`);
+                return;
+            }
+
+            await toggleChannelPointPause(channelPoint, true);
+            break;
+        }
+
+        case "unpause": {
+            if (!channelPointName) {
+                logWarn(`channel_point unpause requires name`);
+                return;
+            }
+
+            await toggleChannelPointPause(channelPoint, false);
+            break;
+        }
+
+        case "toggle_pause": {
+            if (!channelPointName) {
+                logWarn(`channel_point toggle_pause requires name`);
+                return;
+            }
+
+            const pause = data?.pause ?? data?.paused ?? data?.state;
+
+            if (pause === undefined) {
+                await toggleChannelPointPause(channelPoint, true);
+            } else {
+                await toggleChannelPointPause(channelPoint, pause === true || pause === "true" || pause === "pause" || pause === "paused");
+            }
+
+            break;
+        }
+
+        case "enable": {
+            if (!channelPointName) {
+                logWarn(`channel_point enable requires name`);
+                return;
+            }
+
+            await toggleChannelPoint(channelPoint, true);
+            break;
+        }
+
+        case "disable": {
+            if (!channelPointName) {
+                logWarn(`channel_point disable requires name`);
+                return;
+            }
+
+            await toggleChannelPoint(channelPoint, false);
+            break;
+        }
+
+        case "toggle": {
+            if (!channelPointName) {
+                logWarn(`channel_point toggle requires name`);
+                return;
+            }
+
+            const enable = data?.enable ?? data?.enabled ?? data?.state;
+
+            if (enable === undefined) {
+                logWarn(`channel_point toggle requires state, enable or enabled`);
+                return;
+            }
+
+            await toggleChannelPoint(channelPoint, enable === true || enable === "true" || enable === "enable" || enable === "enabled");
             break;
         }
 
@@ -1750,6 +1861,36 @@ function handleEffect(method: string, data: any) {
         content: data.content ?? '',
         options: data.options ?? {},
     })
+}
+
+function handleKeyboard(method: string, data: any = {}) {
+    const websocket = getWebsocketServer();
+
+    logRegular(`trigger keyboard: ${method}`);
+
+    switch (method) {
+        case "press": {
+            const keys = Array.isArray(data.keys)
+                ? data.keys.map((key) => String(key).trim()).filter(Boolean)
+                : String(data.keys ?? "")
+                    .split(",")
+                    .map((key) => key.trim())
+                    .filter(Boolean);
+
+            websocket.send("trigger_keyboard", {
+                name: data.name ?? "macro",
+                keys,
+                duration: data.duration,
+            });
+
+            break;
+        }
+
+        default: {
+            logWarn(`invalid keyboard method: ${method}`);
+            break;
+        }
+    }
 }
 
 async function handleWled(method: string, data: any = {}) {

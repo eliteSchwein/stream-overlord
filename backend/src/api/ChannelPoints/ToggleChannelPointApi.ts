@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import {toggleChannelPoint} from "../../helper/ChannelPointHelper";
+import {toggleChannelPointPause} from "../../helper/ChannelPointHelper";
 
 export default class ToggleChannelPointApi extends BaseApi {
     restEndpoint = 'channel_points/toggle'
@@ -21,14 +21,14 @@ export default class ToggleChannelPointApi extends BaseApi {
         switch (state) {
             case 'enable':
             case 'true':
-                await toggleChannelPoint(channelPoint, false)
+                await toggleChannelPointPause(channelPoint, false)
                 break
             case 'disable':
             case 'false':
-                await toggleChannelPoint(channelPoint, true)
+                await toggleChannelPointPause(channelPoint, true)
                 break
             case 'toggle':
-                await toggleChannelPoint(channelPoint, channelPoint.active)
+                await toggleChannelPointPause(channelPoint, channelPoint.active)
                 break
             default:
                 return {"error": "invalid state"}
