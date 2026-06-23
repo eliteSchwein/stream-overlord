@@ -146,7 +146,7 @@ export default {
   },
 
   computed: {
-    ...mapState(useAppStore, ['getRestApi', 'getChannelPoints']),
+    ...mapState(useAppStore, ['getChannelPoints']),
 
     channelPointList(): ChannelPointEntry[] {
       const byKey = new Map<string, ChannelPointEntry>()
@@ -194,7 +194,12 @@ export default {
   },
 
   mounted() {
+    eventBus.$on('websocket:connected', this.refreshChannelPoints)
     this.refreshChannelPoints()
+  },
+
+  beforeUnmount() {
+    eventBus.$off('websocket:connected', this.refreshChannelPoints)
   },
 
   methods: {
@@ -206,26 +211,25 @@ export default {
       })
     },
 
-    async requestEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      try {
-        const response = await this.requestWebsocket(method, params, timeout)
-        return response?.data ?? response
-      } catch (websocketError) {
-        const response = await fetch(`${this.getRestApi}/api/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(params),
-        })
+    async requestChannelPointEndpoint(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      const response = await this.requestWebsocket(method, params, timeout)
+      const data = response?.data ?? response
 
-        const data = await response.json().catch(() => ({}))
-        const responseData = data?.data ?? data
-
-        if (!response.ok || responseData?.error || data?.error) {
-          throw new Error(responseData?.error ?? responseData?.message ?? data?.error ?? `${endpoint} failed`)
-        }
-
-        return responseData
+      if (data?.error) {
+        throw new Error(data.error)
       }
+
+      return data
+    },
+
+    readFileAsText(file: File): Promise<string> {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+
+        reader.onload = () => resolve(String(reader.result ?? ''))
+        reader.onerror = () => reject(reader.error ?? new Error('failed to read file'))
+        reader.readAsText(file)
+      })
     },
 
     normalizeChannelPointName(value: any): string {
@@ -302,7 +306,7 @@ export default {
       this.errorMessage = ''
 
       try {
-        const data = await this.requestEndpoint('channel_points_list', 'channel_points/list')
+        const data = await this.requestChannelPointEndpoint('channel_points_list')
         if (data?.error) throw new Error(data.error)
 
         this.localChannelPoints = this.normalizeListPayload(data)
@@ -318,27 +322,24 @@ export default {
     },
 
     async uploadFiles(files: File[] | FileList) {
-      const fileList = Array.from(files as any)
+      const fileList = Array.from(files as any) as File[]
       if (!fileList.length || this.uploading) return
 
       this.uploading = true
       this.errorMessage = ''
 
       try {
-        const formData = new FormData()
-        fileList.forEach((file) => formData.append('files', file))
+        const uploadFiles = await Promise.all(fileList.map(async (file) => ({
+          name: file.name,
+          type: file.type,
+          content: await this.readFileAsText(file),
+        })))
 
-        const response = await fetch(`${this.getRestApi}/api/channel_points/upload`, {
-          method: 'POST',
-          body: formData,
-        })
+        const data = await this.requestChannelPointEndpoint('channel_points_upload', {
+          files: uploadFiles,
+        }, 30_000)
 
-        const data = await response.json().catch(() => ({}))
-        const responseData = data?.data ?? data
-
-        if (!response.ok || responseData?.error || data?.error) {
-          throw new Error(responseData?.message ?? responseData?.error ?? data?.error ?? 'channel point upload failed')
-        }
+        if (data?.error) throw new Error(data.error)
 
         await this.refreshChannelPoints()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
@@ -385,19 +386,19 @@ export default {
           strip_emotes: payload.strip_emotes === true,
         }
 
-        await this.requestEndpoint('assets_edit', 'assets/edit', {
+        await this.requestChannelPointEndpoint('assets_edit', {
           path: `${generated}.yaml`,
           name: generated,
           asset: payload.asset ?? {},
         }, 30_000)
 
-        await this.requestEndpoint('macro_edit', 'macro/edit', {
+        await this.requestChannelPointEndpoint('macro_edit', {
           path: `${generated}.yaml`,
           name: generated,
           content: payload.macroContent ?? this.defaultMacroContent(generated),
         }, 30_000)
 
-        const data = await this.requestEndpoint('channel_points_edit', 'channel_points/edit', {
+        const data = await this.requestChannelPointEndpoint('channel_points_edit', {
           path: `${name}.yaml`,
           name,
           channel_point: channelPoint,
@@ -448,7 +449,7 @@ export default {
       this.errorMessage = ''
 
       try {
-        const data = await this.requestEndpoint('channel_points_delete', 'channel_points/delete', {
+        const data = await this.requestChannelPointEndpoint('channel_points_delete', {
           path: `${channelPoint.name}.yaml`,
           name: channelPoint.name,
         })
@@ -470,16 +471,16 @@ export default {
       this.workingAction = 'toggle'
 
       try {
-        await fetch(`${this.getRestApi}/api/channel_points/toggle`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            channel_point: channelPoint,
-            state: channelPoint.active ? 'disable' : 'enable',
-          }),
-        })
+        const data = await this.requestChannelPointEndpoint('channel_points_toggle', {
+          channel_point: channelPoint,
+          state: channelPoint.active ? 'disable' : 'enable',
+        }, 30_000)
+
+        if (data?.error) throw new Error(data.error)
 
         channelPoint.active = !channelPoint.active
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'toggle channel point failed'
       } finally {
         this.workingName = null
         this.workingAction = null

@@ -10,8 +10,10 @@ import {sleep} from "../../../../../../helper/GeneralHelper";
 export default class ChannelUpdateEvent extends BaseEvent {
     name = 'ChannelUpdateEvent'
     eventTypes = ['onChannelUpdate']
+    configName = 'event_twitch_channel_update'
 
     async handle(event: any) {
+        await this.triggerConfiguredEvent(event)
         void updateAdData()
 
         const oldGameId = getCurrentGameId()

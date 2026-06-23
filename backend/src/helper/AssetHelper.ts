@@ -9,6 +9,7 @@ import { getConfig, getSystemConfigDirectory } from "./ConfigHelper";
 import * as yaml from "js-yaml";
 import {emitAssetUpdate} from "./AssetManagementHelper";
 import {redis} from "../clients/redis/Redis";
+import {updateConfiguredEventIndex} from "./EventHelper";
 
 let files = []
 let assetFiles = []
@@ -352,6 +353,34 @@ export function getAssetConfigs() {
     return assetConfigs;
 }
 
+export function isAssetConfigPresent(name: string) {
+    if (!name) return false;
+
+    if (!Object.keys(assetConfigs).length) {
+        loadAssetConfigs();
+    }
+
+    if (assetConfigs[name] !== undefined) {
+        return true;
+    }
+
+    if (findAssetConfigFileByName(name)) {
+        return true;
+    }
+
+    const configAssets = getConfig(/^asset /g, true);
+
+    return configAssets[name] !== undefined;
+}
+
+export function requireAssetConfigPresent(name: string) {
+    if (!isAssetConfigPresent(name)) {
+        throw new Error(`asset config not found: ${name}`);
+    }
+
+    return true;
+}
+
 export function getWledConfig(name: string): WledConfig | undefined {
     const configs = getConfig(/^wled /g, true);
     const config = configs?.[name];
@@ -563,6 +592,7 @@ export async function editAssetConfigFile(inputPathOrName: string, content: stri
 
     loadAssetConfigs();
     emitAssetConfigUpdate();
+    updateConfiguredEventIndex();
 
     return {
         path: relativeAssetConfigPath(filePath),

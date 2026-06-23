@@ -4,11 +4,11 @@ import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
-import {triggerMacro} from "../../../helper/MacroHelper";
 
 export default class CommunitySubEvent extends BaseEvent {
     name = 'CommunitySub'
     eventTypes = ['onCommunitySub']
+    configName = 'event_twitch_community_sub'
 
     async handle(event: EasyEvent) {
         let plan = event.plan
@@ -24,21 +24,7 @@ export default class CommunitySubEvent extends BaseEvent {
             return
         }
 
-        await triggerMacro('subcommunitygift', this.getMacroVariables(event, {plan}))
-
-        // addAlert({
-        //    'sound': theme.sound,
-        //    'duration': 15,
-        //    'color': theme.color,
-        //    'icon': theme.icon,
-        //    'image': theme.image,
-        //    'message': `${event.gifterDisplayName} haut ${event.count} subs raus`,
-        //    'event-uuid': this.eventUuid,
-        //    'video': theme.video,
-        //    'lamp_color': theme.lamp_color,
-        //    'volume': theme.volume,
-        //    'channel': theme.channel,
-        //})
+        await this.triggerConfiguredEvent(event)
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
     }

@@ -36,6 +36,7 @@ import {redis} from "../clients/redis/Redis";
 import {getAssetConfig, getWledConfigs, normalizeWledControls} from "./AssetHelper";
 import {setLedColor} from "./WledHelper";
 import {toggleChannelPoint, toggleChannelPointPause} from "./ChannelPointHelper";
+import {updateConfiguredEventIndex} from "./EventHelper";
 
 let macros: any = {};
 
@@ -474,6 +475,7 @@ export function editMacroFile(inputPathOrName: string, content: string) {
     updateMacroRawCache(macroName, nextContent);
 
     loadMacros();
+    updateConfiguredEventIndex();
 
     return {
         path: relativeMacroPath(filePath),
@@ -662,7 +664,27 @@ export function getMacros() {
 }
 
 export function isMacroPresent(name: string) {
-    return macros[name] !== undefined;
+    if (!name) return false;
+
+    if (macros[name] !== undefined) {
+        return true;
+    }
+
+    try {
+        return findMacroFileByName(name) !== undefined;
+    } catch (error) {
+        logWarn(`failed to check if macro ${name} is present`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return false;
+    }
+}
+
+export function requireMacroPresent(name: string) {
+    if (!isMacroPresent(name)) {
+        throw new Error(`macro not found: ${name}`);
+    }
+
+    return true;
 }
 
 function getNestedValue(obj: any, path: string): any {
@@ -1039,6 +1061,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
                 }
 
                 case "macro": {
+                    if (!isMacroPresent(task.method)) {
+                        logWarn(`macro task skipped, macro not found: ${task.method}`);
+                        break;
+                    }
+
                     await triggerMacro(task.method, variables);
                     break;
                 }

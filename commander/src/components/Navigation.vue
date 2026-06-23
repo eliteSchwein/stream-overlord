@@ -29,6 +29,7 @@ export default {
       const titleMap = {
         dashboard: 'dashboard',
         channelPoints: 'channelPoints',
+        events: 'events',
         macros: 'macros',
         variables: 'variables',
         audio: 'audio',
@@ -255,6 +256,11 @@ export default {
         :title="$t('navigation.tabs.channelPoints')"
         color=""
         to="/channelPoints"></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-lightning-bolt"
+        :title="$t('navigation.tabs.events') || 'Events'"
+        color=""
+        to="/events"></v-list-item>
       <v-list-item
         prepend-icon="mdi-dialpad"
         :title="$t('navigation.tabs.macros')"

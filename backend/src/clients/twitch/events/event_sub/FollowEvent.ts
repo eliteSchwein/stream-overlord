@@ -5,10 +5,10 @@ import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
-import {triggerMacro} from "../../../../helper/MacroHelper";
 
 export default class FollowEvent extends BaseEvent {
     name = 'Follow'
+    configName = "event_twitch_follow"
     eventTypes = []
 
     async handleRegister() {
@@ -25,21 +25,7 @@ export default class FollowEvent extends BaseEvent {
             return
         }
 
-        await triggerMacro('follow', this.getMacroVariables(event))
-
-        //addAlert({
-        //    'sound': theme.sound,
-        //    'duration': 15,
-        //    'color': theme.color,
-        //    'icon': theme.icon,
-        //    'message': `${event.userDisplayName} folgt nun`,
-        //    'event-uuid': this.eventUuid,
-        //    'video': theme.video,
-        //    'lamp_color': theme.lamp_color,
-        //    'volume': theme.volume,
-        //    'image': theme.image,
-        //    'channel': theme.channel,
-        //})
+        await this.triggerConfiguredEvent(event)
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})
     }

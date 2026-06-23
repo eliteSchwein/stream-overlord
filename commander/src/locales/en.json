@@ -34,7 +34,8 @@
       "variables": "Variables",
       "obs": "OBS",
       "media": "Media",
-      "assets": "Assets"
+      "assets": "Assets",
+      "events": "Events"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -360,6 +361,12 @@
     "title": "Channel Points",
     "search": "Search channel points",
     "upload": "Upload channel point",
-    "edit": "Edit channel point"
+    "edit": "Edit channel point",
+    "create": "Create channel point"
+  },
+  "events": {
+    "title": "Events",
+    "search": "Search events",
+    "none": "No events found"
   }
 }

@@ -12,17 +12,6 @@
           <span class="text-truncate">{{ title }}</span>
         </v-toolbar-title>
 
-        <v-btn
-          color="primary"
-          variant="tonal"
-          prepend-icon="mdi-content-save"
-          :loading="loading || savingInternal"
-          :disabled="!canSave"
-          @click="save"
-        >
-          {{ $t('common.save') || 'Save' }}
-        </v-btn>
-
         <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)" />
       </v-toolbar>
 
@@ -43,8 +32,7 @@
               label="Name"
               density="comfortable"
               variant="outlined"
-              :hint="`label saved as typed, spaces become _ for file/asset/macro: ${generatedConfigName}`"
-              persistent-hint
+              hide-details
             />
           </v-col>
 
@@ -88,7 +76,6 @@
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-palette" />
                 <span class="text-truncate">Asset</span>
-                <v-chip size="x-small" variant="tonal">{{ generatedConfigName }}</v-chip>
               </div>
             </v-expansion-panel-title>
 
@@ -107,7 +94,6 @@
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-code-braces" />
                 <span class="text-truncate">Macro</span>
-                <v-chip size="x-small" variant="tonal">{{ generatedConfigName }}</v-chip>
               </div>
             </v-expansion-panel-title>
 
@@ -122,6 +108,16 @@
           </v-expansion-panel>
         </v-expansion-panels>
       </v-card-text>
+
+      <v-divider />
+
+      <v-card-actions>
+        <v-spacer />
+        <v-btn variant="text" @click="$emit('update:modelValue', false)">Cancel</v-btn>
+        <v-btn color="primary" variant="flat" :loading="loading || savingInternal" :disabled="!canSave" @click="save">
+          Save
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
@@ -152,7 +148,7 @@ export default {
   data() {
     return {
       appStore: useAppStore(),
-      openPanels: ['asset', 'macro'],
+      openPanels: [],
       form: {
         name: '',
         enable_default: false,

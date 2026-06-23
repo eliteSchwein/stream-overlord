@@ -6,6 +6,7 @@ import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 export default class ChannelSharedChatSession  extends BaseEvent {
     name = 'ChannelSharedChatSession'
     eventTypes = ['onChannelSharedChatSessionBegin', 'onChannelSharedChatSessionUpdate']
+    configName = 'event_twitch_sharedchat_start'
 
     async handle(event: any) {
         const participants = event.participants
@@ -20,5 +21,7 @@ export default class ChannelSharedChatSession  extends BaseEvent {
         for(const participant of participants) {
             await addModeratorsToChannelFromExternal(primaryChannel, participant.broadcasterName)
         }
+
+        await this.triggerConfiguredEvent(event)
     }
 }

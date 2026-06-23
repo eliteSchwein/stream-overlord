@@ -4,11 +4,11 @@ import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
-import {triggerMacro} from "../../../helper/MacroHelper";
 
 export default class SubGiftEvent extends BaseEvent {
     name = 'SubGift'
     eventTypes = ['onSubGift']
+    configName = 'event_twitch_subgift'
 
     async handle(event: EasyEvent) {
         let plan = event.plan
@@ -24,21 +24,7 @@ export default class SubGiftEvent extends BaseEvent {
             return
         }
 
-        await triggerMacro('subgift', this.getMacroVariables(event, {plan}))
-
-        // addAlert({
-        //    'sound': theme.sound,
-        //    'duration': 15,
-        //    'color': theme.color,
-        //    'icon': theme.icon,
-        //    'message': `${event.gifterDisplayName} schenkt ${event.userDisplayName} ein Abo auf Stufe ${plan}`,
-        //    'event-uuid': this.eventUuid,
-        //    'video': theme.video,
-        //    'lamp_color': theme.lamp_color,
-        //    'volume': theme.volume,
-        //    'image': theme.image,
-        //    'channel': theme.channel,
-        //})
+        await this.triggerConfiguredEvent(event)
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: WAIT_FOREVER})
     }

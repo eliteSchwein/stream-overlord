@@ -72,7 +72,7 @@ export default class TwitchAuth {
         "user:read:subscriptions",
         "user:write:chat",
         "whispers:edit",
-        "whispers:read"
+        "whispers:read",
     ];
 
     protected get intends(): string[] {

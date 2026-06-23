@@ -12,7 +12,7 @@ import initialAlerts from "./helper/AlertHelper";
 import initialSchedulers from "./helper/SchedulerHelper";
 import {setLedColor} from "./helper/WledHelper";
 import {initAudio} from "./helper/AudioHelper";
-import loadMacros from "./helper/MacroHelper";
+import loadMacros, {isMacroPresent, triggerMacro} from "./helper/MacroHelper";
 import {updateSystemComponents, updateSystemInfo} from "./helper/SystemInfoHelper";
 import {updateSourceFilters} from "./helper/SourceHelper";
 import {initGpio, killGpio} from "./helper/SystemHelper";
@@ -30,6 +30,7 @@ import {
 } from "./helper/MusicHelper";
 import { redis } from "./clients/redis/Redis";
 import {initVariables} from "./helper/VariableHelper";
+import {updateConfiguredEventIndex} from "./helper/EventHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -157,11 +158,18 @@ async function init() {
     loadMusicConfig()
     await startMusicPlayer()
 
+    stage = 'update event index...'
+    updateConfiguredEventIndex()
+
     logSuccess('backend is ready')
     ready = true
     stage = 'Finished'
 
     await obsClient?.reloadAllBrowserScenes()
+
+    if(isMacroPresent("event_system_poweron")) {
+        await triggerMacro("event_system_poweron")
+    }
 }
 
 export default function getWebsocketServer() {
@@ -232,6 +240,10 @@ export async function reload() {
         getWebsocketServer().send("notify_config_update", {data: getRawConfig()})
 
         await obsClient?.reloadAllBrowserScenes()
+
+        if(isMacroPresent("event_system_configreload")) {
+            await triggerMacro("event_system_configreload")
+        }
     } catch (error) {
         logWarn(`reload failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
@@ -242,9 +254,13 @@ export function getYoloboxClient() {
     return yoloboxClient
 }
 
-process.on('SIGINT', () => {
-    void redis.disconnect()
-    void stopMusicPlayer()
+process.on('SIGINT', async () => {
+    if(isMacroPresent("event_system_poweroff")) {
+        await triggerMacro("event_system_poweroff")
+    }
+
+    await redis.disconnect()
+    await stopMusicPlayer()
     killGpio()
     process.exit()
 })

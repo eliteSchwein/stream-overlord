@@ -3,24 +3,52 @@ import { getConfig, getPrimaryChannel, loadPrimaryChannel } from "../../helper/C
 import { Bot } from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
 import { EventSubWsListener } from "@twurple/eventsub-ws";
-import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import { waitUntil } from "async-wait-until";
 import { logRegular, logSuccess, logWarn } from "../../helper/LogHelper";
 import { setManagedConnection } from "../../helper/ConnectionHelper";
-import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
+
+// regular EasyBot events
 import SubEvent from "./events/SubEvent";
 import CommunitySubEvent from "./events/CommunitySubEvent";
 import SubGiftEvent from "./events/SubGiftEvent";
-import BitEvent from "./events/event_sub/BitEvent";
 import RaidEvent from "./events/RaidEvent";
-import FollowEvent from "./events/event_sub/FollowEvent";
-import ShieldEvent from "./events/event_sub/ShieldEvent";
-import ChannelPointEditEvent from "./events/event_sub/ChannelPointEditEvent";
-import ChannelSharedChatSessionEnd from "./events/event_sub/ChannelSharedChatSessionEnd";
-import ChannelSharedChatSession from "./events/event_sub/ChannelSharedChatSession";
-import PollPredictionEvent from "./events/event_sub/PollPredictionEvent";
-import MessageDeleteEvent from "./events/event_sub/MessageDeleteEvent";
 
+// EventSub events
+import ChannelAdBreakBeginEvent from "./events/event_sub/ChannelAdBreakBeginEvent";
+import ChannelBanEvent from "./events/event_sub/ChannelBanEvent";
+import ChannelCharityCampaignProgressEvent from "./events/event_sub/ChannelCharityCampaignProgressEvent";
+import ChannelCharityCampaignStartEvent from "./events/event_sub/ChannelCharityCampaignStartEvent";
+import ChannelCharityCampaignStopEvent from "./events/event_sub/ChannelCharityCampaignStopEvent";
+import ChannelCharityDonationEvent from "./events/event_sub/ChannelCharityDonationEvent";
+import ChannelGoalBeginEvent from "./events/event_sub/ChannelGoalBeginEvent";
+import ChannelGoalEndEvent from "./events/event_sub/ChannelGoalEndEvent";
+import ChannelGoalProgressEvent from "./events/event_sub/ChannelGoalProgressEvent";
+import ChannelHypeTrainBeginEvent from "./events/event_sub/ChannelHypeTrainBeginEvent";
+import ChannelHypeTrainEndEvent from "./events/event_sub/ChannelHypeTrainEndEvent";
+import ChannelHypeTrainProgressEvent from "./events/event_sub/ChannelHypeTrainProgressEvent";
+import ChannelModeratorAddEvent from "./events/event_sub/ChannelModeratorAddEvent";
+import ChannelModeratorRemoveEvent from "./events/event_sub/ChannelModeratorRemoveEvent";
+import ChannelPointCreateEvent from "./events/event_sub/ChannelPointCreateEvent";
+import ChannelPointDeleteEvent from "./events/event_sub/ChannelPointDeleteEvent";
+import ChannelPointEditEvent from "./events/event_sub/ChannelPointEditEvent";
+import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
+import ChannelSharedChatSession from "./events/event_sub/ChannelSharedChatSession";
+import ChannelSharedChatSessionEnd from "./events/event_sub/ChannelSharedChatSessionEnd";
+import ChannelUnbanEvent from "./events/event_sub/ChannelUnbanEvent";
+import ChannelUpdateEvent from "./events/event_sub/ChannelUpdateEvent";
+import ChannelVipAddEvent from "./events/event_sub/ChannelVipAddEvent";
+import ChannelVipRemoveEvent from "./events/event_sub/ChannelVipRemoveEvent";
+import CheerEvent from "./events/event_sub/CheerEvent";
+import FollowEvent from "./events/event_sub/FollowEvent";
+import MessageDeleteEvent from "./events/event_sub/MessageDeleteEvent";
+import PollPredictionEvent from "./events/event_sub/PollPredictionEvent";
+import PollProgressEvent from "./events/event_sub/PollProgressEvent";
+import PredictionLockEvent from "./events/event_sub/PredictionLockEvent";
+import PredictionProgressEvent from "./events/event_sub/PredictionProgressEvent";
+import ShieldEvent from "./events/event_sub/ShieldEvent";
+import StreamOfflineEvent from "./events/event_sub/StreamOfflineEvent";
+import StreamOnlineEvent from "./events/event_sub/StreamOnlineEvent";
+import UserUpdateEvent from "./events/event_sub/UserUpdateEvent";
 export default class TwitchClient {
     protected auth: TwitchAuth;
     protected bot?: Bot;
@@ -196,48 +224,58 @@ export default class TwitchClient {
         const bot = this.bot;
         const eventSub = this.eventSub;
 
-        // regular events
+        // regular EasyBot events - keep raid here, not in event_sub
         new SubEvent(bot).register();
         new CommunitySubEvent(bot).register();
         new SubGiftEvent(bot).register();
         new RaidEvent(bot).register();
 
-        // eventsub events that work for all channels
+        // EventSub events that should work for normal channels / moderation scopes
         await this.safeRegister("follow event", () => new FollowEvent(eventSub, bot).register());
         await this.safeRegister("channel update event", () => new ChannelUpdateEvent(eventSub, bot).register());
+        await this.safeRegister("user update event", () => new UserUpdateEvent(eventSub, bot).register());
+        await this.safeRegister("stream online event", () => new StreamOnlineEvent(eventSub, bot).register());
+        await this.safeRegister("stream offline event", () => new StreamOfflineEvent(eventSub, bot).register());
         await this.safeRegister("shield event", () => new ShieldEvent(eventSub, bot).register());
-        await this.safeRegister(
-            "shared chat session end event",
-            () => new ChannelSharedChatSessionEnd(eventSub, bot).register()
-        );
-        await this.safeRegister(
-            "shared chat session event",
-            () => new ChannelSharedChatSession(eventSub, bot).register()
-        );
-        await this.safeRegister(
-            "message delete event",
-            () => new MessageDeleteEvent(eventSub, bot).register()
-        );
+        await this.safeRegister("message delete event", () => new MessageDeleteEvent(eventSub, bot).register());
+        await this.safeRegister("channel ban event", () => new ChannelBanEvent(eventSub, bot).register());
+        await this.safeRegister("channel unban event", () => new ChannelUnbanEvent(eventSub, bot).register());
+        await this.safeRegister("channel moderator add event", () => new ChannelModeratorAddEvent(eventSub, bot).register());
+        await this.safeRegister("channel moderator remove event", () => new ChannelModeratorRemoveEvent(eventSub, bot).register());
+        await this.safeRegister("channel vip add event", () => new ChannelVipAddEvent(eventSub, bot).register());
+        await this.safeRegister("channel vip remove event", () => new ChannelVipRemoveEvent(eventSub, bot).register());
+        await this.safeRegister("shared chat session event", () => new ChannelSharedChatSession(eventSub, bot).register());
+        await this.safeRegister("shared chat session end event", () => new ChannelSharedChatSessionEnd(eventSub, bot).register());
 
         const affiliateOrPartner = await this.isAffiliateOrPartner();
 
         if (!affiliateOrPartner) {
             logWarn("primary channel is not affiliate/partner - skipping monetization-related Twitch features");
-            logWarn("Skipped: Channel Points, reward updates, Bits cheers, polls/predictions EventSub");
+            logWarn("Skipped: Channel Points, reward updates, Bits cheers, polls/predictions, hype trains, goals, ads and charity EventSub");
             return;
         }
 
-        // eventsub events that require affiliate/partner features
+        // EventSub events that require affiliate/partner/monetization features
+        await this.safeRegister("channel ad break begin event", () => new ChannelAdBreakBeginEvent(eventSub, bot).register());
         await this.safeRegister("channel points event", () => new ChannelPointsEvent(eventSub, bot).register());
-        await this.safeRegister("bits event", () => new BitEvent(eventSub, bot).register());
-        await this.safeRegister(
-            "channel point edit event",
-            () => new ChannelPointEditEvent(eventSub, bot).register()
-        );
-        await this.safeRegister(
-            "poll prediction event",
-            () => new PollPredictionEvent(eventSub, bot).register()
-        );
+        await this.safeRegister("channel point create event", () => new ChannelPointCreateEvent(eventSub, bot).register());
+        await this.safeRegister("channel point edit event", () => new ChannelPointEditEvent(eventSub, bot).register());
+        await this.safeRegister("channel point delete event", () => new ChannelPointDeleteEvent(eventSub, bot).register());
+        await this.safeRegister("bits event", () => new CheerEvent(eventSub, bot).register());
+        await this.safeRegister("poll prediction event", () => new PollPredictionEvent(eventSub, bot).register());
+        await this.safeRegister("poll progress event", () => new PollProgressEvent(eventSub, bot).register());
+        await this.safeRegister("prediction lock event", () => new PredictionLockEvent(eventSub, bot).register());
+        await this.safeRegister("prediction progress event", () => new PredictionProgressEvent(eventSub, bot).register());
+        await this.safeRegister("channel hype train begin event", () => new ChannelHypeTrainBeginEvent(eventSub, bot).register());
+        await this.safeRegister("channel hype train progress event", () => new ChannelHypeTrainProgressEvent(eventSub, bot).register());
+        await this.safeRegister("channel hype train end event", () => new ChannelHypeTrainEndEvent(eventSub, bot).register());
+        await this.safeRegister("channel goal begin event", () => new ChannelGoalBeginEvent(eventSub, bot).register());
+        await this.safeRegister("channel goal progress event", () => new ChannelGoalProgressEvent(eventSub, bot).register());
+        await this.safeRegister("channel goal end event", () => new ChannelGoalEndEvent(eventSub, bot).register());
+        await this.safeRegister("channel charity campaign start event", () => new ChannelCharityCampaignStartEvent(eventSub, bot).register());
+        await this.safeRegister("channel charity campaign progress event", () => new ChannelCharityCampaignProgressEvent(eventSub, bot).register());
+        await this.safeRegister("channel charity campaign stop event", () => new ChannelCharityCampaignStopEvent(eventSub, bot).register());
+        await this.safeRegister("channel charity donation event", () => new ChannelCharityDonationEvent(eventSub, bot).register());
     }
 
     public getBot() {

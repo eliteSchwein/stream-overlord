@@ -9,6 +9,10 @@ import registerEventCooldown, {
 import {logError, logRegular} from "../../../helper/LogHelper";
 import {v4 as uuidv4} from 'uuid';
 import {sleep} from "../../../../../helper/GeneralHelper";
+import {isMacroPresent, triggerMacro} from "../../../helper/MacroHelper";
+import {getAssetConfig, isAssetConfigPresent} from "../../../helper/AssetHelper";
+import {addAlert} from "../../../helper/AlertHelper";
+import {registerEventEntry} from "../../../helper/EventHelper";
 
 export default class BaseEvent {
     bot: Bot
@@ -18,6 +22,7 @@ export default class BaseEvent {
     eventLimit = 25
     eventCooldown = 5
     eventUuid: string
+    configName: string|undefined = undefined
 
     public constructor(bot: Bot) {
         this.bot = bot;
@@ -31,6 +36,19 @@ export default class BaseEvent {
         for(const eventType of this.eventTypes) {
             this.bot[eventType]((event: any) => void this.handleEvent(event))
         }
+
+        this.registerConfigEvent()
+    }
+
+    registerConfigEvent(configName: string|undefined = undefined) {
+        if(configName) {
+            registerEventEntry(configName)
+
+            return;
+        }
+        if(!this.configName) return
+
+        registerEventEntry(this.configName)
     }
 
     private async handleEvent(event: any) {
@@ -68,6 +86,34 @@ export default class BaseEvent {
         }
     }
 
+    async triggerConfiguredEvent(event: any, configName: string|undefined = undefined) {
+        if(!this.configName && !configName) return
+        if(this.configName && !configName) configName = this.configName
+        if(!configName) return
+
+        if(isMacroPresent(configName)) {
+            void triggerMacro(configName, this.getMacroVariables(event))
+        }
+
+        if(isAssetConfigPresent(configName)) {
+            const asset = getAssetConfig(configName)
+
+            addAlert({
+                'sound': asset.sound,
+                'duration': asset.duration,
+                'color': asset.color,
+                'icon': asset.icon,
+                'message': asset.message,
+                'event-uuid': this.eventUuid,
+                'video': asset.video,
+                'lamp_color': asset.lamp_color,
+                'volume': asset.volume,
+                'image': asset.image,
+                'channel': asset.channel,
+            })
+        }
+    }
+
     async handle(event: any) {}
 }
 
@@ -90,9 +136,10 @@ function sanitizeMacroValue(value: any, seen = new WeakSet<object>(), depth = 0)
 
     if (Array.isArray(value)) {
         if (seen.has(value)) return undefined
-        if (depth >= 4) return undefined
+        if (depth >= 6) return undefined
 
         seen.add(value)
+
         return value.map(item => sanitizeMacroValue(item, seen, depth + 1))
             .filter(item => item !== undefined)
     }
@@ -102,7 +149,7 @@ function sanitizeMacroValue(value: any, seen = new WeakSet<object>(), depth = 0)
     }
 
     if (seen.has(value)) return undefined
-    if (depth >= 4) return undefined
+    if (depth >= 6) return undefined
 
     seen.add(value)
 
@@ -110,6 +157,7 @@ function sanitizeMacroValue(value: any, seen = new WeakSet<object>(), depth = 0)
 
     for (const key of Object.keys(value)) {
         if (key.startsWith("_")) continue
+        if (key === "eventSub" || key === "apiClient" || key === "client" || key === "bot") continue
 
         const sanitized = sanitizeMacroValue(value[key], seen, depth + 1)
 
@@ -126,30 +174,144 @@ function sanitizeMacroValue(value: any, seen = new WeakSet<object>(), depth = 0)
         "userId",
         "userName",
         "userDisplayName",
+        "userLogin",
+        "moderatorId",
+        "moderatorName",
+        "moderatorDisplayName",
+        "moderatorLogin",
+        "targetUserId",
+        "targetUserName",
+        "targetUserDisplayName",
+        "targetUserLogin",
+        "bannedUserId",
+        "bannedUserName",
+        "bannedUserDisplayName",
+        "bannedUserLogin",
         "gifterId",
         "gifterName",
         "gifterDisplayName",
+        "gifterLogin",
         "recipientId",
         "recipientName",
         "recipientDisplayName",
+        "recipientLogin",
+        "fromBroadcasterId",
+        "fromBroadcasterName",
+        "fromBroadcasterDisplayName",
+        "fromBroadcasterLogin",
+        "toBroadcasterId",
+        "toBroadcasterName",
+        "toBroadcasterDisplayName",
+        "toBroadcasterLogin",
+        "hostBroadcasterId",
+        "hostBroadcasterName",
+        "hostBroadcasterDisplayName",
+        "hostBroadcasterLogin",
         "viewerCount",
+        "viewers",
         "bits",
         "count",
         "months",
+        "cumulativeMonths",
         "streak",
+        "streakMonths",
         "plan",
+        "tier",
         "isGift",
         "isAnonymous",
+        "isSystemMessage",
         "message",
+        "messageText",
+        "messageId",
+        "reason",
         "rewardId",
         "rewardTitle",
+        "rewardName",
         "rewardCost",
+        "rewardPrompt",
         "input",
+        "userInput",
         "status",
+        "redemptionId",
         "title",
         "categoryId",
         "categoryName",
-        "messageId",
+        "gameId",
+        "gameName",
+        "language",
+        "isMature",
+        "contentClassificationLabels",
+        "sessionId",
+        "participants",
+        "startedAt",
+        "endedAt",
+        "lockedAt",
+        "createdAt",
+        "updatedAt",
+        "expiresAt",
+        "endsAt",
+        "startDate",
+        "endDate",
+        "lockDate",
+        "createdDate",
+        "updatedDate",
+        "pollId",
+        "choices",
+        "votes",
+        "totalVotes",
+        "channelPointsVotes",
+        "bitsVotes",
+        "predictionId",
+        "outcomes",
+        "winningOutcome",
+        "predictionWindow",
+        "channelPoints",
+        "topPredictors",
+        "users",
+        "color",
+        "streamId",
+        "type",
+        "startTime",
+        "goalId",
+        "goalType",
+        "currentAmount",
+        "targetAmount",
+        "currentAmountValue",
+        "targetAmountValue",
+        "campaignId",
+        "charityName",
+        "charityDescription",
+        "charityLogo",
+        "charityWebsite",
+        "amount",
+        "donorId",
+        "donorName",
+        "donorDisplayName",
+        "donorLogin",
+        "donorMessage",
+        "level",
+        "total",
+        "progress",
+        "goal",
+        "topContributions",
+        "lastContribution",
+        "contributors",
+        "isPaused",
+        "isEnabled",
+        "isInStock",
+        "cost",
+        "prompt",
+        "cooldown",
+        "globalCooldown",
+        "maxRedemptionsPerStream",
+        "maxRedemptionsPerUserPerStream",
+        "backgroundColor",
+        "autoAccept",
+        "isUserInputRequired",
+        "isInputRequired",
+        "skipQueue",
+        "paused",
+        "enabled"
     ]
 
     for (const key of twitchEventKeys) {

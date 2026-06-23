@@ -69,6 +69,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/events': RouteRecordInfo<
+      '/events',
+      '/events',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/games': RouteRecordInfo<
       '/games',
       '/games',
@@ -185,6 +192,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/editConfig.vue': {
       routes:
         | '/editConfig'
+      views:
+        | never
+    }
+    'src/pages/events.vue': {
+      routes:
+        | '/events'
       views:
         | never
     }

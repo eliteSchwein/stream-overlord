@@ -11,7 +11,6 @@
 
     <div class="d-flex align-center justify-space-between ga-3 mb-3">
       <div class="min-width-0">
-        <div class="text-subtitle-2 text-truncate">{{ name }}</div>
         <div class="text-caption text-grey-lighten-1">{{ rawMode ? 'Raw YAML editor' : 'Visual macro editor' }}</div>
       </div>
 

@@ -16,9 +16,11 @@ export default class ShieldEvent extends BaseEvent {
 
     async handle(event: any) {
         if(event instanceof EventSubChannelShieldModeBeginEvent) {
+            void this.triggerConfiguredEvent(event, "event_twitch_shield_mode_begin")
             void enableShield()
         }
         if(event instanceof EventSubChannelShieldModeEndEvent) {
+            void this.triggerConfiguredEvent(event, "event_twitch_shield_mode_end")
             void disableShield()
         }
     }
