@@ -62,14 +62,6 @@ export default {
     hasDetails(): boolean {
       return this.setFields.length > 0 || this.macroFields.length > 0 || this.wledControls.length > 0
     },
-
-    subtitle(): string {
-      const parts = []
-      if (this.isSet(this.asset?.channel)) parts.push(this.asset.channel)
-      if (this.isSet(this.asset?.duration)) parts.push(`${this.asset.duration}s`)
-      if (this.isSet(this.asset?.file)) parts.push(this.asset.file)
-      return parts.join(' · ')
-    },
   },
 
   methods: {
@@ -131,21 +123,6 @@ export default {
           <span class="asset-panel__name text-truncate" :title="name">
             {{ name }}
           </span>
-          <span v-if="subtitle" class="text-caption text-grey-lighten-1 text-truncate d-none d-sm-block" :title="subtitle">
-            {{ subtitle }}
-          </span>
-        </div>
-
-        <div class="asset-panel__meta d-none d-md-flex">
-          <v-chip v-if="isSet(asset?.channel)" size="x-small" variant="tonal">
-            {{ asset.channel }}
-          </v-chip>
-          <v-chip v-if="isSet(asset?.duration)" size="x-small" variant="tonal">
-            {{ asset.duration }}s
-          </v-chip>
-          <v-chip v-if="wledControls.length" size="x-small" variant="tonal" prepend-icon="mdi-led-strip-variant">
-            {{ wledControls.length }} WLED
-          </v-chip>
         </div>
 
         <v-spacer />
@@ -154,14 +131,7 @@ export default {
 
     <v-expansion-panel-text class="asset-panel__content pa-0">
       <div class="asset-panel__details px-4 pt-3 pb-3">
-        <div class="asset-panel__details-text min-width-0">
-          <div class="text-subtitle-2 text-truncate" :title="name">
-            {{ name }}
-          </div>
-          <div class="text-caption text-grey-lighten-1">
-            {{ subtitle || ($t('assets.configFile') || 'Asset config') }}
-          </div>
-        </div>
+        <v-spacer />
 
         <div class="asset-panel__actions">
           <v-btn

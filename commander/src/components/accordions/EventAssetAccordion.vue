@@ -21,13 +21,31 @@ export default {
     disabled: { type: Boolean, default: false },
   },
 
+  data() {
+    return {
+      currentAsset: {} as any,
+    }
+  },
+
   methods: {
     async open(name = this.name) {
-      return await (this.$refs.inner as any)?.open?.(name)
+      const inner = this.$refs.inner as any
+      if (!inner?.open) return
+
+      await inner.open(name)
+
+      if (this.currentAsset && Object.keys(this.currentAsset).length) {
+        inner.setAsset?.(this.currentAsset)
+      }
     },
 
-    setAsset(asset: any) {
-      return (this.$refs.inner as any)?.setAsset?.(asset)
+    async setAsset(asset: any) {
+      this.currentAsset = asset ?? {}
+
+      const inner = this.$refs.inner as any
+      await inner?.ensureMediaEntries?.()
+
+      return inner?.setAsset?.(this.currentAsset)
     },
 
     getAssetPayload() {

@@ -43,6 +43,8 @@
             hide-details="auto"
             prepend-inner-icon="mdi-volume-high"
             variant="outlined"
+            @focus="ensureMediaEntries"
+            @click="ensureMediaEntries"
           />
         </v-col>
 
@@ -132,6 +134,8 @@
             hide-details="auto"
             prepend-inner-icon="mdi-image"
             variant="outlined"
+            @focus="ensureMediaEntries"
+            @click="ensureMediaEntries"
           />
         </v-col>
 
@@ -145,6 +149,8 @@
             hide-details="auto"
             prepend-inner-icon="mdi-video"
             variant="outlined"
+            @focus="ensureMediaEntries"
+            @click="ensureMediaEntries"
           />
         </v-col>
 
@@ -426,6 +432,7 @@ export default {
 
   mounted() {
     this.setAsset(this.initialAsset ?? {})
+    this.ensureMediaEntries()
   },
 
   methods: {
@@ -498,27 +505,129 @@ export default {
       }
     },
 
-    async fetchMediaEntries(path = ''): Promise<MediaEntry[]> {
-      try {
-        const data = await this.requestEndpoint('media_list', 'assets/media/list', { path }, 15_000)
-        const files = data?.files ?? data?.items ?? data ?? []
-        const result: MediaEntry[] = []
+    async ensureMediaEntries() {
+      if (this.mediaEntries.length) return
+      await this.fetchMediaEntries()
+    },
 
-        for (const entry of files as MediaEntry[]) {
-          if (!entry) continue
-          result.push(entry)
+    normalizeMediaEntry(entry: any, fallbackPath = ''): MediaEntry | null {
+      if (!entry) return null
 
-          if (entry?.type === 'folder' && entry?.path) {
-            result.push(...await this.fetchMediaEntries(entry.path))
+      if (typeof entry === 'string') {
+        const path = this.normalizePath(entry)
+        return path ? { name: path.split('/').pop() ?? path, path, type: 'file' } : null
+      }
+
+      const rawPath = entry.path ?? entry.file ?? entry.filename ?? entry.name ?? fallbackPath
+      const path = this.normalizePath(rawPath)
+      if (!path) return null
+
+      const type = entry.type === 'folder' || entry.isDirectory || entry.directory ? 'folder' : 'file'
+
+      return {
+        ...entry,
+        name: String(entry.name ?? path.split('/').pop() ?? path),
+        path,
+        type,
+      }
+    },
+
+    extractMediaEntries(value: any, basePath = ''): MediaEntry[] {
+      const result: MediaEntry[] = []
+
+      const add = (entry: any, fallbackPath = '') => {
+        const normalized = this.normalizeMediaEntry(entry, fallbackPath)
+        if (normalized) result.push(normalized)
+      }
+
+      if (Array.isArray(value)) {
+        for (const item of value) add(item)
+        return result
+      }
+
+      if (!value || typeof value !== 'object') return result
+
+      for (const key of ['files', 'items', 'entries', 'children']) {
+        if (Array.isArray(value[key])) {
+          for (const item of value[key]) add(item)
+        }
+      }
+
+      for (const [key, item] of Object.entries(value)) {
+        if (['files', 'items', 'entries', 'children', 'assets', 'wled'].includes(key)) continue
+
+        const fallbackPath = basePath ? `${basePath}/${key}` : key
+
+        if (typeof item === 'string') {
+          add(item)
+          continue
+        }
+
+        if (!item || typeof item !== 'object') continue
+
+        if ((item as any).type || (item as any).path || (item as any).name || (item as any).asset || (item as any).compressed) {
+          add({ ...(item as any), path: (item as any).path ?? fallbackPath })
+        }
+
+        if ((item as any).asset) {
+          if (typeof (item as any).asset === 'string') add((item as any).asset)
+          if (typeof (item as any).asset === 'object') {
+            add((item as any).asset.original)
+            add((item as any).asset.compressed)
           }
         }
 
-        if (!path) this.mediaEntries = result.filter((entry) => entry?.type === 'file')
-        return result
+        add((item as any).original)
+        add((item as any).compressed)
+      }
+
+      return result
+    },
+
+    async fetchMediaEntries(path = ''): Promise<MediaEntry[]> {
+      try {
+        const data = await this.requestEndpoint('media_list', 'assets/media/list', { path }, 15_000)
+        const files = data?.files ?? data?.items ?? data?.entries ?? data?.children ?? data ?? []
+        const result: MediaEntry[] = []
+
+        for (const rawEntry of this.extractMediaEntries(files)) {
+          if (!rawEntry) continue
+          result.push(rawEntry)
+
+          if (rawEntry.type === 'folder' && rawEntry.path) {
+            result.push(...await this.fetchMediaEntries(rawEntry.path))
+          }
+        }
+
+        const unique = this.uniqueMediaEntries(result)
+        if (!path) this.mediaEntries = unique.filter((entry) => entry?.type === 'file')
+        return unique
       } catch (error) {
-        if (!path) this.mediaEntries = []
+        if (!path) await this.fetchMediaEntriesFromAssetsList()
         return []
       }
+    },
+
+    async fetchMediaEntriesFromAssetsList() {
+      try {
+        const data = await this.requestEndpoint('assets_list', 'assets/list')
+        const result = this.extractMediaEntries(data?.assets ?? data ?? {})
+        this.mediaEntries = this.uniqueMediaEntries(result).filter((entry) => entry?.type === 'file')
+      } catch (error) {
+        this.mediaEntries = []
+      }
+    },
+
+    uniqueMediaEntries(entries: MediaEntry[]): MediaEntry[] {
+      const byPath = new Map<string, MediaEntry>()
+
+      for (const entry of entries) {
+        const normalized = this.normalizeMediaEntry(entry)
+        if (!normalized?.path) continue
+        if (!byPath.has(normalized.path)) byPath.set(normalized.path, normalized)
+      }
+
+      return [...byPath.values()]
     },
 
     setAsset(asset: any = {}) {

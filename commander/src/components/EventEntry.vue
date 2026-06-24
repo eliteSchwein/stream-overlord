@@ -4,10 +4,6 @@
       {{ displayName }}
     </v-list-item-title>
 
-    <v-list-item-subtitle class="text-truncate">
-      {{ configName }}
-    </v-list-item-subtitle>
-
     <template #append>
       <div class="event-entry-item__actions">
         <v-btn
