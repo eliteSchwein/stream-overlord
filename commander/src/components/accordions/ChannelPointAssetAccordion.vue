@@ -106,7 +106,7 @@
             hide-details="auto"
             prepend-inner-icon="mdi-timer"
             variant="outlined"
-            precision="2"
+            :precision="2"
           />
         </v-col>
 
@@ -120,7 +120,7 @@
             hide-details="auto"
             prepend-inner-icon="mdi-volume-medium"
             variant="outlined"
-            precision="2"
+            :precision="2"
           />
         </v-col>
 
@@ -431,37 +431,129 @@ export default {
   },
 
   mounted() {
-    this.setAsset(this.initialAsset ?? {})
-    this.ensureMediaEntries()
+    eventBus.$on('websocket:connected', this.readAsset)
+    this.bootstrap()
+  },
+
+  beforeUnmount() {
+    eventBus.$off('websocket:connected', this.readAsset)
   },
 
   methods: {
+    async bootstrap() {
+      await this.ensureBaseData()
+
+      if (this.initialAsset && Object.keys(this.initialAsset ?? {}).length) {
+        this.setAsset(this.initialAsset)
+        return
+      }
+
+      if (this.name) await this.open(this.name)
+    },
+
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
       return new Promise((resolve, reject) => {
         eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
       })
     },
 
-    async requestEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      try {
-        const response = await this.requestWebsocket(method, params, timeout)
-        return response?.data ?? response
-      } catch (websocketError) {
-        const response = await fetch(`${this.appStore.getRestApi}/api/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(params),
-        })
+    unwrapWebsocketResponse(response: any, method: string): any {
+      const resultKey = `result_${method}`
+      const candidates = [
+        response?.[resultKey],
+        response?.data?.[resultKey],
+        response?.payload?.[resultKey],
+        response?.result?.[resultKey],
+        response?.data,
+        response?.payload,
+        response?.result,
+        response,
+      ]
 
-        const data = await response.json().catch(() => ({}))
-        const responseData = data?.data ?? data
-
-        if (!response.ok || responseData?.error || data?.error) {
-          throw new Error(responseData?.error ?? responseData?.message ?? data?.error ?? `${endpoint} failed`)
-        }
-
-        return responseData
+      for (const candidate of candidates) {
+        if (candidate !== undefined && candidate !== null) return candidate
       }
+
+      return {}
+    },
+
+    async requestEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      // Streambot config/list APIs here use websocket only.
+      // REST/fetch is intentionally only used for WLED HTTP endpoints below.
+      void endpoint
+
+      const response = await this.requestWebsocket(method, params, timeout)
+      const data = this.unwrapWebsocketResponse(response, method)
+
+      if (data?.error) {
+        throw new Error(data.error)
+      }
+
+      return data
+    },
+
+    parseMaybeJson(value: any): any {
+      if (typeof value !== 'string') return value
+
+      try {
+        return JSON.parse(value)
+      } catch {
+        return value
+      }
+    },
+
+    looksLikeAssetConfig(value: any): boolean {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+
+      return [
+        'sound', 'image', 'video', 'icon', 'message', 'duration', 'color', 'channel', 'volume',
+        'start_macros', 'idle_macros', 'end_macros', 'wled',
+      ].some((key) => Object.prototype.hasOwnProperty.call(value, key))
+    },
+
+    extractAssetFromReadResponse(data: any): any {
+      const parsed = this.parseMaybeJson(data)
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+
+      // assets_read returns exactly this shape:
+      // { path: "channel_point_Fail.yaml", content: { video, duration, volume, ... } }
+      // The old code returned the wrapper object, so setAsset() saw asset.video as undefined.
+      const candidates = [
+        this.parseMaybeJson(parsed.content),
+        this.parseMaybeJson(parsed.result_assets_read?.content),
+        this.parseMaybeJson(parsed.data?.result_assets_read?.content),
+        this.parseMaybeJson(parsed.payload?.result_assets_read?.content),
+        parsed.asset,
+        parsed.config?.asset,
+        parsed.config,
+        parsed.raw?.asset,
+        parsed.raw,
+        parsed.file?.asset,
+        parsed.file,
+        parsed,
+      ]
+
+      for (const candidate of candidates) {
+        if (this.looksLikeAssetConfig(candidate)) {
+          return candidate
+        }
+      }
+
+      // Last fallback: avoid returning the read wrapper if it only has path/content.
+      const content = this.parseMaybeJson(parsed.content)
+      if (content && typeof content === 'object' && !Array.isArray(content)) return content
+
+      return {}
+    },
+
+    async readAsset(name = this.name): Promise<any> {
+      const assetName = String(name ?? '').trim()
+      if (!assetName) return this.initialAsset ?? {}
+
+      const data = await this.requestEndpoint('assets_read', 'assets/read', { name: assetName }, 15_000)
+      const asset = this.extractAssetFromReadResponse(data)
+
+      return Object.keys(asset ?? {}).length ? asset : (this.initialAsset ?? {})
     },
 
     async open(name = this.name) {
@@ -469,11 +561,11 @@ export default {
       this.errorMessage = ''
 
       try {
-        await Promise.all([
-          this.fetchMediaEntries(),
-          this.fetchMacros(),
-          this.fetchAssetsAndWled(name),
-        ])
+        await this.ensureBaseData()
+
+        const asset = await this.readAsset(name)
+        this.setAsset(asset ?? {})
+
         await this.loadWledEffectsForAllLamps()
       } catch (error: any) {
         this.errorMessage = error?.message ?? ''
@@ -482,14 +574,20 @@ export default {
       }
     },
 
-    async fetchAssetsAndWled(name = this.name) {
+    async ensureBaseData() {
+      await Promise.all([
+        this.fetchMediaEntries(),
+        this.fetchMacros(),
+        this.fetchWledConfigs(),
+      ])
+    },
+
+    async fetchWledConfigs() {
       try {
-        const data = await this.requestEndpoint('assets_list', 'assets/list')
-        const assets = data?.assets ?? {}
-        this.localWledConfigs = data?.wled ?? {}
-        this.setAsset(assets?.[name] ?? this.initialAsset ?? {})
-      } catch (error) {
-        this.setAsset(this.initialAsset ?? {})
+        const data = await this.requestEndpoint('assets_list', 'assets/list').catch(() => ({}))
+        this.localWledConfigs = data?.wled ?? data?.configs?.wled ?? {}
+      } catch {
+        this.localWledConfigs = {}
       }
     },
 

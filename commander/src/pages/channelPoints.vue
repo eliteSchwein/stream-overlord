@@ -22,10 +22,6 @@
         <v-col cols="12" md="6">
           <StorageCard
             ref="storageCard"
-            :hide-media-used="true"
-            :hide-overlay-used="true"
-            :hide-music-used="true"
-            :hide-macro-used="true"
             :hide-channel-point-used="false"
           />
         </v-col>
@@ -211,15 +207,49 @@ export default {
       })
     },
 
-    async requestChannelPointEndpoint(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      const response = await this.requestWebsocket(method, params, timeout)
-      const data = response?.data ?? response
+    getWebsocketResultKey(method: string) {
+      return `result_${String(method ?? '').replace(/[^a-zA-Z0-9_]/g, '_')}`
+    },
 
+    unwrapWebsocketResponse(response: any, method = ''): any {
+      const resultKey = method ? this.getWebsocketResultKey(method) : ''
+      const containers = [response, response?.data, response?.payload, response?.result].filter(Boolean)
+
+      if (resultKey) {
+        for (const container of containers) {
+          if (container && typeof container === 'object' && Object.prototype.hasOwnProperty.call(container, resultKey)) {
+            return container[resultKey]
+          }
+        }
+      }
+
+      for (const container of containers) {
+        if (container && typeof container === 'object') {
+          if (Object.prototype.hasOwnProperty.call(container, 'result')) return container.result
+          if (Object.prototype.hasOwnProperty.call(container, 'data')) return container.data
+          if (Object.prototype.hasOwnProperty.call(container, 'payload')) return container.payload
+        }
+      }
+
+      return response
+    },
+
+    assertWebsocketResponse(data: any, fallbackMessage: string) {
       if (data?.error) {
         throw new Error(data.error)
       }
 
+      if (data?.success === false) {
+        throw new Error(data?.message ?? fallbackMessage)
+      }
+
       return data
+    },
+
+    async requestChannelPointEndpoint(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      const response = await this.requestWebsocket(method, params, timeout)
+      const data = this.unwrapWebsocketResponse(response, method)
+      return this.assertWebsocketResponse(data, `${method} failed`)
     },
 
     readFileAsText(file: File): Promise<string> {

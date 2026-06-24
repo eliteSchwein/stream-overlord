@@ -728,7 +728,7 @@ export default {
                 hide-details="auto"
                 prepend-inner-icon="mdi-timer"
                 variant="outlined"
-                precision="2"
+                :precision="2"
               />
             </v-col>
 
@@ -742,7 +742,7 @@ export default {
                 hide-details="auto"
                 prepend-inner-icon="mdi-volume-medium"
                 variant="outlined"
-                precision="2"
+                :precision="2"
               />
             </v-col>
 

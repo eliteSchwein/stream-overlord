@@ -6,8 +6,15 @@
     class="storage-card h-100"
   >
     <v-card-text class="pa-3">
-      <div class="text-subtitle-2 mb-2">
-        {{ $t('system.storage') }}
+      <div class="text-subtitle-2 mb-2 d-flex align-center justify-space-between ga-2">
+        <span>{{ $t('system.storage') }}</span>
+
+        <v-progress-circular
+          v-if="loading"
+          indeterminate
+          size="16"
+          width="2"
+        />
       </div>
 
       <v-progress-linear
@@ -58,6 +65,13 @@
           <span>{{ formatFileSize(channelPointUsed) }}</span>
         </div>
       </div>
+
+      <div
+        v-if="error"
+        class="text-caption text-error mt-2"
+      >
+        {{ error }}
+      </div>
     </v-card-text>
   </v-card>
 </template>
@@ -65,23 +79,25 @@
 <script lang="ts">
 import eventBus from '@/eventBus'
 
+type WebsocketPayload = Record<string, any>
+
 export default {
   props: {
     hideMediaUsed: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     hideOverlayUsed: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     hideMusicUsed: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     hideMacroUsed: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     hideChannelPointUsed: {
       type: Boolean,
@@ -92,77 +108,239 @@ export default {
   data() {
     return {
       storageInfo: null as any,
+      loading: false,
+      error: '',
+      refreshTimer: null as ReturnType<typeof setTimeout> | null,
     }
   },
 
   computed: {
     storageUsedPercent(): number {
       if (!this.storageInfo?.total) return 0
-      return Math.min(100, Math.max(0, (this.storageInfo.used / this.storageInfo.total) * 100))
+      return Math.min(100, Math.max(0, (Number(this.storageInfo.used ?? 0) / Number(this.storageInfo.total)) * 100))
     },
 
     mediaUsed(): number | null {
-      if (this.storageInfo?.folders?.media !== undefined) return this.storageInfo.folders.media
-      if (this.storageInfo?.mediaUsed !== undefined) return this.storageInfo.mediaUsed
-      if (this.storageInfo?.folders?.assets !== undefined) return this.storageInfo.folders.assets
-      if (this.storageInfo?.assetUsed !== undefined) return this.storageInfo.assetUsed
-      return null
+      return this.firstNumber([
+        this.storageInfo?.folders?.media,
+        this.storageInfo?.folders?.assets,
+        this.storageInfo?.mediaUsed,
+        this.storageInfo?.assetUsed,
+        this.storageInfo?.assetsUsed,
+      ])
     },
 
     overlayUsed(): number | null {
-      if (this.storageInfo?.folders?.overlays !== undefined) return this.storageInfo.folders.overlays
-      return null
+      return this.firstNumber([
+        this.storageInfo?.folders?.overlays,
+        this.storageInfo?.folders?.overlay,
+        this.storageInfo?.overlayUsed,
+        this.storageInfo?.overlaysUsed,
+      ])
     },
 
     musicUsed(): number | null {
-      if (this.storageInfo?.folders?.music !== undefined) return this.storageInfo.folders.music
-      if (this.storageInfo?.musicUsed !== undefined) return this.storageInfo.musicUsed
-      return null
+      return this.firstNumber([
+        this.storageInfo?.folders?.music,
+        this.storageInfo?.musicUsed,
+      ])
     },
 
     macroUsed(): number | null {
-      if (this.storageInfo?.folders?.macros !== undefined) return this.storageInfo.folders.macros
-      if (this.storageInfo?.folders?.macro !== undefined) return this.storageInfo.folders.macro
-      if (this.storageInfo?.macroUsed !== undefined) return this.storageInfo.macroUsed
-      return null
+      return this.firstNumber([
+        this.storageInfo?.folders?.macros,
+        this.storageInfo?.folders?.macro,
+        this.storageInfo?.macroUsed,
+        this.storageInfo?.macrosUsed,
+      ])
     },
 
     channelPointUsed(): number | null {
-      if (this.storageInfo?.folders?.channel_points !== undefined) return this.storageInfo.folders.channel_points
-      if (this.storageInfo?.folders?.channelPoints !== undefined) return this.storageInfo.folders.channelPoints
-      if (this.storageInfo?.channelPointUsed !== undefined) return this.storageInfo.channelPointUsed
-      return null
+      return this.firstNumber([
+        this.storageInfo?.folders?.channel_points,
+        this.storageInfo?.folders?.channelPoints,
+        this.storageInfo?.folders?.channel_points_configs,
+        this.storageInfo?.channelPointUsed,
+        this.storageInfo?.channelPointsUsed,
+      ])
     },
   },
 
   async mounted() {
-    eventBus.$on('websocket:connected', async () => {
-      await this.fetchStorageInfo()
-    })
+    eventBus.$on('websocket:connected', this.handleWebsocketConnected)
+    eventBus.$on('storage:refresh', this.scheduleFetchStorageInfo)
+    eventBus.$on('assets:changed', this.scheduleFetchStorageInfo)
+    eventBus.$on('media:changed', this.scheduleFetchStorageInfo)
+    eventBus.$on('music:changed', this.scheduleFetchStorageInfo)
+    eventBus.$on('macros:changed', this.scheduleFetchStorageInfo)
+    eventBus.$on('channel-points:changed', this.scheduleFetchStorageInfo)
+    eventBus.$on('events:changed', this.scheduleFetchStorageInfo)
 
     await this.fetchStorageInfo()
   },
 
+  beforeUnmount() {
+    this.cleanup()
+  },
+
+  beforeDestroy() {
+    this.cleanup()
+  },
+
   methods: {
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 10_000): Promise<any> {
+    cleanup() {
+      eventBus.$off?.('websocket:connected', this.handleWebsocketConnected)
+      eventBus.$off?.('storage:refresh', this.scheduleFetchStorageInfo)
+      eventBus.$off?.('assets:changed', this.scheduleFetchStorageInfo)
+      eventBus.$off?.('media:changed', this.scheduleFetchStorageInfo)
+      eventBus.$off?.('music:changed', this.scheduleFetchStorageInfo)
+      eventBus.$off?.('macros:changed', this.scheduleFetchStorageInfo)
+      eventBus.$off?.('channel-points:changed', this.scheduleFetchStorageInfo)
+      eventBus.$off?.('events:changed', this.scheduleFetchStorageInfo)
+
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer)
+        this.refreshTimer = null
+      }
+    },
+
+    async handleWebsocketConnected() {
+      await this.fetchStorageInfo()
+    },
+
+    scheduleFetchStorageInfo() {
+      if (this.refreshTimer) clearTimeout(this.refreshTimer)
+
+      this.refreshTimer = setTimeout(async () => {
+        this.refreshTimer = null
+        await this.fetchStorageInfo()
+      }, 150)
+    },
+
+    requestWebsocket(method: string, params: WebsocketPayload = {}, timeout = 15_000): Promise<any> {
       return new Promise((resolve, reject) => {
+        let settled = false
+
+        const timer = setTimeout(() => {
+          if (settled) return
+          settled = true
+          reject(new Error(`${method} timed out`))
+        }, timeout)
+
         eventBus.$emit('websocket:request', {
           method,
           params,
           timeout,
-          resolve,
-          reject,
+          resolve: (response: any) => {
+            if (settled) return
+            settled = true
+            clearTimeout(timer)
+            resolve(response)
+          },
+          reject: (error: any) => {
+            if (settled) return
+            settled = true
+            clearTimeout(timer)
+            reject(error)
+          },
         })
       })
     },
 
+    unwrapWebsocketResponse(response: any, method: string): any {
+      const resultKey = `result_${method}`
+
+      const candidates = [
+        response?.[resultKey],
+        response?.data?.[resultKey],
+        response?.payload?.[resultKey],
+        response?.result?.[resultKey],
+        response?.result,
+        response?.data?.result,
+        response?.payload?.result,
+        response?.data,
+        response?.payload,
+        response,
+      ]
+
+      for (const candidate of candidates) {
+        if (candidate !== undefined && candidate !== null) return candidate
+      }
+
+      return null
+    },
+
+    normalizeStorageInfo(value: any): any {
+      const raw = value?.content ?? value?.storage ?? value?.info ?? value
+      if (!raw || typeof raw !== 'object') return null
+
+      const used = this.firstNumber([
+        raw.used,
+        raw.storageUsed,
+        raw.usedBytes,
+        raw.disk?.used,
+        raw.root?.used,
+      ])
+
+      const free = this.firstNumber([
+        raw.free,
+        raw.storageFree,
+        raw.freeBytes,
+        raw.available,
+        raw.disk?.free,
+        raw.root?.free,
+      ])
+
+      const total = this.firstNumber([
+        raw.total,
+        raw.storageTotal,
+        raw.totalBytes,
+        raw.disk?.total,
+        raw.root?.total,
+      ])
+
+      return {
+        ...raw,
+        used: used ?? raw.used ?? 0,
+        free: free ?? raw.free ?? 0,
+        total: total ?? raw.total ?? 0,
+        folders: raw.folders ?? raw.directories ?? raw.paths ?? {},
+      }
+    },
+
     async fetchStorageInfo() {
+      if (this.loading) return
+
+      this.loading = true
+      this.error = ''
+
       try {
         const response = await this.requestWebsocket('system_storage', {})
-        this.storageInfo = response?.data ?? response
-      } catch (error) {
+        const unwrapped = this.unwrapWebsocketResponse(response, 'system_storage')
+        const storageInfo = this.normalizeStorageInfo(unwrapped)
+
+        if (!storageInfo) {
+          throw new Error('invalid storage response')
+        }
+
+        this.storageInfo = storageInfo
+      } catch (error: any) {
         console.error('loading storage via websocket failed', error)
+        this.error = error?.message ?? 'loading storage failed'
+      } finally {
+        this.loading = false
       }
+    },
+
+    firstNumber(values: any[]): number | null {
+      for (const value of values) {
+        if (value === undefined || value === null || value === '') continue
+
+        const numberValue = Number(value)
+        if (Number.isFinite(numberValue)) return numberValue
+      }
+
+      return null
     },
 
     formatFileSize(size: any): string {

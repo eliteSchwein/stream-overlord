@@ -3,6 +3,7 @@
     ref="inner"
     :name="name"
     :disabled="disabled"
+    :initial-asset="currentAsset"
   />
 </template>
 
@@ -24,28 +25,47 @@ export default {
   data() {
     return {
       currentAsset: {} as any,
+      pendingAsset: null as any,
     }
+  },
+
+  mounted() {
+    if (this.pendingAsset !== null) {
+      this.setAsset(this.pendingAsset)
+      this.pendingAsset = null
+    } else if (this.name) {
+      this.open(this.name)
+    }
+  },
+
+  watch: {
+    name(value: string) {
+      if (value) this.open(value)
+    },
   },
 
   methods: {
     async open(name = this.name) {
       const inner = this.$refs.inner as any
       if (!inner?.open) return
-
-      await inner.open(name)
-
-      if (this.currentAsset && Object.keys(this.currentAsset).length) {
-        inner.setAsset?.(this.currentAsset)
-      }
+      return await inner.open(name)
     },
 
     async setAsset(asset: any) {
+      // Keep support for parents that manually inject an asset object,
+      // but the normal load path is now inner.open() -> websocket assets_read.
       this.currentAsset = asset ?? {}
 
-      const inner = this.$refs.inner as any
-      await inner?.ensureMediaEntries?.()
+      await this.$nextTick()
 
-      return inner?.setAsset?.(this.currentAsset)
+      const inner = this.$refs.inner as any
+      if (!inner?.setAsset) {
+        this.pendingAsset = this.currentAsset
+        return
+      }
+
+      await inner.ensureMediaEntries?.()
+      return inner.setAsset(this.currentAsset)
     },
 
     getAssetPayload() {

@@ -20,7 +20,7 @@
     <v-card-text>
       <v-row density="compact" class="mb-3">
         <v-col cols="12" md="6">
-          <StorageCard ref="storageCard" :hide-assets-used="false" :hide-overlay-used="true" :hide-music-used="true" :hide-macro-used="true" />
+          <StorageCard ref="storageCard" :hide-assets-used="false" />
         </v-col>
 
         <v-col cols="12" md="6">
@@ -205,26 +205,49 @@ export default {
       })
     },
 
-    async requestAssetEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
-      try {
-        const response = await this.requestWebsocket(method, params, timeout)
-        return response?.data ?? response
-      } catch (websocketError) {
-        const response = await fetch(`${this.getRestApi}/api/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(params),
-        })
+    getWebsocketResultKey(method: string) {
+      return `result_${String(method ?? '').replace(/[^a-zA-Z0-9_]/g, '_')}`
+    },
 
-        const data = await response.json().catch(() => ({}))
-        const responseData = data?.data ?? data
+    unwrapWebsocketResponse(response: any, method = ''): any {
+      const resultKey = method ? this.getWebsocketResultKey(method) : ''
+      const containers = [response, response?.data, response?.payload, response?.result].filter(Boolean)
 
-        if (!response.ok || responseData?.error || data?.error) {
-          throw new Error(responseData?.error ?? data?.error ?? `${endpoint} failed`)
+      if (resultKey) {
+        for (const container of containers) {
+          if (container && typeof container === 'object' && Object.prototype.hasOwnProperty.call(container, resultKey)) {
+            return container[resultKey]
+          }
         }
-
-        return responseData
       }
+
+      for (const container of containers) {
+        if (container && typeof container === 'object') {
+          if (Object.prototype.hasOwnProperty.call(container, 'result')) return container.result
+          if (Object.prototype.hasOwnProperty.call(container, 'data')) return container.data
+          if (Object.prototype.hasOwnProperty.call(container, 'payload')) return container.payload
+        }
+      }
+
+      return response
+    },
+
+    assertWebsocketResponse(data: any, fallbackMessage: string) {
+      if (data?.error) {
+        throw new Error(data.error)
+      }
+
+      if (data?.success === false) {
+        throw new Error(data?.message ?? fallbackMessage)
+      }
+
+      return data
+    },
+
+    async requestAssetEndpoint(method: string, _endpoint = '', params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
+      const response = await this.requestWebsocket(method, params, timeout)
+      const data = this.unwrapWebsocketResponse(response, method)
+      return this.assertWebsocketResponse(data, `${method} failed`)
     },
 
     async refreshAssets() {

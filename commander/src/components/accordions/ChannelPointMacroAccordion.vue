@@ -75,6 +75,7 @@
 <script lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import MacroTaskList from '@/components/MacroTaskList.vue'
+import eventBus from '@/eventBus'
 
 type VisualTask = {
   id: string
@@ -101,11 +102,14 @@ export default {
   props: {
     name: { type: String, default: '' },
     initialContent: { type: String, default: '' },
+    disableMacroRead: { type: Boolean, default: false },
   },
 
   data() {
     return {
       content: '',
+      loadedName: '',
+      loadingInternal: false,
       rawMode: false,
       errorMessage: '',
       hasVisualErrors: false,
@@ -126,10 +130,117 @@ export default {
   },
 
   mounted() {
-    this.setContent(this.initialContent || this.defaultMacroContent(this.name), this.name)
+    eventBus.$on('websocket:connected', this.loadMacro)
+    this.loadMacro()
+  },
+
+  beforeUnmount() {
+    eventBus.$off('websocket:connected', this.loadMacro)
   },
 
   methods: {
+    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
+      return new Promise((resolve, reject) => {
+        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
+      })
+    },
+
+    unwrapWebsocketResponse(response: any, keys: string[] = []) {
+      const candidates = [
+        response,
+        response?.data,
+        response?.payload,
+        response?.result,
+        response?.data?.result,
+        response?.payload?.result,
+      ]
+
+      for (const container of candidates) {
+        if (!container) continue
+
+        for (const key of keys) {
+          if (container?.[key] !== undefined) return container[key]
+        }
+      }
+
+      for (const container of candidates) {
+        if (container !== undefined && container !== null) return container
+      }
+
+      return response
+    },
+
+    normalizeMacroContent(value: any, fallbackName = this.name): string {
+      const unwrapped = this.unwrapWebsocketResponse(value, [
+        'result_macros_read',
+        'result_macro_read',
+        'result_macros_get',
+        'result_macro_get',
+      ])
+
+      const raw = unwrapped?.content ?? unwrapped?.macro ?? unwrapped?.data?.content ?? unwrapped
+
+      if (typeof raw === 'string') return raw
+      if (raw && typeof raw === 'object') return this.yamlDump(raw)
+
+      return this.defaultMacroContent(fallbackName)
+    },
+
+    async readMacro(name = this.name) {
+      if (!name || this.disableMacroRead) return ''
+
+      const params = { name }
+      const methods = ['macros_read', 'macro_read']
+      let lastError: any = null
+
+      for (const method of methods) {
+        try {
+          const response = await this.requestWebsocket(method, params, 8_000)
+          const data = this.unwrapWebsocketResponse(response, [
+            'result_macros_read',
+            'result_macro_read',
+            'result_macros_get',
+            'result_macro_get',
+          ])
+
+          if (data?.error) throw new Error(data.error)
+          return this.normalizeMacroContent(data, name)
+        } catch (error: any) {
+          lastError = error
+        }
+      }
+
+      throw lastError ?? new Error('macro read failed')
+    },
+
+    async loadMacro(name = this.name) {
+      if (this.loadingInternal) return
+
+      this.loadingInternal = true
+      this.errorMessage = ''
+
+      try {
+        if (this.initialContent && this.disableMacroRead) {
+          this.setContent(this.initialContent, name)
+          return
+        }
+
+        const content = await this.readMacro(name)
+        this.loadedName = name
+        this.setContent(content || this.initialContent || this.defaultMacroContent(name), name)
+      } catch (error: any) {
+        if (this.initialContent) {
+          this.setContent(this.initialContent, name)
+          return
+        }
+
+        this.setContent(this.defaultMacroContent(name), name)
+        this.errorMessage = error?.message ?? 'loading macro failed'
+      } finally {
+        this.loadingInternal = false
+      }
+    },
+
     uid() {
       return `${Date.now()}_${Math.random().toString(16).slice(2)}`
     },

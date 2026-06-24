@@ -563,7 +563,7 @@ export async function readAssetConfigRawFile(inputPathOrName: string) {
 
     return {
         path: relativeAssetConfigPath(filePath),
-        content,
+        content: yaml.load(content) ?? {},
     };
 }
 
