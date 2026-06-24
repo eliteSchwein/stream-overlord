@@ -86,7 +86,14 @@ export default class WebServer {
 
         this.app.use(
             "/commander",
-            express.static(path.join(__dirname, "../../commander/dist"))
+            express.static(path.join(__dirname, "../../commander/dist"), {
+                etag: false,
+                lastModified: false,
+                maxAge: 0,
+                setHeaders(res) {
+                    res.setHeader("Cache-Control", "no-store");
+                },
+            })
         );
         this.app.get(/^\/commander(\/.*)?$/, (req, res) => {
             res.sendFile(path.join(__dirname, "../../commander/dist/index.html"));
