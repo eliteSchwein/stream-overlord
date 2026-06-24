@@ -1,7 +1,7 @@
 <template>
   <div class="channel-point-asset-accordion">
     <v-alert
-      v-if="errorMessage"
+      v-if="errorMessage && !errorMessage.includes('file not found')"
       type="error"
       color="red-darken-3"
       density="comfortable"
@@ -309,8 +309,8 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
 import { useAppStore } from '@/stores/app'
+import {getWebsocketClient} from "@/plugins/websocketInstance.ts";
 
 type WledControl = {
   name: string
@@ -431,12 +431,10 @@ export default {
   },
 
   mounted() {
-    eventBus.$on('websocket:connected', this.readAsset)
     this.bootstrap()
   },
 
   beforeUnmount() {
-    eventBus.$off('websocket:connected', this.readAsset)
   },
 
   methods: {
@@ -452,18 +450,32 @@ export default {
     },
 
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+      const client = getWebsocketClient()
+
+      if (!client) {
+        return Promise.reject(new Error('websocket is not connected'))
+      }
+
+      return client.request(method, params, timeout)
     },
 
     unwrapWebsocketResponse(response: any, method: string): any {
       const resultKey = `result_${method}`
+      const params = response?.params ?? response
+
       const candidates = [
+        params?.[resultKey],
+        params?.data?.[resultKey],
+        params?.payload?.[resultKey],
+        params?.result?.[resultKey],
         response?.[resultKey],
         response?.data?.[resultKey],
         response?.payload?.[resultKey],
         response?.result?.[resultKey],
+        params?.data,
+        params?.payload,
+        params?.result,
+        params,
         response?.data,
         response?.payload,
         response?.result,

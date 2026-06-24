@@ -8,13 +8,6 @@
     <v-card-text class="pa-3">
       <div class="text-subtitle-2 mb-2 d-flex align-center justify-space-between ga-2">
         <span>{{ $t('system.storage') }}</span>
-
-        <v-progress-circular
-          v-if="loading"
-          indeterminate
-          size="16"
-          width="2"
-        />
       </div>
 
       <v-progress-linear
@@ -65,21 +58,12 @@
           <span>{{ formatFileSize(channelPointUsed) }}</span>
         </div>
       </div>
-
-      <div
-        v-if="error"
-        class="text-caption text-error mt-2"
-      >
-        {{ error }}
-      </div>
     </v-card-text>
   </v-card>
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
-
-type WebsocketPayload = Record<string, any>
+import { useAppStore } from '@/stores/app'
 
 export default {
   props: {
@@ -105,16 +89,15 @@ export default {
     },
   },
 
-  data() {
-    return {
-      storageInfo: null as any,
-      loading: false,
-      error: '',
-      refreshTimer: null as ReturnType<typeof setTimeout> | null,
-    }
-  },
-
   computed: {
+    appStore() {
+      return useAppStore()
+    },
+
+    storageInfo(): any | null {
+      return this.normalizeStorageInfo(this.appStore.getStorage)
+    },
+
     storageUsedPercent(): number {
       if (!this.storageInfo?.total) return 0
       return Math.min(100, Math.max(0, (Number(this.storageInfo.used ?? 0) / Number(this.storageInfo.total)) * 100))
@@ -166,113 +149,11 @@ export default {
     },
   },
 
-  async mounted() {
-    eventBus.$on('websocket:connected', this.handleWebsocketConnected)
-    eventBus.$on('storage:refresh', this.scheduleFetchStorageInfo)
-    eventBus.$on('assets:changed', this.scheduleFetchStorageInfo)
-    eventBus.$on('media:changed', this.scheduleFetchStorageInfo)
-    eventBus.$on('music:changed', this.scheduleFetchStorageInfo)
-    eventBus.$on('macros:changed', this.scheduleFetchStorageInfo)
-    eventBus.$on('channel-points:changed', this.scheduleFetchStorageInfo)
-    eventBus.$on('events:changed', this.scheduleFetchStorageInfo)
-
-    await this.fetchStorageInfo()
-  },
-
-  beforeUnmount() {
-    this.cleanup()
-  },
-
-  beforeDestroy() {
-    this.cleanup()
-  },
-
   methods: {
-    cleanup() {
-      eventBus.$off?.('websocket:connected', this.handleWebsocketConnected)
-      eventBus.$off?.('storage:refresh', this.scheduleFetchStorageInfo)
-      eventBus.$off?.('assets:changed', this.scheduleFetchStorageInfo)
-      eventBus.$off?.('media:changed', this.scheduleFetchStorageInfo)
-      eventBus.$off?.('music:changed', this.scheduleFetchStorageInfo)
-      eventBus.$off?.('macros:changed', this.scheduleFetchStorageInfo)
-      eventBus.$off?.('channel-points:changed', this.scheduleFetchStorageInfo)
-      eventBus.$off?.('events:changed', this.scheduleFetchStorageInfo)
-
-      if (this.refreshTimer) {
-        clearTimeout(this.refreshTimer)
-        this.refreshTimer = null
-      }
-    },
-
-    async handleWebsocketConnected() {
-      await this.fetchStorageInfo()
-    },
-
-    scheduleFetchStorageInfo() {
-      if (this.refreshTimer) clearTimeout(this.refreshTimer)
-
-      this.refreshTimer = setTimeout(async () => {
-        this.refreshTimer = null
-        await this.fetchStorageInfo()
-      }, 150)
-    },
-
-    requestWebsocket(method: string, params: WebsocketPayload = {}, timeout = 15_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        let settled = false
-
-        const timer = setTimeout(() => {
-          if (settled) return
-          settled = true
-          reject(new Error(`${method} timed out`))
-        }, timeout)
-
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout,
-          resolve: (response: any) => {
-            if (settled) return
-            settled = true
-            clearTimeout(timer)
-            resolve(response)
-          },
-          reject: (error: any) => {
-            if (settled) return
-            settled = true
-            clearTimeout(timer)
-            reject(error)
-          },
-        })
-      })
-    },
-
-    unwrapWebsocketResponse(response: any, method: string): any {
-      const resultKey = `result_${method}`
-
-      const candidates = [
-        response?.[resultKey],
-        response?.data?.[resultKey],
-        response?.payload?.[resultKey],
-        response?.result?.[resultKey],
-        response?.result,
-        response?.data?.result,
-        response?.payload?.result,
-        response?.data,
-        response?.payload,
-        response,
-      ]
-
-      for (const candidate of candidates) {
-        if (candidate !== undefined && candidate !== null) return candidate
-      }
-
-      return null
-    },
-
-    normalizeStorageInfo(value: any): any {
+    normalizeStorageInfo(value: any): any | null {
       const raw = value?.content ?? value?.storage ?? value?.info ?? value
       if (!raw || typeof raw !== 'object') return null
+      if (!Object.keys(raw).length) return null
 
       const used = this.firstNumber([
         raw.used,
@@ -305,30 +186,6 @@ export default {
         free: free ?? raw.free ?? 0,
         total: total ?? raw.total ?? 0,
         folders: raw.folders ?? raw.directories ?? raw.paths ?? {},
-      }
-    },
-
-    async fetchStorageInfo() {
-      if (this.loading) return
-
-      this.loading = true
-      this.error = ''
-
-      try {
-        const response = await this.requestWebsocket('system_storage', {})
-        const unwrapped = this.unwrapWebsocketResponse(response, 'system_storage')
-        const storageInfo = this.normalizeStorageInfo(unwrapped)
-
-        if (!storageInfo) {
-          throw new Error('invalid storage response')
-        }
-
-        this.storageInfo = storageInfo
-      } catch (error: any) {
-        console.error('loading storage via websocket failed', error)
-        this.error = error?.message ?? 'loading storage failed'
-      } finally {
-        this.loading = false
       }
     },
 

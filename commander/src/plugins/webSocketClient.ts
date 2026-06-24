@@ -1,8 +1,5 @@
 import {Websocket, WebsocketEvent} from "websocket-ts";
 import {getRandomInt, sleep} from "@/helper/GeneralHelper";
-import type {Store} from "pinia";
-import {useAppStore} from "@/stores/app";
-import NotifyAlertQueryMessage from "@/plugins/websocketEvents/websocketMessage/NotifyAlertQueryMessage";
 import ConnectEvent from "@/plugins/websocketEvents/ConnectEvent";
 import MessageEvent from "@/plugins/websocketEvents/MessageEvent";
 import DisconnectEvent from "@/plugins/websocketEvents/DisconnectEvent";
@@ -60,7 +57,7 @@ export default class WebsocketClient {
 
   public send(method: string, data: any = {}) {
     try {
-      this.websocket?.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id: getRandomInt(10_000)}))
+      this.websocket?.send(JSON.stringify({jsonrpc: "2.0", method: method, params: data, id: getRandomInt(100_000)}))
     } catch (error) {
       console.error('request to a websocket client failed!')
       console.error(JSON.stringify(error, Object.getOwnPropertyNames(error)))
@@ -69,7 +66,7 @@ export default class WebsocketClient {
 
   public request(method: string, data: any = {}, timeoutMs = 10_000): Promise<any> {
     return new Promise((resolve, reject) => {
-      const id = getRandomInt(10_000)
+      const id = getRandomInt(100_000)
       const timeout = window.setTimeout(() => {
         delete this.pendingRequests[id]
         reject(new Error(`${method} websocket request timed out`))
@@ -107,7 +104,7 @@ export default class WebsocketClient {
 
   private handleRequestMessage(event: any) {
     const message = this.parseMessage(event)
-    if (!message?.id) return
+    if (message?.id === undefined || message?.id === null) return
 
     const pending = this.pendingRequests[message.id]
     if (!pending) return
@@ -116,11 +113,11 @@ export default class WebsocketClient {
     delete this.pendingRequests[message.id]
 
     if (message.error) {
-      pending.reject(message.error)
+      pending.reject(message)
       return
     }
 
-    pending.resolve(message.params ?? message.data ?? message)
+    pending.resolve(message)
   }
 
   private parseMessage(event: any): any {

@@ -4,7 +4,11 @@ import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
 import isShieldActive from "../../helper/ShieldHelper";
-import {getActiveChannelPoints} from "../../helper/ChannelPointHelper";
+import {
+    getActiveChannelPoints,
+    getChannelPointUpdatePayload,
+    getConfiguredChannelPoints
+} from "../../helper/ChannelPointHelper";
 import {getAudioData, getAudioOutputs} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
@@ -20,6 +24,7 @@ import BaseApi from "../../abstracts/BaseApi";
 import {getParsedAssetFiles} from "../../helper/AssetHelper";
 import {getStatus} from "../../helper/MusicHelper";
 import {getManagedConnections, setConnectionUpdateNotifier} from "../../helper/ConnectionHelper";
+import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 
 
 export default class WebsocketServer {
@@ -62,7 +67,8 @@ export default class WebsocketServer {
         'notify_music_cava',
         'notify_animation_update',
         'notify_audio_outputs_update',
-        'notify_media_update'
+        'notify_media_update',
+        'notify_storage_update',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -185,7 +191,7 @@ export default class WebsocketServer {
                 }, client)
 
                 this.send("notify_game_update", getGameInfo(), client)
-                this.send("notify_channel_point_update", getActiveChannelPoints(), client)
+                this.send("notify_channel_point_update", getChannelPointUpdatePayload(), client)
                 this.send("notify_audio_update", getAudioData(), client)
                 this.send("notify_system_info", getSystemInfo(), client)
                 this.send("notify_source_update", getSourceFilters(), client)
@@ -217,6 +223,7 @@ export default class WebsocketServer {
                 this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)
                 this.send("notify_assets_update", getParsedAssetFiles(), client)
                 this.send("notify_audio_outputs_update", getAudioOutputs(), client)
+                this.send("notify_storage_update", getSystemStorageInfo(), client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]

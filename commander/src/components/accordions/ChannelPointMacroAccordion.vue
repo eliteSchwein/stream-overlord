@@ -75,7 +75,7 @@
 <script lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import MacroTaskList from '@/components/MacroTaskList.vue'
-import eventBus from '@/eventBus'
+import {getWebsocketClient} from "@/plugins/websocketInstance.ts";
 
 type VisualTask = {
   id: string
@@ -130,18 +130,16 @@ export default {
   },
 
   mounted() {
-    eventBus.$on('websocket:connected', this.loadMacro)
     this.loadMacro()
   },
 
   beforeUnmount() {
-    eventBus.$off('websocket:connected', this.loadMacro)
   },
 
   methods: {
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
       return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
+        getWebsocketClient()?.request(method, params, timeout).then(resolve).catch(reject)
       })
     },
 
@@ -172,9 +170,7 @@ export default {
 
     normalizeMacroContent(value: any, fallbackName = this.name): string {
       const unwrapped = this.unwrapWebsocketResponse(value, [
-        'result_macros_read',
         'result_macro_read',
-        'result_macros_get',
         'result_macro_get',
       ])
 
@@ -190,16 +186,14 @@ export default {
       if (!name || this.disableMacroRead) return ''
 
       const params = { name }
-      const methods = ['macros_read', 'macro_read']
+      const methods = ['macro_read']
       let lastError: any = null
 
       for (const method of methods) {
         try {
           const response = await this.requestWebsocket(method, params, 8_000)
           const data = this.unwrapWebsocketResponse(response, [
-            'result_macros_read',
             'result_macro_read',
-            'result_macros_get',
             'result_macro_get',
           ])
 

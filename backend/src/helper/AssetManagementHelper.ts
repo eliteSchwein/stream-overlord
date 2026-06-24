@@ -6,6 +6,7 @@ import { imageRegex, videoRegex, audioRegex, readAssetFolder, getParsedAssetFile
 import { logRegular, logWarn } from "./LogHelper";
 import getWebsocketServer from "../App";
 import { getSystemConfigDirectory } from "./ConfigHelper";
+import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
 export const assetRoot = path.join(getSystemConfigDirectory(), "assets");
 export const compressedAssetRoot = path.join(getSystemConfigDirectory(), "compressed_assets");
@@ -67,6 +68,7 @@ function deleteCompressedForAsset(relativePath: string) {
 export function emitAssetUpdate() {
     readAssetFolder();
     getWebsocketServer().send("notify_assets_update", getParsedAssetFiles());
+    emitSystemStorageUpdate()
 }
 
 export function listAssets(inputPath: string = ""): AssetListEntry[] {

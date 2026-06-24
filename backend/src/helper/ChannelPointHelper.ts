@@ -6,9 +6,11 @@ import getWebsocketServer, {getTwitchClient} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
 import {logRegular, logWarn} from "./LogHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
+import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
 let channelPoints: any = {};
 let activeChannelPoints: any[] = [];
+let allChannelPoints: any[] = [];
 let gameMacros: any = {};
 let configuredChannelPoints: Record<string, any> = {};
 
@@ -303,10 +305,43 @@ function resolveEditableChannelPointConfigFile(inputPathOrName: string = "") {
     }
 }
 
+
+function getChannelPointImage(channelPoint: any) {
+    try {
+        return channelPoint?.getImageUrl?.(4) ?? channelPoint?.image ?? "";
+    } catch (error) {
+        return channelPoint?.image ?? "";
+    }
+}
+
+function createChannelPointPayload(configuredChannelPoint: any = {}, twitchChannelPoint: any = undefined, active = false) {
+    const twitchTitle = twitchChannelPoint?.title;
+    const label = configuredChannelPoint?.label ?? configuredChannelPoint?.name ?? twitchTitle ?? "";
+    const name = configuredChannelPoint?.name ?? configuredChannelPoint?.label ?? twitchTitle ?? label;
+
+    return {
+        ...configuredChannelPoint,
+        name,
+        label,
+        twitch_label: twitchTitle ?? configuredChannelPoint?.twitch_label ?? label,
+        twitch_name: twitchTitle ?? configuredChannelPoint?.twitch_name ?? name,
+        id: twitchChannelPoint?.id ?? configuredChannelPoint?.id ?? "",
+        background: twitchChannelPoint?.backgroundColor ?? configuredChannelPoint?.background ?? "",
+        image: getChannelPointImage(twitchChannelPoint) || configuredChannelPoint?.image || "",
+        active,
+    };
+}
+
+export function getChannelPointUpdatePayload() {
+    return {
+        active: activeChannelPoints,
+        all: allChannelPoints,
+    };
+}
+
 function emitChannelPointConfigUpdate() {
-    getWebsocketServer()?.send("notify_channel_point_config_update", {
-        channel_points: getConfiguredChannelPoints(),
-    });
+    getWebsocketServer()?.send("notify_channel_point_update", getChannelPointUpdatePayload())
+    emitSystemStorageUpdate()
 }
 
 export function listChannelPointFiles(): ChannelPointConfigFileEntry[] {
@@ -513,6 +548,24 @@ export async function updateChannelPoints() {
         name => !blockedSet.has(normalizeName(name)),
     );
 
+    const channelPointConfigByName: Record<string, any> = {};
+
+    const registerChannelPointConfig = (name: unknown, config: any) => {
+        if (typeof name !== "string" || !name.trim()) return;
+
+        channelPointConfigByName[normalizeName(name)] = config;
+    };
+
+    for (const channelPoint of gameChannelPoints) {
+        registerChannelPointConfig(channelPoint?.name, channelPoint);
+        registerChannelPointConfig(channelPoint?.label, channelPoint);
+    }
+
+    for (const channelPoint of localChannelPoints) {
+        registerChannelPointConfig(channelPoint?.name, channelPoint);
+        registerChannelPointConfig(channelPoint?.label, channelPoint);
+    }
+
     const toDisableKeys = Object.keys(channelPoints).filter(
         key => !newActiveChannelPoints.includes(key),
     );
@@ -521,7 +574,9 @@ export async function updateChannelPoints() {
     const toEnable = newActiveChannelPoints.map(key => channelPoints[key]).filter(Boolean);
 
     activeChannelPoints = [];
+    allChannelPoints = [];
     const activeChannelPointKeys = new Set<string>();
+    const allChannelPointKeys = new Set<string>();
 
     for (const channelPoint of toDisable) {
         await enableChannelPoint(channelPoint, primaryChannel, false);
@@ -529,40 +584,49 @@ export async function updateChannelPoints() {
 
     for (const channelPointName of visibleChannelPointNames) {
         const channelPoint = channelPoints[channelPointName];
-
-        if (!channelPoint) continue;
-
-        const title = channelPoint?.title ?? "";
+        const configuredChannelPoint = channelPointConfigByName[normalizeName(channelPointName)] ?? {};
+        const title = channelPoint?.title ?? channelPointName;
 
         if (blockedSet.has(normalizeName(title))) {
             logRegular(`skipping blocked channel point: ${title}`);
             continue;
         }
 
-        const activeKey = normalizeChannelPointKey(title);
+        const allKey = normalizeChannelPointKey(title);
 
-        if (activeChannelPointKeys.has(activeKey)) {
+        if (allChannelPointKeys.has(allKey)) {
             logRegular(`skipping duplicate visible channel point: ${title}`);
             continue;
         }
 
-        activeChannelPointKeys.add(activeKey);
+        allChannelPointKeys.add(allKey);
 
-        activeChannelPoints.push({
-            name: channelPoint.title,
-            label: channelPoint.title,
-            id: channelPoint.id,
-            background: channelPoint.backgroundColor,
-            image: channelPoint.getImageUrl(4),
-            active: newActiveChannelPoints.includes(channelPoint.title),
-        });
+        const payload = createChannelPointPayload(
+            configuredChannelPoint,
+            channelPoint,
+            newActiveChannelPoints.includes(title),
+        );
+
+        allChannelPoints.push(payload);
+
+        if (!channelPoint) continue;
+
+        const activeKey = normalizeChannelPointKey(title);
+
+        if (activeChannelPointKeys.has(activeKey)) {
+            logRegular(`skipping duplicate active channel point: ${title}`);
+            continue;
+        }
+
+        activeChannelPointKeys.add(activeKey);
+        activeChannelPoints.push(payload);
     }
 
     for (const channelPoint of toEnable) {
         await enableChannelPoint(channelPoint, primaryChannel, true);
     }
 
-    getWebsocketServer()?.send("notify_channel_point_update", activeChannelPoints);
+    emitChannelPointConfigUpdate()
 }
 
 async function enableChannelPoint(channelPoint: HelixCustomReward, primaryChannel: HelixUser, enable: boolean) {
@@ -594,7 +658,13 @@ export function updateActiveChannelPoint(id: string, isActive: boolean) {
     reward.active = isActive;
     activeChannelPoints[index] = reward;
 
-    getWebsocketServer()?.send("notify_channel_point_update", activeChannelPoints);
+    allChannelPoints.forEach(channelPoint => {
+        if (channelPoint.id !== id) return;
+
+        channelPoint.active = isActive;
+    });
+
+    emitChannelPointConfigUpdate()
 }
 
 export async function toggleChannelPointPause(channelPoint: any, pause = false) {
@@ -617,7 +687,13 @@ export async function toggleChannelPointPause(channelPoint: any, pause = false) 
         activeChannelPoint.active = !pause;
     });
 
-    getWebsocketServer()?.send("notify_channel_point_update", activeChannelPoints);
+    allChannelPoints.forEach(allChannelPoint => {
+        if (allChannelPoint.id !== channelPointEntity.id) return;
+
+        allChannelPoint.active = !pause;
+    });
+
+    emitChannelPointConfigUpdate()
 
     return true;
 }
@@ -643,7 +719,13 @@ export async function toggleChannelPoint(channelPoint: any, enable = false) {
         activeChannelPoint.active = enable;
     });
 
-    getWebsocketServer()?.send("notify_channel_point_update", activeChannelPoints);
+    allChannelPoints.forEach(allChannelPoint => {
+        if (allChannelPoint.id !== channelPointEntity.id) return;
+
+        allChannelPoint.active = enable;
+    });
+
+    emitChannelPointConfigUpdate()
 
     return true;
 }
@@ -654,6 +736,10 @@ export function getChannelPointMapping() {
 
 export function getActiveChannelPoints() {
     return activeChannelPoints;
+}
+
+export function getAllChannelPoints() {
+    return allChannelPoints;
 }
 
 export function getGameMacro(rewardName: string) {

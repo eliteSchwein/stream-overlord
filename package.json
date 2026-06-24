@@ -88,7 +88,7 @@
     "multer": "^2.2.0",
     "redis": "^6.0.0",
     "sharp": "^0.35.2",
-    "systeminformation": "^5.31.9",
+    "systeminformation": "^5.31.10",
     "tesmart-api": "^1.0.0"
   },
   "allowScripts": {

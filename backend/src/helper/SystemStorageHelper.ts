@@ -6,6 +6,7 @@ import { logWarn } from "./LogHelper";
 import {getRegularMusicPath} from "./MusicHelper";
 import {getMacroDirectory} from "./MacroHelper";
 import {getChannelPointConfigDirectory} from "./ChannelPointHelper";
+import getWebsocketServer from "../App";
 
 export type SystemStorageInfo = {
     root: string;
@@ -21,6 +22,10 @@ export type SystemStorageInfo = {
         channel_points: number;
     };
 };
+
+export function emitSystemStorageUpdate() {
+    getWebsocketServer().send("notify_system_storage_update", getSystemStorageInfo());
+}
 
 export function getSystemStorageInfo(): SystemStorageInfo {
     const root = getSystemConfigDirectory();

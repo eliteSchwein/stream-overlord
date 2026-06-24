@@ -123,7 +123,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import { useAppStore } from '@/stores/app'
 import ChannelPointAssetAccordion from '@/components/accordions/ChannelPointAssetAccordion.vue'
 import ChannelPointMacroAccordion from '@/components/accordions/ChannelPointMacroAccordion.vue'
@@ -189,10 +189,15 @@ export default {
       await this.loadExistingGeneratedFiles()
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      const websocketClient = getWebsocketClient()
+
+      if (!websocketClient) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await websocketClient.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     async requestEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {

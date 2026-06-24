@@ -80,10 +80,10 @@ import WebsocketClient from "@/plugins/webSocketClient"
 import eventBus from "@/eventBus"
 import { sleep } from "@/helper/GeneralHelper.ts"
 import { setI18nLanguageFromConfig } from '@/plugins/i18n'
+import { getWebsocketClient, setWebsocketClient } from "@/plugins/websocketInstance"
 
 const appOption = useAppStore()
 setI18nLanguageFromConfig(appOption.getLanguage)
-let websocket: WebsocketClient | undefined = undefined
 
 const ready = ref<boolean | undefined>(false)
 const updating = ref<boolean | undefined>(false)
@@ -94,25 +94,26 @@ if(window.location.hostname === 'localhost') {
 }
 
 eventBus.$on('websocket:reconnect', () => {
-  if (!websocket) return
-  void websocket.connect()
+  void getWebsocketClient()?.connect()
 })
 
 eventBus.$on('websocket:send', (data) => {
   if(data.method === 'update') {
     updating.value = true // this doesnt seem to trigger?
   }
-  websocket?.send(data.method, data.params)
+  console.warn(`detected legacy send use: ${data.method}`)
+  getWebsocketClient()?.send(data.method, data.params)
 })
 
 eventBus.$on('websocket:request', async (data) => {
-  if (!websocket) {
+  console.warn(`detected legacy request use: ${data.method}`)
+  if (!getWebsocketClient()) {
     data?.reject?.(new Error('websocket is not connected'))
     return
   }
 
   try {
-    const result = await websocket.request(data.method, data.params ?? {}, data.timeout ?? 10_000)
+    const result = (await getWebsocketClient()?.request(data.method, data.params ?? {}, data.timeout ?? 10_000))?.params
     data?.resolve?.(result)
   } catch (error) {
     data?.reject?.(error)
@@ -136,8 +137,8 @@ onMounted(async () => {
 
   await appOption.fetchGames()
 
-  websocket = new WebsocketClient(appOption.getWebsocket, appOption)
-  await websocket.connect()
+  setWebsocketClient(new WebsocketClient(appOption.getWebsocket, appOption))
+  await getWebsocketClient()?.connect()
 
   ready.value = true
 })

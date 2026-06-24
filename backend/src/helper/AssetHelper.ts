@@ -10,6 +10,7 @@ import * as yaml from "js-yaml";
 import {emitAssetUpdate} from "./AssetManagementHelper";
 import {redis} from "../clients/redis/Redis";
 import {updateConfiguredEventIndex} from "./EventHelper";
+import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
 let files = []
 let assetFiles = []
@@ -512,6 +513,7 @@ function emitAssetConfigUpdate() {
         assets: getAssetConfigs(),
         wled: getWledConfigs(),
     });
+    emitSystemStorageUpdate()
 }
 
 export type AssetConfigFileEntry = {

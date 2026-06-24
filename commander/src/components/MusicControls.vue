@@ -123,6 +123,7 @@
 import { defineComponent, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
 import eventBus from '@/eventBus'
+import {getWebsocketClient} from "@/plugins/websocketInstance.ts";
 
 export default defineComponent({
   name: 'MusicControls',
@@ -311,7 +312,7 @@ export default defineComponent({
       this.playlistLoading = true
 
       try {
-        this.playlistResponse = await this.requestMusicWebsocket('music_playlist')
+        this.playlistResponse = (await getWebsocketClient()?.request('music_playlist'))?.params
 
         await nextTick()
         this.scrollToCurrentSong()
@@ -322,23 +323,8 @@ export default defineComponent({
       }
     },
 
-    requestMusicWebsocket(method: string, params: Record<string, any> = {}): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout: 10_000,
-          resolve,
-          reject,
-        })
-      })
-    },
-
     sendMusicWebsocket(method: string, params: Record<string, any> = {}) {
-      eventBus.$emit('websocket:send', {
-        method,
-        params,
-      })
+      void getWebsocketClient()?.send(method, params)
     },
 
     handleCavaData(data: any) {

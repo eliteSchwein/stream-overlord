@@ -80,7 +80,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import EventAssetAccordion from '@/components/accordions/EventAssetAccordion.vue'
 import EventMacroAccordion from '@/components/accordions/EventMacroAccordion.vue'
 
@@ -158,10 +158,15 @@ export default {
       }
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     async requestEventEndpoint(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {

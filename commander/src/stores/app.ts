@@ -22,7 +22,10 @@ export const useAppStore = defineStore('app', {
     },
     shieldMode: false,
     currentGame: {},
-    channelPoints: [],
+    channelPoints: {
+      active: [],
+      all: []
+    },
     audioData: {},
     audioOutputs: {},
     systemInfo: {
@@ -44,7 +47,8 @@ export const useAppStore = defineStore('app', {
     yoloboxData: {},
     obsAudioData: {},
     musicData: {},
-    musicCavaData: {}
+    musicCavaData: {},
+    storage: {}
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -86,6 +90,7 @@ export const useAppStore = defineStore('app', {
     getMusicCavaData: (state) => state.musicCavaData,
     getAudioOutput: (state) => state.audioOutputs,
     getAudioOutputs: (state) => state.audioOutputs,
+    getStorage: (state) => state.storage,
     hasApiWebsite: (state) => {
       const parsedConfig: any = state.parsedBackendConfig ?? {}
       const rawConfig = String(state.backendConfig ?? '')
@@ -279,6 +284,10 @@ export const useAppStore = defineStore('app', {
     setAudioOutputs(audioOutputs: any) {
       this.audioOutputs = audioOutputs
       this.$patch(state => state.audioOutputs = audioOutputs)
+    },
+    setStorage(storage: any) {
+      this.storage = storage
+      this.$patch(state => state.storage = storage)
     },
     async fetchStatus(): Promise<any> {
       let status = 'Unknown'

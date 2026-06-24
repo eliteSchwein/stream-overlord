@@ -12,8 +12,6 @@
         <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="openCreateDialog">
           {{ $t('channelPoints.add') }}
         </v-btn>
-
-        <v-btn icon="mdi-refresh" variant="text" :loading="loading" @click="refreshChannelPoints" />
       </div>
     </v-card-title>
 
@@ -91,7 +89,7 @@
 <script lang="ts">
 import { mapActions, mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import StorageCard from '@/components/cards/StorageCard.vue'
 import UploadCard from '@/components/cards/UploadCard.vue'
 import ChannelPoint from '@/components/ChannelPoint.vue'
@@ -154,7 +152,7 @@ export default {
         byKey.set(key, point)
       }
 
-      for (const point of (this.getChannelPoints as any[] ?? [])) {
+      for (const point of (this.getChannelPoints.all as any[] ?? [])) {
         const label = String(point?.label ?? point?.name ?? '').trim()
         const key = this.channelPointMergeKey(point)
 
@@ -189,22 +187,18 @@ export default {
     },
   },
 
-  mounted() {
-    eventBus.$on('websocket:connected', this.refreshChannelPoints)
-    this.refreshChannelPoints()
-  },
-
-  beforeUnmount() {
-    eventBus.$off('websocket:connected', this.refreshChannelPoints)
-  },
-
   methods: {
     ...mapActions(useAppStore, ['setChannelPoints']),
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      const websocketClient = getWebsocketClient()
+
+      if (!websocketClient) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await websocketClient.request(method, params ?? {}, timeout)
+      return response?.params ?? response
     },
 
     getWebsocketResultKey(method: string) {
@@ -331,26 +325,6 @@ export default {
       return []
     },
 
-    async refreshChannelPoints() {
-      this.loading = true
-      this.errorMessage = ''
-
-      try {
-        const data = await this.requestChannelPointEndpoint('channel_points_list')
-        if (data?.error) throw new Error(data.error)
-
-        this.localChannelPoints = this.normalizeListPayload(data)
-
-        if (typeof this.setChannelPoints === 'function') {
-          this.setChannelPoints(this.channelPointList as any)
-        }
-      } catch (error: any) {
-        this.errorMessage = error?.message ?? 'loading channel points failed'
-      } finally {
-        this.loading = false
-      }
-    },
-
     async uploadFiles(files: File[] | FileList) {
       const fileList = Array.from(files as any) as File[]
       if (!fileList.length || this.uploading) return
@@ -371,7 +345,6 @@ export default {
 
         if (data?.error) throw new Error(data.error)
 
-        await this.refreshChannelPoints()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
         ;(this.$refs.uploadCard as any)?.reset?.()
       } catch (error: any) {
@@ -439,7 +412,7 @@ export default {
 
         this.createDialog = false
         this.editorDialog = false
-        await this.refreshChannelPoints()
+
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.editorError = error?.message ?? 'saving channel point failed'
@@ -484,7 +457,7 @@ export default {
           name: channelPoint.name,
         })
         if (data?.error) throw new Error(data.error)
-        await this.refreshChannelPoints()
+
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'delete channel point failed'
@@ -501,7 +474,7 @@ export default {
       this.workingAction = 'toggle'
 
       try {
-        const data = await this.requestChannelPointEndpoint('channel_points_toggle', {
+        const data = await this.requestChannelPointEndpoint('toggle_channel_point', {
           channel_point: channelPoint,
           state: channelPoint.active ? 'disable' : 'enable',
         }, 30_000)

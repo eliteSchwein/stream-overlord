@@ -363,7 +363,8 @@
     "search": "Search channel points",
     "upload": "Upload channel point",
     "edit": "Edit channel point",
-    "create": "Create channel point"
+    "create": "Create channel point",
+    "none": "No channel points found"
   },
   "events": {
     "title": "Events",
