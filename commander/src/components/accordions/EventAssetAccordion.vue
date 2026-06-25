@@ -33,24 +33,10 @@ export default {
     if (this.pendingAsset !== null) {
       this.setAsset(this.pendingAsset)
       this.pendingAsset = null
-    } else if (this.name) {
-      this.open(this.name)
     }
   },
 
-  watch: {
-    name(value: string) {
-      if (value) this.open(value)
-    },
-  },
-
   methods: {
-    async open(name = this.name) {
-      const inner = this.$refs.inner as any
-      if (!inner?.open) return
-      return await inner.open(name)
-    },
-
     async setAsset(asset: any) {
       // Keep support for parents that manually inject an asset object,
       // but the normal load path is now inner.open() -> websocket assets_read.
