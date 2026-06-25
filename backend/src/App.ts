@@ -79,7 +79,6 @@ async function init() {
     await registerPermissions(twitchClient.getBot())
     registerPermissionInterval(twitchClient.getBot())
 
-
     try {
         stage = 'OBS connection'
 

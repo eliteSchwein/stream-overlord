@@ -49,6 +49,19 @@ function getMacroCacheKey(name: string) {
     return `macro_${name}`;
 }
 
+function logMacroCacheError(action: string, cacheKey: string, error: any) {
+    const errorName = error?.name ?? "";
+    const errorMessage = error?.message ?? String(error ?? "unknown error");
+
+    if (errorName === "AbortError" || /abort|timeout|timed out/i.test(errorMessage)) {
+        logWarn(`macro cache ${action} skipped ${cacheKey}: redis timeout/abort`);
+        return;
+    }
+
+    logWarn(`failed to ${action} macro cache ${cacheKey}`);
+    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+}
+
 function getMacroCacheNameFromContent(filePath: string, content: string) {
     try {
         const extension = path.extname(filePath).toLowerCase();
@@ -62,15 +75,16 @@ function getMacroCacheNameFromContent(filePath: string, content: string) {
     }
 }
 
-function updateMacroRawCache(name: string, content: string) {
+function updateMacroRawCache(name: string, content: string, persist: boolean = true) {
     if (!name) return;
 
     const cacheKey = getMacroCacheKey(name);
     macroRawMemoryCache.set(cacheKey, content);
 
+    if (!persist) return;
+
     Promise.resolve(redis.setVariable(cacheKey, content)).catch((error: any) => {
-        logWarn(`failed to update macro cache ${cacheKey}`);
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        logMacroCacheError("update", cacheKey, error);
     });
 }
 
@@ -81,8 +95,7 @@ function deleteMacroRawCache(name: string) {
     macroRawMemoryCache.delete(cacheKey);
 
     Promise.resolve(redis.deleteVariable(cacheKey)).catch((error: any) => {
-        logWarn(`failed to delete macro cache ${cacheKey}`);
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        logMacroCacheError("delete", cacheKey, error);
     });
 }
 
@@ -96,14 +109,13 @@ function warmMacroRawCacheFromRedis(name: string) {
             macroRawMemoryCache.set(cacheKey, content);
         }
     }).catch((error: any) => {
-        logWarn(`failed to read macro cache ${cacheKey}`);
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        logMacroCacheError("read", cacheKey, error);
     });
 }
 
-function readMacroRawContent(filePath: string) {
+function readMacroRawContent(filePath: string, persist: boolean = false) {
     const content = fs.readFileSync(filePath, "utf8");
-    updateMacroRawCache(getMacroCacheNameFromContent(filePath, content), content);
+    updateMacroRawCache(getMacroCacheNameFromContent(filePath, content), content, persist);
     return content;
 }
 
@@ -124,8 +136,7 @@ async function readMacroRawContentCached(filePath: string) {
             return redisCachedFileContent;
         }
     } catch (error: any) {
-        logWarn(`failed to read macro cache ${fileNameCacheKey}`);
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        logMacroCacheError("read", fileNameCacheKey, error);
     }
 
     const content = fs.readFileSync(filePath, "utf8");
@@ -147,12 +158,11 @@ async function readMacroRawContentCached(filePath: string) {
                 return redisCachedMacroContent;
             }
         } catch (error: any) {
-            logWarn(`failed to read macro cache ${macroCacheKey}`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            logMacroCacheError("read", macroCacheKey, error);
         }
     }
 
-    updateMacroRawCache(macroName, content);
+    updateMacroRawCache(macroName, content, false);
 
     return content;
 }
