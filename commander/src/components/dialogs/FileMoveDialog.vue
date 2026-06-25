@@ -16,13 +16,23 @@
         <input type="hidden" :value="source" name="source" />
 
         <v-text-field
-          :model-value="target"
+          :model-value="targetName"
           :label="targetLabel"
           variant="outlined"
+          hide-details
+          class="mb-2"
+          @update:model-value="updateTargetName"
+          @keyup.enter="$emit('move')"
+        />
+
+        <v-text-field
+          :model-value="target"
+          label="Target path"
+          variant="outlined"
+          density="compact"
           readonly
           hide-details
           class="mb-4"
-          @keyup.enter="$emit('move')"
         />
 
         <v-card color="grey-darken-3" variant="flat" class="file-folder-explorer">
@@ -164,7 +174,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 
 type FolderEntry = {
   name: string
@@ -276,6 +286,11 @@ export default {
       const parts = this.normalizePath(this.source).split('/').filter(Boolean)
       return parts.pop() ?? ''
     },
+
+    targetName(): string {
+      const parts = this.normalizePath(this.target || this.source).split('/').filter(Boolean)
+      return parts.pop() ?? this.sourceName
+    },
   },
 
   watch: {
@@ -296,16 +311,15 @@ export default {
   },
 
   methods: {
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout,
-          resolve,
-          reject,
-        })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     async fetchFolders(path = '') {
@@ -359,13 +373,17 @@ export default {
       }
     },
 
+    updateTargetName(value: string) {
+      this.$emit('update:target', this.joinPath(this.explorerPath, value || this.sourceName))
+    },
+
     selectCurrentFolder() {
-      this.$emit('update:target', this.joinPath(this.explorerPath, this.sourceName))
+      this.$emit('update:target', this.joinPath(this.explorerPath, this.targetName || this.sourceName))
     },
 
     openFolder(path: string) {
       this.explorerPath = this.normalizePath(path)
-      this.$emit('update:target', this.joinPath(this.explorerPath, this.sourceName))
+      this.$emit('update:target', this.joinPath(this.explorerPath, this.targetName || this.sourceName))
       this.fetchFolders(this.explorerPath)
     },
 

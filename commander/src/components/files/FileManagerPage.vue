@@ -242,6 +242,7 @@
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import StorageCard from '@/components/cards/StorageCard.vue'
 import UploadCard from '@/components/cards/UploadCard.vue'
 import FileCard from '@/components/files/FileCard.vue'
@@ -597,16 +598,15 @@ export default {
       await this.fetchEntries(this.currentPath)
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout,
-          resolve,
-          reject,
-        })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     async fetchEntries(path: string = '', syncRoute = true) {

@@ -24,7 +24,7 @@ export default function initialSchedulers() {
 
     // moderate scheduler (15 sec)
     setInterval(async () => {
-        updateTemplateVariables()
+        // updateTemplateVariables()
         void pulseHeartbeatLeds()
     }, 15_000)
 

@@ -69,7 +69,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 
 const presetFiles = import.meta.glob('../../presets/**/*.{html,yaml,yml}', {
   query: '?raw',
@@ -243,16 +243,15 @@ export default {
       this.loading = false
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 10_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout,
-          resolve,
-          reject,
-        })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 10_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     getPresetContent(preset: string): string {

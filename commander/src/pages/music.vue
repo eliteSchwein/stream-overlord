@@ -1,4 +1,3 @@
-<!-- MusicPlaylist.vue -->
 <template>
   <v-card color="grey-darken-4">
     <v-card-title class="d-flex align-center justify-space-between">
@@ -128,9 +127,10 @@
 <script lang="ts">
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import StorageCard from '@/components/cards/StorageCard.vue'
 import UploadCard from '@/components/cards/UploadCard.vue'
+import eventBus from "@/eventBus.ts";
 
 type MusicPlaylistItem = {
   filename?: string
@@ -189,6 +189,9 @@ export default {
     if (this.searchTimeout) {
       clearTimeout(this.searchTimeout)
     }
+    eventBus.$off("websocket:connected", async () => {
+      await this.fetchFiles()
+    })
   },
 
   methods: {
@@ -313,23 +316,17 @@ export default {
       return data
     },
 
-    requestMusicWebsocket(method: string, params: Record<string, any> = {}, timeout = 10_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout,
-          resolve: (response: any) => {
-            try {
-              const data = this.unwrapWebsocketResponse(response, method)
-              resolve(this.assertWebsocketResponse(data, `${method} failed`))
-            } catch (error) {
-              reject(error)
-            }
-          },
-          reject,
-        })
-      })
+    async requestMusicWebsocket(method: string, params: Record<string, any> = {}, timeout = 10_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      const data = this.unwrapWebsocketResponse(response?.params ?? response, method)
+
+      return this.assertWebsocketResponse(data, `${method} failed`)
     },
 
     async fetchPrevFiles() {
@@ -499,7 +496,7 @@ export default {
 
 <style scoped>
 .music-playlist-list {
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 350px);
   overflow-y: auto;
 }
 

@@ -39,7 +39,7 @@
         <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)" />
       </v-toolbar>
 
-      <v-card-text class="pa-3 macro-editor-dialog__body">
+      <v-card-text class="pa-0 macro-editor-dialog__body">
         <v-alert
           v-if="errorMessage"
           type="error"
@@ -49,12 +49,7 @@
           :text="errorMessage"
         />
 
-        <v-card color="grey-darken-3" variant="flat" class="h-100 d-flex flex-column">
-          <v-card-title class="py-2 d-flex align-center justify-space-between">
-            <span class="text-subtitle-2">{{ rawMode ? 'Raw YAML editor' : 'Visual macro editor' }}</span>
-            <v-chip size="small" variant="tonal">{{ rawMode ? 'yaml' : 'accordion' }}</v-chip>
-          </v-card-title>
-
+        <v-card color="grey-darken-4" variant="flat" class="h-100 d-flex flex-column" rounded="0">
           <v-divider />
 
           <div v-if="rawMode" class="macro-editor-dialog__code">
@@ -102,7 +97,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import MacroTaskList from '@/components/MacroTaskList.vue'
 
@@ -167,10 +162,15 @@ export default {
       return this.loadMacro()
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     uid() {

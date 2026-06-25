@@ -43,23 +43,27 @@ export async function initAudio() {
             null,
         );
 
+        const savedVolume = Number(savedVolumes[key]?.current_volume);
+        const volume = Number.isFinite(savedVolume)
+            ? normalizeVolume(savedVolume)
+            : normalizeVolume(Number(config[key]?.default_volume ?? 0.2));
+        const muted = savedVolumes[key]?.muted === true;
+        const outputVolume = muted ? 0 : volume;
+
         audioData[key] = {
             ...config[key],
+            current_volume: volume,
+            muted,
             linked_outputs: linkedOutputs,
             linked_output: linkedOutputs[0] ?? null,
         };
 
-        const savedVolume = Number(savedVolumes[key]?.current_volume);
-        const volume = Number.isFinite(savedVolume)
-            ? savedVolume
-            : Number(audioData[key].default_volume ?? 0.2);
-
         if (isEnabled(audioData[key].pipewire_sink)) {
-            initTasks.push(initializePipewireAudioSink(key, linkedOutputs, volume));
+            initTasks.push(initializePipewireAudioSink(key, linkedOutputs, outputVolume));
             continue;
         }
 
-        initTasks.push(setVolume(key, volume, false, false));
+        initTasks.push(setVolume(key, outputVolume, false, false));
     }
 
     await Promise.all(initTasks);

@@ -5,9 +5,6 @@
         <v-icon icon="mdi-code-braces" />
         <div class="min-width-0">
           <div class="text-truncate">{{ $t('macro.title') || 'Macros' }}</div>
-          <div class="text-caption text-grey-lighten-1">
-            {{ filteredMacros.length }} / {{ macroList.length }}
-          </div>
         </div>
       </div>
 
@@ -18,15 +15,8 @@
           variant="tonal"
           @click="createDialog = true"
         >
-          {{ $t('macro.createFile') || 'Add macro' }}
+          {{ $t('macro.createFile') }}
         </v-btn>
-
-        <v-btn
-          icon="mdi-refresh"
-          variant="text"
-          :loading="loading"
-          @click="refreshMacros"
-        />
       </div>
     </v-card-title>
 
@@ -132,7 +122,7 @@
 <script lang="ts">
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import StorageCard from '@/components/cards/StorageCard.vue'
 import UploadCard from '@/components/cards/UploadCard.vue'
 import Macro from '@/components/Macro.vue'
@@ -199,26 +189,16 @@ export default {
     },
   },
 
-  mounted() {
-    eventBus.$on('websocket:connected', this.refreshMacros)
-    this.refreshMacros()
-  },
-
-  beforeUnmount() {
-    eventBus.$off('websocket:connected', this.refreshMacros)
-  },
-
   methods: {
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout,
-          resolve,
-          reject,
-        })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     getWebsocketResultKey(method: string) {
@@ -266,19 +246,6 @@ export default {
       return this.assertWebsocketResponse(data, `${method} failed`)
     },
 
-    async refreshMacros() {
-      this.loading = true
-      this.errorMessage = ''
-
-      try {
-        await this.requestMacroEndpoint('macro_list', {})
-      } catch (error: any) {
-        this.errorMessage = error?.message ?? 'loading macros failed'
-      } finally {
-        this.loading = false
-      }
-    },
-
     async uploadFiles(files: File[] | FileList) {
       const fileList = Array.from(files as any)
 
@@ -305,7 +272,6 @@ export default {
           throw new Error(data?.error ?? 'macro upload failed')
         }
 
-        await this.refreshMacros()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'macro upload failed'
@@ -348,7 +314,6 @@ export default {
         this.selectedDeleteMacro = null
         this.selectedMacroFile = ''
 
-        await this.refreshMacros()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'delete macro failed'
@@ -362,7 +327,6 @@ export default {
       const fileName = String(path ?? '').split('/').pop() ?? ''
       const name = fileName.replace(/\.ya?ml$/i, '')
 
-      await this.refreshMacros()
       await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
 
       if (name) {
@@ -372,7 +336,6 @@ export default {
 
     async handleEditorSaved() {
       this.editorDialog = false
-      await this.refreshMacros()
       await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
     },
   },

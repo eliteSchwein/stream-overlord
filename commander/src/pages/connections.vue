@@ -61,7 +61,7 @@
 <script lang="ts">
 import {mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
-import eventBus from "@/eventBus";
+import { getWebsocketClient } from "@/plugins/websocketInstance";
 
 export default {
   computed: {
@@ -69,10 +69,7 @@ export default {
   },
   methods: {
     disconnectClient(client: string) {
-      eventBus.$emit('websocket:send', {
-        method: 'disconnect_connection',
-        params: {'client': client}
-      })
+      getWebsocketClient()?.send('disconnect_connection', {'client': client})
     }
   }
 }

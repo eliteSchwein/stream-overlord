@@ -111,8 +111,8 @@ export default {
   computed: {
     title(): string {
       return this.assetName
-        ? `${this.$t("assets.editor") || "Asset editor"}: ${this.assetName}`
-        : this.$t("assets.createFile") || "Add asset";
+        ? `${this.$t("assets.editor")}: ${this.assetName}`
+        : this.$t("assets.createFile");
     },
 
     canSave(): boolean {
@@ -600,14 +600,6 @@ export default {
       </v-toolbar>
 
       <v-card-text>
-        <v-alert
-          v-if="error"
-          :text="error"
-          class="mb-3"
-          color="red-darken-3"
-          type="error"
-        />
-
         <v-form @submit.prevent="submit">
           <v-row density="comfortable">
             <v-col cols="12" md="6">
@@ -661,7 +653,7 @@ export default {
                 v-model="form.icon"
                 :disabled="loading"
                 :items="iconOptions"
-                :label="$t('assets.icon') || 'Icon'"
+                :label="$t('assets.icon')"
                 clearable
                 hide-details="auto"
                 prepend-inner-icon="mdi-emoticon"
@@ -816,7 +808,7 @@ export default {
           <v-divider class="my-4"/>
 
           <div class="d-flex align-center justify-space-between mb-3">
-            <div class="text-subtitle-2">{{ $t("assets.wled") || "WLED" }}</div>
+            <div class="text-subtitle-2">{{ $t("assets.wled") }}</div>
             <v-btn
               :disabled="loading"
               prepend-icon="mdi-plus"
@@ -824,7 +816,7 @@ export default {
               variant="tonal"
               @click="addWledControl"
             >
-              {{ $t("assets.addWled") || "Add WLED control" }}
+              {{ $t("assets.addWled") }}
             </v-btn>
           </div>
 
@@ -841,7 +833,7 @@ export default {
                   v-model="control.name"
                   :disabled="loading"
                   :items="wledOptions"
-                  :label="$t('assets.wledName') || 'WLED name'"
+                  :label="$t('assets.wledName')"
                   density="compact"
                   hide-details="auto"
                   variant="outlined"
@@ -863,7 +855,7 @@ export default {
                       <v-text-field
                         :model-value="getWledRgbHex(control)"
                         :disabled="loading"
-                        :label="$t('assets.color') || 'Color'"
+                        :label="$t('assets.color')"
                         density="compact"
                         hide-details="auto"
                         prepend-inner-icon="mdi-palette"
@@ -893,7 +885,7 @@ export default {
                   <v-slider
                     v-model="control.white"
                     :disabled="loading"
-                    :label="$t('assets.white') || 'White'"
+                    :label="$t('assets.white')"
                     :max="255"
                     :min="0"
                     :step="1"
@@ -908,7 +900,7 @@ export default {
                     :items="wledEffectOptions(control.name)"
                     item-title="title"
                     item-value="value"
-                    :label="$t('assets.effect') || 'Effect'"
+                    :label="$t('assets.effect')"
                     variant="outlined"
                     density="compact"
                     :disabled="loading"
@@ -930,7 +922,7 @@ export default {
           :disabled="loading"
           variant="text"
           @click="$emit('update:modelValue', false)"
-        >{{ $t("common.cancel") || "Cancel" }}
+        >{{ $t("common.cancel")}}
         </v-btn
         >
         <v-btn
@@ -939,7 +931,7 @@ export default {
           color="primary"
           variant="flat"
           @click="submit"
-        >{{ $t("common.save") || "Save" }}
+        >{{ $t("common.save")}}
         </v-btn
         >
       </v-card-actions>

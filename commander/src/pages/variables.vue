@@ -1,19 +1,28 @@
 <template>
   <v-card color="grey-darken-4">
     <v-card-title class="d-flex align-center justify-space-between">
-      <span>{{ $t('variables.title') }}</span>
-
-      <v-btn
-        icon="mdi-refresh"
-        variant="text"
-        :loading="loading"
-        @click="fetchVariables"
-      />
+      <div class="d-flex align-center ga-2 min-width-0">
+        <v-icon icon="mdi-variable" />
+        <div class="min-width-0">
+          <div class="text-truncate">{{ $t('variables.title') }}</div>
+        </div>
+      </div>
     </v-card-title>
 
     <v-card-text>
+      <v-text-field
+        v-model="searchQuery"
+        :label="$t('variables.search') || 'Search variables'"
+        prepend-inner-icon="mdi-magnify"
+        clearable
+        variant="outlined"
+        density="comfortable"
+        hide-details
+        class="mb-3"
+      />
+
       <v-alert
-        v-if="variables.length === 0 && !loading"
+        v-if="filteredVariables.length === 0"
         type="info"
         color="grey-darken-3"
         :text="$t('variables.empty')"
@@ -26,7 +35,7 @@
         class="variables-list"
       >
         <v-list-item
-          v-for="variable in variables"
+          v-for="variable in filteredVariables"
           :key="variable.key"
         >
           <template #prepend>
@@ -38,12 +47,12 @@
           <template #append>
             <div class="variables-list__actions">
               <v-text-field
-                v-model="variable.editValue"
+                :model-value="draftValues[variable.key] ?? valueToInput(variable.value)"
                 density="compact"
                 variant="outlined"
                 hide-details
                 class="variables-list__input"
-                :disabled="savingKey === variable.key || deletingKey === variable.key"
+                @update:model-value="draftValues[variable.key] = String($event ?? '')"
                 @keyup.enter="saveVariable(variable)"
               />
 
@@ -52,8 +61,6 @@
                 size="small"
                 variant="text"
                 color="primary"
-                :loading="savingKey === variable.key"
-                :disabled="deletingKey === variable.key"
                 @click.stop="saveVariable(variable)"
               />
 
@@ -62,8 +69,6 @@
                 size="small"
                 variant="text"
                 color="red"
-                :loading="deletingKey === variable.key"
-                :disabled="savingKey === variable.key"
                 @click.stop="deleteVariable(variable)"
               />
             </div>
@@ -75,111 +80,70 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { mapState } from 'pinia'
+import { useAppStore } from '@/stores/app'
 
 type VariableItem = {
   key: string
   value: any
-  editValue: string
 }
 
 export default {
+  name: 'Variables',
+
   data() {
     return {
-      variables: [] as VariableItem[],
-      loading: false,
-      savingKey: null as string | null,
-      deletingKey: null as string | null,
+      searchQuery: '',
+      draftValues: {} as Record<string, string>,
     }
   },
 
-  async mounted() {
-    eventBus.$on('websocket:connected', async () => {
-      await this.fetchVariables()
-    })
+  computed: {
+    ...mapState(useAppStore, ['getVariables']),
 
-    await this.fetchVariables()
+    variableList(): VariableItem[] {
+      return Object.entries(this.getVariables ?? {})
+        .map(([key, value]) => ({ key, value }))
+        .sort((a, b) => a.key.localeCompare(b.key))
+    },
+
+    filteredVariables(): VariableItem[] {
+      const query = String(this.searchQuery ?? '').trim().toLowerCase()
+
+      if (!query) return this.variableList
+
+      return this.variableList.filter((variable) => {
+        return (
+          variable.key.toLowerCase().includes(query) ||
+          this.valueToInput(variable.value).toLowerCase().includes(query)
+        )
+      })
+    },
   },
 
   methods: {
-    requestVariablesWebsocket(method: string, params: Record<string, any> = {}, timeout = 10_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', {
-          method,
-          params,
-          timeout,
-          resolve,
-          reject,
-        })
+    saveVariable(variable: VariableItem) {
+      if (!variable.key) return
+
+      const store = useAppStore()
+      const value = this.inputToValue(this.draftValues[variable.key] ?? this.valueToInput(variable.value))
+
+      store.setVariables({
+        ...(this.getVariables ?? {}),
+        [variable.key]: value,
       })
+
+      this.draftValues[variable.key] = this.valueToInput(value)
     },
 
-    async fetchVariables() {
-      if (this.loading) return
+    deleteVariable(variable: VariableItem) {
+      if (!variable.key) return
 
-      this.loading = true
+      const store = useAppStore()
+      const variables = { ...(this.getVariables ?? {}) }
 
-      try {
-        const data = await this.requestVariablesWebsocket('variables_list')
-        const keys = Array.isArray(data?.keys) ? data.keys : []
-
-        const variables = await Promise.all(keys.map(async (key: string) => {
-          const response = await this.requestVariablesWebsocket('variables_get', { key })
-          const value = response?.value
-
-          return {
-            key,
-            value,
-            editValue: this.valueToInput(value),
-          }
-        }))
-
-        this.variables = variables.sort((a, b) => a.key.localeCompare(b.key))
-      } catch (error) {
-        console.error('loading variables failed', error)
-      } finally {
-        this.loading = false
-      }
-    },
-
-    async saveVariable(variable: VariableItem) {
-      if (!variable.key || this.savingKey) return
-
-      this.savingKey = variable.key
-
-      try {
-        const value = this.inputToValue(variable.editValue)
-
-        await this.requestVariablesWebsocket('variables_set', {
-          key: variable.key,
-          value,
-        })
-
-        variable.value = value
-        variable.editValue = this.valueToInput(value)
-      } catch (error) {
-        console.error('saving variable failed', error)
-      } finally {
-        this.savingKey = null
-      }
-    },
-
-    async deleteVariable(variable: VariableItem) {
-      if (!variable.key || this.deletingKey) return
-
-      this.deletingKey = variable.key
-
-      try {
-        await this.requestVariablesWebsocket('variables_delete', {
-          key: variable.key,
-        })
-
-        this.variables = this.variables.filter(item => item.key !== variable.key)
-      } catch (error) {
-        console.error('deleting variable failed', error)
-      } finally {
-        this.deletingKey = null
-      }
+      delete variables[variable.key]
+      store.setVariables(variables)
     },
 
     valueToInput(value: any): string {
@@ -218,5 +182,9 @@ export default {
 
 .variables-list__input {
   min-width: 280px;
+}
+
+.min-width-0 {
+  min-width: 0;
 }
 </style>

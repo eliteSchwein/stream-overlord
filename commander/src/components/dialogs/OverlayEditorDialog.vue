@@ -186,7 +186,7 @@
 <script lang="ts">
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import {VueMonacoEditor} from "@guolao/vue-monaco-editor";
 
 type FileEntry = {
@@ -637,10 +637,15 @@ export default {
       this.completionProvider = []
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
     },
 
     async loadFile() {

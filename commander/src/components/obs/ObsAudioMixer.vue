@@ -124,7 +124,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 
 export default {
   props: {
@@ -267,14 +267,11 @@ export default {
     },
 
     sendObsCommand(method: string, data: any) {
-      eventBus.$emit('websocket:send', {
-        method: 'obs_trigger_command',
-        params: {
-          connection: this.connection,
-          obs_id: this.connection,
-          method,
-          data,
-        },
+      getWebsocketClient()?.send('obs_trigger_command', {
+        connection: this.connection,
+        obs_id: this.connection,
+        method,
+        data,
       })
     },
 

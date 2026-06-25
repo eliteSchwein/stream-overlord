@@ -4,6 +4,7 @@ import {mapActions, mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
 import eventBus from "@/eventBus.js";
 import {sleep} from "@/helper/GeneralHelper.ts";
+import {getWebsocketClient} from "@/plugins/websocketInstance";
 
 export default {
   data () {
@@ -82,8 +83,9 @@ export default {
     },
     reloadCommander() {
       window.location.reload()
-    },async updateBot() {
-      eventBus.$emit("websocket:send", { method: "update", params: {} })
+    },
+    async updateBot() {
+      getWebsocketClient()?.send("update")
 
       // wait until /api/status is NOT reachable (connection lost)
       for (;;) {

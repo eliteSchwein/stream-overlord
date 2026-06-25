@@ -1,5 +1,8 @@
 <template>
-  <v-expansion-panel class="macro-task-accordion macro-task-accordion--animation">
+  <v-expansion-panel
+    class="macro-task-accordion macro-task-accordion--animation"
+    @group:selected="onExpansionChange"
+  >
     <v-expansion-panel-title>
       <div class="d-flex align-center min-width-0 w-100">
         <v-icon icon="mdi-animation-play" size="20" class="mr-2" />
@@ -131,7 +134,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import { useAppStore } from '@/stores/app'
 
 type MediaEntry = {
@@ -160,6 +163,7 @@ export default {
       frameRateOptions: [60, 45, 30],
       loadingSources: false,
       mediaEntries: [] as MediaEntry[],
+      mediaLoaded: false,
       variablesText: '',
     }
   },
@@ -183,9 +187,6 @@ export default {
     this.variablesText = this.stringifyVariables(this.task.data.variables)
   },
 
-  mounted() {
-    this.fetchMediaEntries()
-  },
 
   methods: {
     ensureData() {
@@ -198,10 +199,23 @@ export default {
       if (this.task.data.reverse === undefined) this.task.data.reverse = false
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
+    },
+
+    async onExpansionChange(event: any) {
+      const expanded = typeof event === 'boolean' ? event : Boolean(event?.value)
+
+      if (!expanded || this.mediaLoaded || this.loadingSources) return
+
+      await this.fetchMediaEntries()
     },
 
     async requestMediaList(path: string = ''): Promise<any> {
@@ -244,10 +258,16 @@ export default {
           }
         }
 
-        if (!path) this.mediaEntries = result.filter((entry) => entry?.type === 'file')
+        if (!path) {
+          this.mediaEntries = result.filter((entry) => entry?.type === 'file')
+          this.mediaLoaded = true
+        }
         return result
       } catch (error) {
-        if (!path) this.mediaEntries = []
+        if (!path) {
+          this.mediaEntries = []
+          this.mediaLoaded = false
+        }
         return []
       } finally {
         if (!path) this.loadingSources = false

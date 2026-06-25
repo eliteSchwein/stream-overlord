@@ -233,7 +233,7 @@
 <script lang="ts">
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import YoloboxAudio from "@/components/yolobox/YoloboxAudio.vue";
 
 type AudioOutput = Record<string, any>
@@ -291,6 +291,17 @@ export default {
   },
 
   methods: {
+    sendWebsocket(method: string, params: Record<string, any> = {}) {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        console.warn(`websocket is not connected, skipped ${method}`)
+        return
+      }
+
+      client.send(method, params)
+    },
+
     clampVolume(volume: number, audioData: any): number {
       const min = Number(audioData.min_range ?? 0)
       const max = Number(audioData.max_range ?? 1)
@@ -347,10 +358,7 @@ export default {
     },
 
     setVolume(audioInterface: string, volume: number) {
-      eventBus.$emit('websocket:send', {
-        method: 'set_volume',
-        params: { interface: audioInterface, volume },
-      })
+      this.sendWebsocket('set_volume', { interface: audioInterface, volume })
     },
 
     unmute(audioInterface: string, audioData: any) {
@@ -451,10 +459,7 @@ export default {
 
       if (!outputName) return
 
-      eventBus.$emit('websocket:send', {
-        method: 'set_audio_output_volume',
-        params: { output: outputName, volume },
-      })
+      this.sendWebsocket('set_audio_output_volume', { output: outputName, volume })
     },
 
     isPipewireSink(device: any): boolean {
@@ -543,13 +548,10 @@ export default {
 
       if (!outputName) return
 
-      eventBus.$emit('websocket:send', {
-        method: 'link_sink',
-        params: {
-          interface: audioInterface,
-          output: outputName,
-          linked,
-        },
+      this.sendWebsocket('link_sink', {
+        interface: audioInterface,
+        output: outputName,
+        linked,
       })
     },
   },

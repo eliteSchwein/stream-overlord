@@ -119,7 +119,7 @@
 </template>
 
 <script lang="ts">
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import { useAppStore } from '@/stores/app'
 
 export default {
@@ -250,13 +250,10 @@ export default {
       this.addingSources[key] = true
 
       try {
-        eventBus.$emit('websocket:send', {
-          method: 'add_source',
-          params: {
-            name,
-            uuid,
-            obs_id: this.connection,
-          },
+        getWebsocketClient()?.send('add_source', {
+          name,
+          uuid,
+          obs_id: this.connection,
         })
       } catch (error) {
         console.warn(error)

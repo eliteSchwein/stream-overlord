@@ -10,10 +10,8 @@
 
       <div class="d-flex align-center ga-2">
         <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="openCreateEditor">
-          {{ $t('assets.createFile') || 'Add asset' }}
+          {{ $t('assets.createFile') }}
         </v-btn>
-
-        <v-btn icon="mdi-refresh" variant="text" :loading="loading" @click="refreshAssets" />
       </div>
     </v-card-title>
 
@@ -96,6 +94,7 @@
 import { mapActions, mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import StorageCard from '@/components/cards/StorageCard.vue'
 import UploadCard from '@/components/cards/UploadCard.vue'
 import Asset from '@/components/Asset.vue'
@@ -143,13 +142,11 @@ export default {
     ...mapState(useAppStore, ['getAssets', 'getRestApi', 'getMacros']),
 
     assetConfigs(): Record<string, any> {
-      const storeAssets = this.getAssets
+      const storeAssets = this.getAssets?.assets ?? []
       return storeAssets && !Array.isArray(storeAssets) && Object.keys(storeAssets).length
         ? storeAssets as Record<string, any>
         : this.localAssets
     },
-
-
 
     macroItems(): string[] {
       return Object.keys(this.getMacros ?? {}).sort((a, b) => a.localeCompare(b))
@@ -187,22 +184,17 @@ export default {
     },
   },
 
-  mounted() {
-    eventBus.$on('websocket:connected', this.refreshAssets)
-    this.refreshAssets()
-  },
-
-  beforeUnmount() {
-    eventBus.$off('websocket:connected', this.refreshAssets)
-  },
-
   methods: {
     ...mapActions(useAppStore, ['setAssets']),
 
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+      const client = getWebsocketClient()
+
+      if (!client) {
+        return Promise.reject(new Error('websocket is not connected'))
+      }
+
+      return client.request(method, params, timeout)
     },
 
     getWebsocketResultKey(method: string) {
@@ -248,25 +240,6 @@ export default {
       const response = await this.requestWebsocket(method, params, timeout)
       const data = this.unwrapWebsocketResponse(response, method)
       return this.assertWebsocketResponse(data, `${method} failed`)
-    },
-
-    async refreshAssets() {
-      this.loading = true
-      this.errorMessage = ''
-
-      try {
-        const data = await this.requestAssetEndpoint('assets_list', 'assets/list')
-        if (data?.error) throw new Error(data.error)
-
-        this.localAssets = data?.assets ?? {}
-        this.localWledConfigs = data?.wled ?? {}
-        this.setAssets(this.localAssets)
-        await this.fetchMediaEntries()
-      } catch (error: any) {
-        this.errorMessage = error?.message ?? 'loading assets failed'
-      } finally {
-        this.loading = false
-      }
     },
 
     async fetchMediaEntries(path: string = ''): Promise<any[]> {

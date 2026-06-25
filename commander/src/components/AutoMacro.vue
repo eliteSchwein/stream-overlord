@@ -1,16 +1,13 @@
 <script setup lang="ts">
 
-import eventBus from "@/eventBus.ts";
+import { getWebsocketClient } from "@/plugins/websocketInstance";
 defineProps({
   autoMacro: {}
 })
 
 function toggleAutoMacro(autoMacro: any) {
   autoMacro.enabled = !autoMacro.enabled
-  eventBus.$emit('websocket:send', {
-    method: 'toggle_auto_macro',
-    params: {'name': autoMacro.name, 'enable': autoMacro.enabled}
-  })
+  getWebsocketClient()?.send('toggle_auto_macro', {'name': autoMacro.name, 'enable': autoMacro.enabled})
 }
 
 </script>

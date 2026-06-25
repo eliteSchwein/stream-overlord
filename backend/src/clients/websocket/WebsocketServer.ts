@@ -25,6 +25,7 @@ import {getParsedAssetFiles} from "../../helper/AssetHelper";
 import {getStatus} from "../../helper/MusicHelper";
 import {getManagedConnections, setConnectionUpdateNotifier} from "../../helper/ConnectionHelper";
 import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
+import {emitVariablesUpdate} from "../../helper/VariableHelper";
 
 
 export default class WebsocketServer {
@@ -69,6 +70,7 @@ export default class WebsocketServer {
         'notify_audio_outputs_update',
         'notify_media_update',
         'notify_storage_update',
+        'notify_variables_update'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -218,12 +220,14 @@ export default class WebsocketServer {
                 this.send("notify_voice_list_update", {voices: getVoices()}, client)
                 this.send("notify_macro_update", {macros: getMacros()}, client)
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
-                this.send("notify_variables_update", getTemplateVariables(), client)
+                // this.send("notify_variables_update", getTemplateVariables(), client)
                 this.send("notify_giveaway_update", getGiveaway(), client)
                 this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)
                 this.send("notify_assets_update", getParsedAssetFiles(), client)
                 this.send("notify_audio_outputs_update", getAudioOutputs(), client)
                 this.send("notify_storage_update", getSystemStorageInfo(), client)
+
+                void emitVariablesUpdate(client)
 
                 for(const id in getAllVisibleElements()) {
                     const state = getAllVisibleElements()[id]

@@ -681,7 +681,10 @@ export async function addAssetConfigFilesFromUpload(files: any[], targetPath: st
 
 
 export function getParsedAssetFiles() {
-    return assetFiles
+    return {
+        assets: getAssetConfigs(),
+        wled: getWledConfigs(),
+    }
 }
 
 export function readAssetFolder() {

@@ -89,7 +89,7 @@
 <script lang="ts">
 import {useAppStore} from "@/stores/app.ts";
 import {mapState} from "pinia";
-import eventBus from "@/eventBus";
+import {getWebsocketClient} from "@/plugins/websocketInstance";
 import loading from "@/assets/loading.webp"
 
 export default {
@@ -111,24 +111,15 @@ export default {
 
       if(!tabId) return
 
-      eventBus.$emit('websocket:send', {
-        method: 'execute_yolobox',
-        params: {"data": {"id": tabId}, "orderID": "order_tab_change"},
-      })
+      getWebsocketClient()?.send('execute_yolobox', {"data": {"id": tabId}, "orderID": "order_tab_change"})
     },
     toggleOverlay(id: string) {
       console.log(id)
-      eventBus.$emit('websocket:send', {
-        method: 'execute_yolobox',
-        params: {"data": {"id": id, "isSelected": false}, "orderID": "order_material_change"},
-      })
+      getWebsocketClient()?.send('execute_yolobox', {"data": {"id": id, "isSelected": false}, "orderID": "order_material_change"})
     },
     toggleSource(id: string) {
       console.log(id)
-      eventBus.$emit('websocket:send', {
-        method: 'execute_yolobox',
-        params: {"data": {"id": id, "isSelected": true}, "orderID": "order_director_change"},
-      })
+      getWebsocketClient()?.send('execute_yolobox', {"data": {"id": id, "isSelected": true}, "orderID": "order_director_change"})
     },
     toggleAutoRefresh() {
       this.autoRefresh = !this.autoRefresh

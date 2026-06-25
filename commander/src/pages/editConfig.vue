@@ -172,6 +172,7 @@
 import { mapState } from "pinia";
 import { useAppStore } from "@/stores/app";
 import eventBus from "@/eventBus";
+import { getWebsocketClient } from "@/plugins/websocketInstance";
 
 export default {
   data() {
@@ -234,18 +235,23 @@ export default {
       eventBus.$emit('config:write', text)
     },
 
+    sendWebsocket(method: string, params: Record<string, any> = {}) {
+      const client = getWebsocketClient();
+
+      if (!client) {
+        console.warn(`websocket is not connected, skipped ${method}`);
+        return;
+      }
+
+      client.send(method, params);
+    },
+
     saveConfig() {
-      eventBus.$emit("websocket:send", {
-        method: "update_config",
-        params: { data: this.backendConfigText },
-      });
+      this.sendWebsocket("update_config", { data: this.backendConfigText });
     },
 
     toggleTestMode() {
-      eventBus.$emit("websocket:send", {
-        method: "toggle_test_mode",
-        params: { active: !this.getTestMode },
-      });
+      this.sendWebsocket("toggle_test_mode", { active: !this.getTestMode });
     },
 
     // --- caret helpers ---

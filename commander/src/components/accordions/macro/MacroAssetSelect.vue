@@ -11,6 +11,8 @@
       density="comfortable"
       :loading="loading"
       :disabled="disabled"
+      v-model:menu="menuOpen"
+      @update:menu="handleMenuUpdate"
       @update:model-value="$emit('update:modelValue', $event ?? '')"
     >
       <template #prepend-item>
@@ -38,7 +40,7 @@
 
 <script lang="ts">
 import { useAppStore } from '@/stores/app'
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import AssetEditorDialog from '@/components/dialogs/AssetEditorDialog.vue'
 
 export default {
@@ -65,6 +67,8 @@ export default {
       localAssets: {} as Record<string, any>,
       localWledConfigs: {} as Record<string, any>,
       mediaEntries: [] as any[],
+      menuOpen: false,
+      hasLoadedAssets: false,
     }
   },
 
@@ -103,17 +107,28 @@ export default {
     },
   },
 
-  mounted() {
-    if (!Object.keys(this.assetConfigs ?? {}).length) {
-      this.refreshAssets()
-    }
-  },
 
   methods: {
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
-      return new Promise((resolve, reject) => {
-        eventBus.$emit('websocket:request', { method, params, timeout, resolve, reject })
-      })
+    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        throw new Error('websocket is not connected')
+      }
+
+      const response = await client.request(method, params, timeout)
+      return response?.params ?? response
+    },
+
+    async handleMenuUpdate(open: boolean) {
+      if (!open || this.hasLoadedAssets || this.loading) return
+
+      if (Object.keys(this.assetConfigs ?? {}).length) {
+        this.hasLoadedAssets = true
+        return
+      }
+
+      await this.refreshAssets()
     },
 
     async requestAssetEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
@@ -150,6 +165,7 @@ export default {
 
         this.localAssets = data?.assets ?? {}
         this.localWledConfigs = data?.wled ?? {}
+        this.hasLoadedAssets = true
         appStore.setAssets(this.localAssets)
         await this.fetchMediaEntries()
       } catch (error) {

@@ -105,6 +105,7 @@
 import { getWebsocketClient } from '@/plugins/websocketInstance'
 import EventEntry from '@/components/EventEntry.vue'
 import EventEditorDialog from '@/components/dialogs/EventEditorDialog.vue'
+import eventBus from "@/eventBus.ts";
 
 type EventEntryData = {
   name: string
@@ -217,6 +218,11 @@ export default {
 
   mounted() {
     this.refreshEvents()
+    eventBus.$on?.('websocket:connected', this.refreshEvents)
+  },
+
+  beforeUnmount() {
+    eventBus.$off?.('websocket:connected', this.refreshEvents)
   },
 
   methods: {
@@ -224,7 +230,7 @@ export default {
       const client = getWebsocketClient()
 
       if (!client) {
-        throw new Error('websocket is not connected')
+        return undefined
       }
 
       const response = await client.request(method, params, timeout)

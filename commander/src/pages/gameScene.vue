@@ -61,7 +61,7 @@
 <script lang="ts">
 import {mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
-import eventBus from "@/eventBus.ts";
+import { getWebsocketClient } from "@/plugins/websocketInstance";
 import noObs from "@/assets/no_obs.png"
 
 export default {
@@ -75,16 +75,10 @@ export default {
   },
   methods: {
     saveItems() {
-      eventBus.$emit('websocket:send', {
-        method: 'save_sources',
-        params: {}
-      })
+      getWebsocketClient()?.send('save_sources')
     },
     refreshitems() {
-      eventBus.$emit('websocket:send', {
-        method: 'refresh_sources',
-        params: {}
-      })
+      getWebsocketClient()?.send('refresh_sources')
     }
   }
 }

@@ -1,17 +1,14 @@
 <script setup lang="ts">
 
 import {formatSeconds} from "@/helper/GeneralHelper.ts";
-import eventBus from "@/eventBus.ts";
+import {getWebsocketClient} from "@/plugins/websocketInstance";
 
 defineProps({
   alert: {}
 })
 
 function removeAlert(eventUuid: string) {
-  eventBus.$emit('websocket:send', {
-    method: 'remove_event',
-    params: {'event-uuid': eventUuid}
-  })
+  getWebsocketClient()?.send('remove_event', {'event-uuid': eventUuid})
 }
 
 </script>

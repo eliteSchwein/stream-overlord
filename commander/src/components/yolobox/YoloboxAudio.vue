@@ -89,7 +89,7 @@
 <script lang="ts">
 import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
-import eventBus from '@/eventBus'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 
 export default {
   computed: {
@@ -111,18 +111,15 @@ export default {
     },
 
     setYoloboxVolume(audioInterface: string, volume: number, isSelected: boolean, delay: number = 0, afv: boolean = false) {
-      eventBus.$emit('websocket:send', {
-        method: 'execute_yolobox',
-        params: {
-          data: {
-            id: audioInterface,
-            isSelected,
-            volume,
-            AFV: afv,
-            delayTime: delay,
-          },
-          orderID: 'order_mixer_change',
+      getWebsocketClient()?.send('execute_yolobox', {
+        data: {
+          id: audioInterface,
+          isSelected,
+          volume,
+          AFV: afv,
+          delayTime: delay,
         },
+        orderID: 'order_mixer_change',
       })
     },
   },

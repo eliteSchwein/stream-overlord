@@ -1,5 +1,6 @@
 <script lang="ts">
 import eventBus from "@/eventBus";
+import { getWebsocketClient } from "@/plugins/websocketInstance";
 
 export default {
   mounted(): any {
@@ -15,17 +16,14 @@ export default {
     }
   },
   methods: {
+    sendPowerCommand(target: 'reboot' | 'halt') {
+      getWebsocketClient()?.send('halt_system', { target })
+    },
     async rebootSystem() {
-      eventBus.$emit('websocket:send', {
-        method: 'halt_system',
-        params: {'target': 'reboot'}
-      })
+      this.sendPowerCommand('reboot')
     },
     async shutdownSystem() {
-      eventBus.$emit('websocket:send', {
-        method: 'halt_system',
-        params: {'target': 'halt'}
-      })
+      this.sendPowerCommand('halt')
     },
   }
 }
@@ -40,9 +38,9 @@ export default {
     <v-card
       v-if="show">
       <v-toolbar
-          flat
-          density="compact"
-        >
+        flat
+        density="compact"
+      >
         <v-toolbar-title class="d-flex align-center">
           {{ $t('power.dialog.title') }}
         </v-toolbar-title>

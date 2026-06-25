@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import { redis } from "../clients/redis/Redis";
 import { logRegular, logSuccess, logWarn } from "./LogHelper";
 import {getSystemConfigDirectory} from "./ConfigHelper";
+import getWebsocketServer from "../App";
 
 const STATIC_VARIABLES_FILE = "streambot-static-variables.json";
 const REDIS_PREFIX = "variable_";
@@ -92,6 +93,10 @@ export async function getVariables() {
     return variables;
 }
 
+export async function emitVariablesUpdate(client: WebSocket|undefined = undefined) {
+    getWebsocketServer().send('notify_variables_update', await getVariables(), client);
+}
+
 export async function getVariable(key: string) {
     const value = await redis.getVariable(getRedisKey(key));
 
@@ -111,6 +116,8 @@ export async function setVariable(key: string, value: any, toFile: boolean = fal
     if (redis.isReady()) {
         await redis.setVariable(getRedisKey(key), JSON.stringify(value));
     }
+
+    void emitVariablesUpdate()
 
     if (!toFile) return;
 

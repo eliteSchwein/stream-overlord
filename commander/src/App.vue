@@ -97,29 +97,6 @@ eventBus.$on('websocket:reconnect', () => {
   void getWebsocketClient()?.connect()
 })
 
-eventBus.$on('websocket:send', (data) => {
-  if(data.method === 'update') {
-    updating.value = true // this doesnt seem to trigger?
-  }
-  console.warn(`detected legacy send use: ${data.method}`)
-  getWebsocketClient()?.send(data.method, data.params)
-})
-
-eventBus.$on('websocket:request', async (data) => {
-  console.warn(`detected legacy request use: ${data.method}`)
-  if (!getWebsocketClient()) {
-    data?.reject?.(new Error('websocket is not connected'))
-    return
-  }
-
-  try {
-    const result = (await getWebsocketClient()?.request(data.method, data.params ?? {}, data.timeout ?? 10_000))?.params
-    data?.resolve?.(result)
-  } catch (error) {
-    data?.reject?.(error)
-  }
-})
-
 onMounted(async () => {
   await appOption.fetchConfig()
 

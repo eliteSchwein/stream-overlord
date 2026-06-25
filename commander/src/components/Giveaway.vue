@@ -1,7 +1,7 @@
 <script lang="ts">
 import {mapState} from "pinia";
 import {useAppStore} from "@/stores/app";
-import eventBus from "@/eventBus.ts";
+import {getWebsocketClient} from "@/plugins/websocketInstance";
 
 export default {
   data() {
@@ -42,22 +42,21 @@ export default {
     ...mapState(useAppStore, ['getGiveaway']),
   },
   methods: {
+    sendWebsocket(method: string, params: Record<string, any> = {}) {
+      getWebsocketClient()?.send(method, params)
+    },
     sendGiveaway() {
-      eventBus.$emit('websocket:send', {
-        method: 'start_giveaway',
-        params: {'content': this.giveawayTemplate.content, 'duration': this.giveawayTemplate.interval}
+      this.sendWebsocket('start_giveaway', {
+        content: this.giveawayTemplate.content,
+        duration: this.giveawayTemplate.interval,
       })
     },
     stopGiveaway() {
-      eventBus.$emit('websocket:send', {
-        method: 'stop_giveaway',
-        params: {}
-      })
+      this.sendWebsocket('stop_giveaway')
     },
     deleteUser(userId: string) {
-      eventBus.$emit('websocket:send', {
-        method: 'remove_giveaway_user',
-        params: {'user': userId}
+      this.sendWebsocket('remove_giveaway_user', {
+        user: userId,
       })
     }
   }
