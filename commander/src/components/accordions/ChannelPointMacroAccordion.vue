@@ -1,7 +1,7 @@
 <template>
-  <div class="channel-point-asset-accordion">
+  <div class="channel-point-macro-accordion">
     <v-alert
-      v-if="errorMessage && !errorMessage.includes('file not found')"
+      v-if="errorMessage"
       type="error"
       color="red-darken-3"
       density="comfortable"
@@ -9,1026 +9,575 @@
       :text="errorMessage"
     />
 
-    <v-form>
-      <v-row density="comfortable">
-        <v-col cols="12" md="6">
-          <v-combobox
-            v-model="form.channel"
-            :disabled="loadingInternal || disabled"
-            :label="$t('assets.channel') || 'Channel'"
-            hide-details="auto"
-            prepend-inner-icon="mdi-broadcast"
-            variant="outlined"
-          />
-        </v-col>
-
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="form.message"
-            :disabled="loadingInternal || disabled"
-            :label="$t('assets.message') || 'Message'"
-            hide-details="auto"
-            prepend-inner-icon="mdi-message-text"
-            variant="outlined"
-          />
-        </v-col>
-
-        <v-col cols="12" md="6">
-          <v-autocomplete
-            v-model="form.sound"
-            :disabled="loadingInternal || disabled"
-            :items="soundOptions"
-            :label="$t('assets.sound') || 'Sound'"
-            clearable
-            hide-details="auto"
-            prepend-inner-icon="mdi-volume-high"
-            variant="outlined"
-            @update:menu="onMediaMenuUpdate"
-          />
-        </v-col>
-
-        <v-col cols="12" md="6">
-          <v-combobox
-            v-model="form.icon"
-            :disabled="loadingInternal || disabled"
-            :items="iconOptions"
-            :label="$t('assets.icon') || 'Icon'"
-            clearable
-            hide-details="auto"
-            prepend-inner-icon="mdi-emoticon"
-            variant="outlined"
-            @update:model-value="form.icon = normalizeIconName($event)"
-          >
-            <template #item="{ props, item }">
-              <v-list-item v-bind="props">
-                <template #prepend>
-                  <v-icon :icon="iconValue(item?.raw ?? item?.title ?? item?.value)" />
-                </template>
-                <v-list-item-title>{{ normalizeIconName(item?.raw ?? item?.title ?? item?.value) }}</v-list-item-title>
-              </v-list-item>
-            </template>
-            <template #chip="{ props }">
-              <v-chip :prepend-icon="iconValue(form.icon)" v-bind="props" />
-            </template>
-          </v-combobox>
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <v-menu v-model="colorMenu" :close-on-content-click="false">
-            <template #activator="{ props }">
-              <v-text-field
-                v-model="form.color"
-                :disabled="loadingInternal || disabled"
-                :label="$t('assets.color') || 'Color'"
-                hide-details="auto"
-                prepend-inner-icon="mdi-palette"
-                v-bind="props"
-                variant="outlined"
-              >
-                <template #append-inner>
-                  <div :style="{ backgroundColor: normalizedColor }" class="asset-color-preview" />
-                </template>
-              </v-text-field>
-            </template>
-            <v-card color="grey-darken-3">
-              <v-color-picker v-model="normalizedColor" hide-inputs mode="hex" />
-            </v-card>
-          </v-menu>
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <v-number-input
-            v-model="form.duration"
-            :disabled="loadingInternal || disabled"
-            :label="$t('assets.duration') || 'Duration'"
-            :step="0.1"
-            hide-details="auto"
-            prepend-inner-icon="mdi-timer"
-            variant="outlined"
-            :precision="2"
-          />
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <v-number-input
-            v-model="form.volume"
-            :disabled="loadingInternal || disabled"
-            :label="$t('assets.volume') || 'Volume'"
-            :max="1"
-            :step="0.1"
-            hide-details="auto"
-            prepend-inner-icon="mdi-volume-medium"
-            variant="outlined"
-            :precision="2"
-          />
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <v-autocomplete
-            v-model="form.image"
-            :disabled="loadingInternal || disabled"
-            :items="imageOptions"
-            :label="$t('assets.image') || 'Image'"
-            clearable
-            hide-details="auto"
-            prepend-inner-icon="mdi-image"
-            variant="outlined"
-            @update:menu="onMediaMenuUpdate"
-          />
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <v-autocomplete
-            v-model="form.video"
-            :disabled="loadingInternal || disabled"
-            :items="videoOptions"
-            :label="$t('assets.video') || 'Video'"
-            clearable
-            hide-details="auto"
-            prepend-inner-icon="mdi-video"
-            variant="outlined"
-            @update:menu="onMediaMenuUpdate"
-          />
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <v-combobox
-            v-model="form.start_macros"
-            :disabled="loadingInternal || disabled"
-            :items="macroOptions"
-            :label="$t('assets.startMacros') || 'Start macros'"
-            chips
-            closable-chips
-            hide-details="auto"
-            multiple
-            variant="outlined"
-          />
-        </v-col>
-
-        <v-col cols="12" md="6">
-          <v-combobox
-            v-model="form.idle_macros"
-            :disabled="loadingInternal || disabled"
-            :items="macroOptions"
-            :label="$t('assets.idleMacros') || 'Idle macros'"
-            chips
-            closable-chips
-            hide-details="auto"
-            multiple
-            variant="outlined"
-          />
-        </v-col>
-
-        <v-col cols="12" md="6">
-          <v-combobox
-            v-model="form.end_macros"
-            :disabled="loadingInternal || disabled"
-            :items="macroOptions"
-            :label="$t('assets.endMacros') || 'End macros'"
-            chips
-            closable-chips
-            hide-details="auto"
-            multiple
-            variant="outlined"
-          />
-        </v-col>
-      </v-row>
-
-      <v-divider class="my-4" />
-
-      <div class="d-flex align-center justify-space-between mb-3">
-        <div class="text-subtitle-2">{{ $t('assets.wled') || 'WLED' }}</div>
-        <v-btn
-          :disabled="loadingInternal || disabled"
-          prepend-icon="mdi-plus"
-          size="small"
-          variant="tonal"
-          @click="addWledControl"
-        >
-          {{ $t('assets.addWled') || 'Add WLED control' }}
-        </v-btn>
+    <div class="d-flex align-center justify-space-between ga-3 mb-3">
+      <div class="min-width-0">
+        <div class="text-caption text-grey-lighten-1">{{ rawMode ? 'Raw YAML editor' : 'Visual macro editor' }}</div>
       </div>
 
-      <v-card
-        v-for="(control, index) in form.wled"
-        :key="index"
-        class="mb-3"
-        color="grey-darken-4"
-        variant="flat"
-      >
-        <v-card-text>
-          <div class="d-flex align-center ga-2 mb-3">
-            <v-combobox
-              v-model="control.name"
-              :disabled="loadingInternal || disabled"
-              :items="wledOptions"
-              :label="$t('assets.wledName') || 'WLED name'"
-              density="compact"
-              hide-details="auto"
-              variant="outlined"
-              @update:model-value="loadWledEffects($event)"
-            />
-            <v-btn
-              :disabled="loadingInternal || disabled"
-              color="red"
-              icon="mdi-delete"
-              variant="text"
-              @click="removeWledControl(index)"
-            />
-          </div>
+      <v-switch
+        v-model="rawMode"
+        color="primary"
+        density="comfortable"
+        hide-details
+        inset
+        label="Code"
+        @update:model-value="toggleRawMode"
+      />
+    </div>
 
-          <v-row density="compact">
-            <v-col cols="12" md="4">
-              <v-menu v-model="wledColorMenus[index]" :close-on-content-click="false">
-                <template #activator="{ props }">
-                  <v-text-field
-                    :model-value="getWledRgbHex(control)"
-                    :disabled="loadingInternal || disabled"
-                    :label="$t('assets.color') || 'Color'"
-                    density="compact"
-                    hide-details="auto"
-                    prepend-inner-icon="mdi-palette"
-                    readonly
-                    v-bind="props"
-                    variant="outlined"
-                  >
-                    <template #append-inner>
-                      <div :style="{ backgroundColor: getWledRgbHex(control) }" class="asset-color-preview" />
-                    </template>
-                  </v-text-field>
-                </template>
-                <v-card color="grey-darken-4">
-                  <v-color-picker
-                    :model-value="getWledRgbHex(control)"
-                    hide-inputs
-                    mode="hex"
-                    @update:model-value="setWledRgbHex(control, $event)"
-                  />
-                </v-card>
-              </v-menu>
-            </v-col>
+    <v-card color="grey-darken-4" variant="flat" class="channel-point-macro-accordion__card">
+      <template v-if="rawMode">
+        <vue-monaco-editor
+          v-model:value="content"
+          language="yaml"
+          theme="vs-dark"
+          height="360px"
+          :options="editorOptions"
+        />
+      </template>
 
-            <v-col cols="12" md="4">
-              <v-slider
-                v-model="control.white"
-                :disabled="loadingInternal || disabled"
-                :label="$t('assets.white') || 'White'"
-                :max="255"
-                :min="0"
-                :step="1"
-                density="compact"
-                hide-details="auto"
-                thumb-label
+      <template v-else>
+        <div class="pa-3">
+          <v-row density="comfortable" class="mb-3">
+            <v-col cols="12" md="4"
+                   class="d-none">
+              <v-text-field
+                v-model="visualMacro.name"
+                label="Name"
+                density="comfortable"
+                variant="outlined"
+                readonly
+                hide-details
               />
             </v-col>
 
-            <v-col cols="12" md="4">
-              <v-autocomplete
-                :model-value="control.effect"
-                :items="wledEffectOptions(control.name)"
-                item-title="title"
-                item-value="value"
-                :label="$t('assets.effect') || 'Effect'"
+            <v-col cols="12" md="12">
+              <v-combobox
+                v-model="visualMacro.apis"
+                label="APIs"
+                density="comfortable"
                 variant="outlined"
-                density="compact"
-                :disabled="loadingInternal || disabled"
-                hide-details="auto"
-                clearable
-                @focus="loadWledEffects(control.name)"
-                @update:model-value="setWledEffect(control, $event)"
+                hide-details
+                multiple
+                chips
+                closable-chips
               />
             </v-col>
           </v-row>
-        </v-card-text>
-      </v-card>
-    </v-form>
+
+          <MacroTaskList :items="visualMacro.items" />
+        </div>
+      </template>
+    </v-card>
   </div>
 </template>
 
 <script lang="ts">
-import { useAppStore } from '@/stores/app'
+import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+import MacroTaskList from '@/components/MacroTaskList.vue'
 import {getWebsocketClient} from "@/plugins/websocketInstance.ts";
 
-type WledControl = {
-  name: string
-  red: number | null
-  green: number | null
-  blue: number | null
-  white: number | null
-  effect: number | null
+type VisualTask = {
+  id: string
+  type: 'task' | 'condition'
+  task: any
+  children?: VisualTask[]
+  branches?: VisualBranch[]
 }
 
-type MediaEntry = {
-  name: string
-  path: string
-  type: 'file' | 'folder'
-  asset?: string | { original?: string; compressed?: string | null } | null
-  compressed?: string | null
+type VisualBranch = {
+  id: string
+  task: any
+  children: VisualTask[]
 }
-
-const emptyForm = () => ({
-  sound: '',
-  icon: '',
-  message: '',
-  duration: null as number | null,
-  color: '',
-  channel: '',
-  volume: null as number | null,
-  image: '',
-  video: '',
-  start_macros: [] as string[],
-  idle_macros: [] as string[],
-  end_macros: [] as string[],
-  wled: [] as WledControl[],
-})
-
-const mdiSuggestions = [
-  'alert', 'bell', 'bell-ring', 'bullhorn', 'cash', 'cash-multiple', 'charity', 'chat',
-  'chat-alert', 'crown', 'emoticon', 'emoticon-cool', 'fire', 'gift', 'heart',
-  'heart-pulse', 'information', 'lightning-bolt', 'party-popper', 'pistol', 'rocket',
-  'star', 'star-four-points', 'trophy', 'video', 'volume-high', 'led-strip-variant',
-  'test-tube', 'account', 'account-heart', 'gamepad-variant', 'sword', 'shield',
-  'skull', 'ghost', 'timer', 'clock', 'camera', 'microphone', 'dice-6',
-  'controller-classic', 'youtube', 'twitch', 'discord',
-].sort()
 
 export default {
-  name: 'ChannelPointAssetAccordion',
+  name: 'ChannelPointMacroAccordion',
+
+  components: {
+    VueMonacoEditor,
+    MacroTaskList,
+  },
 
   props: {
     name: { type: String, default: '' },
-    disabled: { type: Boolean, default: false },
-    initialAsset: { type: Object, default: null },
+    initialContent: { type: String, default: '' },
+    disableMacroRead: { type: Boolean, default: false },
   },
 
   data() {
     return {
-      appStore: useAppStore(),
-      form: emptyForm(),
-      colorMenu: false,
-      wledColorMenus: [] as boolean[],
-      mediaEntries: [] as MediaEntry[],
-      mediaEntriesLoaded: false,
-      mediaEntriesLoading: false,
-      localMacroItems: [] as string[],
-      localWledConfigs: {} as Record<string, any>,
-      wledEffectsByLamp: {} as Record<string, Array<{ title: string; value: number }>>,
-      errorMessage: '',
+      content: '',
+      loadedName: '',
       loadingInternal: false,
-      mdiSuggestions,
+      rawMode: false,
+      errorMessage: '',
+      hasVisualErrors: false,
+      visualMacro: {
+        name: '',
+        apis: [] as string[],
+        items: [] as VisualTask[],
+      },
+      editorOptions: {
+        automaticLayout: true,
+        minimap: { enabled: false },
+        tabSize: 2,
+        insertSpaces: true,
+        wordWrap: 'on',
+        scrollBeyondLastLine: false,
+      },
     }
   },
 
-  computed: {
-    normalizedColor: {
-      get(): string {
-        const value = String(this.form.color ?? '').trim()
-        if (!value) return '#66BB6A'
-        return value.startsWith('#') ? value : `#${value}`
-      },
-      set(value: string) {
-        this.form.color = String(value ?? '').replace(/^#/, '').toUpperCase()
-      },
-    },
-
-    macroOptions(): string[] {
-      const storeMacros = this.appStore.getMacros ?? {}
-      const storeMacroNames = Array.isArray(storeMacros)
-        ? storeMacros.map((item: any) => (typeof item === 'string' ? item : item?.name))
-        : Object.keys(storeMacros)
-
-      return [...new Set([...storeMacroNames, ...this.localMacroItems].filter(Boolean).map(String))]
-        .sort((a, b) => a.localeCompare(b))
-    },
-
-    wledOptions(): string[] {
-      return this.getWledConfigEntries()
-        .map((item: any) => item.name)
-        .filter(Boolean)
-        .map(String)
-        .sort((a: string, b: string) => a.localeCompare(b))
-    },
-
-    iconOptions(): string[] {
-      const current = this.normalizeIconName(this.form.icon)
-      const options = [...this.mdiSuggestions]
-      if (current && !options.includes(current)) options.unshift(current)
-      return options
-    },
-
-    soundOptions(): string[] {
-      return this.mediaOptions(/\.(mp3|opus)$/i, false)
-    },
-
-    imageOptions(): string[] {
-      return this.mediaOptions(/\.(webp|jpe?g|png|gif|svg)$/i, true)
-    },
-
-    videoOptions(): string[] {
-      return this.mediaOptions(/\.(webm|mp4|mov|mkv)$/i, true)
-    },
-  },
-
   mounted() {
-    this.bootstrap()
+    this.loadMacro()
   },
 
   beforeUnmount() {
   },
 
   methods: {
-    async bootstrap() {
-      await this.ensureBaseData()
-
-      if (this.initialAsset && Object.keys(this.initialAsset ?? {}).length) {
-        this.setAsset(this.initialAsset)
-        return
-      }
-
-      if (this.name) await this.open(this.name)
+    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
+      return new Promise((resolve, reject) => {
+        getWebsocketClient()?.request(method, params, timeout).then(resolve).catch(reject)
+      })
     },
 
-    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      const client = getWebsocketClient()
-
-      if (!client) {
-        return Promise.reject(new Error('websocket is not connected'))
-      }
-
-      return client.request(method, params, timeout)
-    },
-
-    unwrapWebsocketResponse(response: any, method: string): any {
-      const resultKey = `result_${method}`
-      const params = response?.params ?? response
-
+    unwrapWebsocketResponse(response: any, keys: string[] = []) {
       const candidates = [
-        params?.[resultKey],
-        params?.data?.[resultKey],
-        params?.payload?.[resultKey],
-        params?.result?.[resultKey],
-        response?.[resultKey],
-        response?.data?.[resultKey],
-        response?.payload?.[resultKey],
-        response?.result?.[resultKey],
-        params?.data,
-        params?.payload,
-        params?.result,
-        params,
+        response,
         response?.data,
         response?.payload,
         response?.result,
-        response,
+        response?.data?.result,
+        response?.payload?.result,
       ]
 
-      for (const candidate of candidates) {
-        if (candidate !== undefined && candidate !== null) return candidate
-      }
+      for (const container of candidates) {
+        if (!container) continue
 
-      return {}
-    },
-
-    async requestEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
-      // Streambot config/list APIs here use websocket only.
-      // REST/fetch is intentionally only used for WLED HTTP endpoints below.
-      void endpoint
-
-      const response = await this.requestWebsocket(method, params, timeout)
-      const data = this.unwrapWebsocketResponse(response, method)
-
-      if (data?.error) {
-        throw new Error(data.error)
-      }
-
-      return data
-    },
-
-    parseMaybeJson(value: any): any {
-      if (typeof value !== 'string') return value
-
-      try {
-        return JSON.parse(value)
-      } catch {
-        return value
-      }
-    },
-
-    looksLikeAssetConfig(value: any): boolean {
-      if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-
-      return [
-        'sound', 'image', 'video', 'icon', 'message', 'duration', 'color', 'channel', 'volume',
-        'start_macros', 'idle_macros', 'end_macros', 'wled',
-      ].some((key) => Object.prototype.hasOwnProperty.call(value, key))
-    },
-
-    extractAssetFromReadResponse(data: any): any {
-      const parsed = this.parseMaybeJson(data)
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-
-      // assets_read returns exactly this shape:
-      // { path: "channel_point_Fail.yaml", content: { video, duration, volume, ... } }
-      // The old code returned the wrapper object, so setAsset() saw asset.video as undefined.
-      const candidates = [
-        this.parseMaybeJson(parsed.content),
-        this.parseMaybeJson(parsed.result_assets_read?.content),
-        this.parseMaybeJson(parsed.data?.result_assets_read?.content),
-        this.parseMaybeJson(parsed.payload?.result_assets_read?.content),
-        parsed.asset,
-        parsed.config?.asset,
-        parsed.config,
-        parsed.raw?.asset,
-        parsed.raw,
-        parsed.file?.asset,
-        parsed.file,
-        parsed,
-      ]
-
-      for (const candidate of candidates) {
-        if (this.looksLikeAssetConfig(candidate)) {
-          return candidate
+        for (const key of keys) {
+          if (container?.[key] !== undefined) return container[key]
         }
       }
 
-      // Last fallback: avoid returning the read wrapper if it only has path/content.
-      const content = this.parseMaybeJson(parsed.content)
-      if (content && typeof content === 'object' && !Array.isArray(content)) return content
+      for (const container of candidates) {
+        if (container !== undefined && container !== null) return container
+      }
 
-      return {}
+      return response
     },
 
-    async readAsset(name = this.name): Promise<any> {
-      const assetName = String(name ?? '').trim()
-      if (!assetName) return this.initialAsset ?? {}
+    normalizeMacroContent(value: any, fallbackName = this.name): string {
+      const unwrapped = this.unwrapWebsocketResponse(value, [
+        'result_macro_read',
+        'result_macro_get',
+      ])
 
-      const data = await this.requestEndpoint('assets_read', 'assets/read', { name: assetName }, 15_000)
-      const asset = this.extractAssetFromReadResponse(data)
+      const raw = unwrapped?.content ?? unwrapped?.macro ?? unwrapped?.data?.content ?? unwrapped
 
-      return Object.keys(asset ?? {}).length ? asset : (this.initialAsset ?? {})
+      if (typeof raw === 'string') return raw
+      if (raw && typeof raw === 'object') return this.yamlDump(raw)
+
+      return this.defaultMacroContent(fallbackName)
     },
 
-    async open(name = this.name) {
+    async readMacro(name = this.name) {
+      if (!name || this.disableMacroRead) return ''
+
+      const params = { name }
+      const methods = ['macro_read']
+      let lastError: any = null
+
+      for (const method of methods) {
+        try {
+          const response = await this.requestWebsocket(method, params, 8_000)
+          const data = this.unwrapWebsocketResponse(response, [
+            'result_macro_read',
+            'result_macro_get',
+          ])
+
+          if (data?.error) throw new Error(data.error)
+          return this.normalizeMacroContent(data, name)
+        } catch (error: any) {
+          lastError = error
+        }
+      }
+
+      throw lastError ?? new Error('macro read failed')
+    },
+
+    async loadMacro(name = this.name) {
+      if (this.loadingInternal) return
+
       this.loadingInternal = true
       this.errorMessage = ''
 
       try {
-        await this.ensureBaseData()
+        if (this.initialContent && this.disableMacroRead) {
+          this.setContent(this.initialContent, name)
+          return
+        }
 
-        const asset = await this.readAsset(name)
-        this.setAsset(asset ?? {})
-
+        const content = await this.readMacro(name)
+        this.loadedName = name
+        this.setContent(content || this.initialContent || this.defaultMacroContent(name), name)
       } catch (error: any) {
-        this.errorMessage = error?.message ?? ''
+        if (this.initialContent) {
+          this.setContent(this.initialContent, name)
+          return
+        }
+
+        this.setContent(this.defaultMacroContent(name), name)
+        this.errorMessage = error?.message ?? 'loading macro failed'
       } finally {
         this.loadingInternal = false
       }
     },
 
-    async ensureBaseData() {
-      await Promise.all([
-        this.fetchMacros(),
-        this.fetchWledConfigs(),
-      ])
+    uid() {
+      return `${Date.now()}_${Math.random().toString(16).slice(2)}`
     },
 
-    async fetchWledConfigs() {
+    defaultMacroContent(name: string) {
+      return `name: ${name}\napis: []\ntasks: []\n`
+    },
+
+    setContent(content: string, name = this.name) {
+      this.content = content || this.defaultMacroContent(name)
+      this.parseContentToVisual(name)
+    },
+
+    getContent() {
+      if (!this.rawMode) this.syncVisualToContent()
+      return this.content
+    },
+
+    toggleRawMode(value: boolean) {
+      if (value) {
+        this.syncVisualToContent()
+        return
+      }
+
+      this.parseContentToVisual(this.name)
+    },
+
+    parseContentToVisual(fallbackName = this.name) {
       try {
-        const data = await this.requestEndpoint('assets_list', 'assets/list').catch(() => ({}))
-        this.localWledConfigs = data?.wled ?? data?.configs?.wled ?? {}
-      } catch {
-        this.localWledConfigs = {}
-      }
-    },
+        const parsed: any = this.yamlLoad(this.content) ?? {}
+        const tasks = Array.isArray(parsed.tasks) ? parsed.tasks : []
+        const result = this.parseTaskRange(tasks, 0, [])
 
-    async fetchMacros() {
-      try {
-        const data = await this.requestEndpoint('macro_list', 'macro/list')
-        const files = data?.files ?? data?.macros ?? data ?? []
-        this.localMacroItems = Array.isArray(files)
-          ? files.map((item: any) => String(item?.name ?? item?.path ?? item).replace(/\.ya?ml$/i, '')).filter(Boolean)
-          : Object.keys(files ?? {})
-      } catch (error) {
-        this.localMacroItems = []
-      }
-    },
-
-    onMediaMenuUpdate(open: boolean) {
-      if (!open) return
-      void this.ensureMediaEntries()
-    },
-
-    async ensureMediaEntries() {
-      if (this.mediaEntriesLoaded || this.mediaEntriesLoading) return
-
-      this.mediaEntriesLoading = true
-
-      try {
-        await this.fetchMediaEntries()
-        this.mediaEntriesLoaded = true
-      } finally {
-        this.mediaEntriesLoading = false
-      }
-    },
-
-    normalizeMediaEntry(entry: any, fallbackPath = ''): MediaEntry | null {
-      if (!entry) return null
-
-      if (typeof entry === 'string') {
-        const path = this.normalizePath(entry)
-        return path ? { name: path.split('/').pop() ?? path, path, type: 'file' } : null
-      }
-
-      const rawPath = entry.path ?? entry.file ?? entry.filename ?? entry.name ?? fallbackPath
-      const path = this.normalizePath(rawPath)
-      if (!path) return null
-
-      const type = entry.type === 'folder' || entry.isDirectory || entry.directory ? 'folder' : 'file'
-
-      return {
-        ...entry,
-        name: String(entry.name ?? path.split('/').pop() ?? path),
-        path,
-        type,
-      }
-    },
-
-    extractMediaEntries(value: any, basePath = ''): MediaEntry[] {
-      const result: MediaEntry[] = []
-
-      const add = (entry: any, fallbackPath = '') => {
-        const normalized = this.normalizeMediaEntry(entry, fallbackPath)
-        if (normalized) result.push(normalized)
-      }
-
-      if (Array.isArray(value)) {
-        for (const item of value) add(item)
-        return result
-      }
-
-      if (!value || typeof value !== 'object') return result
-
-      for (const key of ['files', 'items', 'entries', 'children']) {
-        if (Array.isArray(value[key])) {
-          for (const item of value[key]) add(item)
+        this.visualMacro = {
+          name: parsed.name ?? fallbackName,
+          apis: Array.isArray(parsed.apis) ? parsed.apis : [],
+          items: result.items,
         }
+
+        this.hasVisualErrors = false
+        this.errorMessage = ''
+      } catch (error: any) {
+        this.hasVisualErrors = true
+        this.errorMessage = error?.message ?? 'Failed to parse macro YAML'
       }
+    },
 
-      for (const [key, item] of Object.entries(value)) {
-        if (['files', 'items', 'entries', 'children', 'assets', 'wled'].includes(key)) continue
+    parseTaskRange(tasks: any[], startIndex: number, stopMethods: string[]) {
+      const items: VisualTask[] = []
+      let index = startIndex
+      let stopMethod = ''
 
-        const fallbackPath = basePath ? `${basePath}/${key}` : key
+      while (index < tasks.length) {
+        const task = this.cloneTask(tasks[index])
+        const method = task?.channel === 'condition' ? task.method : ''
 
-        if (typeof item === 'string') {
-          add(item)
+        if (stopMethods.includes(method)) {
+          stopMethod = method
+          break
+        }
+
+        if (task?.channel === 'condition' && task.method === 'if') {
+          const childResult = this.parseTaskRange(tasks, index + 1, ['else_if', 'else', 'end_if'])
+          const branches: VisualBranch[] = []
+          index = childResult.index
+
+          while (index < tasks.length && tasks[index]?.channel === 'condition' && ['else_if', 'else'].includes(tasks[index].method)) {
+            const branchTask = this.cloneTask(tasks[index])
+            const branchResult = this.parseTaskRange(tasks, index + 1, ['else_if', 'else', 'end_if'])
+
+            branches.push({
+              id: this.uid(),
+              task: branchTask,
+              children: branchResult.items,
+            })
+
+            index = branchResult.index
+          }
+
+          if (tasks[index]?.channel === 'condition' && tasks[index].method === 'end_if') {
+            index++
+          }
+
+          items.push({
+            id: this.uid(),
+            type: 'condition',
+            task,
+            children: childResult.items,
+            branches,
+          })
+
           continue
         }
 
-        if (!item || typeof item !== 'object') continue
-
-        if ((item as any).type || (item as any).path || (item as any).name || (item as any).asset || (item as any).compressed) {
-          add({ ...(item as any), path: (item as any).path ?? fallbackPath })
-        }
-
-        if ((item as any).asset) {
-          if (typeof (item as any).asset === 'string') add((item as any).asset)
-          if (typeof (item as any).asset === 'object') {
-            add((item as any).asset.original)
-            add((item as any).asset.compressed)
-          }
-        }
-
-        add((item as any).original)
-        add((item as any).compressed)
-      }
-
-      return result
-    },
-
-    async fetchMediaEntries(path = ''): Promise<MediaEntry[]> {
-      try {
-        const data = await this.requestEndpoint('media_list', 'assets/media/list', { path }, 15_000)
-        const files = data?.files ?? data?.items ?? data?.entries ?? data?.children ?? data ?? []
-        const result: MediaEntry[] = []
-
-        for (const rawEntry of this.extractMediaEntries(files)) {
-          if (!rawEntry) continue
-          result.push(rawEntry)
-
-          if (rawEntry.type === 'folder' && rawEntry.path) {
-            result.push(...await this.fetchMediaEntries(rawEntry.path))
-          }
-        }
-
-        const unique = this.uniqueMediaEntries(result)
-        if (!path) this.mediaEntries = unique.filter((entry) => entry?.type === 'file')
-        return unique
-      } catch (error) {
-        if (!path) await this.fetchMediaEntriesFromAssetsList()
-        return []
-      }
-    },
-
-    async fetchMediaEntriesFromAssetsList() {
-      try {
-        const data = await this.requestEndpoint('assets_list', 'assets/list')
-        const result = this.extractMediaEntries(data?.assets ?? data ?? {})
-        this.mediaEntries = this.uniqueMediaEntries(result).filter((entry) => entry?.type === 'file')
-      } catch (error) {
-        this.mediaEntries = []
-      }
-    },
-
-    uniqueMediaEntries(entries: MediaEntry[]): MediaEntry[] {
-      const byPath = new Map<string, MediaEntry>()
-
-      for (const entry of entries) {
-        const normalized = this.normalizeMediaEntry(entry)
-        if (!normalized?.path) continue
-        if (!byPath.has(normalized.path)) byPath.set(normalized.path, normalized)
-      }
-
-      return [...byPath.values()]
-    },
-
-    setAsset(asset: any = {}) {
-      const form = emptyForm()
-      form.sound = String(asset?.sound ?? '')
-      form.icon = this.normalizeIconName(asset?.icon ?? '')
-      form.message = String(asset?.message ?? '')
-      form.duration = this.toNullableNumber(asset?.duration)
-      form.color = String(asset?.color ?? '').replace(/^#/, '').toUpperCase()
-      form.channel = String(asset?.channel ?? '')
-      form.volume = this.toNullableNumber(asset?.volume)
-      form.image = String(asset?.image ?? '')
-      form.video = String(asset?.video ?? '')
-      form.start_macros = this.toStringArray(asset?.start_macros)
-      form.idle_macros = this.toStringArray(asset?.idle_macros)
-      form.end_macros = this.toStringArray(asset?.end_macros)
-      form.wled = this.toWledControls(asset?.wled)
-
-      this.form = form
-      this.wledColorMenus = form.wled.map(() => false)
-    },
-
-    normalizeIconName(value: any): string {
-      const rawValue = typeof value === 'object' && value !== null
-        ? (value.raw ?? value.title ?? value.value ?? '')
-        : value
-
-      return String(rawValue ?? '').trim().replace(/^mdi:/, '').replace(/^mdi-/, '')
-    },
-
-    iconValue(value: string): string {
-      const normalized = this.normalizeIconName(value)
-      return normalized ? `mdi-${normalized}` : 'mdi-palette'
-    },
-
-    stripWledPrefix(value: any): string {
-      const stripped = String(value ?? '')
-        .trim()
-        .replace(/^wled[\s_-]*/i, '')
-        .replace(/^wled(?=[A-Z0-9])/i, '')
-        .trim()
-      return stripped || String(value ?? '').trim()
-    },
-
-    getWledConfigEntries(): Array<Record<string, any>> {
-      const appConfig = this.appStore.getConfig ?? {}
-      const configEntries = Object.entries(appConfig as Record<string, any>)
-      const entriesFromConfig = configEntries
-        .filter(([key]) => /^wled/i.test(key))
-        .map(([key, value]: [string, any]) => {
-          const name = this.stripWledPrefix(key)
-          return value && typeof value === 'object' ? { name, configKey: key, ...value } : { name, configKey: key, url: value }
+        items.push({
+          id: this.uid(),
+          type: 'task',
+          task,
         })
-
-      const entriesFromLocal = Object.entries(this.localWledConfigs ?? {}).map(([name, value]: [string, any]) => (
-        value && typeof value === 'object' ? { name: this.stripWledPrefix(name), ...value } : { name: this.stripWledPrefix(name), url: value }
-      ))
-
-      const byName = new Map<string, Record<string, any>>()
-      for (const entry of [...entriesFromConfig, ...entriesFromLocal]) {
-        if (!entry?.name) continue
-        const key = String(entry.name).toLowerCase()
-        if (byName.has(key)) continue
-        byName.set(key, entry)
+        index++
       }
 
-      return [...byName.values()]
+      return { items, index, stopMethod }
     },
 
-    getWledBaseUrl(lamp: any): string {
-      const rawUrl = String(lamp?.url ?? lamp?.host ?? lamp?.hostname ?? lamp?.address ?? lamp?.ip ?? lamp?.website ?? lamp?.api ?? '').trim()
-      if (!rawUrl) return ''
-      return (/^https?:\/\//i.test(rawUrl) ? rawUrl : `http://${rawUrl}`).replace(/\/+$/, '')
+    syncVisualToContent() {
+      const macro = {
+        name: this.visualMacro.name || this.name,
+        apis: this.visualMacro.apis ?? [],
+        tasks: this.flattenVisualTasks(this.visualMacro.items),
+      }
+
+      this.content = this.yamlDump(macro)
     },
 
-    getWledLampEntry(name: any): Record<string, any> | undefined {
-      const normalizedName = this.stripWledPrefix(name).toLowerCase()
-      return this.getWledConfigEntries().find((entry: any) => String(entry.name).toLowerCase() === normalizedName)
-    },
+    flattenVisualTasks(items: VisualTask[]): any[] {
+      const tasks: any[] = []
 
-    getWledEffectCacheKey(name: any): string {
-      return this.stripWledPrefix(name).toLowerCase()
-    },
+      for (const item of items) {
+        if (item.type === 'condition') {
+          tasks.push(this.cloneTask(item.task))
+          tasks.push(...this.flattenVisualTasks(item.children ?? []))
 
-    wledEffectOptions(name: any): Array<{ title: string; value: number }> {
-      const key = this.getWledEffectCacheKey(name)
-      return key ? this.wledEffectsByLamp[key] ?? [] : []
-    },
+          for (const branch of item.branches ?? []) {
+            tasks.push(this.cloneTask(branch.task))
+            tasks.push(...this.flattenVisualTasks(branch.children ?? []))
+          }
 
-    async loadWledEffectsForAllLamps() {
-      await Promise.all(this.getWledConfigEntries().map((entry: any) => this.loadWledEffects(entry.name)))
-    },
-
-    async loadWledEffects(name: any) {
-      const lamp = this.getWledLampEntry(name)
-      const baseUrl = this.getWledBaseUrl(lamp)
-      const cacheKey = this.getWledEffectCacheKey(name)
-      const url = baseUrl ? `${baseUrl}/json/eff` : ''
-
-      if (!cacheKey || !url) return
-
-      try {
-        const response = await fetch(url, { cache: 'no-store' })
-        const effects = await response.json()
-        this.wledEffectsByLamp = {
-          ...this.wledEffectsByLamp,
-          [cacheKey]: Array.isArray(effects)
-            ? effects.map((effect: any, index: number) => ({ title: `${index} - ${String(effect)}`, value: index }))
-            : [],
+          tasks.push({ channel: 'condition', method: 'end_if' })
+          continue
         }
-      } catch (error) {
-        this.wledEffectsByLamp = { ...this.wledEffectsByLamp, [cacheKey]: [] }
-      }
-    },
 
-    getEntryOriginal(entry: MediaEntry): string {
-      if (typeof entry.asset === 'object' && entry.asset?.original) return this.normalizePath(entry.asset.original)
-      if (typeof entry.asset === 'string') return this.normalizePath(entry.asset)
-      return this.normalizePath(entry.path)
-    },
-
-    getEntryCompressed(entry: MediaEntry): string {
-      if (typeof entry.compressed === 'string') return this.normalizePath(entry.compressed)
-      if (typeof entry.asset === 'object' && typeof entry.asset?.compressed === 'string') return this.normalizePath(entry.asset.compressed)
-      return ''
-    },
-
-    mediaOptions(regex: RegExp, compressedFirst: boolean): string[] {
-      const values: string[] = []
-      const add = (value: string) => {
-        const normalized = this.normalizePath(value)
-        if (!normalized || !regex.test(normalized)) return
-        regex.lastIndex = 0
-        if (!values.includes(normalized)) values.push(normalized)
+        tasks.push(this.cloneTask(item.task))
       }
 
-      for (const entry of this.mediaEntries as MediaEntry[]) {
-        if (!entry || entry.type !== 'file') continue
-        const original = this.getEntryOriginal(entry)
-        const compressed = this.getEntryCompressed(entry)
+      return tasks
+    },
 
-        if (compressedFirst) {
-          add(compressed)
-          add(original)
-        } else {
-          add(original)
-          add(compressed)
+    cloneTask(task: any) {
+      return JSON.parse(JSON.stringify(task ?? {}))
+    },
+
+    yamlLoad(input: string) {
+      const lines = String(input ?? '')
+        .replace(/\t/g, '  ')
+        .split(/\r?\n/)
+        .map((raw) => ({ indent: raw.match(/^ */)?.[0].length ?? 0, text: raw.trim() }))
+        .filter((line) => line.text && !line.text.startsWith('#'))
+
+      const parseScalar = (value: string): any => {
+        const trimmed = value.trim()
+        if (trimmed === '') return ''
+        if (trimmed === '[]') return []
+        if (trimmed === '{}') return {}
+        if (trimmed === 'true') return true
+        if (trimmed === 'false') return false
+        if (trimmed === 'null') return null
+        if (/^-?\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed)
+
+        if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+          try {
+            return trimmed.startsWith('"') ? JSON.parse(trimmed) : trimmed.slice(1, -1).replace(/''/g, "'")
+          } catch (error) {
+            return trimmed.slice(1, -1)
+          }
         }
+
+        return trimmed
       }
 
-      return values
-    },
-
-    normalizePath(value: any): string {
-      return String(value ?? '').replace(/\\/g, '/').replace(/^\/+/, '').trim()
-    },
-
-    toNullableNumber(value: any): number | null {
-      if (value === undefined || value === null || value === '') return null
-      const numberValue = Number(value)
-      return Number.isFinite(numberValue) ? numberValue : null
-    },
-
-    toStringArray(value: any): string[] {
-      if (!value) return []
-      if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean)
-      return String(value).split(',').map((item) => item.trim()).filter(Boolean)
-    },
-
-    toWledControls(value: any): WledControl[] {
-      if (!value || typeof value !== 'object') return []
-      return Object.entries(value).map(([name, control]: [string, any]) => ({
-        name: this.stripWledPrefix(name),
-        red: this.toNullableNumber(control?.red),
-        green: this.toNullableNumber(control?.green),
-        blue: this.toNullableNumber(control?.blue),
-        white: this.toNullableNumber(control?.white),
-        effect: this.toNullableNumber(control?.effect),
-      }))
-    },
-
-    addWledControl() {
-      this.form.wled.push({ name: '', red: null, green: null, blue: null, white: null, effect: null })
-      this.wledColorMenus.push(false)
-    },
-
-    removeWledControl(index: number) {
-      this.form.wled.splice(index, 1)
-      this.wledColorMenus.splice(index, 1)
-    },
-
-    cleanString(value: any): string | undefined {
-      const normalized = String(value ?? '').trim()
-      return normalized ? normalized : undefined
-    },
-
-    cleanNumber(value: any): number | undefined {
-      if (value === undefined || value === null || value === '') return undefined
-      const numberValue = Number(value)
-      return Number.isFinite(numberValue) ? numberValue : undefined
-    },
-
-    cleanByte(value: any): number | undefined {
-      const numberValue = this.cleanNumber(value)
-      if (numberValue === undefined) return undefined
-      return Math.min(255, Math.max(0, Math.round(numberValue)))
-    },
-
-    byteToHex(value: any): string {
-      const numberValue = this.cleanByte(value) ?? 0
-      return numberValue.toString(16).padStart(2, '0').toUpperCase()
-    },
-
-    getWledRgbHex(control: WledControl): string {
-      return `#${this.byteToHex(control.red)}${this.byteToHex(control.green)}${this.byteToHex(control.blue)}`
-    },
-
-    setWledRgbHex(control: WledControl, value: any) {
-      const rawColor = value && typeof value === 'object'
-        ? (value.hex ?? value.hexa ?? value.hex8 ?? value.value ?? value.raw?.hex ?? '')
-        : value
-
-      const hex = String(rawColor ?? '').replace(/^#/, '').trim()
-      const normalizedHex = hex.length === 8 ? hex.slice(0, 6) : hex
-      if (!/^[0-9a-f]{6}$/i.test(normalizedHex)) return
-
-      control.red = parseInt(normalizedHex.slice(0, 2), 16)
-      control.green = parseInt(normalizedHex.slice(2, 4), 16)
-      control.blue = parseInt(normalizedHex.slice(4, 6), 16)
-    },
-
-    setWledEffect(control: WledControl, value: any) {
-      const rawValue = value && typeof value === 'object' ? (value.value ?? value.raw?.value ?? value.raw ?? value.title) : value
-      control.effect = this.toNullableNumber(rawValue)
-    },
-
-    getAssetPayload() {
-      const asset: Record<string, any> = {}
-
-      for (const key of ['sound', 'icon', 'message', 'color', 'channel', 'image', 'video']) {
-        let value = this.cleanString((this.form as any)[key])
-        if (key === 'icon' && value) value = this.normalizeIconName(value)
-        if (key === 'color' && value) value = value.replace(/^#/, '').toUpperCase()
-        if (value !== undefined) asset[key] = value
+      const parseBlock = (index: number, indent: number): any => {
+        if (lines[index]?.text.startsWith('- ')) return parseArray(index, indent)
+        return parseObject(index, indent)
       }
 
-      const duration = this.cleanNumber(this.form.duration)
-      if (duration !== undefined) asset.duration = duration
+      const setPair = (target: any, pair: string, nextIndex: number, parentIndent: number) => {
+        const separatorIndex = pair.indexOf(':')
+        if (separatorIndex < 0) return nextIndex
 
-      const volume = this.cleanNumber(this.form.volume)
-      if (volume !== undefined) asset.volume = volume
+        const key = pair.slice(0, separatorIndex).trim()
+        const value = pair.slice(separatorIndex + 1).trim()
 
-      for (const key of ['start_macros', 'idle_macros', 'end_macros']) {
-        const values = this.toStringArray((this.form as any)[key])
-        if (values.length) asset[key] = values
-      }
-
-      const wled: Record<string, any> = {}
-      for (const control of this.form.wled) {
-        const name = this.cleanString(control.name)
-        if (!name) continue
-        const data: Record<string, any> = {}
-        for (const key of ['red', 'green', 'blue', 'white', 'effect']) {
-          const value = this.cleanByte((control as any)[key])
-          if (value !== undefined) data[key] = value
+        if (value) {
+          target[key] = parseScalar(value)
+          return nextIndex
         }
-        if (Object.keys(data).length) wled[this.stripWledPrefix(name)] = data
-      }
-      if (Object.keys(wled).length) asset.wled = wled
 
-      return asset
+        if (nextIndex < lines.length && lines[nextIndex].indent > parentIndent) {
+          const child = parseBlock(nextIndex, lines[nextIndex].indent)
+          target[key] = child.value
+          return child.index
+        }
+
+        target[key] = null
+        return nextIndex
+      }
+
+      const parseObject = (index: number, indent: number): any => {
+        const object: Record<string, any> = {}
+
+        while (index < lines.length) {
+          const line = lines[index]
+          if (line.indent < indent) break
+          if (line.indent > indent) {
+            index++
+            continue
+          }
+          if (line.text.startsWith('- ')) break
+
+          index = setPair(object, line.text, index + 1, indent)
+        }
+
+        return { value: object, index }
+      }
+
+      const parseArray = (index: number, indent: number): any => {
+        const array: any[] = []
+
+        while (index < lines.length) {
+          const line = lines[index]
+          if (line.indent < indent) break
+          if (line.indent > indent) {
+            index++
+            continue
+          }
+          if (!line.text.startsWith('- ')) break
+
+          const rest = line.text.slice(2).trim()
+          index++
+
+          if (!rest) {
+            if (index < lines.length && lines[index].indent > indent) {
+              const child = parseBlock(index, lines[index].indent)
+              array.push(child.value)
+              index = child.index
+            } else {
+              array.push(null)
+            }
+            continue
+          }
+
+          if (rest.includes(':') && !rest.startsWith('"') && !rest.startsWith("'")) {
+            const object: Record<string, any> = {}
+            index = setPair(object, rest, index, indent + 2)
+
+            while (index < lines.length && lines[index].indent > indent) {
+              const childLine = lines[index]
+              if (childLine.indent < indent + 2) break
+              if (childLine.indent > indent + 2) {
+                index++
+                continue
+              }
+              if (childLine.text.startsWith('- ')) break
+              index = setPair(object, childLine.text, index + 1, childLine.indent)
+            }
+
+            array.push(object)
+            continue
+          }
+
+          array.push(parseScalar(rest))
+        }
+
+        return { value: array, index }
+      }
+
+      if (!lines.length) return {}
+      return parseBlock(0, lines[0].indent).value
+    },
+
+    yamlDump(value: any): string {
+      const quoteString = (value: string) => {
+        if (value === '') return '""'
+        if (/^[a-zA-Z0-9_.\/${}!-]+$/.test(value) && !['true', 'false', 'null'].includes(value)) return value
+        return JSON.stringify(value)
+      }
+
+      const scalar = (value: any) => {
+        if (value === null || value === undefined) return 'null'
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+        return quoteString(String(value))
+      }
+
+      const dump = (current: any, indent = 0): string[] => {
+        const prefix = ' '.repeat(indent)
+
+        if (Array.isArray(current)) {
+          if (current.length === 0) return [`${prefix}[]`]
+
+          return current.flatMap((item) => {
+            if (item && typeof item === 'object') {
+              const entries = Object.entries(item)
+              if (entries.length === 0) return [`${prefix}- {}`]
+
+              const [firstKey, firstValue] = entries[0]
+              const lines: string[] = []
+
+              if (firstValue && typeof firstValue === 'object') {
+                lines.push(`${prefix}- ${firstKey}:`)
+                lines.push(...dump(firstValue, indent + 4))
+              } else {
+                lines.push(`${prefix}- ${firstKey}: ${scalar(firstValue)}`)
+              }
+
+              for (const [key, value] of entries.slice(1)) {
+                if (value && typeof value === 'object') {
+                  lines.push(`${prefix}  ${key}:`)
+                  lines.push(...dump(value, indent + 4))
+                } else {
+                  lines.push(`${prefix}  ${key}: ${scalar(value)}`)
+                }
+              }
+
+              return lines
+            }
+
+            return [`${prefix}- ${scalar(item)}`]
+          })
+        }
+
+        if (current && typeof current === 'object') {
+          return Object.entries(current).flatMap(([key, item]) => {
+            if (item && typeof item === 'object') {
+              return [`${prefix}${key}:`, ...dump(item, indent + 2)]
+            }
+
+            return [`${prefix}${key}: ${scalar(item)}`]
+          })
+        }
+
+        return [`${prefix}${scalar(current)}`]
+      }
+
+      return `${dump(value).join('\n')}\n`
     },
   },
 }
 </script>
 
 <style scoped lang="scss">
-.asset-color-preview {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+.channel-point-macro-accordion {
+  &__card {
+    overflow: hidden;
+  }
 }
 </style>
