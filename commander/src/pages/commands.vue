@@ -249,10 +249,38 @@ export default {
       this.$nextTick(() => (this.$refs.createDialogRef as any)?.open?.())
     },
 
-    openEditor(item: CommandEntry) {
-      this.selectedCommand = item
-      this.editorDialog = true
-      this.$nextTick(() => (this.$refs.editorDialogRef as any)?.open?.())
+    async openEditor(item: CommandEntry) {
+      this.workingName = item.name
+      this.workingAction = 'read'
+      this.errorMessage = ''
+
+      try {
+        const data = await this.requestEndpoint('commands_read', 'commands/read', {
+          path: item.file,
+          file: item.file,
+          name: item.name,
+        })
+
+        const command = data?.command ?? data?.data?.command ?? data
+
+        this.selectedCommand = {
+          ...item,
+          file: data?.path ?? data?.file ?? item.file,
+          command: {
+            ...(item.command ?? {}),
+            ...(command ?? {}),
+          },
+        }
+
+        this.editorDialog = true
+        await this.$nextTick()
+        ;(this.$refs.editorDialogRef as any)?.open?.()
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'command read failed'
+      } finally {
+        this.workingName = null
+        this.workingAction = null
+      }
     },
 
     openDeleteDialog(item: CommandEntry) {

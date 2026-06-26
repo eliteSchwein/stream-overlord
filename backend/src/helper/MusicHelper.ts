@@ -156,23 +156,6 @@ function getMprisMpvArgs(): string[] {
     return []
 }
 
-
-function getYtDlpMpvArgs(): string[] {
-    const musicConfig = getConfig(/^music$/g)[0] ?? {}
-    const args = [
-        '--ytdl=yes',
-        '--ytdl-format=bestaudio/best',
-    ]
-
-    if (musicConfig.ytdlp_cookies_from_browser) {
-        args.push(`--ytdl-raw-options=cookies-from-browser=${String(musicConfig.ytdlp_cookies_from_browser)}`)
-    } else if (musicConfig.ytdlp_cookies) {
-        args.push(`--ytdl-raw-options=cookies=${expandPath(String(musicConfig.ytdlp_cookies))}`)
-    }
-
-    return args
-}
-
 function getInitialMusicVolumePercent(): number {
     const audioData: any = getAudioData()
     const musicAudio = audioData?.music
@@ -206,7 +189,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
     }
 
     const files = songRequestEnabled
-        ? getSongRequestPlaylistEntries()
+        ? getSongRequestFiles().filter(file => isMusicFile(file))
         : getRegularMusicFiles().map(file => file.path)
 
     if (files.length === 0) {
@@ -230,7 +213,6 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         '--audio-client-name=streambot_music',
         `--audio-device=pulse/${streambotMusicSink}`,
         `--input-ipc-server=${mpvSocketPath}`,
-        ...getYtDlpMpvArgs(),
         ...getMprisMpvArgs(),
     ]
 
@@ -450,24 +432,20 @@ export async function addSongRequest(url: string): Promise<boolean> {
 
     mkdirSync(songRequestPath, { recursive: true })
 
-    if (!isYoutubeUrl(normalizedUrl)) {
-        const before = getSongRequestFiles()
+    const before = getSongRequestFiles()
 
-        await downloadSongRequest(normalizedUrl)
+    await downloadSongRequest(normalizedUrl)
 
-        const after = getSongRequestFiles()
-        const created = after.find(file => !before.includes(file))
+    const after = getSongRequestFiles()
+    const created = after.find(file => !before.includes(file))
 
-        if (created) {
-            songRequestTitleMap[path.basename(created)] = normalizedUrl
-        }
+    if (created) {
+        songRequestTitleMap[path.basename(created)] = normalizedUrl
     }
 
     if (!mpvProcess || !existsSync(mpvSocketPath)) {
         logRegular('mpv not running, starting music player after songrequest')
         await startMusicPlayer()
-    } else if (isYoutubeUrl(normalizedUrl)) {
-        await mpvCommand(['loadfile', normalizedUrl, 'append-play'])
     } else {
         const changed = await appendMissingDownloadedSongs()
 
@@ -1232,26 +1210,6 @@ function getSongRequestFiles(): string[] {
         .map(file => path.join(songRequestPath, file))
 }
 
-function getSongRequestPlaylistEntries(): string[] {
-    const downloadedFiles = getSongRequestFiles().filter(file => isMusicFile(file))
-
-    const entries = songRequestQueue
-        .map(url => {
-            if (isYoutubeUrl(url)) {
-                return url
-            }
-
-            return downloadedFiles.find(file => songRequestTitleMap[path.basename(file)] === url) ?? null
-        })
-        .filter((entry): entry is string => !!entry)
-
-    if (entries.length > 0) {
-        return entries
-    }
-
-    return downloadedFiles
-}
-
 async function removeFromPlaylist(filePath: string) {
     const playlist = await mpvGetProperty('playlist') ?? []
 
@@ -1272,6 +1230,7 @@ async function removeFromPlaylist(filePath: string) {
 
 async function downloadSongRequest(url: string): Promise<void> {
     if (isYoutubeUrl(url)) {
+        await downloadWithYtDlp(url)
         return
     }
 
