@@ -438,6 +438,11 @@ export default {
   },
 
   methods: {
+    isTimeoutError(error: any) {
+      const message = String(error?.message ?? error ?? '').toLowerCase()
+      return message.includes('timeout') || message.includes('timed out') || message.includes('request timed out')
+    },
+
     async bootstrap() {
       await this.ensureBaseData()
 
@@ -562,10 +567,19 @@ export default {
       const assetName = String(name ?? '').trim()
       if (!assetName) return this.initialAsset ?? {}
 
-      const data = await this.requestEndpoint('assets_read', 'assets/read', { name: assetName }, 15_000)
-      const asset = this.extractAssetFromReadResponse(data)
+      try {
+        const data = await this.requestEndpoint('assets_read', 'assets/read', { name: assetName }, 15_000)
+        const asset = this.extractAssetFromReadResponse(data)
 
-      return Object.keys(asset ?? {}).length ? asset : (this.initialAsset ?? {})
+        return Object.keys(asset ?? {}).length ? asset : (this.initialAsset ?? {})
+      } catch (error: any) {
+        if (this.isTimeoutError(error)) {
+          console.warn('assets_read timed out, using local/default asset state', error)
+          return this.initialAsset ?? {}
+        }
+
+        throw error
+      }
     },
 
     async open(name = this.name) {
@@ -580,7 +594,7 @@ export default {
 
         await this.loadWledEffectsForAllLamps()
       } catch (error: any) {
-        this.errorMessage = error?.message ?? ''
+        this.errorMessage = this.isTimeoutError(error) ? '' : (error?.message ?? '')
       } finally {
         this.loadingInternal = false
       }

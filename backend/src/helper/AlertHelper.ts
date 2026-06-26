@@ -1,174 +1,171 @@
-import {removeEventFromQuery} from "../clients/twitch/helper/CooldownHelper";
+import { removeEventFromQuery } from "../clients/twitch/helper/CooldownHelper";
 import getWebsocketServer from "../App";
-import {pushGameInfo, setManualColor} from "./GameHelper";
-import {setLedColor} from "./WledHelper";
-import {speak} from "./TTShelper";
-import {logRegular, logWarn} from "./LogHelper";
-import {sleep} from "../../../helper/GeneralHelper";
-import {unlinkEvent} from "./MessageEventLinkHelper";
+import { pushGameInfo, setManualColor } from "./GameHelper";
+import { setLedColor } from "./WledHelper";
+import { speak } from "./TTShelper";
+import { logRegular, logWarn } from "./LogHelper";
+import { sleep } from "../../../helper/GeneralHelper";
+import { unlinkEvent } from "./MessageEventLinkHelper";
 
-const alertQuery: any[] = []
-const activeAlerts: string[] = []
-let activeSound: string|null = null
-let alertLoopRunning = false
+const alertQuery: any[] = [];
+const activeAlerts: string[] = [];
+let activeSound: string | null = null;
+let alertLoopRunning = false;
 
 export default function initialAlerts() {
-    const websocketServer = getWebsocketServer()
+    const websocketServer = getWebsocketServer();
 
     setInterval(async () => {
-        if (alertLoopRunning) return
+        if (alertLoopRunning) return;
 
-        alertLoopRunning = true
+        alertLoopRunning = true;
 
         try {
-            websocketServer.send('notify_alert_query', alertQuery)
+            websocketServer.send("notify_alert_query", alertQuery);
 
-            if(alertQuery.length === 0) return
+            if (alertQuery.length === 0) return;
 
-            const activeAlert = alertQuery[0]
+            const activeAlert = alertQuery[0];
 
-            if(activeAlert.duration > 0) {
-                websocketServer.send('notify_alert', {...activeAlert, action: 'show'})
-
-                if(activeAlert.active) {
-                    if(!activeAlerts.includes(activeAlert['event-uuid'])) {
-                        activeAlerts.push(activeAlert['event-uuid'])
-                    }
-
-                    if(!activeAlert.startMacrosFinished) {
-                        alertQuery[0] = activeAlert
-                        return
-                    }
-
-                    activeAlert.duration--
-                    alertQuery[0] = activeAlert
-                    return
+            if (activeAlert.duration > 0) {
+                if (activeAlert.active) {
+                    activeAlert.duration--;
+                    websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
+                    alertQuery[0] = activeAlert;
+                    return;
                 }
 
-                activeAlert.active = true
-                activeAlert.startMacrosFinished = false
-                activeAlert.idleRunId = (activeAlert.idleRunId ?? 0) + 1
+                activeAlert.active = true;
+                activeAlert.ending = false;
+                activeAlert.speakFinished = !activeAlert.speak;
+                activeAlert.idleRunId = (activeAlert.idleRunId ?? 0) + 1;
+                activeAlert.variables = buildAlertVariables(activeAlert);
 
-                if(!activeAlerts.includes(activeAlert['event-uuid'])) {
-                    activeAlerts.push(activeAlert['event-uuid'])
+                if (!activeAlerts.includes(activeAlert["event-uuid"])) {
+                    activeAlerts.push(activeAlert["event-uuid"]);
                 }
 
-                if(activeAlert.color) {
-                    setManualColor(activeAlert.color)
-                    pushGameInfo()
+                if (activeAlert.color) {
+                    setManualColor(activeAlert.color);
+                    pushGameInfo();
                 }
 
                 if (activeAlert.wled) {
-                    void setLedColor(activeAlert.wled)
+                    await setLedColor(activeAlert.wled);
                 }
 
-                void startAlertLifecycle(activeAlert)
+                await startAlertLifecycle(activeAlert);
 
-                if(activeAlert.speak) {
-                    activeAlert['speakFinished'] = false
-                    await speak(activeAlert.message, activeAlert['event-uuid'])
-                    activeAlert['speakFinished'] = true
+                if (!activeAlert.active || activeAlert.ending) {
+                    alertQuery[0] = activeAlert;
+                    return;
                 }
 
-                alertQuery[0] = activeAlert
-                return
+                websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
+
+                if (activeAlert.speak) {
+                    activeAlert.speakFinished = false;
+                    await speak(activeAlert.message, activeAlert["event-uuid"]);
+                    activeAlert.speakFinished = true;
+                }
+
+                activeAlert.duration--;
+                alertQuery[0] = activeAlert;
+                return;
             }
 
-            await finishAlertLifecycle(activeAlert)
+            await finishAlertLifecycle(activeAlert);
 
-            websocketServer.send('notify_alert', {...activeAlert, action: 'hide'})
+            websocketServer.send("notify_alert", { ...activeAlert, action: "hide" });
 
-            if(activeAlert.ending) return
+            if (activeAlert.ending) return;
 
-            activeAlert.ending = true
-            activeAlert.idleRunId = (activeAlert.idleRunId ?? 0) + 1
+            activeAlert.ending = true;
+            activeAlert.idleRunId = (activeAlert.idleRunId ?? 0) + 1;
         } finally {
-            alertLoopRunning = false
+            alertLoopRunning = false;
         }
-    }, 1000)
+    }, 1000);
 }
 
 async function startAlertLifecycle(alert: any) {
-    alert.variables = buildAlertVariables(alert)
-    alert.startMacrosFinished = false
-
     try {
-        await runAlertMacros(alert.start_macros ?? alert.startMacros, alert.variables, 'start')
+        await runAlertMacros(alert.start_macros ?? alert.startMacros, alert.variables, "start");
     } catch (error) {
-        logWarn(`alert start macro failed: ${error instanceof Error ? error.message : String(error)}`)
-    } finally {
-        alert.startMacrosFinished = true
+        logWarn(`alert start macro failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    if (!alert.active || alert.ending) return
+    if (!alert.active || alert.ending) return;
 
-    void runIdleMacros(alert)
+    void runIdleMacros(alert);
 }
 
 async function runIdleMacros(alert: any) {
-    const runId = alert.idleRunId
-    const macros = alert.idle_macros ?? alert.idleMacros
+    const runId = alert.idleRunId;
+    const macros = alert.idle_macros ?? alert.idleMacros;
 
-    if (!getMacroList(macros).length) return
-    if (!alert.active || alert.ending || runId !== alert.idleRunId) return
+    if (!getMacroList(macros).length) return;
+    if (!alert.active || alert.ending || runId !== alert.idleRunId) return;
 
-    await runAlertMacros(macros, alert.variables, 'idle')
+    await runAlertMacros(macros, alert.variables, "idle");
 }
 
 async function finishAlertLifecycle(alert: any) {
-    alert.active = false
+    alert.active = false;
+    alert.ending = true;
+    alert.idleRunId = (alert.idleRunId ?? 0) + 1;
 
-    await runAlertMacros(alert.end_macros ?? alert.endMacros, alert.variables ?? buildAlertVariables(alert), 'end')
+    await runAlertMacros(alert.end_macros ?? alert.endMacros, alert.variables ?? buildAlertVariables(alert), "end");
 
     while (alert.speak && !alert.speakFinished) {
-        await sleep(100)
+        await sleep(100);
     }
 
-    removeAlert(alert)
+    removeAlert(alert);
 
-    if(alertQuery.length > 0) return
+    if (alertQuery.length > 0) return;
 
-    setManualColor()
-    pushGameInfo()
+    setManualColor();
+    pushGameInfo();
 }
 
-async function runAlertMacros(macros: any, variables: any = {}, phase: string = '') {
-    const macroList = getMacroList(macros)
+async function runAlertMacros(macros: any, variables: any = {}, phase: string = "") {
+    const macroList = getMacroList(macros);
 
-    if (!macroList.length) return
+    if (!macroList.length) return;
 
-    const {triggerMacro} = await import('./MacroHelper')
+    const { triggerMacro } = await import("./MacroHelper");
 
     for (const macro of macroList) {
-        if (!macro) continue
+        if (!macro) continue;
 
-        logRegular(`trigger alert ${phase} macro: ${macro}`)
-        await triggerMacro(String(macro), variables)
+        logRegular(`trigger alert ${phase} macro: ${macro}`);
+        await triggerMacro(String(macro), variables);
     }
 }
 
 function getMacroList(macros: any): string[] {
-    if (!macros) return []
+    if (!macros) return [];
 
     if (Array.isArray(macros)) {
-        return macros.map(String).filter(Boolean)
+        return macros.map(String).filter(Boolean);
     }
 
-    if (typeof macros === 'string') {
-        const trimmed = macros.trim()
+    if (typeof macros === "string") {
+        const trimmed = macros.trim();
 
-        if (!trimmed) return []
+        if (!trimmed) return [];
 
         try {
-            const parsed = JSON.parse(trimmed)
-            return getMacroList(parsed)
+            const parsed = JSON.parse(trimmed);
+            return getMacroList(parsed);
         } catch (_) {
-            return [trimmed]
+            return [trimmed];
         }
     }
 
-    logWarn(`invalid alert macro config: ${JSON.stringify(macros)}`)
-    return []
+    logWarn(`invalid alert macro config: ${JSON.stringify(macros)}`);
+    return [];
 }
 
 function buildAlertVariables(alert: any) {
@@ -182,78 +179,70 @@ function buildAlertVariables(alert: any) {
         endMacros,
         startMacrosFinished,
         ...safeAlert
-    } = alert
+    } = alert;
 
     return {
         ...(variables ?? {}),
         alert: safeAlert,
-        eventUuid: alert['event-uuid'],
+        eventUuid: alert["event-uuid"],
         message: alert.message,
         asset: alert.asset,
         channel: alert.channel,
-    }
+    };
 }
 
-export function isAlertActive(eventUuid: string|undefined = undefined) {
-    if(!eventUuid) {
-        return activeAlerts.length > 0
+export function isAlertActive(eventUuid: string | undefined = undefined) {
+    if (!eventUuid) {
+        return activeAlerts.length > 0;
     }
-    return activeAlerts.indexOf(eventUuid) > -1
+
+    return activeAlerts.indexOf(eventUuid) > -1;
 }
 
 export function addAlert(alert: any) {
-    if(alert.video) alert.video = `${alert.video}`
-    if(alert.sound) alert.sound = `${alert.sound}`
-    if(!alert.channel) alert.channel = 'general'
+    if (alert.video) alert.video = `${alert.video}`;
+    if (alert.sound) alert.sound = `${alert.sound}`;
+    if (!alert.channel) alert.channel = "general";
 
-    let active = false
+    alertQuery.push(alert);
 
-    if(alertQuery.length === 0) {
-        const websocketServer = getWebsocketServer()
-
-        websocketServer.send('notify_alert', {...alert, action: 'show'})
-        active = true
-    }
-
-    alertQuery.push(alert)
-
-    return active
+    return alertQuery.length === 1;
 }
 
 export function removeAlert(alert: any) {
-    for(const alertIndex in alertQuery) {
-        const alertPartial = alertQuery[alertIndex]
+    for (const alertIndex in alertQuery) {
+        const alertPartial = alertQuery[alertIndex];
 
-        if(alert['event-uuid'] !== alertPartial['event-uuid']) continue
+        if (alert["event-uuid"] !== alertPartial["event-uuid"]) continue;
 
-        alertPartial.active = false
-        alertPartial.ending = true
-        alertPartial.idleRunId = (alertPartial.idleRunId ?? 0) + 1
+        alertPartial.active = false;
+        alertPartial.ending = true;
+        alertPartial.idleRunId = (alertPartial.idleRunId ?? 0) + 1;
 
-        alertQuery.splice(Number(alertIndex), 1)
+        alertQuery.splice(Number(alertIndex), 1);
 
-        const activeAlertIndex = activeAlerts.indexOf(alert['event-uuid'])
-        if(activeAlertIndex > -1) {
-            activeAlerts.splice(activeAlertIndex, 1)
+        const activeAlertIndex = activeAlerts.indexOf(alert["event-uuid"]);
+        if (activeAlertIndex > -1) {
+            activeAlerts.splice(activeAlertIndex, 1);
         }
 
-        removeEventFromQuery(alert['event-uuid'])
-        unlinkEvent(alert['event-uuid'])
+        removeEventFromQuery(alert["event-uuid"]);
+        unlinkEvent(alert["event-uuid"]);
     }
 }
 
 export function getActiveSound() {
-    return activeSound
+    return activeSound;
 }
 
-export function setActiveSound(sound: string|null) {
-    activeSound = sound
+export function setActiveSound(sound: string | null) {
+    activeSound = sound;
 }
 
 export function removeAlertByEventUuid(eventUuid: string | undefined) {
-    if (!eventUuid) return
+    if (!eventUuid) return;
 
     removeAlert({
         "event-uuid": eventUuid,
-    })
+    });
 }

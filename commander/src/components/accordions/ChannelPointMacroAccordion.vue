@@ -137,6 +137,11 @@ export default {
   },
 
   methods: {
+    isTimeoutError(error: any) {
+      const message = String(error?.message ?? error ?? '').toLowerCase()
+      return message.includes('timeout') || message.includes('timed out') || message.includes('request timed out')
+    },
+
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
       return new Promise((resolve, reject) => {
         getWebsocketClient()?.request(method, params, timeout).then(resolve).catch(reject)
@@ -205,6 +210,11 @@ export default {
           return this.normalizeMacroContent(data, name)
         } catch (error: any) {
           lastError = error
+
+          if (this.isTimeoutError(error)) {
+            console.warn(`${method} timed out, using local/default macro content`, error)
+            return this.initialContent || this.defaultMacroContent(name)
+          }
         }
       }
 
@@ -233,7 +243,7 @@ export default {
         }
 
         this.setContent(this.defaultMacroContent(name), name)
-        this.errorMessage = error?.message ?? 'loading macro failed'
+        this.errorMessage = this.isTimeoutError(error) ? '' : (error?.message ?? 'loading macro failed')
       } finally {
         this.loadingInternal = false
       }
