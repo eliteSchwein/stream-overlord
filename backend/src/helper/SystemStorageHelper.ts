@@ -7,6 +7,7 @@ import {getRegularMusicPath} from "./MusicHelper";
 import {getMacroDirectory} from "./MacroHelper";
 import {getChannelPointConfigDirectory} from "./ChannelPointHelper";
 import getWebsocketServer from "../App";
+import {getCommandDirectory} from "../clients/twitch/TwitchCommands";
 
 export type SystemStorageInfo = {
     root: string;
@@ -20,6 +21,7 @@ export type SystemStorageInfo = {
         music: number;
         macros: number;
         channel_points: number;
+        commands: number;
     };
 };
 
@@ -30,12 +32,14 @@ export function emitSystemStorageUpdate() {
 export function getSystemStorageInfo(): SystemStorageInfo {
     const root = getSystemConfigDirectory();
     const channelPointRoot = getChannelPointConfigDirectory();
+    const commandRoot = getCommandDirectory();
 
     fs.mkdirSync(root, { recursive: true });
     fs.mkdirSync(assetRoot, { recursive: true });
     fs.mkdirSync(overlayRoot, { recursive: true });
     fs.mkdirSync(getMacroDirectory(), { recursive: true });
     fs.mkdirSync(channelPointRoot, { recursive: true });
+    fs.mkdirSync(commandRoot, { recursive: true });
 
     const statfs = fs.statfsSync(root);
 
@@ -56,6 +60,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             music: getDirectorySize(getRegularMusicPath()),
             macros: getDirectorySize(getMacroDirectory()),
             channel_points: getDirectorySize(channelPointRoot),
+            commands: getDirectorySize(commandRoot),
         },
     };
 }

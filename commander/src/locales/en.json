@@ -35,7 +35,8 @@
       "obs": "OBS",
       "media": "Media",
       "assets": "Assets",
-      "events": "Events"
+      "events": "Events",
+      "commands": "Commands"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -235,7 +236,8 @@
     "overlayUsed": "Used by Overlays",
     "macroUsed": "Used by Macros",
     "mediaUsed": "Used by Media",
-    "channelPointUsed": "Used by Channel Points"
+    "channelPointUsed": "Used by Channel Points",
+    "commandUsed": "Used by Commands"
   },
   "common": {
     "cancel": "Cancel",
@@ -371,5 +373,12 @@
     "title": "Events",
     "search": "Search events",
     "none": "No events found"
+  },
+  "commands": {
+    "title": "Commands",
+    "search": "Search commands",
+    "none": "No commands found",
+    "create": "Create command",
+    "upload": "Upload command"
   }
 }

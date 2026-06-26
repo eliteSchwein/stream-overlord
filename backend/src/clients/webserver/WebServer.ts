@@ -17,6 +17,7 @@ import OverlaysUploadApi from "./api/Overlay/OverlaysUploadApi";
 import { setOverlayCacheRebuildHandler } from "../../helper/OverlayManagementHelper";
 import MacrosUploadApi from "./api/Macros/MacrosUploadApi";
 import ChannelPointsUploadApi from "./api/ChannelPoints/ChannelPointsUploadApi";
+import CommandsUploadApi from "./api/Command/CommandsUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -124,6 +125,9 @@ export default class WebServer {
 
         // Channel Points API
         new ChannelPointsUploadApi().register(this.app)
+
+        // Command API
+        new CommandsUploadApi().register(this.app)
 
         await registerApiEndpoints();
 

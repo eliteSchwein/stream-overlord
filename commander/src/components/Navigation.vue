@@ -264,6 +264,11 @@ export default {
         color=""
         to="/events"></v-list-item>
       <v-list-item
+        prepend-icon="mdi-console-line"
+        :title="$t('navigation.tabs.commands')"
+        color=""
+        to="/commands"></v-list-item>
+      <v-list-item
         prepend-icon="mdi-dialpad"
         :title="$t('navigation.tabs.macros')"
         color=""

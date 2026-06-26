@@ -54,7 +54,12 @@
         </div>
 
         <div v-if="!hideChannelPointUsed && channelPointUsed !== null">
-          <span class="text-caption text-grey-lighten-1">{{ $t('system.channelPointUsed') || 'Channel points' }}</span>
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.channelPointUsed') }}</span>
+          <span>{{ formatFileSize(channelPointUsed) }}</span>
+        </div>
+
+        <div v-if="!hideCommandUsed && commandUsed !== null">
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.commandUsed') }}</span>
           <span>{{ formatFileSize(channelPointUsed) }}</span>
         </div>
       </div>
@@ -84,6 +89,10 @@ export default {
       default: true,
     },
     hideChannelPointUsed: {
+      type: Boolean,
+      default: true,
+    },
+    hideCommandUsed: {
       type: Boolean,
       default: true,
     },
@@ -145,6 +154,14 @@ export default {
         this.storageInfo?.folders?.channel_points_configs,
         this.storageInfo?.channelPointUsed,
         this.storageInfo?.channelPointsUsed,
+      ])
+    },
+
+    commandUsed(): number | null {
+      return this.firstNumber([
+        this.storageInfo?.folders?.commands,
+        this.storageInfo?.folders?.commands_configs,
+        this.storageInfo?.commands,
       ])
     },
   },

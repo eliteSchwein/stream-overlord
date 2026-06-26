@@ -20,6 +20,11 @@ export { default as ChannelPointMoveApi } from "./ChannelPoints/ChannelPointMove
 export { default as ChannelPointReadApi } from "./ChannelPoints/ChannelPointReadApi";
 export { default as GetChannePointsApi } from "./ChannelPoints/GetChannePointsApi";
 export { default as ToggleChannelPointApi } from "./ChannelPoints/ToggleChannelPointApi";
+export { default as CommandDeleteApi } from "./Command/CommandDeleteApi";
+export { default as CommandEditApi } from "./Command/CommandEditApi";
+export { default as CommandListApi } from "./Command/CommandListApi";
+export { default as CommandMoveApi } from "./Command/CommandMoveApi";
+export { default as CommandReadApi } from "./Command/CommandReadApi";
 export { default as LinkSinkApi } from "./Common/LinkSinkApi";
 export { default as SetAudioOutputVolumeApi } from "./Common/SetAudioOutputVolumeApi";
 export { default as SetVolumeApi } from "./Common/SetVolumeApi";

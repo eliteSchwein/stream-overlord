@@ -55,6 +55,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/commands': RouteRecordInfo<
+      '/commands',
+      '/commands',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/connections': RouteRecordInfo<
       '/connections',
       '/connections',
@@ -180,6 +187,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/channelPoints.vue': {
       routes:
         | '/channelPoints'
+      views:
+        | never
+    }
+    'src/pages/commands.vue': {
+      routes:
+        | '/commands'
       views:
         | never
     }
