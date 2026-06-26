@@ -78,6 +78,7 @@ declare module 'vue' {
     MacroRestTaskAccordion: typeof import('./components/accordions/macro/MacroRestTaskAccordion.vue')['default']
     MacroTaskAccordion: typeof import('./components/accordions/macro/MacroTaskAccordion.vue')['default']
     MacroTaskList: typeof import('./components/MacroTaskList.vue')['default']
+    MacroTimerTaskAccordion: typeof import('./components/accordions/macro/MacroTimerTaskAccordion.vue')['default']
     MacroVariableGetTaskAccordion: typeof import('./components/accordions/macro/MacroVariableGetTaskAccordion.vue')['default']
     MacroVariableSetTaskAccordion: typeof import('./components/accordions/macro/MacroVariableSetTaskAccordion.vue')['default']
     MacroWebhookTaskAccordion: typeof import('./components/accordions/macro/MacroWebhookTaskAccordion.vue')['default']

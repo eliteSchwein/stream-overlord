@@ -100,6 +100,7 @@ import {
   MacroChannelPointPauseTaskAccordion, MacroChannelPointToggleTaskAccordion,
   MacroKeyboardTaskAccordion,
 } from '@/components/accordions/macro'
+import MacroTimerTaskAccordion from "@/components/accordions/macro/MacroTimerTaskAccordion.vue";
 
 export default {
   name: 'MacroTaskList',
@@ -139,6 +140,7 @@ export default {
     MacroChannelPointPauseTaskAccordion,
     MacroChannelPointToggleTaskAccordion,
     MacroKeyboardTaskAccordion,
+    MacroTimerTaskAccordion
   },
 
   props: {
@@ -257,9 +259,30 @@ export default {
           factory: () => this.createTask({ channel: 'function', method: 'send_message', data: { content: '' } }),
         },
         {
-          title: 'Sleep',
-          icon: 'mdi-timer-sand',
-          factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 1000 } }),
+          title: 'Time',
+          icon: 'mdi-clock-time-eight',
+          children: [
+            {
+              title: 'Sleep 1s',
+              icon: 'mdi-timer-sand',
+              factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 1000 } }),
+            },
+            {
+              title: 'Sleep 1min',
+              icon: 'mdi-timer-sand',
+              factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 60000 } }),
+            },
+            {
+              title: 'Sleep 5min',
+              icon: 'mdi-timer-sand',
+              factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 300000 } }),
+            },
+            {
+              title: 'Timer',
+              icon: 'mdi-timer-play',
+              factory: () => this.createTask({ channel: 'timer', method: '', data: { } }),
+            },
+          ]
         },
         {
           title: 'Random',
@@ -409,6 +432,10 @@ export default {
       if (item?.type === 'loop' || (item?.task?.channel === 'loop' && item?.task?.method === 'for')) return 'MacroLoopTaskAccordion'
       if (item?.task?.channel === 'loop' && ['break', 'continue', 'end_for'].includes(item?.task?.method)) return 'MacroLoopControlTaskAccordion'
       if (item?.task?.channel === 'condition' && item?.task?.method === 'end_macro') return 'MacroEndMacroTaskAccordion'
+
+      if (item?.task?.channel === 'timer') {
+        return 'MacroTimerTaskAccordion'
+      }
 
       if (item?.task?.channel === 'variable' && item?.task?.method === 'get') {
         return 'MacroVariableGetTaskAccordion'

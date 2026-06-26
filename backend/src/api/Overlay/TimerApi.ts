@@ -1,25 +1,34 @@
 import BaseApi from "../../abstracts/BaseApi";
 import {logRegular} from "../../helper/LogHelper";
-import {activateTimer} from "../../helper/TimerHelper";
+import {startTimer} from "../../helper/TimerHelper";
 
 export default class TimerApi extends BaseApi {
-    restEndpoint = 'timer'
-    restPost = true
-    websocketMethod = 'timer'
+    restEndpoint = "timer";
+    restPost = true;
+    websocketMethod = "timer";
 
-    async handle(data: any): Promise<any>
-    {
-        if(!data.state) return {"error": "missing state"}
-
-        const timerName = data.data.name
+    async handle(data: any): Promise<any> {
+        if (!data.state) return {error: "missing state"};
 
         switch (data.state) {
-            case 'start':
-            case 'activate':
-                logRegular(`activate timer ${timerName}`)
-                activateTimer(timerName)
-                break
-            default: return {"error": "invalid state"}
+            case "start": {
+                const timerData = data.data ?? {};
+
+                logRegular(`start timer ${timerData.name ?? ""}`);
+
+                const started = startTimer(timerData);
+
+                if (!started) {
+                    return {error: "timer start requires valid name and time"};
+                }
+
+                return {
+                    status: "okay",
+                };
+            }
+
+            default:
+                return {error: "invalid state"};
         }
     }
 }

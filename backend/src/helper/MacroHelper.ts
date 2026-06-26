@@ -37,6 +37,7 @@ import {getAssetConfig, getWledConfigs, normalizeWledControls} from "./AssetHelp
 import {setLedColor} from "./WledHelper";
 import {toggleChannelPoint, toggleChannelPointPause} from "./ChannelPointHelper";
 import {updateConfiguredEventIndex} from "./EventHelper";
+import {activateTimer, startTimer} from "./TimerHelper";
 
 let macros: any = {};
 
@@ -1030,7 +1031,12 @@ export async function triggerMacro(name: string, variables: any = {}) {
                 }
 
                 case "channel_point": {
-                    await handleChannelPoint(task.method, variables.event);
+                    await handleChannelPoint(task.method, task.data, variables);
+                    break;
+                }
+
+                case "timer": {
+                    await handleTimer(task.method, task.data);
                     break;
                 }
 
@@ -1909,4 +1915,25 @@ function handleAnimation(method: string, data: any) {
         frameRate: data.frameRate ?? data.frame_rate,
         variables: data.variables ?? {},
     })
+}
+
+async function handleTimer(method: string, data: any = {}) {
+    logRegular(`trigger timer: ${method}`);
+
+    switch (method) {
+        case "start": {
+            const started = startTimer(data);
+
+            if (!started) {
+                logWarn(`timer start requires valid time`);
+            }
+
+            break;
+        }
+
+        default: {
+            logWarn(`invalid timer method: ${method}`);
+            break;
+        }
+    }
 }
