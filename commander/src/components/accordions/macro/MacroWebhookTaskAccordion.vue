@@ -609,13 +609,22 @@ export default {
           const nextEmbed: any = { ...embed }
 
           for (const key of ['author', 'image', 'footer']) {
-            if (nextEmbed[key] && Object.values(nextEmbed[key]).every(value => value === '' || value === undefined || value === null)) {
+            if (
+              nextEmbed[key] &&
+              Object.values(nextEmbed[key]).every(
+                value => value === '' || value === undefined || value === null
+              )
+            ) {
               delete nextEmbed[key]
             }
           }
 
           if (Array.isArray(nextEmbed.fields)) {
-            nextEmbed.fields = nextEmbed.fields.filter((field: any) => field.name || field.value)
+            nextEmbed.fields = nextEmbed.fields.map((field: any) => ({
+              name: field.name ?? '',
+              value: field.value ?? '',
+              inline: field.inline === true,
+            }))
           }
 
           return nextEmbed

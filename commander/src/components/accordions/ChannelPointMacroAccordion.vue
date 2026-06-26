@@ -145,6 +145,10 @@ export default {
 
     unwrapWebsocketResponse(response: any, keys: string[] = []) {
       const candidates = [
+        response?.params,
+        response?.data?.params,
+        response?.payload?.params,
+        response?.result?.params,
         response,
         response?.data,
         response?.payload,

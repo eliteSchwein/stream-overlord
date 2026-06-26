@@ -282,6 +282,24 @@ export default {
       return this.assertWebsocketResponse(data, `${method} failed`)
     },
 
+    isTimeoutError(error: any) {
+      const message = String(error?.message ?? error ?? '').toLowerCase()
+      return message.includes('timeout') || message.includes('timed out') || message.includes('request timed out')
+    },
+
+    async requestEventMutation(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+      try {
+        return await this.requestEventEndpoint(method, params, timeout)
+      } catch (error: any) {
+        if (this.isTimeoutError(error)) {
+          console.warn(`${method} timed out, refreshing state because the mutation may still have completed`, error)
+          return { status: 'timeout_ignored' }
+        }
+
+        throw error
+      }
+    },
+
     normalizeEvents(value: any): EventEntryData[] {
       if (Array.isArray(value)) {
         return value.map(this.normalizeEventEntry).filter(Boolean) as EventEntryData[]
@@ -361,14 +379,14 @@ export default {
 
       try {
         if (!payload.skipAsset) {
-          await this.requestEventEndpoint('assets_edit', {
+          await this.requestEventMutation('assets_edit', {
             path: `${name}.yaml`,
             name,
             asset: payload.asset ?? {},
           }, 30_000)
         }
 
-        await this.requestEventEndpoint('macro_edit', {
+        await this.requestEventMutation('macro_edit', {
           path: `${name}.yaml`,
           name,
           content: payload.macroContent ?? this.defaultMacroContent(name),
