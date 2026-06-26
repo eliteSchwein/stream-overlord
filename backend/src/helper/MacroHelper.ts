@@ -1131,13 +1131,12 @@ async function handleYolobox(method: string, data: any = {}) {
 }
 
 async function handleAlert(
-    task: any = {},
+    message: string,
+    asset: string,
+    eventUuid?: string,
     variables: any = {},
+    options: any = {},
 ) {
-    const message = task.message;
-    const asset = task.asset;
-    let eventUuid = task.event_uuid ?? task.eventUuid ?? variables.eventUuid;
-
     const theme = getAssetConfig(asset);
 
     if (!theme) {
@@ -1150,19 +1149,22 @@ async function handleAlert(
         return;
     }
 
-    if (!eventUuid) {
-        eventUuid = `macro_${uuidv4()}`;
-    }
+    eventUuid ??= `macro_${uuidv4()}`;
+
+    const duration =
+        options.speak === true
+            ? calculateTTSduration(message)
+            : options.duration ?? 15;
 
     addAlert({
         asset,
         sound: theme.sound,
-        duration: theme.duration ?? 15,
+        duration,
         color: theme.color,
         icon: theme.icon,
         message,
         "event-uuid": eventUuid,
-        speak: task.speak === true,
+        speak: options.speak === true,
         video: theme.video,
         wled: mergeWledDefaults(theme.wled),
         volume: theme.volume,
