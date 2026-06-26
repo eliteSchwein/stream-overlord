@@ -1,6 +1,6 @@
 import BaseEvent from "./BaseEvent";
 import {EventSubChannelRewardEvent} from "@twurple/eventsub-base";
-import {updateActiveChannelPoint} from "../../../../helper/ChannelPointHelper";
+import {emitChannelPointConfigUpdate, updateActiveChannelPoint} from "../../../../helper/ChannelPointHelper";
 
 export default class ChannelPointEditEvent extends BaseEvent {
     name = 'ChannelPointEditEvent'
@@ -9,6 +9,8 @@ export default class ChannelPointEditEvent extends BaseEvent {
 
     async handle(event: EventSubChannelRewardEvent) {
         updateActiveChannelPoint(event.id, !event.isPaused)
+
+        emitChannelPointConfigUpdate()
 
         await this.triggerConfiguredEvent(event)
     }

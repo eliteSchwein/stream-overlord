@@ -21,8 +21,17 @@
             hide-details="auto"
           />
         </v-col>
+        <v-col cols="12" md="2">
+          <v-switch
+            v-model="task.speak"
+            label="Speak"
+            density="comfortable"
+            color="primary"
+            hide-details
+          />
+        </v-col>
 
-        <v-col cols="12" md="6">
+        <v-col cols="12" md="4">
           <MacroAssetSelect
             v-model="task.asset"
             label="Asset"

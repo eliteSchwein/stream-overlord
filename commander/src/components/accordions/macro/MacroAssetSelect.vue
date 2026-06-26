@@ -75,7 +75,7 @@ export default {
   computed: {
     assetConfigs(): Record<string, any> {
       const appStore = useAppStore()
-      const storeAssets = appStore.getAssets
+      const storeAssets = appStore.getAssets?.assets ?? []
 
       return storeAssets && !Array.isArray(storeAssets) && Object.keys(storeAssets).length
         ? storeAssets as Record<string, any>

@@ -260,11 +260,6 @@ function sanitizeMacroFileName(name: string) {
         || "macro";
 }
 
-function getMacroFilePathForName(name: string) {
-    return path.join(getMacroDirectory(), `${sanitizeMacroFileName(name)}.yaml`);
-}
-
-
 function findMacroFileByName(name: string): string | undefined {
     ensureMacroDirectory();
 
@@ -334,66 +329,6 @@ function resolveEditableMacroFile(inputPathOrName: string = "") {
 
 function relativeMacroPath(filePath: string) {
     return path.relative(getMacroDirectory(), filePath).replace(/\\/g, "/");
-}
-
-function isMacroAlreadyStoredAsFile(name: string) {
-    const macroDirectory = getMacroDirectory();
-
-    for (const filePath of walkMacroFiles(macroDirectory)) {
-        try {
-            const macroConfig = readMacroConfigFile(filePath) as any;
-            const macroName = macroConfig?.name ?? getMacroNameFromFile(filePath);
-
-            if (macroName === name) {
-                return true;
-            }
-        } catch (error) {
-            logWarn(`failed to check macro file ${filePath}`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        }
-    }
-
-    return false;
-}
-
-function migrateConfigMacrosToFiles() {
-    ensureMacroDirectory();
-
-    const configMacros = getConfig(/^macro /g, true);
-    let migrated = 0;
-
-    for (const macroName in configMacros) {
-        if (isMacroAlreadyStoredAsFile(macroName)) {
-            continue;
-        }
-
-        const macroConfig = configMacros[macroName] ?? {};
-        const filePath = getMacroFilePathForName(macroName);
-
-        if (fs.existsSync(filePath)) {
-            logWarn(`macro migration skipped ${macroName}: ${path.basename(filePath)} already exists`);
-            continue;
-        }
-
-        const fileContent = yaml.dump({
-            apis: macroConfig.apis ?? [],
-            tasks: macroConfig.tasks ?? [],
-        }, {
-            noRefs: true,
-            lineWidth: -1,
-            sortKeys: false,
-        });
-
-        fs.writeFileSync(filePath, fileContent, "utf8");
-        updateMacroRawCache(macroName, fileContent);
-        migrated++;
-
-        logRegular(`migrated config macro ${macroName} to ${path.relative(getSystemConfigDirectory(), filePath)}`);
-    }
-
-    if (migrated > 0) {
-        logNotice(`migrated ${migrated} config macro${migrated === 1 ? "" : "s"} to yaml files`);
-    }
 }
 
 function loadMacrosFromFiles() {
@@ -652,19 +587,7 @@ export default function loadMacros() {
     logRegular("load macros");
     macros = {};
 
-    migrateConfigMacrosToFiles();
     loadMacrosFromFiles();
-
-    const config = getConfig(/^macro /g, true);
-
-    for (const macroName in config) {
-        if (macros[macroName] !== undefined) {
-            logWarn(`macro ${macroName} exists as file and config block - using file macro`);
-            continue;
-        }
-
-        macros[macroName] = config[macroName];
-    }
 
     getWebsocketServer().send("notify_macro_update", {macros});
 }
@@ -1208,11 +1131,13 @@ async function handleYolobox(method: string, data: any = {}) {
 }
 
 async function handleAlert(
-    message: string,
-    asset: string,
-    eventUuid: string | undefined = undefined,
+    task: any = {},
     variables: any = {},
 ) {
+    const message = task.message;
+    const asset = task.asset;
+    let eventUuid = task.event_uuid ?? task.eventUuid ?? variables.eventUuid;
+
     const theme = getAssetConfig(asset);
 
     if (!theme) {
@@ -1237,6 +1162,7 @@ async function handleAlert(
         icon: theme.icon,
         message,
         "event-uuid": eventUuid,
+        speak: task.speak === true,
         video: theme.video,
         wled: mergeWledDefaults(theme.wled),
         volume: theme.volume,

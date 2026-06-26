@@ -4,7 +4,10 @@ import { setI18nLanguage, setI18nLanguageFromConfig } from '@/plugins/i18n'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
-    assets: [],
+    assets: {
+      assets: [],
+      wleds: []
+    },
     wledConfigs: {},
     status: {},
     config: {

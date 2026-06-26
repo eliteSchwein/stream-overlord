@@ -74,10 +74,6 @@ function sanitizeAssetConfigFileName(name: string) {
         || "asset";
 }
 
-function getAssetConfigFilePathForName(name: string) {
-    return path.join(getAssetConfigDirectory(), `${sanitizeAssetConfigFileName(name)}.yaml`);
-}
-
 function walkAssetConfigFiles(directory: string): string[] {
     if (!fs.existsSync(directory)) return [];
 
@@ -245,58 +241,6 @@ function normalizeAssetConfig(assetName: string, config: any = {}) {
     return normalized;
 }
 
-function isAssetConfigAlreadyStoredAsFile(name: string) {
-    for (const filePath of walkAssetConfigFiles(getAssetConfigDirectory())) {
-        try {
-            const assetConfig = readAssetConfigFile(filePath) as any;
-            const assetName = assetConfig?.name ?? getAssetNameFromConfigFile(filePath);
-
-            if (assetName === name) return true;
-        } catch (error) {
-            logRegular(`failed to check asset config file ${filePath}`);
-        }
-    }
-
-    return false;
-}
-
-function migrateConfigAssetsToFiles() {
-    ensureAssetConfigDirectory();
-
-    const configAssets = getConfig(/^asset /g, true);
-    let migrated = 0;
-
-    for (const assetName in configAssets) {
-        if (isAssetConfigAlreadyStoredAsFile(assetName)) {
-            continue;
-        }
-
-        const assetConfig = normalizeAssetConfig(assetName, configAssets[assetName] ?? {});
-        const filePath = getAssetConfigFilePathForName(assetName);
-
-        if (fs.existsSync(filePath)) {
-            logRegular(`asset config migration skipped ${assetName}: ${path.basename(filePath)} already exists`);
-            continue;
-        }
-
-        const {name, ...yamlAssetConfig} = assetConfig;
-        const fileContent = yaml.dump(yamlAssetConfig, {
-            noRefs: true,
-            lineWidth: -1,
-            sortKeys: false,
-        });
-
-        fs.writeFileSync(filePath, fileContent, "utf8");
-        migrated++;
-
-        logRegular(`migrated config asset ${assetName} to ${path.relative(getSystemConfigDirectory(), filePath)}`);
-    }
-
-    if (migrated > 0) {
-        logRegular(`migrated ${migrated} asset config${migrated === 1 ? "" : "s"} to yaml files`);
-    }
-}
-
 function loadAssetConfigsFromFiles() {
     ensureAssetConfigDirectory();
 
@@ -317,25 +261,10 @@ function loadAssetConfigsFromFiles() {
     }
 }
 
-function loadConfigAssetFallbacks() {
-    const configAssets = getConfig(/^asset /g, true);
-
-    for (const assetName in configAssets) {
-        if (assetConfigs[assetName] !== undefined) {
-            logRegular(`asset ${assetName} exists as file and config block - using file asset config`);
-            continue;
-        }
-
-        assetConfigs[assetName] = normalizeAssetConfig(assetName, configAssets[assetName]);
-    }
-}
-
 export function loadAssetConfigs() {
     assetConfigs = {};
 
-    migrateConfigAssetsToFiles();
     loadAssetConfigsFromFiles();
-    loadConfigAssetFallbacks();
 }
 
 export function getAssetConfig(name: string) {
@@ -369,9 +298,7 @@ export function isAssetConfigPresent(name: string) {
         return true;
     }
 
-    const configAssets = getConfig(/^asset /g, true);
-
-    return configAssets[name] !== undefined;
+    return false;
 }
 
 export function requireAssetConfigPresent(name: string) {

@@ -1,10 +1,10 @@
-import { getConfig, getPrimaryChannel, getSystemConfigDirectory } from "../../helper/ConfigHelper";
+import { getPrimaryChannel, getSystemConfigDirectory } from "../../helper/ConfigHelper";
 import { Bot, BotCommandContext, createBotCommand } from "@twurple/easy-bot";
 import fs from "fs";
 import path from "path";
 import * as yaml from "js-yaml";
 import InfoCommand from "./commands/InfoCommand";
-import { logNotice, logRegular, logWarn } from "../../helper/LogHelper";
+import { logRegular, logWarn } from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
 import ShoutoutCommand from "./commands/ShoutoutCommand";
 import ClipCommand from "./commands/ClipCommand";
@@ -168,70 +168,8 @@ function sanitizeCommandFileName(name: string) {
         || "command";
 }
 
-function getCommandFilePathForName(name: string) {
-    return path.join(getCommandDirectory(), `${sanitizeCommandFileName(name)}.yaml`);
-}
-
 function getCommandNameFromConfig(filePath: string, commandConfig: any) {
     return normalizeString(commandConfig?.name) ?? getCommandNameFromFile(filePath);
-}
-
-function isCommandAlreadyStoredAsFile(name: string) {
-    ensureCommandDirectory();
-
-    for (const filePath of walkCommandFiles(getCommandDirectory())) {
-        try {
-            const commandConfig = readCommandConfigFile(filePath) as any;
-            const commandName = getCommandNameFromConfig(filePath, commandConfig);
-
-            if (commandName === name) {
-                return true;
-            }
-        } catch (error) {
-            logWarn(`failed to check command file ${filePath}`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        }
-    }
-
-    return false;
-}
-
-function migrateConfigCommandsToFiles() {
-    ensureCommandDirectory();
-
-    const configCommands = getConfig(/^command /g, true);
-    let migrated = 0;
-
-    for (const commandName in configCommands) {
-        if (isCommandAlreadyStoredAsFile(commandName)) {
-            continue;
-        }
-
-        const commandConfig = configCommands[commandName] ?? {};
-        const filePath = getCommandFilePathForName(commandName);
-
-        if (fs.existsSync(filePath)) {
-            logWarn(`command migration skipped ${commandName}: ${path.basename(filePath)} already exists`);
-            continue;
-        }
-
-        const fileContent = stringifyCommandConfigContent(
-            filePath,
-            normalizeCommandConfigForSave(filePath, {
-                name: commandName,
-                ...commandConfig,
-            }),
-        );
-
-        fs.writeFileSync(filePath, fileContent, "utf8");
-        migrated++;
-
-        logRegular(`migrated config command ${commandName} to ${path.relative(getSystemConfigDirectory(), filePath)}`);
-    }
-
-    if (migrated > 0) {
-        logNotice(`migrated ${migrated} config command${migrated === 1 ? "" : "s"} to yaml files`);
-    }
 }
 
 function loadCommandsFromFiles() {
@@ -520,27 +458,11 @@ export async function addCommandFilesFromUpload(files: CommandUploadFile[] = [],
 }
 
 function buildConfigCommands(commands: any[], bot: Bot) {
-    migrateConfigCommandsToFiles();
     loadCommandsFromFiles();
-
-    const config = getConfig(/^command /g, true);
 
     for (const command in fileCommands) {
         logRegular(`register command file: ${command}`);
         commands.push(buildConfigCommand(command, fileCommands[command], bot));
-    }
-
-    for (const command in config) {
-        if (fileCommands[command] !== undefined) {
-            logWarn(`command ${command} exists as file and config block - using file command`);
-            continue;
-        }
-
-        const commandContent = config[command];
-
-        logRegular(`register command: ${command}`);
-
-        commands.push(buildConfigCommand(command, commandContent, bot));
     }
 
     return commands;

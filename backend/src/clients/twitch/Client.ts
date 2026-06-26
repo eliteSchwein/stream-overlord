@@ -260,9 +260,7 @@ export default class TwitchClient {
         // EventSub events that require affiliate/partner/monetization features
         await this.safeRegister("channel ad break begin event", () => new ChannelAdBreakBeginEvent(eventSub, bot).register());
         await this.safeRegister("channel points event", () => new ChannelPointsEvent(eventSub, bot).register());
-        await this.safeRegister("channel point create event", () => new ChannelPointCreateEvent(eventSub, bot).register());
         await this.safeRegister("channel point edit event", () => new ChannelPointEditEvent(eventSub, bot).register());
-        await this.safeRegister("channel point delete event", () => new ChannelPointDeleteEvent(eventSub, bot).register());
         await this.safeRegister("bits event", () => new CheerEvent(eventSub, bot).register());
         await this.safeRegister("poll prediction event", () => new PollPredictionEvent(eventSub, bot).register());
         await this.safeRegister("poll progress event", () => new PollProgressEvent(eventSub, bot).register());
