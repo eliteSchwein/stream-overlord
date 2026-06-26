@@ -103,7 +103,8 @@ type ChannelPointEntry = {
   macro: string
   enable_default?: boolean
   auto_accept?: boolean
-  strip_emotes?: boolean
+  strip_emotes?: boolean,
+  input_required?: boolean,
   file?: string
   active?: boolean
   id?: string
@@ -294,6 +295,7 @@ export default {
         enable_default: content?.enable_default === true,
         auto_accept: content?.auto_accept === true,
         strip_emotes: content?.strip_emotes === true,
+        input_required: content?.input_required === true,
         file: raw?.path ?? raw?.file ?? `${name}.yaml`,
         active: raw?.active,
         id: raw?.id,
@@ -387,6 +389,7 @@ export default {
           enable_default: payload.enable_default === true,
           auto_accept: payload.auto_accept === true,
           strip_emotes: payload.strip_emotes === true,
+          input_required: payload.input_required === true,
         }
 
         await this.requestChannelPointEndpoint('assets_edit', {
@@ -404,6 +407,13 @@ export default {
         const data = await this.requestChannelPointEndpoint('channel_points_edit', {
           path: `${name}.yaml`,
           name,
+          label: channelPoint.label,
+          asset: channelPoint.asset,
+          macro: channelPoint.macro,
+          enable_default: channelPoint.enable_default,
+          auto_accept: channelPoint.auto_accept,
+          strip_emotes: channelPoint.strip_emotes,
+          input_required: channelPoint.input_required,
           channel_point: channelPoint,
           content: this.channelPointToYaml(channelPoint),
         }, 30_000)
@@ -434,6 +444,7 @@ export default {
         `enable_default: ${channelPoint.enable_default === true ? 'true' : 'false'}`,
         `auto_accept: ${channelPoint.auto_accept === true ? 'true' : 'false'}`,
         `strip_emotes: ${channelPoint.strip_emotes === true ? 'true' : 'false'}`,
+        `input_required: ${channelPoint.input_required === true ? 'true' : 'false'}`,
         '',
       ].join('\n')
     },

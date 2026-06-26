@@ -46,6 +46,22 @@ function normalizeChannelPointLookup(value: unknown): string {
     return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function coerceChannelPointBoolean(value: unknown): boolean {
+    if (value === true) return true;
+    if (value === 1) return true;
+
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        return normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on";
+    }
+
+    return false;
+}
+
+function hasOwnValue(object: any, key: string) {
+    return Object.prototype.hasOwnProperty.call(object ?? {}, key) && object?.[key] !== undefined;
+}
+
 export function getChannelPointConfigDirectory() {
     return path.join(getSystemConfigDirectory(), "channel_points");
 }
@@ -106,10 +122,10 @@ function normalizeChannelPointConfig(name: string, config: any = {}): ChannelPoi
         name: label,
         asset: String(config?.asset ?? "").trim(),
         macro: String(config?.macro ?? "").trim(),
-        enable_default: config?.enable_default === true,
-        auto_accept: config?.auto_accept === true,
-        strip_emotes: config?.strip_emotes === true,
-        input_required: config?.input_required === true,
+        enable_default: coerceChannelPointBoolean(config?.enable_default),
+        auto_accept: coerceChannelPointBoolean(config?.auto_accept),
+        strip_emotes: coerceChannelPointBoolean(config?.strip_emotes),
+        input_required: coerceChannelPointBoolean(config?.input_required ?? config?.inputRequired),
     };
 }
 
@@ -280,7 +296,7 @@ function createChannelPointPayload(configuredChannelPoint: any = {}, twitchChann
         image: getChannelPointImage(twitchChannelPoint) || configuredChannelPoint?.image || "",
         active,
         exists_on_twitch: !!twitchChannelPoint,
-        input_required: configuredChannelPoint?.input_required === true
+        input_required: coerceChannelPointBoolean(configuredChannelPoint?.input_required)
             || twitchChannelPoint?.userInputRequired === true
             || twitchChannelPoint?.isUserInputRequired === true,
         twitch_input_required: twitchChannelPoint?.userInputRequired === true
@@ -333,14 +349,59 @@ export function readChannelPointFile(inputPathOrName: string) {
     };
 }
 
-export function editChannelPointFile(inputPathOrName: string, content: string) {
+function stringifyChannelPointConfigContent(filePath: string, config: any) {
+    const extension = path.extname(filePath).toLowerCase();
+
+    if (extension === ".json") {
+        return `${JSON.stringify(config, null, 2)}\n`;
+    }
+
+    return yaml.dump(config, {
+        lineWidth: -1,
+        noRefs: true,
+        sortKeys: false,
+    });
+}
+
+function normalizeChannelPointConfigContentForWrite(filePath: string, content: string, patch: any = {}) {
+    const rawConfig = parseChannelPointConfigContent(filePath, content || "") as any;
+    const config = rawConfig && typeof rawConfig === "object" && !Array.isArray(rawConfig)
+        ? {...rawConfig}
+        : {};
+
+    if (hasOwnValue(patch, "label")) config.label = String(patch.label ?? "").trim();
+    if (hasOwnValue(patch, "name")) config.name = String(patch.name ?? "").trim();
+    if (hasOwnValue(patch, "asset")) config.asset = String(patch.asset ?? "").trim();
+    if (hasOwnValue(patch, "macro")) config.macro = String(patch.macro ?? "").trim();
+    if (hasOwnValue(patch, "cost")) config.cost = Number(patch.cost || 0);
+
+    if (hasOwnValue(patch, "enable_default")) config.enable_default = coerceChannelPointBoolean(patch.enable_default);
+    if (hasOwnValue(patch, "auto_accept")) config.auto_accept = coerceChannelPointBoolean(patch.auto_accept);
+    if (hasOwnValue(patch, "strip_emotes")) config.strip_emotes = coerceChannelPointBoolean(patch.strip_emotes);
+    if (hasOwnValue(patch, "input_required")) config.input_required = coerceChannelPointBoolean(patch.input_required);
+    if (hasOwnValue(patch, "inputRequired")) config.input_required = coerceChannelPointBoolean(patch.inputRequired);
+
+    if (hasOwnValue(config, "inputRequired")) {
+        config.input_required = coerceChannelPointBoolean(config.input_required ?? config.inputRequired);
+        delete config.inputRequired;
+    }
+
+    config.enable_default = coerceChannelPointBoolean(config.enable_default);
+    config.auto_accept = coerceChannelPointBoolean(config.auto_accept);
+    config.strip_emotes = coerceChannelPointBoolean(config.strip_emotes);
+    config.input_required = coerceChannelPointBoolean(config.input_required);
+
+    return stringifyChannelPointConfigContent(filePath, config);
+}
+
+export function editChannelPointFile(inputPathOrName: string, content: string, patch: any = {}) {
     const filePath = resolveEditableChannelPointConfigFile(inputPathOrName);
 
     if (!isChannelPointConfigFile(filePath)) {
         throw new Error("channel point config file must be .yaml, .yml or .json");
     }
 
-    fs.writeFileSync(filePath, content ?? "", "utf8");
+    fs.writeFileSync(filePath, normalizeChannelPointConfigContentForWrite(filePath, content ?? "", patch), "utf8");
 
     loadChannelPointConfigs();
     emitChannelPointConfigUpdate();
@@ -501,7 +562,7 @@ function getTwitchChannelPointInputRequired(channelPoint: any) {
 async function syncChannelPointTwitchSettings(configuredChannelPoint: any, twitchChannelPoint: HelixCustomReward | undefined, primaryChannel: HelixUser) {
     if (!twitchChannelPoint) return;
 
-    const desiredInputRequired = configuredChannelPoint?.input_required === true;
+    const desiredInputRequired = coerceChannelPointBoolean(configuredChannelPoint?.input_required);
     const currentInputRequired = getTwitchChannelPointInputRequired(twitchChannelPoint);
 
     if (currentInputRequired === desiredInputRequired) return;
