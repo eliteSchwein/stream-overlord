@@ -6,6 +6,7 @@ import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {updateAdData} from "../../../../helper/SchedulerHelper";
 import {updateSourceFilters} from "../../../../helper/SourceHelper";
 import {sleep} from "../../../../../../helper/GeneralHelper";
+import {updateTwitchCategoryData, updateTwitchStreamData} from "../../../../helper/TwitchDataHelper";
 
 export default class ChannelUpdateEvent extends BaseEvent {
     name = 'ChannelUpdateEvent'
@@ -15,6 +16,8 @@ export default class ChannelUpdateEvent extends BaseEvent {
     async handle(event: any) {
         await this.triggerConfiguredEvent(event)
         void updateAdData()
+        await updateTwitchStreamData(this.bot)
+        await updateTwitchCategoryData(this.bot)
 
         const oldGameId = getCurrentGameId()
 
@@ -32,5 +35,7 @@ export default class ChannelUpdateEvent extends BaseEvent {
         // idk why but this is needed
         await sleep(1_000)
         await updateSourceFilters()
+
+        await this.triggerConfiguredEvent(event)
     }
 }

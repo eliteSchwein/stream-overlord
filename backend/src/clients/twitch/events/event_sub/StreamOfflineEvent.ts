@@ -4,6 +4,7 @@ import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
+import {updateTwitchCategoryData, updateTwitchStreamData} from "../../../../helper/TwitchDataHelper";
 
 export default class StreamOfflineEvent extends BaseEvent {
     name = 'StreamOffline'
@@ -18,6 +19,8 @@ export default class StreamOfflineEvent extends BaseEvent {
 
     async handle(event: any) {
         logRegular(`stream offline`)
+        await updateTwitchStreamData(this.bot)
+        await updateTwitchCategoryData(this.bot)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')

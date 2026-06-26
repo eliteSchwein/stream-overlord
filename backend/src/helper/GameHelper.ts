@@ -8,15 +8,25 @@ import RemoteCacheHelper from "./RemoteCacheHelper";
 const gameInfo = {
     data: {
         'theme': {}
-    },
+    } as any,
+    manual: ''
+}
+
+const rawGameInfo = {
+    data: {
+        'theme': {}
+    } as any,
     manual: ''
 }
 
 let currentGameId = 0
 
-export default function getGameInfo() {
+function applyManualAndDefaultColor(info: any) {
     const config = getConfig(/theme/g)[0]
-    const clonedGameInfo = structuredClone(gameInfo)
+    const clonedGameInfo = structuredClone(info)
+
+    clonedGameInfo.data ??= {}
+    clonedGameInfo.data['theme'] ??= {}
 
     if(clonedGameInfo.manual !== '') {
         clonedGameInfo.data['theme']['color'] = '#'+clonedGameInfo.manual
@@ -36,6 +46,14 @@ export default function getGameInfo() {
     return clonedGameInfo
 }
 
+export default function getGameInfo() {
+    return applyManualAndDefaultColor(gameInfo)
+}
+
+export function getRawGameInfo() {
+    return applyManualAndDefaultColor(rawGameInfo)
+}
+
 export function getCurrentGameId() {
     return currentGameId
 }
@@ -43,9 +61,12 @@ export function getCurrentGameId() {
 export async function fetchGameInfo() {
     logRegular('fetch theme from website')
     const newGameInfo = await getGameInfoData()
+
     if(newGameInfo) {
-        gameInfo.data = await RemoteCacheHelper.cacheGameInfo(newGameInfo)
+        rawGameInfo.data = structuredClone(newGameInfo)
+        gameInfo.data = await RemoteCacheHelper.cacheGameInfo(structuredClone(newGameInfo))
     }
+
     currentGameId = gameInfo.data?.game_id
 }
 
@@ -58,10 +79,12 @@ export function setManualColor(value: string|undefined = undefined) {
     if(value) {
         logRegular(`set manual theme color: ${value}`);
         gameInfo.manual = value
+        rawGameInfo.manual = value
         return
     }
 
     logRegular('reset manual theme color');
     gameInfo.manual = ''
+    rawGameInfo.manual = ''
     void setLedColor()
 }

@@ -1271,27 +1271,21 @@ function mergeWledDefaults(value: any) {
     return result;
 }
 
-async function handleWebhook(method: string, data: any) {
-    logRegular(`send webhook: ${method}`);
+async function handleWebhook(method: string = "post", data: any = {}) {
+    logRegular(`send webhook`);
 
-    const regex = new RegExp(`webhook ${method}`, "g");
-    const config = getConfig(regex)[0];
-
-    if (!config) {
-        logWarn(`no webhook config found for ${method}`);
+    if (!data.url) {
+        logWarn(`webhook requires url`);
         return;
     }
 
-    const webhookContent = JSON.parse(
-        await parsePlaceholders(JSON.stringify(config.content), config.additional_data),
-    );
-
-    await fetch(config.url, {
-        method: "POST",
+    await fetch(data.url, {
+        method: String(method || "post").toUpperCase(),
         headers: {
             "Content-Type": "application/json",
+            ...(data.headers ?? {}),
         },
-        body: JSON.stringify(webhookContent),
+        body: String(data.content ?? ""),
     });
 }
 

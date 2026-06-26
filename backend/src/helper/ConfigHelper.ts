@@ -7,7 +7,7 @@ import * as path from "node:path";
 import * as os from "node:os";
 
 let config: any = {};
-let primaryChannel = undefined;
+let primaryChannel: any = undefined;
 let configWatcherRegistered = false;
 let reloadTimer: NodeJS.Timeout | undefined;
 
@@ -216,6 +216,26 @@ export async function loadPrimaryChannel(client: TwitchClient) {
 
 export function getPrimaryChannel() {
     return primaryChannel;
+}
+
+export function getParsedPrimaryChannel() {
+    const channel: any = primaryChannel;
+
+    if (!channel) {
+        return undefined;
+    }
+
+    return {
+        id: channel.id,
+        name: channel.name,
+        display_name: channel.displayName,
+        description: channel.description,
+        profile_picture_url: channel.profilePictureUrl,
+        offline_placeholder_url: channel.offlinePlaceholderUrl,
+        creation_date: channel.creationDate?.toISOString?.() ?? channel.creationDate,
+        type: channel.type,
+        broadcaster_type: channel.broadcasterType,
+    };
 }
 
 export function watchConfig() {

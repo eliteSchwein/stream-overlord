@@ -1,5 +1,5 @@
-import {getPrimaryChannel} from "./ConfigHelper";
-import getGameInfo from "./GameHelper";
+import {getParsedPrimaryChannel, getPrimaryChannel} from "./ConfigHelper";
+import getGameInfo, {getRawGameInfo} from "./GameHelper";
 import getWebsocketServer from "../App";
 import {getSystemComponents} from "./SystemInfoHelper";
 import {getGiveaway} from "./GiveawayHelper";
@@ -14,6 +14,7 @@ import {
     isSongRequestQueryBlocked,
 } from "./MusicHelper";
 import {getCachedVariables} from "./VariableHelper";
+import {getCachedTwitchData} from "./TwitchDataHelper";
 
 export default function fillTemplate(tpl: string, data: any) {
     const ctx = getTemplateVariables(data);
@@ -54,8 +55,8 @@ export function getTemplateVariables(data: any = {}) {
     const ctx: Record<string, any> = {
         data,
         variables,
-        primarychannel: getPrimaryChannel(),
-        gameinfo: getGameInfo(),
+        twitch: getCachedTwitchData(),
+        gameinfo: getRawGameInfo()?.data,
 
         musicinfo: musicStatus,
         musictext: musicText,

@@ -49,6 +49,7 @@ import ShieldEvent from "./events/event_sub/ShieldEvent";
 import StreamOfflineEvent from "./events/event_sub/StreamOfflineEvent";
 import StreamOnlineEvent from "./events/event_sub/StreamOnlineEvent";
 import UserUpdateEvent from "./events/event_sub/UserUpdateEvent";
+import {updateTwitchData} from "../../helper/TwitchDataHelper";
 export default class TwitchClient {
     protected auth: TwitchAuth;
     protected bot?: Bot;
@@ -186,6 +187,7 @@ export default class TwitchClient {
         }
 
         await loadPrimaryChannel(this);
+        await updateTwitchData(this.bot);
 
         logRegular("connect eventsub");
 

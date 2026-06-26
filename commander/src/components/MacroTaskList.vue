@@ -365,6 +365,11 @@ export default {
           icon: 'mdi-function',
           children: [
             {
+              title: 'Webhook',
+              icon: 'mdi-webhook',
+              factory: () => this.createTask({ channel: 'webhook', method: 'post', data: {} }),
+            },
+            {
               title: 'Websocket',
               icon: 'mdi-connection',
               factory: () => this.createTask({ channel: 'websocket', method: '', data: {} }),

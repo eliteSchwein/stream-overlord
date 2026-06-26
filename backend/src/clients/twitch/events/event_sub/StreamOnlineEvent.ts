@@ -4,6 +4,7 @@ import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
+import {updateTwitchCategoryData, updateTwitchStreamData} from "../../../../helper/TwitchDataHelper";
 
 export default class StreamOnlineEvent extends BaseEvent {
     name = 'StreamOnline'
@@ -18,6 +19,8 @@ export default class StreamOnlineEvent extends BaseEvent {
 
     async handle(event: any) {
         logRegular(`stream online`)
+        await updateTwitchStreamData(this.bot)
+        await updateTwitchCategoryData(this.bot)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')
