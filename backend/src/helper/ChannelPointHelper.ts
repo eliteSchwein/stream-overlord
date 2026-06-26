@@ -109,6 +109,7 @@ function normalizeChannelPointConfig(name: string, config: any = {}): ChannelPoi
         enable_default: config?.enable_default === true,
         auto_accept: config?.auto_accept === true,
         strip_emotes: config?.strip_emotes === true,
+        input_required: config?.input_required === true,
     };
 }
 
@@ -279,6 +280,11 @@ function createChannelPointPayload(configuredChannelPoint: any = {}, twitchChann
         image: getChannelPointImage(twitchChannelPoint) || configuredChannelPoint?.image || "",
         active,
         exists_on_twitch: !!twitchChannelPoint,
+        input_required: configuredChannelPoint?.input_required === true
+            || twitchChannelPoint?.userInputRequired === true
+            || twitchChannelPoint?.isUserInputRequired === true,
+        twitch_input_required: twitchChannelPoint?.userInputRequired === true
+            || twitchChannelPoint?.isUserInputRequired === true,
         twitch_enabled: twitchChannelPoint?.isEnabled ?? false,
         twitch_paused: twitchChannelPoint?.isPaused ?? false,
     };
@@ -488,6 +494,35 @@ function pushUniqueChannelPoint(target: any[], usedKeys: Set<string>, payload: a
     return true;
 }
 
+function getTwitchChannelPointInputRequired(channelPoint: any) {
+    return channelPoint?.userInputRequired === true || channelPoint?.isUserInputRequired === true;
+}
+
+async function syncChannelPointTwitchSettings(configuredChannelPoint: any, twitchChannelPoint: HelixCustomReward | undefined, primaryChannel: HelixUser) {
+    if (!twitchChannelPoint) return;
+
+    const desiredInputRequired = configuredChannelPoint?.input_required === true;
+    const currentInputRequired = getTwitchChannelPointInputRequired(twitchChannelPoint);
+
+    if (currentInputRequired === desiredInputRequired) return;
+
+    const bot = getTwitchClient().getBot();
+
+    try {
+        logRegular(`update channel point input required ${twitchChannelPoint.title}: ${desiredInputRequired}`);
+
+        await bot.api.channelPoints.updateCustomReward(primaryChannel, twitchChannelPoint.id, {
+            userInputRequired: desiredInputRequired,
+        });
+
+        (twitchChannelPoint as any).userInputRequired = desiredInputRequired;
+        (twitchChannelPoint as any).isUserInputRequired = desiredInputRequired;
+    } catch (error) {
+        logWarn(`update channel point input required ${twitchChannelPoint.title} failed:`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+}
+
 export async function updateChannelPoints() {
     await fetchChannelPointData();
 
@@ -572,6 +607,9 @@ export async function updateChannelPoints() {
         }
 
         const twitchChannelPoint = findTwitchChannelPointForConfig(configuredChannelPoint);
+
+        await syncChannelPointTwitchSettings(configuredChannelPoint, twitchChannelPoint, primaryChannel);
+
         const payload = createChannelPointPayload(
             configuredChannelPoint,
             twitchChannelPoint,

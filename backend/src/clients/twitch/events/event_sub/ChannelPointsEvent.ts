@@ -54,7 +54,8 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {
                 title: channelPoint.label,
-                cost: 992,
+                cost: typeof channelPoint.cost === "number" ? channelPoint.cost : 992,
+                userInputRequired: channelPoint.input_required === true,
             });
         }
 
@@ -66,7 +67,8 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {
                 title: channelPoint.name,
-                cost: 993,
+                cost: typeof channelPoint.cost === "number" ? channelPoint.cost : 993,
+                userInputRequired: channelPoint.input_required === true,
             });
         }
 
@@ -122,6 +124,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                 macro: gameChannelPoint.macro,
                 auto_accept: gameChannelPoint.auto_accept,
                 strip_emotes: gameChannelPoint.strip_emotes,
+                input_required: gameChannelPoint.input_required,
             }, event, eventUuid, "api");
             return;
         }

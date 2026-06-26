@@ -26,7 +26,7 @@
         />
 
         <v-row density="comfortable" class="mb-3">
-          <v-col cols="12" md="6">
+          <v-col cols="12" md="4">
             <v-text-field
               v-model="form.name"
               label="Name"
@@ -62,6 +62,17 @@
             <v-switch
               v-model="form.strip_emotes"
               label="Strip emotes"
+              color="primary"
+              density="comfortable"
+              hide-details
+              inset
+            />
+          </v-col>
+
+          <v-col cols="12" md="2">
+            <v-switch
+              v-model="form.input_required"
+              label="Input required"
               color="primary"
               density="comfortable"
               hide-details
@@ -154,6 +165,7 @@ export default {
         enable_default: false,
         auto_accept: false,
         strip_emotes: false,
+        input_required: false,
       },
       originalName: '',
       macroContent: '',
@@ -242,6 +254,7 @@ export default {
         enable_default: point.enable_default === true,
         auto_accept: point.auto_accept === true,
         strip_emotes: point.strip_emotes === true,
+        input_required: point.input_required === true,
       }
 
       this.macroContent = this.defaultMacroContent(`channel_point_${fileName}`)
@@ -300,6 +313,7 @@ export default {
         enable_default: this.form.enable_default,
         auto_accept: this.form.auto_accept,
         strip_emotes: this.form.strip_emotes,
+        input_required: this.form.input_required,
         asset: (this.$refs.assetAccordion as any)?.getAssetPayload?.() ?? {},
         macroContent: (this.$refs.macroAccordion as any)?.getContent?.() || this.macroContent || this.defaultMacroContent(this.generatedConfigName),
       })
