@@ -333,7 +333,6 @@ export async function speak(
         ))} && echo ${shellEscape(message)} | ./piper ${piperAttributes} --model models/${shellEscape(`${modelFile}.onnx`)} --output-raw | ${playCommand}"`
 
         logDebug(`TTS Command: ${command}`)
-        console.log(eventUuid)
 
         const execution = await executeProcess(command)
 

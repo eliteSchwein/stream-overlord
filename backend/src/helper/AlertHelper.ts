@@ -63,11 +63,7 @@ export default function initialAlerts() {
 
                 websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
 
-                if (activeAlert.speak) {
-                    activeAlert.speakFinished = false;
-                    await speak(activeAlert.message, activeAlert["event-uuid"]);
-                    activeAlert.speakFinished = true;
-                }
+                startAlertSpeech(activeAlert)
 
                 activeAlert.duration--;
                 alertQuery[0] = activeAlert;
@@ -245,4 +241,30 @@ export function removeAlertByEventUuid(eventUuid: string | undefined) {
     removeAlert({
         "event-uuid": eventUuid,
     });
+}
+
+function startAlertSpeech(activeAlert: any) {
+    if (!activeAlert.speak) {
+        activeAlert.speakFinished = true;
+        return;
+    }
+
+    const speakMessage = activeAlert.speak_message ?? activeAlert.message;
+
+    if (!speakMessage) {
+        activeAlert.speakFinished = true;
+        return;
+    }
+
+    activeAlert.speakFinished = false;
+
+    void (async () => {
+        try {
+            await speak(speakMessage, activeAlert["event-uuid"]);
+        } catch (error) {
+            logWarn(`alert speak failed: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            activeAlert.speakFinished = true;
+        }
+    })();
 }

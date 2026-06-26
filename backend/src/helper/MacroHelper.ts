@@ -1021,7 +1021,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
                 case "alert": {
                     task.eventUuid = variables.eventUuid;
-                    await handleAlert(task.message, task.asset, task.eventUuid, variables);
+                    await handleAlert(task, task.eventUuid, variables);
                     break;
                 }
 
@@ -1136,34 +1136,59 @@ async function handleYolobox(method: string, data: any = {}) {
     });
 }
 
+function interpolateObjectTemplate<T = any>(input: T, variables: any): T {
+    if (input === undefined || input === null) {
+        return input;
+    }
+
+    try {
+        return JSON.parse(interpolateTemplate(JSON.stringify(input), variables));
+    } catch (error) {
+        logWarn(`failed to interpolate object template`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return input;
+    }
+}
+
 async function handleAlert(
-    message: string,
-    asset: string,
+    options: any = {},
     eventUuid?: string,
     variables: any = {},
-    options: any = {},
 ) {
-    const theme = getAssetConfig(asset);
+    const rawTheme = getAssetConfig(options.asset)
 
-    if (!theme) {
-        logWarn(`no theme found for ${asset}`);
-        return;
+    if (!rawTheme) {
+        logWarn(`no theme found for ${options.asset}`)
+        return
     }
 
-    if (!message) {
-        logWarn(`no message provided`);
-        return;
+    if (!options.message) {
+        logWarn(`no message provided`)
+        return
     }
 
-    eventUuid ??= `macro_${uuidv4()}`;
+    eventUuid ??= `macro_${uuidv4()}`
+
+    const templateVariables = {
+        ...variables,
+        asset: options.asset,
+        eventUuid,
+    };
+
+    const theme = interpolateObjectTemplate(rawTheme, templateVariables)
+
+    const rawMessage = (options.message === "" ? options.message: theme?.message) ?? ""
+    const message = interpolateTemplate(String(rawMessage), templateVariables)
+    const speakMessage = interpolateTemplate(String(options.message), templateVariables)
+
 
     const duration =
         options.speak === true
             ? calculateTTSduration(message)
-            : options.duration ?? 15;
+            : theme.duration ?? 15
 
     addAlert({
-        asset,
+        asset: options.asset,
         sound: theme.sound,
         duration,
         color: theme.color,
@@ -1171,6 +1196,7 @@ async function handleAlert(
         message,
         "event-uuid": eventUuid,
         speak: options.speak === true,
+        speak_message: options.speak === true ? speakMessage : undefined,
         video: theme.video,
         wled: mergeWledDefaults(theme.wled),
         volume: theme.volume,
@@ -1179,11 +1205,7 @@ async function handleAlert(
         start_macros: theme.start_macros ?? [],
         idle_macros: theme.idle_macros ?? [],
         end_macros: theme.end_macros ?? [],
-        variables: {
-            ...variables,
-            asset,
-            eventUuid,
-        },
+        variables: templateVariables,
     });
 }
 
@@ -1681,22 +1703,38 @@ async function handleChannelPoint(method: string, data: any = {}, variables: any
 
     switch (method) {
         case "cancel": {
-            if (!event) {
-                logWarn(`channel_point cancel requires event`);
+            const event = variables?.eventData ?? variables?.event;
+
+            if (!event?.broadcasterId || !event?.rewardId || !event?.id) {
+                logWarn(`channel_point cancel requires broadcasterId, rewardId and redemption id`);
                 return;
             }
 
-            await event.updateStatus("CANCELED");
+            await getTwitchClient()?.getBot()?.api?.channelPoints.updateRedemptionStatusByIds(
+                event.broadcasterId,
+                event.rewardId,
+                [event.id],
+                "FULFILLED",
+            );
+
             break;
         }
 
         case "accept": {
-            if (!event) {
-                logWarn(`channel_point accept requires event`);
+            const event = variables?.eventData ?? variables?.event;
+
+            if (!event?.broadcasterId || !event?.rewardId || !event?.id) {
+                logWarn(`channel_point accept requires broadcasterId, rewardId and redemption id`);
                 return;
             }
 
-            await event.updateStatus("FULFILLED");
+            await getTwitchClient()?.getBot()?.api?.channelPoints.updateRedemptionStatusByIds(
+                event.broadcasterId,
+                event.rewardId,
+                [event.id],
+                "CANCELED",
+            );
+
             break;
         }
 

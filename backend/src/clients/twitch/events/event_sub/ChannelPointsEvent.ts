@@ -206,12 +206,13 @@ export default class ChannelPointsEvent extends BaseEvent {
                 },
             });
 
-            addAlert({
-                ...asset,
-                asset: configChannelPoint.asset,
-                variables: macroVariables,
-                "event-uuid": `alert-${configChannelPoint.label}_${eventUuid}`,
-            });
+            if(asset.video || asset.sound || asset.image || asset.message)
+                addAlert({
+                    ...asset,
+                    asset: configChannelPoint.asset,
+                    variables: macroVariables,
+                    "event-uuid": `alert-${configChannelPoint.label}_${eventUuid}`,
+                });
 
             const macroTriggered = await triggerMacro(configChannelPoint.macro, macroVariables);
 

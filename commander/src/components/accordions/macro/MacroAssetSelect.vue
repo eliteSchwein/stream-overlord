@@ -15,6 +15,18 @@
       @update:menu="handleMenuUpdate"
       @update:model-value="$emit('update:modelValue', $event ?? '')"
     >
+      <template #append-inner>
+        <v-btn
+          v-if="hasSelectedAsset"
+          icon="mdi-pencil"
+          size="x-small"
+          variant="text"
+          :disabled="disabled || loading || saving"
+          @mousedown.stop.prevent
+          @click.stop.prevent="openEditAsset"
+        />
+      </template>
+
       <template #prepend-item>
         <v-list-item prepend-icon="mdi-plus" @click="openCreateAsset">
           <v-list-item-title>{{ createLabel }}</v-list-item-title>
@@ -26,8 +38,8 @@
     <AssetEditorDialog
       ref="assetEditorDialog"
       v-model="editorDialog"
-      asset-name=""
-      :asset="null"
+      :asset-name="selectedAssetName"
+      :asset="selectedAsset"
       :loading="saving"
       :error="editorError"
       :macro-items="macroItems"
@@ -64,6 +76,8 @@ export default {
       saving: false,
       editorDialog: false,
       editorError: '',
+      selectedAssetName: '',
+      selectedAsset: null as any,
       localAssets: {} as Record<string, any>,
       localWledConfigs: {} as Record<string, any>,
       mediaEntries: [] as any[],
@@ -75,7 +89,7 @@ export default {
   computed: {
     assetConfigs(): Record<string, any> {
       const appStore = useAppStore()
-      const storeAssets = appStore.getAssets?.assets ?? []
+      const storeAssets = appStore.getAssets
 
       return storeAssets && !Array.isArray(storeAssets) && Object.keys(storeAssets).length
         ? storeAssets as Record<string, any>
@@ -93,6 +107,10 @@ export default {
       return options.sort((a, b) => a.localeCompare(b))
     },
 
+    hasSelectedAsset(): boolean {
+      return String(this.modelValue ?? '').trim().length > 0
+    },
+
     macroItems(): string[] {
       const appStore = useAppStore()
       return Object.keys(appStore.getMacros ?? {}).sort((a, b) => a.localeCompare(b))
@@ -107,7 +125,6 @@ export default {
     },
   },
 
-
   methods: {
     async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
       const client = getWebsocketClient()
@@ -116,19 +133,35 @@ export default {
         throw new Error('websocket is not connected')
       }
 
-      const response = await client.request(method, params, timeout)
-      return response?.params ?? response
+      return await client.request(method, params, timeout)
     },
 
-    async handleMenuUpdate(open: boolean) {
-      if (!open || this.hasLoadedAssets || this.loading) return
+    getWebsocketResultKey(method: string) {
+      return `result_${String(method ?? '').replace(/[^a-zA-Z0-9_]/g, '_')}`
+    },
 
-      if (Object.keys(this.assetConfigs ?? {}).length) {
-        this.hasLoadedAssets = true
-        return
+    unwrapWebsocketResponse(response: any, method = ''): any {
+      const resultKey = method ? this.getWebsocketResultKey(method) : ''
+      const containers = [response, response?.params, response?.data, response?.payload, response?.result].filter(Boolean)
+
+      if (resultKey) {
+        for (const container of containers) {
+          if (container && typeof container === 'object' && Object.prototype.hasOwnProperty.call(container, resultKey)) {
+            return container[resultKey]
+          }
+        }
       }
 
-      await this.refreshAssets()
+      for (const container of containers) {
+        if (container && typeof container === 'object') {
+          if (Object.prototype.hasOwnProperty.call(container, 'result')) return container.result
+          if (Object.prototype.hasOwnProperty.call(container, 'data')) return container.data
+          if (Object.prototype.hasOwnProperty.call(container, 'payload')) return container.payload
+          if (Object.prototype.hasOwnProperty.call(container, 'params')) return container.params
+        }
+      }
+
+      return response
     },
 
     async requestAssetEndpoint(method: string, endpoint: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
@@ -136,7 +169,12 @@ export default {
 
       try {
         const response = await this.requestWebsocket(method, params, timeout)
-        return response?.data ?? response
+        const data = this.unwrapWebsocketResponse(response, method)
+
+        if (data?.error) throw new Error(data.error)
+        if (data?.success === false) throw new Error(data?.message ?? `${method} failed`)
+
+        return data
       } catch (websocketError) {
         const response = await fetch(`${appStore.getRestApi}/api/${endpoint}`, {
           method: 'POST',
@@ -155,17 +193,28 @@ export default {
       }
     },
 
+    async handleMenuUpdate(open: boolean) {
+      if (!open || this.hasLoadedAssets || this.loading) return
+
+      if (Object.keys(this.assetConfigs ?? {}).length) {
+        this.hasLoadedAssets = true
+        return
+      }
+
+      await this.refreshAssets()
+    },
+
     async refreshAssets() {
       this.loading = true
 
       try {
         const appStore = useAppStore()
         const data = await this.requestAssetEndpoint('assets_list', 'assets/list')
-        if (data?.error) throw new Error(data.error)
 
         this.localAssets = data?.assets ?? {}
         this.localWledConfigs = data?.wled ?? {}
         this.hasLoadedAssets = true
+
         appStore.setAssets(this.localAssets)
         await this.fetchMediaEntries()
       } catch (error) {
@@ -198,8 +247,29 @@ export default {
     },
 
     async openCreateAsset() {
+      this.selectedAssetName = ''
+      this.selectedAsset = null
       this.editorError = ''
       this.editorDialog = true
+
+      await this.$nextTick()
+      await (this.$refs.assetEditorDialog as any)?.open?.()
+    },
+
+    async openEditAsset() {
+      const name = String(this.modelValue ?? '').trim()
+      if (!name) return
+
+      this.editorError = ''
+
+      if (!this.assetConfigs?.[name]) {
+        await this.refreshAssets()
+      }
+
+      this.selectedAssetName = name
+      this.selectedAsset = this.assetConfigs?.[name] ?? {}
+      this.editorDialog = true
+
       await this.$nextTick()
       await (this.$refs.assetEditorDialog as any)?.open?.()
     },
