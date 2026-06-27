@@ -27,7 +27,7 @@ export default class PlaySoundApi extends BaseApi {
 
         setTimeout(() => {
             setActiveSound(null);
-        }, 250);
+        }, 1_250);
 
         const audioData = getAudioData()["alert"];
 
