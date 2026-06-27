@@ -72,15 +72,14 @@ export default class PlaySoundApi extends BaseApi {
 
         const soundFile = resolveSoundPath(sound);
 
-        try {
-            await execute(
-                `bash -c "${playCommand} -af ${shellEscape(`volume=${volume}`)} ${shellEscape(soundFile)}"`
-            );
-            setActiveSound(null);
-        } catch (error) {
-            logWarn(`playing sound ${soundFile} failed:`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        }
+        void execute(`${playCommand} -af volume=${volume} ${soundFile}`)
+            .catch((error) => {
+                logWarn(`playing sound ${soundFile} failed:`);
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            })
+            .finally(() => {
+                setActiveSound(null);
+            });
     }
 }
 
