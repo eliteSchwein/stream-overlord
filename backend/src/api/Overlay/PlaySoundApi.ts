@@ -26,7 +26,7 @@ export default class PlaySoundApi extends BaseApi {
         const config = getConfig(/shell/g)[0];
 
         setTimeout(() => {
-            setActiveSound(null);
+            //setActiveSound(null);
         }, 1_250);
 
         const audioData = getAudioData()["alert"];
@@ -76,6 +76,7 @@ export default class PlaySoundApi extends BaseApi {
             await execute(
                 `bash -c "${playCommand} -af ${shellEscape(`volume=${volume}`)} ${shellEscape(soundFile)}"`
             );
+            setActiveSound(null);
         } catch (error) {
             logWarn(`playing sound ${soundFile} failed:`);
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
