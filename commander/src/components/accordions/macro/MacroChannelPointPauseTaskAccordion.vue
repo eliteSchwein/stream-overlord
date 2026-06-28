@@ -1,84 +1,80 @@
 <template>
-  <v-expansion-panel class="macro-channel-point-task-accordion">
-    <v-expansion-panel-title>
-      <div class="d-flex align-center min-width-0 w-100">
-        <v-icon icon="mdi-pause-circle-outline" size="20" class="mr-2" />
-        <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
-        <span class="text-truncate font-weight-medium">{{ title }}</span>
-        <v-spacer />
-        <v-chip size="x-small" color="warning" variant="tonal">{{ task.method }}</v-chip>
-      </div>
-    </v-expansion-panel-title>
+  <MacroTaskAccordionTemplate
+    class="macro-channel-point-task-accordion"
+    :item="item"
+    :index="index"
+    icon="mdi-pause-circle-outline"
+    :title="title"
+    export-prefix="macro_channel_point_pause"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <v-alert
+      type="info"
+      variant="tonal"
+      density="comfortable"
+      class="mb-4"
+      text="Pauses, unpauses, or sets the pause state of a Twitch channel point reward. If no name is set, a channel point redemption macro can use the current reward."
+    />
 
-    <v-expansion-panel-text>
-      <v-alert
-        type="info"
-        variant="tonal"
-        density="comfortable"
-        class="mb-4"
-        text="Pauses, unpauses, or sets the pause state of a Twitch channel point reward. If no name is set, a channel point redemption macro can use the current reward."
-      />
+    <v-row density="comfortable">
+      <v-col cols="12" md="6">
+        <v-select
+          v-model="task.method"
+          :items="methodOptions"
+          item-title="title"
+          item-value="value"
+          label="Pause action"
+          prepend-inner-icon="mdi-pause-circle-outline"
+          variant="outlined"
+          hide-details="auto"
+        />
+      </v-col>
 
-      <v-row density="comfortable">
-        <v-col cols="12" md="6">
-          <v-select
-            v-model="task.method"
-            :items="methodOptions"
-            item-title="title"
-            item-value="value"
-            label="Pause action"
-            prepend-inner-icon="mdi-pause-circle-outline"
-            variant="outlined"
-            hide-details="auto"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-autocomplete
+          v-model="task.data.name"
+          :items="channelPointOptions"
+          label="Channel point name"
+          persistent-hint
+          prepend-inner-icon="mdi-star-circle"
+          variant="outlined"
+          hide-details="auto"
+          clearable
+          auto-select-first
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-autocomplete
-            v-model="task.data.name"
-            :items="channelPointOptions"
-            label="Channel point name"
-            persistent-hint
-            prepend-inner-icon="mdi-star-circle"
-            variant="outlined"
-            hide-details="auto"
-            clearable
-            auto-select-first
-          />
-        </v-col>
-
-        <v-col v-if="task.method === 'toggle_pause'" cols="12" md="6">
-          <v-select
-            v-model="task.data.state"
-            :items="stateOptions"
-            item-title="title"
-            item-value="value"
-            label="Pause state"
-            hint="Leave empty behavior depends on backend fallback"
-            persistent-hint
-            prepend-inner-icon="mdi-toggle-switch-outline"
-            variant="outlined"
-            hide-details="auto"
-            clearable
-          />
-        </v-col>
-      </v-row>
-
-      <div class="d-flex flex-wrap ga-2 mt-4">
-        <v-spacer />
-        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
-      </div>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+      <v-col v-if="task.method === 'toggle_pause'" cols="12" md="6">
+        <v-select
+          v-model="task.data.state"
+          :items="stateOptions"
+          item-title="title"
+          item-value="value"
+          label="Pause state"
+          hint="Leave empty behavior depends on backend fallback"
+          persistent-hint
+          prepend-inner-icon="mdi-toggle-switch-outline"
+          variant="outlined"
+          hide-details="auto"
+          clearable
+        />
+      </v-col>
+    </v-row>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
 import { useAppStore } from '@/stores/app'
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
 
 export default {
   name: 'MacroChannelPointPauseTaskAccordion',
+
+  components: {
+    MacroTaskAccordionTemplate,
+  },
 
   props: {
     item: { type: Object, required: true },

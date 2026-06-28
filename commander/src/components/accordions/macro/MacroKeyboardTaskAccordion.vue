@@ -1,177 +1,88 @@
 <template>
-  <v-expansion-panel class="macro-keyboard-task-accordion">
-    <v-expansion-panel-title>
-      <div class="d-flex align-center min-width-0 w-100">
-        <v-icon icon="mdi-keyboard-outline" size="20" class="mr-2" />
-        <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
-        <span class="text-truncate font-weight-medium">
-          Keyboard: {{ formatKeyPress(selectedKeys) || 'Empty key press' }}
-        </span>
-        <v-spacer />
-        <v-chip size="x-small" color="indigo" variant="tonal">keyboard</v-chip>
-      </div>
-    </v-expansion-panel-title>
+  <MacroTaskAccordionTemplate
+    class="macro-keyboard-task-accordion"
+    :item="item"
+    :index="index"
+    icon="mdi-keyboard-outline"
+    :title="'Keyboard: ' + (formatKeyPress(selectedKeys) || 'Empty key press')"
+    export-prefix="macro_keyboard"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <v-row>
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="keyboardData.name"
+          label="Name"
+          placeholder="macro"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+        />
+      </v-col>
 
-    <v-expansion-panel-text>
-      <v-row>
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="keyboardData.name"
-            label="Name"
-            placeholder="macro"
-            density="comfortable"
-            variant="outlined"
-            hide-details
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-number-input
+          v-model="keyboardData.duration"
+          label="Duration"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+          clearable
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-number-input
-            v-model="keyboardData.duration"
-            label="Duration"
-            density="comfortable"
-            variant="outlined"
-            hide-details
-            clearable
-          />
-        </v-col>
+      <v-col cols="12">
+        <div class="d-flex align-center mb-3 ga-2">
+          <div class="text-subtitle-2">Key press</div>
+          <v-spacer />
 
-        <v-col cols="12">
-          <div class="d-flex align-center mb-3 ga-2">
-            <div class="text-subtitle-2">Key press</div>
-            <v-spacer />
-
-            <v-btn
-              size="small"
-              variant="tonal"
-              :color="recordingKeys ? 'error' : undefined"
-              :prepend-icon="recordingKeys ? 'mdi-stop-circle-outline' : 'mdi-record-circle-outline'"
-              @click.prevent.stop="toggleKeyRecording"
-            >
-              {{ recordingKeys ? 'Stop recording' : 'Record key press' }}
-            </v-btn>
-
-            <v-btn
-              size="small"
-              variant="text"
-              prepend-icon="mdi-close"
-              @click="clearKeys"
-            >
-              Clear
-            </v-btn>
-          </div>
-
-          <v-alert
-            v-if="recordingKeys"
-            type="warning"
+          <v-btn
+            size="small"
             variant="tonal"
-            density="comfortable"
-            class="mb-3"
+            :color="recordingKeys ? 'error' : undefined"
+            :prepend-icon="recordingKeys ? 'mdi-stop-circle-outline' : 'mdi-record-circle-outline'"
+            @click.prevent.stop="toggleKeyRecording"
           >
-            Press all keys you want, then click <strong>Stop recording</strong>.
-          </v-alert>
+            {{ recordingKeys ? 'Stop recording' : 'Record key press' }}
+          </v-btn>
 
-          <div class="keyboard-shell">
-            <div class="keyboard-layout">
-              <div class="keyboard-main">
-                <div
-                  v-for="(row, rowIndex) in mainKeyboardRows"
-                  :key="`main-${rowIndex}`"
-                  class="keyboard-row"
-                >
-                  <button
-                    v-for="(key, keyIndex) in row"
-                    :key="`${rowIndex}-${keyIndex}-${key.value}`"
-                    type="button"
-                    :class="[
-                    'keyboard-key',
-                    `keyboard-key--${key.size || 'normal'}`,
-                    isKeySelected(key.value) ? 'keyboard-key--active' : '',
-                  ]"
-                    @click="toggleKey(key.value)"
-                  >
-                    {{ key.label }}
-                  </button>
-                </div>
-              </div>
+          <v-btn
+            size="small"
+            variant="text"
+            prepend-icon="mdi-close"
+            @click="clearKeys"
+          >
+            Clear
+          </v-btn>
+        </div>
 
-              <div class="keyboard-side">
-                <div class="keyboard-side-row">
-                  <button
-                    v-for="key in systemKeys"
-                    :key="key.value"
-                    type="button"
-                    :class="[
-                      'keyboard-key',
-                      'keyboard-key--side',
-                      isKeySelected(key.value) ? 'keyboard-key--active' : '',
-                    ]"
-                    @click="toggleKey(key.value)"
-                  >
-                    {{ key.label }}
-                  </button>
-                </div>
+        <v-alert
+          v-if="recordingKeys"
+          type="warning"
+          variant="tonal"
+          density="comfortable"
+          class="mb-3"
+        >
+          Press all keys you want, then click <strong>Stop recording</strong>.
+        </v-alert>
 
-                <div class="keyboard-arrow-grid">
-                  <div></div>
-                  <button
-                    type="button"
-                    :class="[
-                      'keyboard-key',
-                      'keyboard-key--side',
-                      isKeySelected('UP') ? 'keyboard-key--active' : '',
-                    ]"
-                    @click="toggleKey('UP')"
-                  >
-                    ↑
-                  </button>
-                  <div></div>
-
-                  <button
-                    type="button"
-                    :class="[
-                      'keyboard-key',
-                      'keyboard-key--side',
-                      isKeySelected('LEFT') ? 'keyboard-key--active' : '',
-                    ]"
-                    @click="toggleKey('LEFT')"
-                  >
-                    ←
-                  </button>
-                  <button
-                    type="button"
-                    :class="[
-                      'keyboard-key',
-                      'keyboard-key--side',
-                      isKeySelected('DOWN') ? 'keyboard-key--active' : '',
-                    ]"
-                    @click="toggleKey('DOWN')"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    :class="[
-                      'keyboard-key',
-                      'keyboard-key--side',
-                      isKeySelected('RIGHT') ? 'keyboard-key--active' : '',
-                    ]"
-                    @click="toggleKey('RIGHT')"
-                  >
-                    →
-                  </button>
-                </div>
-              </div>
-
-              <div class="keyboard-numpad">
+        <div class="keyboard-shell">
+          <div class="keyboard-layout">
+            <div class="keyboard-main">
+              <div
+                v-for="(row, rowIndex) in mainKeyboardRows"
+                :key="`main-${rowIndex}`"
+                class="keyboard-row"
+              >
                 <button
-                  v-for="key in numpadKeys"
-                  :key="key.value"
+                  v-for="(key, keyIndex) in row"
+                  :key="`${rowIndex}-${keyIndex}-${key.value}`"
                   type="button"
                   :class="[
                     'keyboard-key',
-                    'keyboard-key--numpad',
-                    key.size ? `keyboard-key--numpad-${key.size}` : '',
+                    `keyboard-key--${key.size || 'normal'}`,
                     isKeySelected(key.value) ? 'keyboard-key--active' : '',
                   ]"
                   @click="toggleKey(key.value)"
@@ -180,23 +91,111 @@
                 </button>
               </div>
             </div>
-          </div>
-        </v-col>
-      </v-row>
 
-      <div class="d-flex flex-wrap ga-2 mt-4">
-        <v-spacer />
-        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
-      </div>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+            <div class="keyboard-side">
+              <div class="keyboard-side-row">
+                <button
+                  v-for="key in systemKeys"
+                  :key="key.value"
+                  type="button"
+                  :class="[
+                    'keyboard-key',
+                    'keyboard-key--side',
+                    isKeySelected(key.value) ? 'keyboard-key--active' : '',
+                  ]"
+                  @click="toggleKey(key.value)"
+                >
+                  {{ key.label }}
+                </button>
+              </div>
+
+              <div class="keyboard-arrow-grid">
+                <div />
+
+                <button
+                  type="button"
+                  :class="[
+                    'keyboard-key',
+                    'keyboard-key--side',
+                    isKeySelected('UP') ? 'keyboard-key--active' : '',
+                  ]"
+                  @click="toggleKey('UP')"
+                >
+                  ↑
+                </button>
+
+                <div />
+
+                <button
+                  type="button"
+                  :class="[
+                    'keyboard-key',
+                    'keyboard-key--side',
+                    isKeySelected('LEFT') ? 'keyboard-key--active' : '',
+                  ]"
+                  @click="toggleKey('LEFT')"
+                >
+                  ←
+                </button>
+
+                <button
+                  type="button"
+                  :class="[
+                    'keyboard-key',
+                    'keyboard-key--side',
+                    isKeySelected('DOWN') ? 'keyboard-key--active' : '',
+                  ]"
+                  @click="toggleKey('DOWN')"
+                >
+                  ↓
+                </button>
+
+                <button
+                  type="button"
+                  :class="[
+                    'keyboard-key',
+                    'keyboard-key--side',
+                    isKeySelected('RIGHT') ? 'keyboard-key--active' : '',
+                  ]"
+                  @click="toggleKey('RIGHT')"
+                >
+                  →
+                </button>
+              </div>
+            </div>
+
+            <div class="keyboard-numpad">
+              <button
+                v-for="key in numpadKeys"
+                :key="key.value"
+                type="button"
+                :class="[
+                  'keyboard-key',
+                  'keyboard-key--numpad',
+                  key.size ? `keyboard-key--numpad-${key.size}` : '',
+                  isKeySelected(key.value) ? 'keyboard-key--active' : '',
+                ]"
+                @click="toggleKey(key.value)"
+              >
+                {{ key.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </v-col>
+    </v-row>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
+
 export default {
   name: 'MacroKeyboardTaskAccordion',
+
+  components: {
+    MacroTaskAccordionTemplate,
+  },
 
   props: {
     item: { type: Object, required: true },

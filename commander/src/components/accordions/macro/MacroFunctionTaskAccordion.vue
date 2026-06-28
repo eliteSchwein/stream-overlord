@@ -49,6 +49,7 @@ export default {
   computed: {
     componentName(): string {
       const method = (this.item as any)?.task?.method
+
       const componentsByMethod: Record<string, string> = {
         random: 'MacroFunctionRandomTaskAccordion',
         toggle_auto_macro: 'MacroFunctionToggleAutoMacroTaskAccordion',

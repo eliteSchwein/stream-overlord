@@ -1,33 +1,35 @@
 <template>
-  <v-expansion-panel class="macro-loop-control-task-accordion" color="primary">
-    <v-expansion-panel-title>
-      <div class="d-flex align-center min-width-0 w-100">
-        <v-icon :icon="icon" size="20" class="mr-2" />
-        <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
-        <span class="text-truncate font-weight-medium">{{ title }}</span>
-        <v-spacer />
-        <v-chip size="x-small" color="purple" variant="tonal">loop</v-chip>
-      </div>
-    </v-expansion-panel-title>
-
-    <v-expansion-panel-text>
-      <v-alert density="comfortable" variant="tonal" color="warning" class="mb-3">
-        {{ description }}
-      </v-alert>
-
-      <div class="d-flex flex-wrap ga-2">
-        <v-spacer />
-        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
-      </div>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+  <MacroTaskAccordionTemplate
+    class="macro-loop-control-task-accordion"
+    :item="item"
+    :index="index"
+    :icon="icon"
+    :title="title"
+    export-prefix="macro_loop_control"
+    color="primary"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <v-alert
+      density="comfortable"
+      variant="tonal"
+      color="warning"
+    >
+      {{ description }}
+    </v-alert>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
+
 export default {
   name: 'MacroLoopControlTaskAccordion',
+
+  components: {
+    MacroTaskAccordionTemplate,
+  },
 
   props: {
     item: { type: Object, required: true },
@@ -37,14 +39,22 @@ export default {
   emits: ['remove', 'move-up', 'move-down'],
 
   computed: {
+    task(): any {
+      return (this.item as any).task
+    },
+
     title(): string {
-      return (this.item as any).task?.method === 'continue' ? 'Continue loop' : 'Break loop'
+      return this.task?.method === 'continue' ? 'Continue loop' : 'Break loop'
     },
+
     icon(): string {
-      return (this.item as any).task?.method === 'continue' ? 'mdi-skip-next-outline' : 'mdi-stop-circle-outline'
+      return this.task?.method === 'continue'
+        ? 'mdi-skip-next-outline'
+        : 'mdi-stop-circle-outline'
     },
+
     description(): string {
-      return (this.item as any).task?.method === 'continue'
+      return this.task?.method === 'continue'
         ? 'Skips the rest of the current loop iteration and continues with the next value.'
         : 'Stops the nearest active loop.'
     },

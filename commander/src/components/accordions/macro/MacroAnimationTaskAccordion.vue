@@ -1,141 +1,131 @@
 <template>
-  <v-expansion-panel
+  <MacroTaskAccordionTemplate
     class="macro-task-accordion macro-task-accordion--animation"
+    :item="item"
+    :index="index"
+    icon="mdi-animation-play"
+    :title="title"
+    export-prefix="macro_animation"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
     @group:selected="onExpansionChange"
   >
-    <v-expansion-panel-title>
-      <div class="d-flex align-center min-width-0 w-100">
-        <v-icon icon="mdi-animation-play" size="20" class="mr-2" />
-        <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
-        <span class="text-truncate font-weight-medium">{{ title }}</span>
-        <v-spacer />
-        <v-chip size="x-small" variant="tonal">animation</v-chip>
-      </div>
-    </v-expansion-panel-title>
+    <v-row density="comfortable">
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model="task.data.target"
+          label="Target"
+          prepend-inner-icon="mdi-crosshairs-gps"
+          hide-details="auto"
+          variant="outlined"
+          density="comfortable"
+        />
+      </v-col>
 
-    <v-expansion-panel-text>
-      <v-row density="comfortable">
-        <v-col cols="12" md="6">
-          <v-text-field
-            v-model="task.data.target"
-            label="Target"
-            prepend-inner-icon="mdi-crosshairs-gps"
-            hide-details="auto"
-            variant="outlined"
-            density="comfortable"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-autocomplete
+          v-model="task.data.src"
+          :items="sourceOptions"
+          :loading="loadingSources"
+          label="Source"
+          prepend-inner-icon="mdi-file-code"
+          clearable
+          hide-details="auto"
+          variant="outlined"
+          density="comfortable"
+          @update:model-value="task.data.src = normalizePath($event)"
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-autocomplete
-            v-model="task.data.src"
-            :items="sourceOptions"
-            :loading="loadingSources"
-            label="Source"
-            prepend-inner-icon="mdi-file-code"
-            clearable
-            hide-details="auto"
-            variant="outlined"
-            density="comfortable"
-            @update:model-value="task.data.src = normalizePath($event)"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-number-input
+          v-model="task.data.startFrame"
+          label="Start frame"
+          prepend-inner-icon="mdi-ray-start"
+          hide-details="auto"
+          variant="outlined"
+          density="comfortable"
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-number-input
-            v-model="task.data.startFrame"
-            label="Start frame"
-            prepend-inner-icon="mdi-ray-start"
-            hide-details="auto"
-            variant="outlined"
-            density="comfortable"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-number-input
+          v-model="task.data.stopFrame"
+          label="Stop frame"
+          prepend-inner-icon="mdi-ray-end"
+          hide-details="auto"
+          variant="outlined"
+          density="comfortable"
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-number-input
-            v-model="task.data.stopFrame"
-            label="Stop frame"
-            prepend-inner-icon="mdi-ray-end"
-            hide-details="auto"
-            variant="outlined"
-            density="comfortable"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-number-input
+          v-model="task.data.speed"
+          label="Speed"
+          prepend-inner-icon="mdi-speedometer"
+          hide-details="auto"
+          variant="outlined"
+          density="comfortable"
+          :step="0.1"
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-number-input
-            v-model="task.data.speed"
-            label="Speed"
-            prepend-inner-icon="mdi-speedometer"
-            hide-details="auto"
-            variant="outlined"
-            density="comfortable"
-            :step="0.1"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-combobox
+          v-model="task.data.frameRate"
+          :items="frameRateOptions"
+          label="Frame rate"
+          prepend-inner-icon="mdi-filmstrip"
+          clearable
+          hide-details="auto"
+          variant="outlined"
+          density="comfortable"
+          @update:model-value="task.data.frameRate = toNullableNumber($event)"
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-combobox
-            v-model="task.data.frameRate"
-            :items="frameRateOptions"
-            label="Frame rate"
-            prepend-inner-icon="mdi-filmstrip"
-            clearable
-            hide-details="auto"
-            variant="outlined"
-            density="comfortable"
-            @update:model-value="task.data.frameRate = toNullableNumber($event)"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-switch
+          v-model="task.data.loop"
+          label="Loop"
+          color="primary"
+          hide-details="auto"
+          density="comfortable"
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-switch
-            v-model="task.data.loop"
-            label="Loop"
-            color="primary"
-            hide-details="auto"
-            density="comfortable"
-          />
-        </v-col>
+      <v-col cols="12" md="6">
+        <v-switch
+          v-model="task.data.reverse"
+          label="Reverse"
+          color="primary"
+          hide-details="auto"
+          density="comfortable"
+        />
+      </v-col>
 
-        <v-col cols="12" md="6">
-          <v-switch
-            v-model="task.data.reverse"
-            label="Reverse"
-            color="primary"
-            hide-details="auto"
-            density="comfortable"
-          />
-        </v-col>
-
-        <v-col cols="12">
-          <v-textarea
-            v-model="variablesText"
-            label="Variables"
-            prepend-inner-icon="mdi-code-json"
-            rows="4"
-            auto-grow
-            hide-details="auto"
-            variant="outlined"
-            density="comfortable"
-            @blur="syncVariablesFromText"
-          />
-        </v-col>
-      </v-row>
-
-      <div class="d-flex justify-end ga-2 mt-2">
-        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
-      </div>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+      <v-col cols="12">
+        <v-textarea
+          v-model="variablesText"
+          label="Variables"
+          rows="4"
+          auto-grow
+          hide-details="auto"
+          variant="outlined"
+          density="comfortable"
+          @blur="syncVariablesFromText"
+        />
+      </v-col>
+    </v-row>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
 import { getWebsocketClient } from '@/plugins/websocketInstance'
 import { useAppStore } from '@/stores/app'
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
 
 type MediaEntry = {
   name?: string
@@ -149,6 +139,10 @@ const animationSourceRegex = /\.(svg|json|lottie)$/i
 
 export default {
   name: 'MacroAnimationTaskAccordion',
+
+  components: {
+    MacroTaskAccordionTemplate,
+  },
 
   props: {
     item: { type: Object, required: true },
@@ -187,9 +181,11 @@ export default {
     this.variablesText = this.stringifyVariables(this.task.data.variables)
   },
 
-
   methods: {
     ensureData() {
+      this.task.channel = 'animation'
+      this.task.method = 'play'
+
       if (!this.task.data || typeof this.task.data !== 'object') {
         this.task.data = {}
       }
@@ -262,12 +258,14 @@ export default {
           this.mediaEntries = result.filter((entry) => entry?.type === 'file')
           this.mediaLoaded = true
         }
+
         return result
       } catch (error) {
         if (!path) {
           this.mediaEntries = []
           this.mediaLoaded = false
         }
+
         return []
       } finally {
         if (!path) this.loadingSources = false
@@ -276,10 +274,14 @@ export default {
 
     mediaOptions(regex: RegExp, compressedFirst: boolean): string[] {
       const values: string[] = []
+
       const add = (value: any) => {
         const normalized = this.normalizePath(value)
+
         if (!normalized || !regex.test(normalized)) return
+
         regex.lastIndex = 0
+
         if (!values.includes(normalized)) values.push(normalized)
       }
 
@@ -299,7 +301,11 @@ export default {
       }
 
       const current = this.normalizePath(this.task.data?.src)
-      if (current && regex.test(current) && !values.includes(current)) values.unshift(current)
+
+      if (current && regex.test(current) && !values.includes(current)) {
+        values.unshift(current)
+      }
+
       regex.lastIndex = 0
 
       return values.sort((a, b) => a.localeCompare(b))
@@ -316,9 +322,11 @@ export default {
       if (typeof entry.asset === 'object' && entry.asset?.original) {
         return this.normalizePath(entry.asset.original)
       }
+
       if (typeof entry.asset === 'string') {
         return this.normalizePath(entry.asset)
       }
+
       return this.normalizePath(entry.path ?? entry.name)
     },
 
@@ -326,9 +334,11 @@ export default {
       if (typeof entry.compressed === 'string') {
         return this.normalizePath(entry.compressed)
       }
+
       if (typeof entry.asset === 'object' && typeof entry.asset?.compressed === 'string') {
         return this.normalizePath(entry.asset.compressed)
       }
+
       return ''
     },
 

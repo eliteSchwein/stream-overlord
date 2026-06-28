@@ -1,103 +1,150 @@
 <template>
-  <v-expansion-panel class="macro-task-accordion">
-    <v-expansion-panel-title>
-      <div class="d-flex align-center min-width-0 w-100">
-        <v-icon :icon="icon" size="20" class="mr-2" />
-        <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
-        <span class="text-truncate font-weight-medium">{{ title }}</span>
-        <v-spacer />
-        <v-chip size="x-small" variant="tonal">{{ task.channel || 'task' }}</v-chip>
-      </div>
-    </v-expansion-panel-title>
+  <MacroTaskAccordionTemplate
+    class="macro-task-accordion"
+    :item="item"
+    :index="index"
+    :icon="icon"
+    :title="title"
+    export-prefix="macro_task"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <v-row density="comfortable">
+      <v-col cols="12" md="4">
+        <v-text-field
+          v-model="task.channel"
+          label="Channel"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+        />
+      </v-col>
 
-    <v-expansion-panel-text>
-      <v-row density="comfortable">
-        <v-col cols="12" md="4">
-          <v-text-field v-model="task.channel" label="Channel" density="comfortable" variant="outlined" hide-details />
-        </v-col>
+      <v-col
+        v-if="task.channel !== 'alert' && task.channel !== 'dummy_alert'"
+        cols="12"
+        md="4"
+      >
+        <v-text-field
+          v-model="task.method"
+          label="Method"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+        />
+      </v-col>
 
-        <v-col v-if="task.channel !== 'alert' && task.channel !== 'dummy_alert'" cols="12" md="4">
-          <v-text-field v-model="task.method" label="Method" density="comfortable" variant="outlined" hide-details />
-        </v-col>
+      <v-col v-if="task.channel === 'rest'" cols="12" md="4">
+        <v-text-field
+          v-model="task.endpoint"
+          label="Endpoint"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+        />
+      </v-col>
 
-        <v-col v-if="task.channel === 'rest'" cols="12" md="4">
-          <v-text-field v-model="task.endpoint" label="Endpoint" density="comfortable" variant="outlined" hide-details />
-        </v-col>
-
-        <template v-if="task.channel === 'alert'">
-          <v-col cols="12" md="6">
-            <v-text-field v-model="task.message" label="Message" density="comfortable" variant="outlined" hide-details />
-          </v-col>
-          <v-col cols="12" md="6">
-            <v-text-field v-model="task.asset" label="Asset" density="comfortable" variant="outlined" hide-details />
-          </v-col>
-        </template>
-
-        <template v-else-if="task.channel === 'dummy_alert'">
-          <v-col cols="12" md="6">
-            <v-text-field v-model="task.message" label="Message" density="comfortable" variant="outlined" hide-details />
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field v-model="task.icon" label="Icon" density="comfortable" variant="outlined" hide-details />
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-text-field v-model="task.duration" label="Duration" density="comfortable" variant="outlined" hide-details />
-          </v-col>
-        </template>
-
-        <v-col v-if="usesData" cols="12">
-          <v-textarea
-            v-model="dataText"
-            label="Data"
+      <template v-if="task.channel === 'alert'">
+        <v-col cols="12" md="6">
+          <v-text-field
+            v-model="task.message"
+            label="Message"
             density="comfortable"
             variant="outlined"
-            rows="6"
-            auto-grow
-            :error-messages="dataError"
-            @update:model-value="updateData"
+            hide-details
           />
         </v-col>
 
-        <v-col v-if="!usesData && !['alert', 'dummy_alert'].includes(task.channel)" cols="12">
-          <v-textarea
-            v-model="rawText"
-            label="Raw task fields"
+        <v-col cols="12" md="6">
+          <v-text-field
+            v-model="task.asset"
+            label="Asset"
             density="comfortable"
             variant="outlined"
-            rows="6"
-            auto-grow
-            :error-messages="rawError"
-            @update:model-value="updateRaw"
+            hide-details
           />
         </v-col>
-      </v-row>
+      </template>
 
-      <div class="d-flex justify-end ga-2 mt-2">
-        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
-      </div>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+      <template v-else-if="task.channel === 'dummy_alert'">
+        <v-col cols="12" md="6">
+          <v-text-field
+            v-model="task.message"
+            label="Message"
+            density="comfortable"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+
+        <v-col cols="12" md="3">
+          <v-text-field
+            v-model="task.icon"
+            label="Icon"
+            density="comfortable"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+
+        <v-col cols="12" md="3">
+          <v-text-field
+            v-model="task.duration"
+            label="Duration"
+            density="comfortable"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+      </template>
+
+      <v-col v-if="usesData" cols="12">
+        <v-textarea
+          v-model="dataText"
+          label="Data"
+          density="comfortable"
+          variant="outlined"
+          rows="6"
+          auto-grow
+          :error-messages="dataError"
+          @update:model-value="updateData"
+        />
+      </v-col>
+
+      <v-col
+        v-if="!usesData && !['alert', 'dummy_alert'].includes(task.channel)"
+        cols="12"
+      >
+        <v-textarea
+          v-model="rawText"
+          label="Raw task fields"
+          density="comfortable"
+          variant="outlined"
+          rows="6"
+          auto-grow
+          :error-messages="rawError"
+          @update:model-value="updateRaw"
+        />
+      </v-col>
+    </v-row>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
+
 export default {
   name: 'MacroTaskAccordion',
 
+  components: {
+    MacroTaskAccordionTemplate,
+  },
+
   props: {
-    item: {
-      type: Object,
-      required: true,
-    },
-    index: {
-      type: Number,
-      required: true,
-    },
-    depth: {
-      type: Number,
-      default: 0,
-    },
+    item: { type: Object, required: true },
+    index: { type: Number, required: true },
+    depth: { type: Number, default: 0 },
   },
 
   emits: ['remove', 'move-up', 'move-down'],
@@ -145,7 +192,19 @@ export default {
     },
 
     usesData(): boolean {
-      return ['obs', 'rest', 'websocket', 'function', 'wled', 'music', 'macro', 'webhook', 'yolobox', 'neopixel', 'effect'].includes(this.task.channel)
+      return [
+        'obs',
+        'rest',
+        'websocket',
+        'function',
+        'wled',
+        'music',
+        'macro',
+        'webhook',
+        'yolobox',
+        'neopixel',
+        'effect',
+      ].includes(this.task.channel)
     },
   },
 
@@ -167,7 +226,10 @@ export default {
 
     updateData() {
       try {
-        this.task.data = this.dataText.trim() ? JSON.parse(this.dataText) : {}
+        this.task.data = this.dataText.trim()
+          ? JSON.parse(this.dataText)
+          : {}
+
         this.dataError = ''
       } catch (error: any) {
         this.dataError = error?.message ?? 'Invalid JSON'
@@ -176,9 +238,13 @@ export default {
 
     updateRaw() {
       try {
-        const parsed = this.rawText.trim() ? JSON.parse(this.rawText) : {}
+        const parsed = this.rawText.trim()
+          ? JSON.parse(this.rawText)
+          : {}
+
         Object.keys(this.task).forEach((key) => delete this.task[key])
         Object.assign(this.task, parsed)
+
         this.rawError = ''
       } catch (error: any) {
         this.rawError = error?.message ?? 'Invalid JSON'

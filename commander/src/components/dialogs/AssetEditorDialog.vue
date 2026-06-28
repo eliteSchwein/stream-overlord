@@ -1,5 +1,6 @@
 <script lang="ts">
 import {useAppStore} from '@/stores/app'
+import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 
 type WledControl = {
   name: string;
@@ -85,6 +86,10 @@ const mdiSuggestions = [
 export default {
   name: "AssetEditorDialog",
 
+  components: {
+    YamlImportExportButtons,
+  },
+
   props: {
     modelValue: {type: Boolean, default: false},
     assetName: {type: String, default: ""},
@@ -105,6 +110,7 @@ export default {
       wledColorMenus: [] as boolean[],
       mdiSuggestions,
       wledEffectsByLamp: {} as Record<string, Array<{ title: string; value: number }>>,
+      importError: "",
     };
   },
 
@@ -316,6 +322,43 @@ export default {
           [cacheKey]: [],
         };
       }
+    },
+
+    setAsset(asset: any = {}) {
+      const form = emptyForm();
+
+      form.name = String(this.form.name || this.assetName || asset?.name || "").trim();
+      form.sound = String(asset?.sound ?? "");
+      form.icon = this.normalizeIconName(asset?.icon ?? "");
+      form.message = String(asset?.message ?? "");
+      form.duration = this.toNullableNumber(asset?.duration);
+      form.color = String(asset?.color ?? "")
+        .replace(/^#/, "")
+        .toUpperCase();
+      form.channel = String(asset?.channel ?? "");
+      form.volume = this.toNullableNumber(asset?.volume);
+      form.image = String(asset?.image ?? "");
+      form.video = String(asset?.video ?? "");
+      form.start_macros = this.toStringArray(asset?.start_macros);
+      form.idle_macros = this.toStringArray(asset?.idle_macros);
+      form.end_macros = this.toStringArray(asset?.end_macros);
+      form.wled = this.toWledControls(asset?.wled);
+
+      this.form = form;
+      this.wledColorMenus = form.wled.map(() => false);
+    },
+
+    importAssetYaml(payload: any) {
+      const parsed = payload?.data ?? {};
+      const asset = parsed?.content ?? parsed?.asset ?? parsed;
+
+      if (!asset || typeof asset !== "object" || Array.isArray(asset)) {
+        this.importError = "invalid asset yaml";
+        return;
+      }
+
+      this.importError = "";
+      this.setAsset(asset);
     },
 
     resetForm() {
@@ -592,6 +635,15 @@ export default {
             title
           }}
         </v-toolbar-title>
+
+        <YamlImportExportButtons
+          class="mr-2"
+          :filename="`${form.name || assetName || 'asset'}.yaml`"
+          :export-data="buildAssetPayload()"
+          :disabled="loading"
+          @import="importAssetYaml"
+          @error="importError = $event?.message ?? 'import failed'"
+        />
         <v-btn
           icon="mdi-close"
           variant="text"
@@ -600,6 +652,15 @@ export default {
       </v-toolbar>
 
       <v-card-text>
+        <v-alert
+          v-if="error || importError"
+          type="error"
+          color="red-darken-3"
+          density="comfortable"
+          class="mb-3"
+          :text="importError || error"
+        />
+
         <v-form @submit.prevent="submit">
           <v-row density="comfortable">
             <v-col cols="12" md="6">

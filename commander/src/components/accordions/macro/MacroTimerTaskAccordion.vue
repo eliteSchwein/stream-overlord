@@ -1,67 +1,71 @@
 <template>
-  <v-expansion-panel class="macro-timer-task-accordion">
-    <v-expansion-panel-title>
-      <div class="d-flex align-center min-width-0 w-100">
-        <v-icon icon="mdi-timer-play-outline" size="20" class="mr-2" />
-        <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
-        <span class="text-truncate font-weight-medium">Timer</span>
-        <v-spacer />
-        <v-chip size="x-small" color="primary" variant="tonal">start</v-chip>
-      </div>
-    </v-expansion-panel-title>
+  <MacroTaskAccordionTemplate
+    class="macro-timer-task-accordion"
+    :item="item"
+    :index="index"
+    icon="mdi-timer-play-outline"
+    :title="'Timer: ' + (task.data.name || 'start')"
+    export-prefix="macro_timer"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <v-row density="comfortable">
+      <v-col cols="12" md="4">
+        <v-text-field
+          v-model="task.data.name"
+          label="Timer name"
+          prepend-inner-icon="mdi-timer-outline"
+          variant="outlined"
+          hide-details="auto"
+        />
+      </v-col>
 
-    <v-expansion-panel-text>
-      <v-row density="comfortable">
-        <v-col cols="12" md="4">
-          <v-text-field
-            v-model="task.data.name"
-            label="Timer name"
-            prepend-inner-icon="mdi-timer-outline"
-            variant="outlined"
-            hide-details="auto"
-          />
-        </v-col>
+      <v-col cols="12" md="4">
+        <v-number-input
+          v-model="task.data.time"
+          label="Time"
+          suffix="seconds"
+          :min="1"
+          :step="1"
+          prepend-inner-icon="mdi-timer-outline"
+          variant="outlined"
+          hide-details="auto"
+        />
+      </v-col>
 
-        <v-col cols="12" md="4">
-          <v-number-input
-            v-model="task.data.time"
-            label="Time"
-            suffix="seconds"
-            :min="1"
-            :step="1"
-            prepend-inner-icon="mdi-timer-outline"
-            variant="outlined"
-            hide-details="auto"
-          />
-        </v-col>
-
-        <v-col cols="12" md="4">
-          <v-select
-            v-model="task.data.end"
-            :items="endActionOptions"
-            item-title="title"
-            item-value="value"
-            label="End action"
-            prepend-inner-icon="mdi-flag-checkered"
-            variant="outlined"
-            hide-details="auto"
-          />
-        </v-col>
-      </v-row>
-
-      <div class="d-flex flex-wrap ga-2 mt-4">
-        <v-spacer />
-        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
-      </div>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+      <v-col cols="12" md="4">
+        <v-select
+          v-model="task.data.end"
+          :items="endActionOptions"
+          item-title="title"
+          item-value="value"
+          label="End action"
+          prepend-inner-icon="mdi-flag-checkered"
+          variant="outlined"
+          hide-details="auto"
+        />
+      </v-col>
+    </v-row>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
+
 export default {
   name: 'MacroTimerTaskAccordion',
+
+  components: {
+    MacroTaskAccordionTemplate,
+  },
+
+  props: {
+    item: { type: Object, required: true },
+    index: { type: Number, required: true },
+  },
+
+  emits: ['remove', 'move-up', 'move-down'],
 
   data() {
     return {
@@ -71,13 +75,6 @@ export default {
       ],
     }
   },
-
-  props: {
-    item: { type: Object, required: true },
-    index: { type: Number, required: true },
-  },
-
-  emits: ['remove', 'move-up', 'move-down'],
 
   computed: {
     task(): any {

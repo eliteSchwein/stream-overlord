@@ -14,15 +14,26 @@
         <div class="text-caption text-grey-lighten-1">{{ rawMode ? 'Raw YAML editor' : 'Visual macro editor' }}</div>
       </div>
 
-      <v-switch
-        v-model="rawMode"
-        color="primary"
-        density="comfortable"
-        hide-details
-        inset
-        label="Code"
-        @update:model-value="toggleRawMode"
-      />
+      <div class="d-flex align-center ga-2">
+        <YamlImportExportButtons
+          :filename="`${name || 'macro'}.yaml`"
+          :export-content="rawMode ? content : ''"
+          :export-data="rawMode ? null : exportMacroData()"
+          :disabled="loadingInternal"
+          @import="importMacroYaml"
+          @error="errorMessage = $event?.message ?? 'import failed'"
+        />
+
+        <v-switch
+          v-model="rawMode"
+          color="primary"
+          density="comfortable"
+          hide-details
+          inset
+          label="Code"
+          @update:model-value="toggleRawMode"
+        />
+      </div>
     </div>
 
     <v-card color="grey-darken-4" variant="flat" class="channel-point-macro-accordion__card">
@@ -75,6 +86,7 @@
 <script lang="ts">
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import MacroTaskList from '@/components/MacroTaskList.vue'
+import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 import {getWebsocketClient} from "@/plugins/websocketInstance.ts";
 
 type VisualTask = {
@@ -97,6 +109,7 @@ export default {
   components: {
     VueMonacoEditor,
     MacroTaskList,
+    YamlImportExportButtons,
   },
 
   props: {
@@ -354,9 +367,33 @@ export default {
       return { items, index, stopMethod }
     },
 
+    exportMacroData() {
+      return {
+        name: this.name,
+        apis: this.visualMacro.apis ?? [],
+        tasks: this.flattenVisualTasks(this.visualMacro.items),
+      }
+    },
+
+    importMacroYaml(payload: any) {
+      try {
+        const imported = this.yamlLoad(String(payload?.content ?? '')) ?? {}
+
+        if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
+          throw new Error('invalid macro yaml')
+        }
+
+        imported.name = this.name
+        this.setContent(this.yamlDump(imported), this.name)
+        this.rawMode = false
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'import failed'
+      }
+    },
+
     syncVisualToContent() {
       const macro = {
-        name: this.visualMacro.name || this.name,
+        name: this.name,
         apis: this.visualMacro.apis ?? [],
         tasks: this.flattenVisualTasks(this.visualMacro.items),
       }

@@ -304,6 +304,15 @@
           </v-row>
         </v-card-text>
       </v-card>
+      <div class="d-flex justify-end mt-4">
+        <YamlImportExportButtons
+          :filename="`${name || 'asset'}.yaml`"
+          :export-data="getAssetPayload()"
+          :disabled="loadingInternal || disabled"
+          @import="importAssetYaml"
+          @error="errorMessage = $event?.message ?? 'import failed'"
+        />
+      </div>
     </v-form>
   </div>
 </template>
@@ -311,6 +320,7 @@
 <script lang="ts">
 import { useAppStore } from '@/stores/app'
 import {getWebsocketClient} from "@/plugins/websocketInstance.ts";
+import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 
 type WledControl = {
   name: string
@@ -357,6 +367,10 @@ const mdiSuggestions = [
 
 export default {
   name: 'ChannelPointAssetAccordion',
+
+  components: {
+    YamlImportExportButtons,
+  },
 
   props: {
     name: { type: String, default: '' },
@@ -986,6 +1000,19 @@ export default {
     setWledEffect(control: WledControl, value: any) {
       const rawValue = value && typeof value === 'object' ? (value.value ?? value.raw?.value ?? value.raw ?? value.title) : value
       control.effect = this.toNullableNumber(rawValue)
+    },
+
+    importAssetYaml(payload: any) {
+      const parsed = payload?.data ?? {}
+      const asset = parsed?.content ?? parsed?.asset ?? parsed
+
+      if (!asset || typeof asset !== 'object' || Array.isArray(asset)) {
+        this.errorMessage = 'invalid asset yaml'
+        return
+      }
+
+      this.errorMessage = ''
+      this.setAsset(asset)
     },
 
     getAssetPayload() {

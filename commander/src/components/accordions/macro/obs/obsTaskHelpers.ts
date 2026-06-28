@@ -1,3 +1,10 @@
+import { useAppStore } from '@/stores/app'
+
+export const OBS_BOOLEAN_ITEMS = [
+  { title: 'Yes', value: true },
+  { title: 'No', value: false },
+]
+
 export function asArray(value: any): any[] {
   return Array.isArray(value) ? value : []
 }
@@ -113,4 +120,67 @@ export function getFilterNames(obsSceneData: any, sourceName: string): string[] 
   }
 
   return uniqSorted(filters)
+}
+
+export function ensureTaskData(item: any): any {
+  if (!item.task || typeof item.task !== 'object') item.task = {}
+  if (!item.task.data || typeof item.task.data !== 'object' || Array.isArray(item.task.data)) item.task.data = {}
+  return item.task.data
+}
+
+export function ensureObsTask(item: any, method: string, defaults: Record<string, any> = {}) {
+  if (!item.task || typeof item.task !== 'object') item.task = {}
+
+  item.task.channel = 'obs'
+  item.task.method = method
+
+  const data = ensureTaskData(item)
+
+  for (const [key, value] of Object.entries(defaults)) {
+    if (data[key] === undefined) data[key] = value
+  }
+
+  return data
+}
+
+export function obsStoreMixin() {
+  return {
+    computed: {
+      appStore(): any {
+        return useAppStore()
+      },
+
+      obsData(): any {
+        return ensureTaskData((this as any).item)
+      },
+
+      obsSceneData(): any[] {
+        const store = (this as any).appStore
+        return asArray(store?.getObsSceneData ?? store?.obsSceneData)
+      },
+
+      obsAudioData(): any {
+        const store = (this as any).appStore
+        return store?.getObsAudioData ?? store?.obsAudioData ?? {}
+      },
+
+      sceneNames(): string[] {
+        return getSceneNames((this as any).obsSceneData)
+      },
+
+      inputNames(): string[] {
+        return getInputNames((this as any).obsSceneData, (this as any).obsAudioData)
+      },
+    },
+
+    methods: {
+      sceneItemOptions(sceneName: string): any[] {
+        return getSceneItemOptions((this as any).obsSceneData, sceneName)
+      },
+
+      filterNames(sourceName: string): string[] {
+        return getFilterNames((this as any).obsSceneData, sourceName)
+      },
+    },
+  }
 }

@@ -1,378 +1,375 @@
 <template>
-  <v-expansion-panel>
-    <v-expansion-panel-title>
-      <div class="d-flex align-center ga-2 min-width-0 w-100">
-        <v-icon icon="mdi-webhook" />
-        <span class="text-truncate">Webhook</span>
-        <v-chip v-if="isDiscordWebhook" size="x-small" color="indigo" variant="tonal">
-          Discord
-        </v-chip>
-        <v-chip v-else size="x-small" variant="tonal">{{ methodLabel }}</v-chip>
-      </div>
-    </v-expansion-panel-title>
+  <MacroTaskAccordionTemplate
+    class="macro-webhook-task-accordion"
+    :item="item"
+    :index="index"
+    icon="mdi-webhook"
+    title="Webhook"
+    export-prefix="macro_webhook"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <v-row density="comfortable">
+      <v-col cols="12" md="3">
+        <v-select
+          v-model="task.method"
+          :items="methodOptions"
+          label="Method"
+          prepend-inner-icon="mdi-swap-horizontal"
+          variant="outlined"
+          density="comfortable"
+          hide-details="auto"
+        />
+      </v-col>
 
-    <v-expansion-panel-text>
-      <v-row density="comfortable">
-        <v-col cols="12" md="3">
-          <v-select
-            v-model="task.method"
-            :items="methodOptions"
-            label="Method"
-            prepend-inner-icon="mdi-swap-horizontal"
+      <v-col cols="12" md="9">
+        <v-text-field
+          v-model="formData.url"
+          label="URL"
+          prepend-inner-icon="mdi-link"
+          variant="outlined"
+          density="comfortable"
+          hide-details="auto"
+        />
+      </v-col>
+
+      <v-col :cols="12" :md="isDiscordWebhook ? 7 : 12">
+        <template v-if="!isDiscordWebhook">
+          <v-textarea
+            v-model="formData.content"
+            label="Raw body"
             variant="outlined"
             density="comfortable"
             hide-details="auto"
+            auto-grow
+            rows="16"
+            spellcheck="false"
+            class="webhook-content-input"
           />
-        </v-col>
+        </template>
 
-        <v-col cols="12" md="9">
-          <v-text-field
-            v-model="formData.url"
-            label="URL"
-            prepend-inner-icon="mdi-link"
-            variant="outlined"
-            density="comfortable"
-            hide-details="auto"
-          />
-        </v-col>
-
-
-        <v-col :cols="12" :md="isDiscordWebhook ? 7 : 12">
-          <template v-if="!isDiscordWebhook">
-            <v-textarea
-              v-model="formData.content"
-              label="Raw body"
-              variant="outlined"
-              density="comfortable"
-              hide-details="auto"
-              auto-grow
-              rows="16"
-              spellcheck="false"
-              class="webhook-content-input"
+        <v-card v-else variant="tonal" class="discord-visual-editor">
+          <v-card-title class="d-flex align-center ga-2 text-subtitle-1">
+            <v-icon icon="mdi-discord" />
+            <span>Discord embed editor</span>
+            <v-spacer />
+            <v-switch
+              v-model="rawDiscordEditor"
+              label="Raw"
+              color="primary"
+              density="compact"
+              hide-details
+              inset
             />
-          </template>
+          </v-card-title>
 
-          <v-card v-else variant="tonal" class="discord-visual-editor">
-            <v-card-title class="d-flex align-center ga-2 text-subtitle-1">
-              <v-icon icon="mdi-discord" />
-              <span>Discord embed editor</span>
-              <v-spacer />
-              <v-switch
-                v-model="rawDiscordEditor"
-                label="Raw"
-                color="primary"
-                density="compact"
-                hide-details
-                inset
+          <v-card-text>
+            <template v-if="rawDiscordEditor">
+              <v-textarea
+                v-model="formData.content"
+                label="Raw body"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+                auto-grow
+                rows="16"
+                spellcheck="false"
+                class="webhook-content-input"
               />
-            </v-card-title>
 
-            <v-card-text>
-              <template v-if="rawDiscordEditor">
-                <v-textarea
-                  v-model="formData.content"
-                  label="Raw body"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details="auto"
-                  auto-grow
-                  rows="16"
-                  spellcheck="false"
-                  class="webhook-content-input"
-                />
-
-                <div class="d-flex flex-wrap ga-2 mt-3">
-                  <v-btn
-                    size="small"
-                    variant="tonal"
-                    prepend-icon="mdi-code-json"
-                    :disabled="!canFormatContent"
-                    @click="formatContent"
-                  >
-                    Format JSON
-                  </v-btn>
-
-                  <v-btn
-                    size="small"
-                    variant="tonal"
-                    prepend-icon="mdi-code-braces"
-                    :disabled="!canFormatContent"
-                    @click="minifyContent"
-                  >
-                    Minify JSON
-                  </v-btn>
-                </div>
-              </template>
-
-              <template v-else>
-                <v-textarea
-                  :model-value="discordContent"
-                  label="Message content"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details="auto"
-                  auto-grow
-                  rows="2"
-                  @update:model-value="setDiscordPayloadValue('content', $event)"
-                />
-
-                <v-divider class="my-4" />
-
-                <v-row density="comfortable">
-                  <v-col cols="12" md="8">
-                    <v-text-field
-                      :model-value="firstEmbed.author?.name ?? ''"
-                      label="Author name"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details="auto"
-                      @update:model-value="setDiscordEmbedNestedValue('author', 'name', $event)"
-                    />
-                  </v-col>
-                  <v-col cols="12" md="4">
-                    <v-menu :close-on-content-click="false" location="bottom">
-                      <template #activator="{ props }">
-                        <v-text-field
-                          v-bind="props"
-                          :model-value="firstEmbedColorHex"
-                          label="Color"
-                          prepend-inner-icon="mdi-palette"
-                          variant="outlined"
-                          density="comfortable"
-                          readonly
-                          hide-details="auto"
-                        >
-                          <template #append-inner>
-                            <div
-                              class="discord-color-swatch"
-                              :style="{ backgroundColor: firstEmbedColorHex }"
-                            />
-                          </template>
-                        </v-text-field>
-                      </template>
-
-                      <v-card>
-                        <v-color-picker
-                          :model-value="firstEmbedColorHex"
-                          mode="hex"
-                          hide-inputs
-                          @update:model-value="setDiscordEmbedColor"
-                        />
-                      </v-card>
-                    </v-menu>
-                  </v-col>
-                  <v-col cols="12">
-                    <v-text-field
-                      :model-value="firstEmbed.author?.icon_url ?? ''"
-                      label="Author icon URL"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details="auto"
-                      @update:model-value="setDiscordEmbedNestedValue('author', 'icon_url', $event)"
-                    />
-                  </v-col>
-                  <v-col cols="12">
-                    <v-text-field
-                      :model-value="firstEmbed.title ?? ''"
-                      label="Embed title"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details="auto"
-                      @update:model-value="setDiscordEmbedValue('title', $event)"
-                    />
-                  </v-col>
-                  <v-col cols="12">
-                    <v-textarea
-                      :model-value="firstEmbed.description ?? ''"
-                      label="Description"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details="auto"
-                      auto-grow
-                      rows="2"
-                      @update:model-value="setDiscordEmbedValue('description', $event)"
-                    />
-                  </v-col>
-                  <v-col cols="12">
-                    <v-text-field
-                      :model-value="firstEmbed.image?.url ?? ''"
-                      label="Image URL"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details="auto"
-                      @update:model-value="setDiscordEmbedNestedValue('image', 'url', $event)"
-                    />
-                  </v-col>
-                  <v-col cols="12">
-                    <v-text-field
-                      :model-value="firstEmbed.footer?.text ?? ''"
-                      label="Footer text"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details="auto"
-                      @update:model-value="setDiscordEmbedNestedValue('footer', 'text', $event)"
-                    />
-                  </v-col>
-                </v-row>
-
-                <div class="d-flex align-center justify-space-between mt-4 mb-2">
-                  <div class="text-subtitle-2">Fields</div>
-                  <v-btn size="small" variant="tonal" prepend-icon="mdi-plus" @click="addDiscordField">
-                    Add field
-                  </v-btn>
-                </div>
-
-                <v-card
-                  v-for="(field, fieldIndex) in discordFields"
-                  :key="fieldIndex"
-                  class="discord-field-editor mb-3"
+              <div class="d-flex flex-wrap ga-2 mt-3">
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  prepend-icon="mdi-code-json"
+                  :disabled="!canFormatContent"
+                  @click="formatContent"
                 >
-                  <v-card-text class="pa-3">
-                    <div class="discord-field-editor-grid">
+                  Format JSON
+                </v-btn>
+
+                <v-btn
+                  size="small"
+                  variant="tonal"
+                  prepend-icon="mdi-code-braces"
+                  :disabled="!canFormatContent"
+                  @click="minifyContent"
+                >
+                  Minify JSON
+                </v-btn>
+              </div>
+            </template>
+
+            <template v-else>
+              <v-textarea
+                :model-value="discordContent"
+                label="Message content"
+                variant="outlined"
+                density="comfortable"
+                hide-details="auto"
+                auto-grow
+                rows="2"
+                @update:model-value="setDiscordPayloadValue('content', $event)"
+              />
+
+              <v-divider class="my-4" />
+
+              <v-row density="comfortable">
+                <v-col cols="12" md="8">
+                  <v-text-field
+                    :model-value="firstEmbed.author?.name ?? ''"
+                    label="Author name"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                    @update:model-value="setDiscordEmbedNestedValue('author', 'name', $event)"
+                  />
+                </v-col>
+
+                <v-col cols="12" md="4">
+                  <v-menu :close-on-content-click="false" location="bottom">
+                    <template #activator="{ props }">
                       <v-text-field
-                        :model-value="field.name ?? ''"
-                        label="Name"
+                        v-bind="props"
+                        :model-value="firstEmbedColorHex"
+                        label="Color"
+                        prepend-inner-icon="mdi-palette"
                         variant="outlined"
                         density="comfortable"
+                        readonly
                         hide-details="auto"
-                        @update:model-value="updateDiscordField(fieldIndex, 'name', $event)"
+                      >
+                        <template #append-inner>
+                          <div
+                            class="discord-color-swatch"
+                            :style="{ backgroundColor: firstEmbedColorHex }"
+                          />
+                        </template>
+                      </v-text-field>
+                    </template>
+
+                    <v-card>
+                      <v-color-picker
+                        :model-value="firstEmbedColorHex"
+                        mode="hex"
+                        hide-inputs
+                        @update:model-value="setDiscordEmbedColor"
                       />
+                    </v-card>
+                  </v-menu>
+                </v-col>
 
-                      <v-text-field
-                        :model-value="field.value ?? ''"
-                        label="Value"
-                        variant="outlined"
-                        density="comfortable"
-                        hide-details="auto"
-                        @update:model-value="updateDiscordField(fieldIndex, 'value', $event)"
-                      />
+                <v-col cols="12">
+                  <v-text-field
+                    :model-value="firstEmbed.author?.icon_url ?? ''"
+                    label="Author icon URL"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                    @update:model-value="setDiscordEmbedNestedValue('author', 'icon_url', $event)"
+                  />
+                </v-col>
 
-                      <v-checkbox
-                        :model-value="field.inline === true"
-                        label="Inline"
-                        density="compact"
-                        hide-details
-                        class="discord-field-inline-toggle"
-                        @update:model-value="updateDiscordField(fieldIndex, 'inline', $event)"
-                      />
+                <v-col cols="12">
+                  <v-text-field
+                    :model-value="firstEmbed.title ?? ''"
+                    label="Embed title"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                    @update:model-value="setDiscordEmbedValue('title', $event)"
+                  />
+                </v-col>
 
-                      <v-btn
-                        icon="mdi-delete"
-                        color="error"
-                        variant="text"
-                        size="small"
-                        class="discord-field-delete"
-                        @click="removeDiscordField(fieldIndex)"
-                      />
-                    </div>
-                  </v-card-text>
-                </v-card>
-              </template>
-            </v-card-text>
-          </v-card>
-        </v-col>
+                <v-col cols="12">
+                  <v-textarea
+                    :model-value="firstEmbed.description ?? ''"
+                    label="Description"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                    auto-grow
+                    rows="2"
+                    @update:model-value="setDiscordEmbedValue('description', $event)"
+                  />
+                </v-col>
 
-        <v-col v-if="isDiscordWebhook" cols="12" md="5">
-          <v-card class="discord-preview" variant="flat">
-            <v-card-title class="d-flex align-center ga-2 text-subtitle-1">
-              <v-icon icon="mdi-discord" />
-              Discord preview
-            </v-card-title>
+                <v-col cols="12">
+                  <v-text-field
+                    :model-value="firstEmbed.image?.url ?? ''"
+                    label="Image URL"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                    @update:model-value="setDiscordEmbedNestedValue('image', 'url', $event)"
+                  />
+                </v-col>
 
-            <v-card-text v-if="discordPayload">
-              <div v-if="discordPayload.content" class="discord-message mb-3">
-                {{ discordPayload.content }}
+                <v-col cols="12">
+                  <v-text-field
+                    :model-value="firstEmbed.footer?.text ?? ''"
+                    label="Footer text"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                    @update:model-value="setDiscordEmbedNestedValue('footer', 'text', $event)"
+                  />
+                </v-col>
+              </v-row>
+
+              <div class="d-flex align-center justify-space-between mt-4 mb-2">
+                <div class="text-subtitle-2">Fields</div>
+                <v-btn size="small" variant="tonal" prepend-icon="mdi-plus" @click="addDiscordField">
+                  Add field
+                </v-btn>
               </div>
 
-              <div
-                v-for="(embed, embedIndex) in discordEmbeds"
-                :key="embedIndex"
-                class="discord-embed mb-3"
-                :style="{ borderLeftColor: embedColor(embed.color) }"
+              <v-card
+                v-for="(field, fieldIndex) in discordFields"
+                :key="fieldIndex"
+                class="discord-field-editor mb-3"
               >
-                <div v-if="embed.author?.name" class="discord-author mb-2">
-                  <v-avatar v-if="embed.author?.icon_url" size="20" class="mr-2">
-                    <v-img :src="embed.author.icon_url" />
-                  </v-avatar>
-                  <span>{{ embed.author.name }}</span>
-                </div>
+                <v-card-text class="pa-3">
+                  <div class="discord-field-editor-grid">
+                    <v-text-field
+                      :model-value="field.name ?? ''"
+                      label="Name"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details="auto"
+                      @update:model-value="updateDiscordField(fieldIndex, 'name', $event)"
+                    />
 
-                <div v-if="embed.title" class="discord-title mb-1">
-                  {{ embed.title }}
-                </div>
+                    <v-text-field
+                      :model-value="field.value ?? ''"
+                      label="Value"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details="auto"
+                      @update:model-value="updateDiscordField(fieldIndex, 'value', $event)"
+                    />
 
-                <div v-if="embed.description" class="discord-description mb-2">
-                  {{ embed.description }}
-                </div>
+                    <v-checkbox
+                      :model-value="field.inline === true"
+                      label="Inline"
+                      density="compact"
+                      hide-details
+                      class="discord-field-inline-toggle"
+                      @update:model-value="updateDiscordField(fieldIndex, 'inline', $event)"
+                    />
 
-                <div v-if="Array.isArray(embed.fields) && embed.fields.length" class="discord-fields">
-                  <div
-                    v-for="(field, fieldIndex) in embed.fields"
-                    :key="fieldIndex"
-                    class="discord-field"
-                    :class="{ 'discord-field--inline': field.inline }"
-                  >
-                    <div class="discord-field-name">{{ field.name }}</div>
-                    <div class="discord-field-value">{{ field.value }}</div>
+                    <v-btn
+                      icon="mdi-delete"
+                      color="error"
+                      variant="text"
+                      size="small"
+                      class="discord-field-delete"
+                      @click="removeDiscordField(fieldIndex)"
+                    />
                   </div>
-                </div>
+                </v-card-text>
+              </v-card>
+            </template>
+          </v-card-text>
+        </v-card>
+      </v-col>
 
-                <v-img
-                  v-if="embed.image?.url"
-                  :src="embed.image.url"
-                  class="discord-image mt-3"
-                  max-height="220"
-                  cover
-                />
+      <v-col v-if="isDiscordWebhook" cols="12" md="5">
+        <v-card class="discord-preview" variant="flat">
+          <v-card-title class="d-flex align-center ga-2 text-subtitle-1">
+            <v-icon icon="mdi-discord" />
+            Discord preview
+          </v-card-title>
 
-                <div v-if="embed.footer?.text" class="discord-footer mt-2">
-                  {{ embed.footer.text }}
+          <v-card-text v-if="discordPayload">
+            <div v-if="discordPayload.content" class="discord-message mb-3">
+              {{ discordPayload.content }}
+            </div>
+
+            <div
+              v-for="(embed, embedIndex) in discordEmbeds"
+              :key="embedIndex"
+              class="discord-embed mb-3"
+              :style="{ borderLeftColor: embedColor(embed.color) }"
+            >
+              <div v-if="embed.author?.name" class="discord-author mb-2">
+                <v-avatar v-if="embed.author?.icon_url" size="20" class="mr-2">
+                  <v-img :src="embed.author.icon_url" />
+                </v-avatar>
+                <span>{{ embed.author.name }}</span>
+              </div>
+
+              <div v-if="embed.title" class="discord-title mb-1">
+                {{ embed.title }}
+              </div>
+
+              <div v-if="embed.description" class="discord-description mb-2">
+                {{ embed.description }}
+              </div>
+
+              <div v-if="Array.isArray(embed.fields) && embed.fields.length" class="discord-fields">
+                <div
+                  v-for="(field, fieldIndex) in embed.fields"
+                  :key="fieldIndex"
+                  class="discord-field"
+                  :class="{ 'discord-field--inline': field.inline }"
+                >
+                  <div class="discord-field-name">{{ field.name }}</div>
+                  <div class="discord-field-value">{{ field.value }}</div>
                 </div>
               </div>
 
-              <v-alert
-                v-if="!discordPayload.content && discordEmbeds.length === 0"
-                type="info"
-                variant="tonal"
-                density="comfortable"
-                text="Discord webhook detected, but the body has no content or embeds."
+              <v-img
+                v-if="embed.image?.url"
+                :src="embed.image.url"
+                class="discord-image mt-3"
+                max-height="220"
+                cover
               />
-            </v-card-text>
 
-            <v-card-text v-else>
-              <v-alert
-                type="warning"
-                color="warning"
-                variant="tonal"
-                density="comfortable"
-                text="Discord webhook detected, but the raw body is not valid JSON yet."
-              />
-            </v-card-text>
-          </v-card>
-        </v-col>
+              <div v-if="embed.footer?.text" class="discord-footer mt-2">
+                {{ embed.footer.text }}
+              </div>
+            </div>
 
-        <v-col v-if="contentError" cols="12">
-          <v-alert
-            type="warning"
-            color="warning"
-            variant="tonal"
-            density="comfortable"
-            :text="contentError"
-          />
-        </v-col>
-      </v-row>
+            <v-alert
+              v-if="!discordPayload.content && discordEmbeds.length === 0"
+              type="info"
+              variant="tonal"
+              density="comfortable"
+              text="Discord webhook detected, but the body has no content or embeds."
+            />
+          </v-card-text>
 
-      <v-card-actions class="px-0 pb-0">
-        <v-spacer />
-        <v-btn icon="mdi-arrow-up" variant="text" size="small" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" variant="text" size="small" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" color="error" variant="text" size="small" @click="$emit('remove')" />
-      </v-card-actions>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+          <v-card-text v-else>
+            <v-alert
+              type="warning"
+              color="warning"
+              variant="tonal"
+              density="comfortable"
+              text="Discord webhook detected, but the raw body is not valid JSON yet."
+            />
+          </v-card-text>
+        </v-card>
+      </v-col>
+
+      <v-col v-if="contentError" cols="12">
+        <v-alert
+          type="warning"
+          color="warning"
+          variant="tonal"
+          density="comfortable"
+          :text="contentError"
+        />
+      </v-col>
+    </v-row>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
+
 type DiscordEmbed = {
   title?: string
   description?: string
@@ -401,6 +398,10 @@ type DiscordPayload = {
 
 export default {
   name: 'MacroWebhookTaskAccordion',
+
+  components: {
+    MacroTaskAccordionTemplate,
+  },
 
   props: {
     item: { type: Object, required: true },
@@ -436,7 +437,6 @@ export default {
 
     parsedContent(): any | null {
       const content = String(this.formData?.content ?? '').trim()
-
       if (!content) return null
 
       try {
@@ -448,7 +448,6 @@ export default {
 
     contentError(): string {
       const content = String(this.formData?.content ?? '').trim()
-
       if (!content || this.parsedContent) return ''
 
       return 'Raw body is not valid JSON. It will still be sent as-is, but Discord embed preview needs valid JSON.'
@@ -526,13 +525,8 @@ export default {
         this.task.data = {}
       }
 
-      if ('additional_data' in this.task.data) {
-        delete this.task.data.additional_data
-      }
-
-      if ('additionalData' in this.task.data) {
-        delete this.task.data.additionalData
-      }
+      delete this.task.data.additional_data
+      delete this.task.data.additionalData
 
       if (this.task.data.url === undefined) {
         this.task.data.url = ''

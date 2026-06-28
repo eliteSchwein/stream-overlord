@@ -1,67 +1,63 @@
 <template>
-  <v-expansion-panel class="macro-file-task-accordion">
-    <v-expansion-panel-title>
-      <div class="d-flex align-center min-width-0 w-100">
-        <v-icon icon="mdi-folder-open-outline" size="20" class="mr-2" />
-        <span class="text-caption mr-2 text-medium-emphasis">#{{ index + 1 }}</span>
-        <span class="text-truncate font-weight-medium">Read asset folder: {{ fileData.path || '/' }}</span>
-        <v-spacer />
-        <v-chip size="x-small" color="blue" variant="tonal">file</v-chip>
-      </div>
-    </v-expansion-panel-title>
+  <MacroTaskAccordionTemplate
+    class="macro-file-task-accordion"
+    :item="item"
+    :index="index"
+    icon="mdi-folder-open-outline"
+    :title="'Read asset folder: ' + (fileData.path || '/')"
+    export-prefix="macro_file_read_folder"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <v-row>
+      <v-col cols="12" md="5">
+        <v-combobox
+          v-model="fileData.path"
+          :items="assetFolderOptions"
+          label="Asset folder path"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+          clearable
+        />
+      </v-col>
 
-    <v-expansion-panel-text>
-      <v-row>
-        <v-col cols="12" md="5">
-          <v-combobox
-            v-model="fileData.path"
-            :items="assetFolderOptions"
-            label="Asset folder path"
-            density="comfortable"
-            variant="outlined"
-            hide-details
-            clearable
-          />
-        </v-col>
+      <v-col cols="12" md="4">
+        <v-combobox
+          v-model="fileData.fileExtension"
+          :items="extensionOptions"
+          label="File extension (optional)"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+          clearable
+        />
+      </v-col>
 
-        <v-col cols="12" md="4">
-          <v-combobox
-            v-model="fileData.fileExtension"
-            :items="extensionOptions"
-            label="File extension (optional)"
-            density="comfortable"
-            variant="outlined"
-            hide-details
-            clearable
-          />
-        </v-col>
-
-        <v-col cols="12" md="3">
-          <v-text-field
-            v-model="fileData.key"
-            label="Variable key"
-            density="comfortable"
-            variant="outlined"
-            hide-details
-          />
-        </v-col>
-      </v-row>
-
-      <div class="d-flex flex-wrap ga-2 mt-4">
-        <v-spacer />
-        <v-btn icon="mdi-arrow-up" size="small" variant="text" @click="$emit('move-up')" />
-        <v-btn icon="mdi-arrow-down" size="small" variant="text" @click="$emit('move-down')" />
-        <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="$emit('remove')" />
-      </div>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+      <v-col cols="12" md="3">
+        <v-text-field
+          v-model="fileData.key"
+          label="Variable key"
+          density="comfortable"
+          variant="outlined"
+          hide-details
+        />
+      </v-col>
+    </v-row>
+  </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
 import { useAppStore } from '@/stores/app'
+import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
 
 export default {
   name: 'MacroFileTaskAccordion',
+
+  components: {
+    MacroTaskAccordionTemplate,
+  },
 
   props: {
     item: { type: Object, required: true },
@@ -85,11 +81,17 @@ export default {
   computed: {
     fileData(): any {
       const task = (this.item as any).task
+
       task.channel = 'file'
       task.method = 'read_folder'
       task.data ??= {}
       task.data.key ??= 'files'
+
       return task.data
+    },
+
+    task(): any {
+      return (this.item as any).task
     },
 
     assetFolderOptions(): string[] {
