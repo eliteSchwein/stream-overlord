@@ -100,6 +100,37 @@ import {
   MacroChannelPointPauseTaskAccordion, MacroChannelPointToggleTaskAccordion,
   MacroKeyboardTaskAccordion,
 } from '@/components/accordions/macro'
+import {
+  MacroObsDisableSourceFilterTaskAccordion,
+  MacroObsEnableSourceFilterTaskAccordion,
+  MacroObsHideSceneItemTaskAccordion,
+  MacroObsLockSceneItemTaskAccordion,
+  MacroObsMuteInputTaskAccordion,
+  MacroObsPauseRecordTaskAccordion,
+  MacroObsReloadBrowserSourcesTaskAccordion,
+  MacroObsResumeRecordTaskAccordion,
+  MacroObsSaveReplayBufferTaskAccordion,
+  MacroObsSetInputVolumeTaskAccordion,
+  MacroObsSetProfileTaskAccordion,
+  MacroObsSetSceneCollectionTaskAccordion,
+  MacroObsShowSceneItemTaskAccordion,
+  MacroObsStartRecordTaskAccordion,
+  MacroObsStartReplayBufferTaskAccordion,
+  MacroObsStartStreamTaskAccordion,
+  MacroObsStopRecordTaskAccordion,
+  MacroObsStopReplayBufferTaskAccordion,
+  MacroObsStopStreamTaskAccordion,
+  MacroObsSwitchPreviewSceneTaskAccordion,
+  MacroObsSwitchSceneTaskAccordion,
+  MacroObsToggleInputMuteTaskAccordion,
+  MacroObsToggleRecordTaskAccordion,
+  MacroObsToggleSceneItemTaskAccordion,
+  MacroObsToggleStreamTaskAccordion,
+  MacroObsTransformSceneItemTaskAccordion,
+  MacroObsTriggerHotkeyTaskAccordion,
+  MacroObsUnlockSceneItemTaskAccordion,
+  MacroObsUnmuteInputTaskAccordion
+} from '@/components/accordions/macro/obs'
 import MacroTimerTaskAccordion from "@/components/accordions/macro/MacroTimerTaskAccordion.vue";
 
 export default {
@@ -140,7 +171,36 @@ export default {
     MacroChannelPointPauseTaskAccordion,
     MacroChannelPointToggleTaskAccordion,
     MacroKeyboardTaskAccordion,
-    MacroTimerTaskAccordion
+    MacroTimerTaskAccordion,
+    MacroObsDisableSourceFilterTaskAccordion,
+    MacroObsEnableSourceFilterTaskAccordion,
+    MacroObsHideSceneItemTaskAccordion,
+    MacroObsLockSceneItemTaskAccordion,
+    MacroObsMuteInputTaskAccordion,
+    MacroObsPauseRecordTaskAccordion,
+    MacroObsReloadBrowserSourcesTaskAccordion,
+    MacroObsResumeRecordTaskAccordion,
+    MacroObsSaveReplayBufferTaskAccordion,
+    MacroObsSetInputVolumeTaskAccordion,
+    MacroObsSetProfileTaskAccordion,
+    MacroObsSetSceneCollectionTaskAccordion,
+    MacroObsShowSceneItemTaskAccordion,
+    MacroObsStartRecordTaskAccordion,
+    MacroObsStartReplayBufferTaskAccordion,
+    MacroObsStartStreamTaskAccordion,
+    MacroObsStopRecordTaskAccordion,
+    MacroObsStopReplayBufferTaskAccordion,
+    MacroObsStopStreamTaskAccordion,
+    MacroObsSwitchPreviewSceneTaskAccordion,
+    MacroObsSwitchSceneTaskAccordion,
+    MacroObsToggleInputMuteTaskAccordion,
+    MacroObsToggleRecordTaskAccordion,
+    MacroObsToggleSceneItemTaskAccordion,
+    MacroObsToggleStreamTaskAccordion,
+    MacroObsTransformSceneItemTaskAccordion,
+    MacroObsTriggerHotkeyTaskAccordion,
+    MacroObsUnlockSceneItemTaskAccordion,
+    MacroObsUnmuteInputTaskAccordion
   },
 
   props: {
@@ -383,6 +443,42 @@ export default {
             },
           ],
         },
+
+        {
+          title: 'OBS',
+          icon: 'mdi-broadcast',
+          children: [
+            { title: 'Switch scene', icon: 'mdi-monitor-screenshot', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentProgramScene', data: { sceneName: '' } }) },
+            { title: 'Switch preview scene', icon: 'mdi-monitor-eye', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentPreviewScene', data: { sceneName: '' } }) },
+            { title: 'Show scene item', icon: 'mdi-eye', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemEnabled', data: { sceneName: '', sceneItemId: null, sceneItemEnabled: true } }) },
+            { title: 'Hide scene item', icon: 'mdi-eye-off', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemEnabled', data: { sceneName: '', sceneItemId: null, sceneItemEnabled: false } }) },
+            { title: 'Set scene item visibility', icon: 'mdi-eye-sync', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemEnabled', data: { sceneName: '', sceneItemId: null, sceneItemEnabled: true } }) },
+            { title: 'Lock scene item', icon: 'mdi-lock', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemLocked', data: { sceneName: '', sceneItemId: null, sceneItemLocked: true } }) },
+            { title: 'Unlock scene item', icon: 'mdi-lock-open-variant', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemLocked', data: { sceneName: '', sceneItemId: null, sceneItemLocked: false } }) },
+            { title: 'Transform scene item', icon: 'mdi-vector-square', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemTransform', data: { sceneName: '', sceneItemId: null, sceneItemTransform: { positionX: 0, positionY: 0, scaleX: 1, scaleY: 1, rotation: 0 } } }) },
+            { title: 'Mute input', icon: 'mdi-volume-off', factory: () => this.createTask({ channel: 'obs', method: 'SetInputMute', data: { inputName: '', inputMuted: true } }) },
+            { title: 'Unmute input', icon: 'mdi-volume-high', factory: () => this.createTask({ channel: 'obs', method: 'SetInputMute', data: { inputName: '', inputMuted: false } }) },
+            { title: 'Toggle input mute', icon: 'mdi-volume-medium', factory: () => this.createTask({ channel: 'obs', method: 'ToggleInputMute', data: { inputName: '' } }) },
+            { title: 'Set input volume', icon: 'mdi-volume-source', factory: () => this.createTask({ channel: 'obs', method: 'SetInputVolume', data: { inputName: '', inputVolumeDb: 0 } }) },
+            { title: 'Enable source filter', icon: 'mdi-filter-check', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: true } }) },
+            { title: 'Disable source filter', icon: 'mdi-filter-off', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: false } }) },
+            { title: 'Start stream', icon: 'mdi-broadcast', factory: () => this.createTask({ channel: 'obs', method: 'StartStream', data: {} }) },
+            { title: 'Stop stream', icon: 'mdi-broadcast-off', factory: () => this.createTask({ channel: 'obs', method: 'StopStream', data: {} }) },
+            { title: 'Toggle stream', icon: 'mdi-broadcast', factory: () => this.createTask({ channel: 'obs', method: 'ToggleStream', data: {} }) },
+            { title: 'Start recording', icon: 'mdi-record-rec', factory: () => this.createTask({ channel: 'obs', method: 'StartRecord', data: {} }) },
+            { title: 'Stop recording', icon: 'mdi-stop-circle', factory: () => this.createTask({ channel: 'obs', method: 'StopRecord', data: {} }) },
+            { title: 'Toggle recording', icon: 'mdi-record-circle-outline', factory: () => this.createTask({ channel: 'obs', method: 'ToggleRecord', data: {} }) },
+            { title: 'Pause recording', icon: 'mdi-pause-circle', factory: () => this.createTask({ channel: 'obs', method: 'PauseRecord', data: {} }) },
+            { title: 'Resume recording', icon: 'mdi-play-circle', factory: () => this.createTask({ channel: 'obs', method: 'ResumeRecord', data: {} }) },
+            { title: 'Start replay buffer', icon: 'mdi-history', factory: () => this.createTask({ channel: 'obs', method: 'StartReplayBuffer', data: {} }) },
+            { title: 'Stop replay buffer', icon: 'mdi-history', factory: () => this.createTask({ channel: 'obs', method: 'StopReplayBuffer', data: {} }) },
+            { title: 'Save replay buffer', icon: 'mdi-content-save', factory: () => this.createTask({ channel: 'obs', method: 'SaveReplayBuffer', data: {} }) },
+            { title: 'Reload browser sources', icon: 'mdi-refresh', factory: () => this.createTask({ channel: 'obs', method: 'reload_browser_sources', data: {} }) },
+            { title: 'Trigger hotkey', icon: 'mdi-keyboard', factory: () => this.createTask({ channel: 'obs', method: 'TriggerHotkeyByName', data: { hotkeyName: '' } }) },
+            { title: 'Set profile', icon: 'mdi-account-cog', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentProfile', data: { profileName: '' } }) },
+            { title: 'Set scene collection', icon: 'mdi-folder-cog', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentSceneCollection', data: { sceneCollectionName: '' } }) },
+          ],
+        },
         {
           title: 'Expert',
           icon: 'mdi-function',
@@ -465,13 +561,57 @@ export default {
         return 'MacroKeyboardTaskAccordion'
       }
 
+
+      if (item?.task?.channel === 'obs') {
+        const data = item?.task?.data ?? {}
+
+        if (item?.task?.method === 'SetCurrentProgramScene') return 'MacroObsSwitchSceneTaskAccordion'
+        if (item?.task?.method === 'SetCurrentPreviewScene') return 'MacroObsSwitchPreviewSceneTaskAccordion'
+
+        if (item?.task?.method === 'SetSceneItemEnabled') {
+          if (data.sceneItemEnabled === false) return 'MacroObsHideSceneItemTaskAccordion'
+          if (data.sceneItemEnabled === true) return 'MacroObsShowSceneItemTaskAccordion'
+          return 'MacroObsToggleSceneItemTaskAccordion'
+        }
+
+        if (item?.task?.method === 'SetSceneItemLocked') {
+          if (data.sceneItemLocked === false) return 'MacroObsUnlockSceneItemTaskAccordion'
+          return 'MacroObsLockSceneItemTaskAccordion'
+        }
+
+        if (item?.task?.method === 'SetSceneItemTransform') return 'MacroObsTransformSceneItemTaskAccordion'
+        if (item?.task?.method === 'SetInputMute') return data.inputMuted === false ? 'MacroObsUnmuteInputTaskAccordion' : 'MacroObsMuteInputTaskAccordion'
+        if (item?.task?.method === 'ToggleInputMute') return 'MacroObsToggleInputMuteTaskAccordion'
+        if (item?.task?.method === 'SetInputVolume') return 'MacroObsSetInputVolumeTaskAccordion'
+
+        if (item?.task?.method === 'SetSourceFilterEnabled') {
+          if (data.filterEnabled === false) return 'MacroObsDisableSourceFilterTaskAccordion'
+          return 'MacroObsEnableSourceFilterTaskAccordion'
+        }
+
+        if (item?.task?.method === 'StartStream') return 'MacroObsStartStreamTaskAccordion'
+        if (item?.task?.method === 'StopStream') return 'MacroObsStopStreamTaskAccordion'
+        if (item?.task?.method === 'ToggleStream') return 'MacroObsToggleStreamTaskAccordion'
+        if (item?.task?.method === 'StartRecord') return 'MacroObsStartRecordTaskAccordion'
+        if (item?.task?.method === 'StopRecord') return 'MacroObsStopRecordTaskAccordion'
+        if (item?.task?.method === 'ToggleRecord') return 'MacroObsToggleRecordTaskAccordion'
+        if (item?.task?.method === 'PauseRecord') return 'MacroObsPauseRecordTaskAccordion'
+        if (item?.task?.method === 'ResumeRecord') return 'MacroObsResumeRecordTaskAccordion'
+        if (item?.task?.method === 'StartReplayBuffer') return 'MacroObsStartReplayBufferTaskAccordion'
+        if (item?.task?.method === 'StopReplayBuffer') return 'MacroObsStopReplayBufferTaskAccordion'
+        if (item?.task?.method === 'SaveReplayBuffer') return 'MacroObsSaveReplayBufferTaskAccordion'
+        if (item?.task?.method === 'reload_browser_sources') return 'MacroObsReloadBrowserSourcesTaskAccordion'
+        if (item?.task?.method === 'TriggerHotkeyByName') return 'MacroObsTriggerHotkeyTaskAccordion'
+        if (item?.task?.method === 'SetCurrentProfile') return 'MacroObsSetProfileTaskAccordion'
+        if (item?.task?.method === 'SetCurrentSceneCollection') return 'MacroObsSetSceneCollectionTaskAccordion'
+      }
+
       const componentsByChannel: Record<string, string> = {
         alert: 'MacroAlertTaskAccordion',
         dummy_alert: 'MacroDummyAlertTaskAccordion',
         function: 'MacroFunctionTaskAccordion',
         websocket: 'MacroWebsocketTaskAccordion',
         rest: 'MacroRestTaskAccordion',
-        obs: 'MacroObsTaskAccordion',
         wled: 'MacroWledTaskAccordion',
         music: 'MacroMusicTaskAccordion',
         macro: 'MacroMacroTaskAccordion',
