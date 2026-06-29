@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { readOverlayFile } from "../../helper/OverlayManagementHelper";
+import {readOverlayFile} from "../../helper/OverlayManagementHelper";
 
 export default class OverlayReadApi extends BaseApi {
     restEndpoint = "overlay/read";

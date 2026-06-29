@@ -1,5 +1,5 @@
 import BaseApi from '../../abstracts/BaseApi'
-import { setVolume } from '../../helper/MusicHelper'
+import {setVolume} from '../../helper/MusicHelper'
 
 export default class MusicVolumeApi extends BaseApi {
     restEndpoint = 'music/volume'

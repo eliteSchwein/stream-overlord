@@ -1,5 +1,4 @@
-import {getParsedPrimaryChannel, getPrimaryChannel} from "./ConfigHelper";
-import getGameInfo, {getRawGameInfo} from "./GameHelper";
+import {getRawGameInfo} from "./GameHelper";
 import getWebsocketServer from "../App";
 import {getSystemComponents} from "./SystemInfoHelper";
 import {getGiveaway} from "./GiveawayHelper";

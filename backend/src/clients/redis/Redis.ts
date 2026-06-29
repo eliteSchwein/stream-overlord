@@ -1,4 +1,4 @@
-import { createClient, RedisClientType } from 'redis';
+import {createClient, RedisClientType} from 'redis';
 import {getConfig} from "../../helper/ConfigHelper";
 import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 

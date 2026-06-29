@@ -1,6 +1,6 @@
 import {getFullConfig} from "./ConfigHelper"
 import {execute, executeProcess} from "./CommandHelper"
-import {logDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper"
+import {logDebug, logError, logNotice, logWarn} from "./LogHelper"
 import {getAudioData, getStreambotSinkName} from "./AudioHelper"
 import {getArch, parsePath} from "./SystemHelper"
 import {createWriteStream, existsSync, rmSync} from "node:fs"
@@ -10,7 +10,6 @@ import * as stream from "node:stream"
 import axios from "axios"
 import * as path from "node:path"
 import getWebsocketServer from "../App"
-import {ChildProcessWithoutNullStreams} from "node:child_process";
 
 const escapeRegex = /[\/'"]/
 

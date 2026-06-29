@@ -1,5 +1,5 @@
-import { getWledConfigs } from "./AssetHelper";
-import { logRegular, logWarn } from "./LogHelper";
+import {getWledConfigs} from "./AssetHelper";
+import {logRegular, logWarn} from "./LogHelper";
 
 export type WledControl = {
     red?: number;

@@ -1,6 +1,6 @@
-import { Express } from "express";
+import {Express} from "express";
 import BaseApi from "../BaseApi";
-import { addMacroFilesFromUpload } from "../../../../helper/MacroHelper";
+import {addMacroFilesFromUpload} from "../../../../helper/MacroHelper";
 import multer from "multer";
 
 export default class MacrosUploadApi extends BaseApi {

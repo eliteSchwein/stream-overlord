@@ -1,4 +1,4 @@
-import { networkInterfaces } from "os";
+import {networkInterfaces} from "os";
 import * as net from "node:net";
 
 const networkInterfaceBlacklist: RegExp[] = [

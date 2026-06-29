@@ -1,4 +1,4 @@
-import { logWarn } from "./LogHelper";
+import {logWarn} from "./LogHelper";
 
 export type ConnectionName = "twitch";
 export type ConnectionState = "connected" | "connecting" | "disconnected" | "auth_required" | "error";

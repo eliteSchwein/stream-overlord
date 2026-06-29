@@ -1,4 +1,4 @@
-import {exec, ChildProcess} from "child_process";
+import {ChildProcess, exec} from "child_process";
 
 let showErrorMessage = true
 

@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { createOverlayFolder } from "../../helper/OverlayManagementHelper";
+import {createOverlayFolder} from "../../helper/OverlayManagementHelper";
 
 export default class OverlayCreateFolderApi extends BaseApi {
     restEndpoint = "overlay/create_folder";

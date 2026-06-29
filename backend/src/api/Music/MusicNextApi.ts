@@ -1,5 +1,5 @@
 import BaseApi from '../../abstracts/BaseApi'
-import { next } from '../../helper/MusicHelper'
+import {next} from '../../helper/MusicHelper'
 
 export default class MusicNextApi extends BaseApi {
     restEndpoint = 'music/next'

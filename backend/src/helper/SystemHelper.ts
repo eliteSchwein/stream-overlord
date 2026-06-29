@@ -1,6 +1,6 @@
-import { execute } from "./CommandHelper";
-import { getConfig } from "./ConfigHelper";
-import { logRegular, logWarn } from "./LogHelper";
+import {execute} from "./CommandHelper";
+import {getConfig} from "./ConfigHelper";
+import {logRegular, logWarn} from "./LogHelper";
 import getWebsocketServer from "../App";
 import * as path from "node:path";
 import * as os from "node:os";

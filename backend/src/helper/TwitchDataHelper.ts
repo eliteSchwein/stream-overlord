@@ -1,6 +1,6 @@
-import type { Bot } from "@twurple/easy-bot";
-import { getConfig } from "./ConfigHelper";
-import { logRegular, logWarn } from "./LogHelper";
+import type {Bot} from "@twurple/easy-bot";
+import {getConfig} from "./ConfigHelper";
+import {logRegular, logWarn} from "./LogHelper";
 
 type TwitchDataCache = {
     channel?: any;

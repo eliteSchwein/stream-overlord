@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { createMacroFolder } from "../../helper/MacroHelper";
+import {createMacroFolder} from "../../helper/MacroHelper";
 
 export default class MacroCreateFolderApi extends BaseApi {
     restEndpoint = "macro/create_folder";

@@ -1,11 +1,11 @@
-import { getConfig, getSystemConfigDirectory } from "./ConfigHelper";
+import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import { execFileSync } from "node:child_process";
-import { getGpu } from "./SystemInfoHelper";
-import { isDebug, logDebug, logError, logNotice, logRegular, logWarn } from "./LogHelper";
-import { imageRegex, videoRegex, audioRegex } from "./AssetHelper";
-import { existsSync } from "node:fs";
+import {existsSync} from "node:fs";
+import {execFileSync} from "node:child_process";
+import {getGpu} from "./SystemInfoHelper";
+import {logDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper";
+import {audioRegex, imageRegex, videoRegex} from "./AssetHelper";
 import {emitAssetUpdate} from "./AssetManagementHelper";
 
 type FfmpegInit = {

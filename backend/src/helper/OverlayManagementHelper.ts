@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getSystemConfigDirectory } from "./ConfigHelper";
-import { logWarn } from "./LogHelper";
+import {getSystemConfigDirectory} from "./ConfigHelper";
+import {logWarn} from "./LogHelper";
 import getWebsocketServer from "../App";
 
 export const overlayRoot = path.join(getSystemConfigDirectory(), "streambot-overlays");

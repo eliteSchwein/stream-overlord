@@ -1,14 +1,14 @@
-import { RefreshingAuthProvider } from '@twurple/auth';
-import { promises as fs } from 'fs';
-import { getConfig } from "../../helper/ConfigHelper";
-import { existsSync } from "node:fs";
-import { WAIT_FOREVER, waitUntil } from "async-wait-until";
-import express, { Request, Response } from 'express';
-import { logEmpty, logError, logRegular, logSuccess, logWarn } from "../../helper/LogHelper";
+import {RefreshingAuthProvider} from '@twurple/auth';
+import {promises as fs} from 'fs';
+import {getConfig} from "../../helper/ConfigHelper";
+import {existsSync} from "node:fs";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
+import express, {Request, Response} from 'express';
+import {logEmpty, logError, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import axios from "axios";
 import * as querystring from "node:querystring";
 import crypto from "crypto";
-import { getWebServer, setUnreadyMessage } from "../../App";
+import {getWebServer, setUnreadyMessage} from "../../App";
 
 export default class TwitchAuth {
     protected tokensPath = `${__dirname}/../../twitchTokens.json`;

@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { listOverlays } from "../../helper/OverlayManagementHelper";
+import {listOverlays} from "../../helper/OverlayManagementHelper";
 
 export default class OverlayListApi extends BaseApi {
     restEndpoint = "overlay/list";

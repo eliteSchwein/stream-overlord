@@ -1,29 +1,29 @@
-import { getPrimaryChannel, getSystemConfigDirectory } from "../../helper/ConfigHelper";
-import { Bot, BotCommandContext, createBotCommand } from "@twurple/easy-bot";
+import {getPrimaryChannel, getSystemConfigDirectory} from "../../helper/ConfigHelper";
+import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
 import fs from "fs";
 import path from "path";
 import * as yaml from "js-yaml";
 import InfoCommand from "./commands/InfoCommand";
-import { logRegular, logWarn } from "../../helper/LogHelper";
+import {logRegular, logWarn} from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
 import ShoutoutCommand from "./commands/ShoutoutCommand";
 import ClipCommand from "./commands/ClipCommand";
 import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
-import { triggerMacro } from "../../helper/MacroHelper";
+import {triggerMacro} from "../../helper/MacroHelper";
 import MacroCommand from "./commands/MacroCommand";
 import ListScenesCommand from "./commands/ListScenesCommand";
 import SetSceneCommand from "./commands/SetSceneCommand";
 import MusicCommand from "./commands/MusicCommand";
 import ListRotatingScenes from "./commands/ListRotatingScenes";
 import StartRotatingSceneCommand from "./commands/StartRotatingSceneCommand";
-import { ListMacrosCommand } from "./commands/ListMacrosCommand";
+import {ListMacrosCommand} from "./commands/ListMacrosCommand";
 import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
-import { hasModerator, hasVip } from "./helper/PermissionHelper";
-import { isShowErrorMessage } from "../../helper/CommandHelper";
+import {hasModerator, hasVip} from "./helper/PermissionHelper";
+import {isShowErrorMessage} from "../../helper/CommandHelper";
 import isShieldActive from "../../helper/ShieldHelper";
-import { v4 as uuidv4 } from "uuid";
-import { linkMessageToEvent } from "../../helper/MessageEventLinkHelper";
+import {v4 as uuidv4} from "uuid";
+import {linkMessageToEvent} from "../../helper/MessageEventLinkHelper";
 
 type ConfigParam = {
     name: string;

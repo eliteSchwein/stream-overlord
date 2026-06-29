@@ -1,11 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { compressAssets } from "./AssetTuneHelper";
-import { getAssetFile } from "./AssetTuneHelper";
-import { imageRegex, videoRegex, audioRegex, readAssetFolder, getParsedAssetFiles } from "./AssetHelper";
-import { logRegular, logWarn } from "./LogHelper";
+import {compressAssets, getAssetFile} from "./AssetTuneHelper";
+import {audioRegex, getParsedAssetFiles, imageRegex, readAssetFolder, videoRegex} from "./AssetHelper";
+import {logRegular, logWarn} from "./LogHelper";
 import getWebsocketServer from "../App";
-import { getSystemConfigDirectory } from "./ConfigHelper";
+import {getSystemConfigDirectory} from "./ConfigHelper";
 import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
 export const assetRoot = path.join(getSystemConfigDirectory(), "assets");

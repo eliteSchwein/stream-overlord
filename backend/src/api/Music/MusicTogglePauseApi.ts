@@ -1,5 +1,5 @@
 import BaseApi from '../../abstracts/BaseApi'
-import { togglePause } from '../../helper/MusicHelper'
+import {togglePause} from '../../helper/MusicHelper'
 
 export default class MusicTogglePauseApi extends BaseApi {
     restEndpoint = 'music/toggle_pause'

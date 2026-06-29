@@ -1,7 +1,7 @@
 import path from "path";
-import { promises as fs } from "fs";
-import { redis } from "../clients/redis/Redis";
-import { logRegular, logSuccess, logWarn } from "./LogHelper";
+import {promises as fs} from "fs";
+import {redis} from "../clients/redis/Redis";
+import {logRegular, logSuccess, logWarn} from "./LogHelper";
 import {getSystemConfigDirectory} from "./ConfigHelper";
 import getWebsocketServer from "../App";
 

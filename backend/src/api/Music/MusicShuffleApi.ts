@@ -1,5 +1,5 @@
 import BaseApi from '../../abstracts/BaseApi'
-import { setMusicShuffle, toggleMusicShuffle } from '../../helper/MusicHelper'
+import {setMusicShuffle, toggleMusicShuffle} from '../../helper/MusicHelper'
 
 export default class MusicShuffleApi extends BaseApi {
     restEndpoint = 'music/shuffle'

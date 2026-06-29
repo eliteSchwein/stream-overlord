@@ -5,7 +5,6 @@ import {updateSystemInfo} from "./SystemInfoHelper";
 import {checkThrottle} from "./ThrottleHelper";
 import {fetchVoices} from "./TTShelper";
 import {updateAutoMacros} from "./AutoMacroHelper";
-import {updateTemplateVariables} from "./TemplateHelper";
 import {updateGiveaway} from "./GiveawayHelper";
 import {pulseHeartbeatLeds} from "./NeopixelHelper";
 import {sync} from "./MusicHelper";

@@ -1,8 +1,7 @@
 import BaseApi from "../../abstracts/BaseApi";
-import {compressAssets} from "../../helper/AssetTuneHelper";
 import {unlinkSync} from "node:fs";
 import {resolve} from "node:path";
-import {isDebug, logDebug, logError, logWarn} from "../../helper/LogHelper";
+import {isDebug, logWarn} from "../../helper/LogHelper";
 
 export default class DeleteAuthApi extends BaseApi {
     restEndpoint = 'recovery/delete_auth'

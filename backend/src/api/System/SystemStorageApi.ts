@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { getSystemStorageInfo } from "../../helper/SystemStorageHelper";
+import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 
 export default class SystemStorageApi extends BaseApi {
     restEndpoint = "system/storage";

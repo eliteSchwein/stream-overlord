@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { editOverlayFile } from "../../helper/OverlayManagementHelper";
+import {editOverlayFile} from "../../helper/OverlayManagementHelper";
 
 export default class OverlayEditApi extends BaseApi {
     restEndpoint = "overlay/edit";

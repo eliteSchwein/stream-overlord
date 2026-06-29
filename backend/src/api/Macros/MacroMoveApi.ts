@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { moveMacroFile } from "../../helper/MacroHelper";
+import {moveMacroFile} from "../../helper/MacroHelper";
 
 export default class MacroMoveApi extends BaseApi {
     restEndpoint = "macro/move";

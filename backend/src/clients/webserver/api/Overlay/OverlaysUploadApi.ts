@@ -1,6 +1,6 @@
-import { Express } from "express";
+import {Express} from "express";
 import BaseApi from "../BaseApi";
-import { addOverlayFilesFromUpload } from "../../../../helper/OverlayManagementHelper";
+import {addOverlayFilesFromUpload} from "../../../../helper/OverlayManagementHelper";
 import multer from "multer";
 
 export default class OverlaysUploadApi extends BaseApi {

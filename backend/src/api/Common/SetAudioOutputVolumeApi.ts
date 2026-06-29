@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { setAudioOutputVolume } from "../../helper/AudioHelper";
+import {setAudioOutputVolume} from "../../helper/AudioHelper";
 
 export default class SetAudioOutputVolumeApi extends BaseApi {
     restEndpoint = "set_audio_output_volume";

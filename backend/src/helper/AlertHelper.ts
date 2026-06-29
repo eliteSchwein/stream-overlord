@@ -1,11 +1,11 @@
-import { removeEventFromQuery } from "../clients/twitch/helper/CooldownHelper";
+import {removeEventFromQuery} from "../clients/twitch/helper/CooldownHelper";
 import getWebsocketServer from "../App";
-import { pushGameInfo, setManualColor } from "./GameHelper";
-import { setLedColor } from "./WledHelper";
-import { speak } from "./TTShelper";
-import { logRegular, logWarn } from "./LogHelper";
-import { sleep } from "../../../helper/GeneralHelper";
-import { unlinkEvent } from "./MessageEventLinkHelper";
+import {pushGameInfo, setManualColor} from "./GameHelper";
+import {setLedColor} from "./WledHelper";
+import {speak} from "./TTShelper";
+import {logRegular, logWarn} from "./LogHelper";
+import {sleep} from "../../../helper/GeneralHelper";
+import {unlinkEvent} from "./MessageEventLinkHelper";
 
 const alertQuery: any[] = [];
 const activeAlerts: string[] = [];

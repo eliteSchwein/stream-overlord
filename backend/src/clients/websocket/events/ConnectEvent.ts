@@ -1,25 +1,8 @@
 import BaseEvent from "./BaseEvent";
 import {logDebug, logNotice, logWarn} from "../../../helper/LogHelper";
-import AdMessage from "./messages/AdMessage";
 import {getRandomInt, sleep} from "../../../../../helper/GeneralHelper";
-import EditColorMessage from "./messages/EditColorMessage";
-import RemoveEventMessage from "./messages/RemoveEventMessage";
-import GetEffectMessage from "./messages/GetEffectMessage";
-import RemoveAlertMessage from "./messages/RemoveAlertMessage";
-import SetVolumeMessage from "./messages/SetVolumeMessage";
-import PlaySoundMessage from "./messages/PlaySoundMessage";
-import RefreshSourceMessage from "./messages/RefreshSourceMessage";
-import SaveSourceMessage from "./messages/SaveSourceMessage";
 import RegisterMessage from "./messages/RegisterMessage";
 import DisconnectConnectionMessage from "./messages/DisconnectConnectionMessage";
-import UpdateConfigMessage from "./messages/UpdateConfigMessage";
-import ToggleTestModeMessage from "./messages/ToggleTestModeMessage";
-import HaltSystemMessage from "./messages/HaltSystemMessage";
-import UpdateMessage from "./messages/UpdateMessage";
-import ToggleAutoMacroMessage from "./messages/ToggleAutoMacroMessage";
-import StartGiveawayMessage from "./messages/StartGiveawayMessage";
-import StopGiveawayMessage from "./messages/StopGiveawayMessage";
-import RemoveGiveawayUserMessage from "./messages/RemoveGiveawayUserMessage";
 import {getUnreadyMessage, isBackendReady} from "../../../App";
 
 export default class ConnectEvent extends BaseEvent{

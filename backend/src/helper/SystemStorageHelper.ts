@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
-import { getSystemConfigDirectory } from "./ConfigHelper";
-import { assetRoot } from "./AssetManagementHelper";
-import { overlayRoot } from "./OverlayManagementHelper";
-import { logWarn } from "./LogHelper";
+import {getSystemConfigDirectory} from "./ConfigHelper";
+import {assetRoot} from "./AssetManagementHelper";
+import {overlayRoot} from "./OverlayManagementHelper";
+import {logWarn} from "./LogHelper";
 import {getRegularMusicPath} from "./MusicHelper";
 import {getMacroDirectory} from "./MacroHelper";
 import {getChannelPointConfigDirectory} from "./ChannelPointHelper";

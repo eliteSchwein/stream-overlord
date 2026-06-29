@@ -1,4 +1,4 @@
-import { execFile, spawn, ChildProcessWithoutNullStreams } from 'child_process'
+import {ChildProcessWithoutNullStreams, execFile, spawn} from 'child_process'
 import {
     existsSync,
     mkdirSync,
@@ -10,11 +10,11 @@ import {
     unlinkSync,
     writeFileSync,
 } from 'fs'
-import { Socket } from 'net'
+import {Socket} from 'net'
 import os from 'os'
 import path from 'path'
 import getWebsocketServer, {getTwitchClient} from '../App'
-import { getConfig } from './ConfigHelper'
+import {getConfig} from './ConfigHelper'
 import {
     getAudioData,
     getPipewireSinkOutputVolumePercent,

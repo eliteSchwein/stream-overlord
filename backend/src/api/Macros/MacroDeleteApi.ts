@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { deleteMacroFile } from "../../helper/MacroHelper";
+import {deleteMacroFile} from "../../helper/MacroHelper";
 
 export default class MacroDeleteApi extends BaseApi {
     restEndpoint = "macro/delete";

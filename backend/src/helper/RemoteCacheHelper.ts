@@ -1,7 +1,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { logDebug, logWarn } from "./LogHelper";
+import {logDebug, logWarn} from "./LogHelper";
 
 export type SourceBackgroundPayload = {
     background?: string | null;

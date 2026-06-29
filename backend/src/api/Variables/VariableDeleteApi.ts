@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { deleteVariable } from "../../helper/VariableHelper";
+import {deleteVariable} from "../../helper/VariableHelper";
 
 export default class VariableDeleteApi extends BaseApi {
     restEndpoint = "variables/delete";

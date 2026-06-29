@@ -4,11 +4,7 @@ import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
 import isShieldActive from "../../helper/ShieldHelper";
-import {
-    getActiveChannelPoints,
-    getChannelPointUpdatePayload,
-    getConfiguredChannelPoints
-} from "../../helper/ChannelPointHelper";
+import {getChannelPointUpdatePayload} from "../../helper/ChannelPointHelper";
 import {getAudioData, getAudioOutputs} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
@@ -18,7 +14,6 @@ import {getAllVisibleElements, isTestModeActive, toggleElementVisiblity} from ".
 import {getVoices} from "../../helper/TTShelper";
 import {getMacros} from "../../helper/MacroHelper";
 import {getAutoMacros} from "../../helper/AutoMacroHelper";
-import {getTemplateVariables} from "../../helper/TemplateHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
 import BaseApi from "../../abstracts/BaseApi";
 import {getParsedAssetFiles} from "../../helper/AssetHelper";

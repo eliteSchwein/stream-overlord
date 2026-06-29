@@ -5,7 +5,7 @@ import * as path from "node:path";
 import {join} from "node:path";
 import {compressAssets, getAssetFile} from "./AssetTuneHelper";
 import getWebsocketServer from "../App";
-import { getConfig, getSystemConfigDirectory } from "./ConfigHelper";
+import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
 import * as yaml from "js-yaml";
 import {emitAssetUpdate} from "./AssetManagementHelper";
 import {redis} from "../clients/redis/Redis";

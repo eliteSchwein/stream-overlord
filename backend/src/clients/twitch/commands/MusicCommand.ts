@@ -1,17 +1,7 @@
 import BaseCommand from './BaseCommand'
-import { hasModerator } from '../helper/PermissionHelper'
-import { getConfig } from '../../../helper/ConfigHelper'
-import {
-    back,
-    getSongCmd,
-    getStatus,
-    next,
-    pause,
-    play,
-    setVolume,
-    show,
-    sync,
-} from '../../../helper/MusicHelper'
+import {hasModerator} from '../helper/PermissionHelper'
+import {getConfig} from '../../../helper/ConfigHelper'
+import {back, getSongCmd, next, pause, play, setVolume, show, sync,} from '../../../helper/MusicHelper'
 
 export default class MusicCommand extends BaseCommand {
     command = 'music'

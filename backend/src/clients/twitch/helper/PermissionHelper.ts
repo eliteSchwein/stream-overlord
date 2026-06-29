@@ -2,10 +2,12 @@ import {Bot} from "@twurple/easy-bot";
 import {getConfig} from "../../../helper/ConfigHelper";
 import {getTwitchClient} from "../../../App";
 
-const moderators = {}
-const vips = {}
+const moderators: any = {}
+const vips: any = {}
 
-export default async function registerPermissions(bot: Bot) {
+export default async function registerPermissions(bot: Bot|undefined) {
+    if(!bot) return
+
     const channels = getConfig(/twitch/g)[0]['channels']
 
     for(const channel of channels) {
@@ -31,8 +33,10 @@ export async function resetChannelPermissions(channel: string) {
     moderators[channel] = []
     vips[channel] = []
 
-    const channelMods = await bot.getMods(channel)
-    const channelVips = await bot.getVips(channel)
+    if(!bot) return
+
+    const channelMods = await bot?.getMods(channel)
+    const channelVips = await bot?.getVips(channel)
 
     for (const channelMod of channelMods) {
         moderators[channel].push(channelMod.userId)
@@ -50,7 +54,9 @@ export async function addModeratorsToChannelFromExternal(channel: string, fromCh
         moderators[channel].push(fromChannel)
     }
 
-    const channelMods = await bot.getMods(fromChannel)
+    if(!bot) return
+
+    const channelMods = await bot?.getMods(fromChannel)
 
     if(channelMods.length === 0) return
 
@@ -61,7 +67,7 @@ export async function addModeratorsToChannelFromExternal(channel: string, fromCh
     }
 }
 
-export function registerPermissionInterval(bot: Bot) {
+export function registerPermissionInterval(bot: Bot|undefined) {
     setInterval(() => {
         void registerPermissions(bot)
     }, 60 * 1000)

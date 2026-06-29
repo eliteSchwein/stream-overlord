@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { listVariables } from "../../helper/VariableHelper";
+import {listVariables} from "../../helper/VariableHelper";
 
 export default class VariableListApi extends BaseApi {
     restEndpoint = "variables/list";

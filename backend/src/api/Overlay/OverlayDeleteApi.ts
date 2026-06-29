@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { deleteOverlay } from "../../helper/OverlayManagementHelper";
+import {deleteOverlay} from "../../helper/OverlayManagementHelper";
 
 export default class OverlayDeleteApi extends BaseApi {
     restEndpoint = "overlay/delete";

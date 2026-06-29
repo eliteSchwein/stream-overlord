@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import {toggleSongRequest, getStatus} from "../../helper/MusicHelper";
+import {getStatus, toggleSongRequest} from "../../helper/MusicHelper";
 
 export default class MusicSongRequestToggleApi extends BaseApi {
     restEndpoint = 'music/songrequest/toggle'

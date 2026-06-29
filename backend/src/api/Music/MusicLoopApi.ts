@@ -1,5 +1,5 @@
 import BaseApi from '../../abstracts/BaseApi'
-import { setMusicLoop, toggleMusicLoop } from '../../helper/MusicHelper'
+import {setMusicLoop, toggleMusicLoop} from '../../helper/MusicHelper'
 
 export default class MusicLoopApi extends BaseApi {
     restEndpoint = 'music/loop'

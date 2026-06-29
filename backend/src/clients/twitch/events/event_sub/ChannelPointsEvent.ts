@@ -8,7 +8,11 @@ import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
 import {triggerMacro} from "../../../../helper/MacroHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
-import {getConfiguredChannelPoint, getConfiguredChannelPoints, updateChannelPoints} from "../../../../helper/ChannelPointHelper";
+import {
+    getConfiguredChannelPoint,
+    getConfiguredChannelPoints,
+    updateChannelPoints
+} from "../../../../helper/ChannelPointHelper";
 import {getGameInfoData} from "../../../website/WebsiteClient";
 import {stripEmotes} from "../../../../helper/DataHelper";
 import {getAssetConfig} from "../../../../helper/AssetHelper";

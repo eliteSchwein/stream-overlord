@@ -1,6 +1,6 @@
-import { Express } from "express";
+import {Express} from "express";
 import BaseApi from "../BaseApi";
-import { addAssetFilesFromUpload } from "../../../../helper/AssetManagementHelper";
+import {addAssetFilesFromUpload} from "../../../../helper/AssetManagementHelper";
 import multer from "multer";
 
 export default class AssetsUploadApi extends BaseApi {

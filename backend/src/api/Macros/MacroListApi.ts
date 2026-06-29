@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { listMacroFiles } from "../../helper/MacroHelper";
+import {listMacroFiles} from "../../helper/MacroHelper";
 
 export default class MacroListApi extends BaseApi {
     restEndpoint = "macro/list";

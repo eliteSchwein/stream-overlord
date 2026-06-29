@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { editMacroFile } from "../../helper/MacroHelper";
+import {editMacroFile} from "../../helper/MacroHelper";
 
 export default class MacroEditApi extends BaseApi {
     restEndpoint = "macro/edit";

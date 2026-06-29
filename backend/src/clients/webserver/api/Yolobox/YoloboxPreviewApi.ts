@@ -1,5 +1,5 @@
-import { Express, Request, Response } from "express";
-import { getYoloboxClient } from "../../../../App";
+import {Express, Request, Response} from "express";
+import {getYoloboxClient} from "../../../../App";
 
 export default class YoloboxPreviewApi {
     endpoint: string = "yolobox/preview";

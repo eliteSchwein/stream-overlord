@@ -1,6 +1,6 @@
-import { Express } from "express";
+import {Express} from "express";
 import BaseApi from "../BaseApi";
-import { addChannelPointFilesFromUpload } from "../../../../helper/ChannelPointHelper";
+import {addChannelPointFilesFromUpload} from "../../../../helper/ChannelPointHelper";
 import multer from "multer";
 
 export default class ChannelPointsUploadApi extends BaseApi {

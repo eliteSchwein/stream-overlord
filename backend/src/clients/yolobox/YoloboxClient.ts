@@ -1,5 +1,5 @@
 import {getConfig} from "../../helper/ConfigHelper";
-import {logDebug, logSuccess, logWarn} from "../../helper/LogHelper";
+import {logDebug, logSuccess} from "../../helper/LogHelper";
 import {scanDeviceWithPort} from "../../helper/NetworkHelper";
 import {Websocket, WebsocketEvent} from "websocket-ts";
 import waitUntil from "async-wait-until";

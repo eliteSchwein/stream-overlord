@@ -11,10 +11,10 @@
 // - --index <n> optional. If provided, the PY script should color index -> end
 //   AND preserve other LEDs via its own state file (recommended).
 
-import { getConfig } from "./ConfigHelper";
-import { sleep } from "../../../helper/GeneralHelper";
-import {isDebug, logDebug, logRegular, logWarn} from "./LogHelper";
-import { spawn } from "node:child_process";
+import {getConfig} from "./ConfigHelper";
+import {sleep} from "../../../helper/GeneralHelper";
+import {logDebug, logRegular, logWarn} from "./LogHelper";
+import {spawn} from "node:child_process";
 
 type NeoCfg = {
     gpio: number;

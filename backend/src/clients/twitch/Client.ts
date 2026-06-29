@@ -1,11 +1,11 @@
 import TwitchAuth from "./Auth";
-import { getConfig, getPrimaryChannel, loadPrimaryChannel } from "../../helper/ConfigHelper";
-import { Bot } from "@twurple/easy-bot";
+import {getConfig, getPrimaryChannel, loadPrimaryChannel} from "../../helper/ConfigHelper";
+import {Bot} from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
-import { EventSubWsListener } from "@twurple/eventsub-ws";
-import { waitUntil } from "async-wait-until";
-import { logRegular, logSuccess, logWarn } from "../../helper/LogHelper";
-import { setManagedConnection } from "../../helper/ConnectionHelper";
+import {EventSubWsListener} from "@twurple/eventsub-ws";
+import {waitUntil} from "async-wait-until";
+import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {setManagedConnection} from "../../helper/ConnectionHelper";
 
 // regular EasyBot events
 import SubEvent from "./events/SubEvent";
@@ -28,8 +28,6 @@ import ChannelHypeTrainEndEvent from "./events/event_sub/ChannelHypeTrainEndEven
 import ChannelHypeTrainProgressEvent from "./events/event_sub/ChannelHypeTrainProgressEvent";
 import ChannelModeratorAddEvent from "./events/event_sub/ChannelModeratorAddEvent";
 import ChannelModeratorRemoveEvent from "./events/event_sub/ChannelModeratorRemoveEvent";
-import ChannelPointCreateEvent from "./events/event_sub/ChannelPointCreateEvent";
-import ChannelPointDeleteEvent from "./events/event_sub/ChannelPointDeleteEvent";
 import ChannelPointEditEvent from "./events/event_sub/ChannelPointEditEvent";
 import ChannelPointsEvent from "./events/event_sub/ChannelPointsEvent";
 import ChannelSharedChatSession from "./events/event_sub/ChannelSharedChatSession";
@@ -50,6 +48,7 @@ import StreamOfflineEvent from "./events/event_sub/StreamOfflineEvent";
 import StreamOnlineEvent from "./events/event_sub/StreamOnlineEvent";
 import UserUpdateEvent from "./events/event_sub/UserUpdateEvent";
 import {updateTwitchData} from "../../helper/TwitchDataHelper";
+
 export default class TwitchClient {
     protected auth: TwitchAuth;
     protected bot?: Bot;

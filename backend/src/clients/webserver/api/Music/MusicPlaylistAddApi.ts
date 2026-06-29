@@ -1,4 +1,4 @@
-import { Express } from 'express'
+import {Express} from 'express'
 import multer from 'multer'
 import path from 'path'
 import BaseApi from '../BaseApi'

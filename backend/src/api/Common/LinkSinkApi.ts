@@ -1,8 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import {
-    linkPipewireSinkToAudioOutput,
-    unlinkPipewireSinkFromAudioOutput,
-} from "../../helper/AudioHelper";
+import {linkPipewireSinkToAudioOutput, unlinkPipewireSinkFromAudioOutput,} from "../../helper/AudioHelper";
 
 export default class LinkSinkApi extends BaseApi {
     restEndpoint = "link_sink"

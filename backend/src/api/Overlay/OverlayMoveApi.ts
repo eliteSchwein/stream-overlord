@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { moveOverlay } from "../../helper/OverlayManagementHelper";
+import {moveOverlay} from "../../helper/OverlayManagementHelper";
 
 export default class OverlayMoveApi extends BaseApi {
     restEndpoint = "overlay/move";

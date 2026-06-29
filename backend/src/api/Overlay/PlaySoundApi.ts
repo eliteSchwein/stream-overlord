@@ -1,10 +1,10 @@
 import BaseApi from "../../abstracts/BaseApi";
-import { getActiveSound, setActiveSound } from "../../helper/AlertHelper";
-import { getConfig } from "../../helper/ConfigHelper";
-import { getAudioData, getStreambotSinkName } from "../../helper/AudioHelper";
-import { execute } from "../../helper/CommandHelper";
-import { logWarn } from "../../helper/LogHelper";
-import { assetRoot, compressedAssetRoot } from "../../helper/AssetManagementHelper";
+import {getActiveSound, setActiveSound} from "../../helper/AlertHelper";
+import {getConfig} from "../../helper/ConfigHelper";
+import {getAudioData, getStreambotSinkName} from "../../helper/AudioHelper";
+import {execute} from "../../helper/CommandHelper";
+import {logWarn} from "../../helper/LogHelper";
+import {assetRoot, compressedAssetRoot} from "../../helper/AssetManagementHelper";
 import * as path from "node:path";
 
 export default class PlaySoundApi extends BaseApi {

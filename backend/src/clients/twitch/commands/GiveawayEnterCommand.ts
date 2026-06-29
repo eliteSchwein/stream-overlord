@@ -1,6 +1,5 @@
 import BaseCommand from "./BaseCommand";
 import {addGiveawayUser, hasGiveawayUser, isGiveawayActive} from "../../../helper/GiveawayHelper";
-import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 
 export default class GiveawayEnterCommand extends BaseCommand {
     command = 'ticket'

@@ -1,11 +1,11 @@
-import { execFile } from "child_process";
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import {execFile} from "child_process";
+import {existsSync, readFileSync, writeFileSync} from "fs";
 import path from "path";
 import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
 import getWebsocketServer from "../App";
-import { execute } from "./CommandHelper";
-import { logRegular, logWarn } from "./LogHelper";
-import { updateMusicVolumeFromAudio } from "./MusicHelper";
+import {execute} from "./CommandHelper";
+import {logRegular, logWarn} from "./LogHelper";
+import {updateMusicVolumeFromAudio} from "./MusicHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 
 const audioVolumeSavePath = path.join(getSystemConfigDirectory(), "streambot-audio.json");
