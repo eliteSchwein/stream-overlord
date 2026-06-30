@@ -14,7 +14,6 @@ export default class ChannelUpdateEvent extends BaseEvent {
     configName = 'event_twitch_channel_update'
 
     async handle(event: any) {
-        await this.triggerConfiguredEvent(event)
         void updateAdData()
         await updateTwitchStreamData(this.bot)
         await updateTwitchCategoryData(this.bot)
