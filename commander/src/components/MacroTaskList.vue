@@ -315,6 +315,24 @@ export default {
           factory: () => this.createTask({ channel: 'animation', method: 'play' }),
         },
         {
+          title: 'Media',
+          icon: 'mdi-multimedia',
+          factory: () => this.createTask({
+            channel: 'media',
+            method: 'show_media',
+            data: {
+              target: 'default',
+              path: '',
+              type: null,
+              clearOnEmpty: true,
+              autoplay: true,
+              loop: false,
+              muted: false,
+              controls: false,
+            },
+          }),
+        },
+        {
           title: 'Send DM',
           icon: 'mdi-message-lock-outline',
           factory: () => this.createTask({ channel: 'function', method: 'send_dm', data: { user: '', content: '' } }),

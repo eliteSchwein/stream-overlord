@@ -14,10 +14,21 @@ export default class MediaMacroTask extends BaseMacroTask {
                     break;
                 }
 
+                const options = data.options && typeof data.options === "object"
+                    ? data.options
+                    : {};
+
                 this.websocket.send("notify_media_update", {
                     media: method,
+                    ...options,
+                    target: data.target ?? options.target ?? "default",
                     path: data.path,
-                    options: data.options ?? {},
+                    type: data.type ?? options.type,
+                    clearOnEmpty: data.clearOnEmpty ?? options.clearOnEmpty,
+                    autoplay: data.autoplay ?? options.autoplay,
+                    loop: data.loop ?? options.loop,
+                    muted: data.muted ?? options.muted,
+                    controls: data.controls ?? options.controls,
                 });
 
                 break;

@@ -107,16 +107,70 @@
       </v-col>
 
       <v-col cols="12">
-        <v-textarea
-          v-model="variablesText"
-          label="Variables"
-          rows="4"
-          auto-grow
-          hide-details="auto"
-          variant="outlined"
-          density="comfortable"
-          @blur="syncVariablesFromText"
-        />
+        <div class="d-flex align-center justify-space-between mb-2">
+          <div class="text-subtitle-2">Variables</div>
+
+          <v-btn
+            size="small"
+            variant="tonal"
+            color="primary"
+            prepend-icon="mdi-plus"
+            @click="addVariable"
+          >
+            Add variable
+          </v-btn>
+        </div>
+
+        <v-alert
+          v-if="!variableRows.length"
+          type="info"
+          variant="tonal"
+          density="compact"
+          class="mb-2"
+        >
+          No variables configured.
+        </v-alert>
+
+        <v-row
+          v-for="(variable, variableIndex) in variableRows"
+          :key="variable.id"
+          density="compact"
+          class="align-center mb-1"
+        >
+          <v-col cols="12" md="5">
+            <v-text-field
+              v-model="variable.key"
+              label="Key"
+              prepend-inner-icon="mdi-key-outline"
+              hide-details="auto"
+              variant="outlined"
+              density="comfortable"
+              @update:model-value="syncVariablesFromRows"
+            />
+          </v-col>
+
+          <v-col cols="12" md="6">
+            <v-text-field
+              v-model="variable.value"
+              label="Value"
+              prepend-inner-icon="mdi-code-braces"
+              hide-details="auto"
+              variant="outlined"
+              density="comfortable"
+              @update:model-value="syncVariablesFromRows"
+            />
+          </v-col>
+
+          <v-col cols="12" md="1" class="d-flex justify-end">
+            <v-btn
+              icon="mdi-delete"
+              variant="text"
+              color="error"
+              :aria-label="`Remove variable ${variableIndex + 1}`"
+              @click="removeVariable(variableIndex)"
+            />
+          </v-col>
+        </v-row>
       </v-col>
     </v-row>
   </MacroTaskAccordionTemplate>
@@ -133,6 +187,12 @@ type MediaEntry = {
   type?: 'file' | 'folder' | string
   asset?: string | { original?: string; compressed?: string | null } | null
   compressed?: string | null
+}
+
+type VariableRow = {
+  id: string
+  key: string
+  value: any
 }
 
 const animationSourceRegex = /\.(svg|json|lottie)$/i
@@ -158,7 +218,7 @@ export default {
       loadingSources: false,
       mediaEntries: [] as MediaEntry[],
       mediaLoaded: false,
-      variablesText: '',
+      variableRows: [] as VariableRow[],
     }
   },
 
@@ -178,7 +238,7 @@ export default {
 
   created() {
     this.ensureData()
-    this.variablesText = this.stringifyVariables(this.task.data.variables)
+    this.variableRows = this.variablesToRows(this.task.data.variables)
   },
 
   methods: {
@@ -353,28 +413,46 @@ export default {
       return Number.isFinite(numberValue) ? numberValue : null
     },
 
-    stringifyVariables(value: any): string {
-      if (!value || typeof value !== 'object') return ''
+    variablesToRows(value: any): VariableRow[] {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return []
 
-      try {
-        return JSON.stringify(value, null, 2)
-      } catch (error) {
-        return ''
-      }
+      return Object.entries(value).map(([key, rowValue], index) => ({
+        id: `${Date.now()}-${index}-${key}`,
+        key,
+        value: rowValue,
+      }))
     },
 
-    syncVariablesFromText() {
-      const value = String(this.variablesText ?? '').trim()
+    addVariable() {
+      this.variableRows.push({
+        id: `${Date.now()}-${Math.random()}`,
+        key: '',
+        value: '',
+      })
 
-      if (!value) {
-        delete this.task.data.variables
-        return
+      this.syncVariablesFromRows()
+    },
+
+    removeVariable(index: number) {
+      this.variableRows.splice(index, 1)
+      this.syncVariablesFromRows()
+    },
+
+    syncVariablesFromRows() {
+      const variables: Record<string, any> = {}
+
+      for (const row of this.variableRows as VariableRow[]) {
+        const key = String(row.key ?? '').trim()
+
+        if (!key) continue
+
+        variables[key] = row.value
       }
 
-      try {
-        this.task.data.variables = JSON.parse(value)
-      } catch (error) {
-        this.task.data.variables = value
+      if (Object.keys(variables).length) {
+        this.task.data.variables = variables
+      } else {
+        delete this.task.data.variables
       }
     },
   },

@@ -771,7 +771,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
     variables = {
         ...getTemplateVariables(),
         ...variables,
-    };
+    }
 
     const macroApis = macros[name]?.apis ?? [];
 
