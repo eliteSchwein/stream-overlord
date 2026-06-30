@@ -13,8 +13,10 @@
     <v-row density="comfortable">
       <v-col cols="12" md="6">
         <v-autocomplete
-          v-model="data.sceneName"
+          v-model="data.sceneUuid"
           :items="sceneOptions"
+          item-title="title"
+          item-value="value"
           label="Scene"
           prepend-inner-icon="mdi-view-dashboard"
           variant="outlined"
@@ -30,7 +32,7 @@
 <script lang="ts">
 import { useAppStore } from '@/stores/app'
 import MacroTaskAccordionTemplate from '../MacroTaskAccordionTemplate.vue'
-import { getSceneNames } from './obsTaskHelpers'
+import { getSceneOptions, migrateSceneNameToSceneUuid } from './obsTaskHelpers'
 
 export default {
   name: 'MacroObsSwitchSceneTaskAccordion',
@@ -54,7 +56,17 @@ export default {
 
   computed: {
     task(): any {
-      return (this.item as any).task
+      const task = (this.item as any).task
+
+      task.channel = 'obs'
+      task.method = 'SetCurrentProgramScene'
+      task.data = task.data && typeof task.data === 'object' ? task.data : {}
+
+      if (task.data.sceneUuid === undefined) task.data.sceneUuid = ''
+
+      migrateSceneNameToSceneUuid(task.data, this.appStore.getObsSceneData)
+
+      return task
     },
 
     data(): any {
@@ -65,21 +77,22 @@ export default {
       return 'Switch scene'
     },
 
-    sceneOptions(): string[] {
-      return getSceneNames(this.appStore.getObsSceneData)
+    sceneOptions(): any[] {
+      return getSceneOptions(this.appStore.getObsSceneData)
+    },
+  },
+
+  watch: {
+    'appStore.getObsSceneData': {
+      handler() {
+        migrateSceneNameToSceneUuid(this.data, this.appStore.getObsSceneData)
+      },
+      deep: true,
     },
   },
 
   created() {
-    this.task.channel = 'obs'
-    this.task.method = 'SetCurrentProgramScene'
-    this.task.data = this.task.data && typeof this.task.data === 'object'
-      ? this.task.data
-      : {}
-
-    if (this.data.sceneName === undefined) {
-      this.data.sceneName = ''
-    }
+    this.task
   },
 }
 </script>

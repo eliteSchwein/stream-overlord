@@ -13,14 +13,17 @@
     <v-row density="comfortable">
       <v-col cols="12" md="6">
         <v-autocomplete
-          v-model="data.sceneName"
+          v-model="data.sceneUuid"
           :items="sceneOptions"
+          item-title="title"
+          item-value="value"
           label="Scene"
           prepend-inner-icon="mdi-view-dashboard"
           variant="outlined"
           hide-details="auto"
           clearable
           auto-select-first
+          @update:model-value="onSceneChanged"
         />
       </v-col>
 
@@ -45,7 +48,7 @@
 <script lang="ts">
 import { useAppStore } from '@/stores/app'
 import MacroTaskAccordionTemplate from '../MacroTaskAccordionTemplate.vue'
-import { getSceneItemOptions, getSceneNames } from './obsTaskHelpers'
+import { getSceneItemOptions, getSceneOptions, migrateSceneNameToSceneUuid } from './obsTaskHelpers'
 
 export default {
   name: 'MacroObsLockSceneItemTaskAccordion',
@@ -75,10 +78,12 @@ export default {
       task.method = 'SetSceneItemLocked'
       task.data = task.data && typeof task.data === 'object' ? task.data : {}
 
-      if (task.data.sceneName === undefined) task.data.sceneName = ''
+      if (task.data.sceneUuid === undefined) task.data.sceneUuid = ''
       if (task.data.sceneItemId === undefined) task.data.sceneItemId = null
 
       task.data.sceneItemLocked = true
+
+      migrateSceneNameToSceneUuid(task.data, this.appStore.getObsSceneData)
 
       return task
     },
@@ -87,17 +92,32 @@ export default {
       return this.task.data
     },
 
-    sceneOptions(): string[] {
-      return getSceneNames(this.appStore.getObsSceneData)
+    sceneOptions(): any[] {
+      return getSceneOptions(this.appStore.getObsSceneData)
     },
 
     sceneItemOptions(): any[] {
-      return getSceneItemOptions(this.appStore.getObsSceneData, this.data.sceneName)
+      return getSceneItemOptions(this.appStore.getObsSceneData, this.data.sceneUuid)
+    },
+  },
+
+  watch: {
+    'appStore.getObsSceneData': {
+      handler() {
+        migrateSceneNameToSceneUuid(this.data, this.appStore.getObsSceneData)
+      },
+      deep: true,
     },
   },
 
   created() {
     this.task
+  },
+
+  methods: {
+    onSceneChanged() {
+      this.data.sceneItemId = null
+    },
   },
 }
 </script>

@@ -17,6 +17,10 @@ export function getSceneName(scene: any): string {
   return String(scene?.sceneName ?? scene?.name ?? scene?.scene_name ?? '')
 }
 
+export function getSceneUuid(scene: any): string {
+  return String(scene?.sceneUuid ?? scene?.sceneUUID ?? scene?.uuid ?? scene?.id ?? scene?.sceneId ?? scene?.scene_id ?? '')
+}
+
 export function getSceneItems(scene: any): any[] {
   return asArray(scene?.sceneItems ?? scene?.items ?? scene?.sources ?? scene?.scene_items)
 }
@@ -29,12 +33,40 @@ export function getSceneItemId(item: any): any {
   return item?.sceneItemId ?? item?.id ?? item?.scene_item_id ?? null
 }
 
+export function getSceneOptions(obsSceneData: any): any[] {
+  return asArray(obsSceneData)
+    .map((scene: any) => {
+      const title = getSceneName(scene)
+      const uuid = getSceneUuid(scene)
+
+      if (!title || !uuid) return null
+
+      return {
+        title,
+        value: uuid,
+      }
+    })
+    .filter(Boolean)
+    .sort((a: any, b: any) => a.title.localeCompare(b.title))
+}
+
 export function getSceneNames(obsSceneData: any): string[] {
   return uniqSorted(asArray(obsSceneData).map(getSceneName))
 }
 
-export function getSceneItemOptions(obsSceneData: any, sceneName: string): any[] {
+export function getSceneUuids(obsSceneData: any): string[] {
+  return uniqSorted(asArray(obsSceneData).map(getSceneUuid))
+}
+
+export function findSceneUuidByName(obsSceneData: any, sceneName: string): string {
+  if (!sceneName) return ''
+
   const scene = asArray(obsSceneData).find((entry: any) => getSceneName(entry) === sceneName)
+  return scene ? getSceneUuid(scene) : ''
+}
+
+export function getSceneItemOptions(obsSceneData: any, sceneUuid: string): any[] {
+  const scene = asArray(obsSceneData).find((entry: any) => getSceneUuid(entry) === sceneUuid)
 
   return getSceneItems(scene)
     .map((item: any) => {
@@ -143,6 +175,18 @@ export function ensureObsTask(item: any, method: string, defaults: Record<string
   return data
 }
 
+export function migrateSceneNameToSceneUuid(data: any, obsSceneData: any): void {
+  if (!data || typeof data !== 'object') return
+
+  if (!data.sceneUuid && data.sceneName) {
+    data.sceneUuid = findSceneUuidByName(obsSceneData, String(data.sceneName))
+  }
+
+  if ('sceneName' in data) {
+    delete data.sceneName
+  }
+}
+
 export function obsStoreMixin() {
   return {
     computed: {
@@ -164,8 +208,16 @@ export function obsStoreMixin() {
         return store?.getObsAudioData ?? store?.obsAudioData ?? {}
       },
 
+      sceneOptions(): any[] {
+        return getSceneOptions((this as any).obsSceneData)
+      },
+
       sceneNames(): string[] {
         return getSceneNames((this as any).obsSceneData)
+      },
+
+      sceneUuids(): string[] {
+        return getSceneUuids((this as any).obsSceneData)
       },
 
       inputNames(): string[] {
@@ -174,8 +226,8 @@ export function obsStoreMixin() {
     },
 
     methods: {
-      sceneItemOptions(sceneName: string): any[] {
-        return getSceneItemOptions((this as any).obsSceneData, sceneName)
+      sceneItemOptions(sceneUuid: string): any[] {
+        return getSceneItemOptions((this as any).obsSceneData, sceneUuid)
       },
 
       filterNames(sourceName: string): string[] {
