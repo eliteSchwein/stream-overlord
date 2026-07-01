@@ -13,6 +13,50 @@ export function uniqSorted(values: any[]): string[] {
   return [...new Set(values.filter(Boolean).map(String))].sort((a, b) => a.localeCompare(b))
 }
 
+export function getCanvasName(canvas: any): string {
+  return String(canvas?.canvasName ?? canvas?.name ?? canvas?.canvas_name ?? '')
+}
+
+export function getCanvasUuid(canvas: any): string {
+  return String(canvas?.canvasUuid ?? canvas?.canvasUUID ?? canvas?.uuid ?? canvas?.id ?? canvas?.canvasId ?? canvas?.canvas_id ?? '')
+}
+
+export function getCanvasScenes(canvas: any): any[] {
+  return asArray(canvas?.scenes ?? canvas?.sceneData ?? canvas?.scene_data ?? canvas?.sceneList ?? canvas?.scene_list)
+}
+
+export function hasCanvasShape(entry: any): boolean {
+  return getCanvasScenes(entry).length > 0 || Boolean(entry?.canvasUuid || entry?.canvasName || entry?.canvasId)
+}
+
+export function getScenesFromObsSceneData(obsSceneData: any): any[] {
+  const scenes: any[] = []
+
+  for (const entry of asArray(obsSceneData)) {
+    const canvasScenes = getCanvasScenes(entry)
+
+    if (canvasScenes.length > 0) {
+      const canvasName = getCanvasName(entry)
+      const canvasUuid = getCanvasUuid(entry)
+
+      for (const scene of canvasScenes) {
+        scenes.push({
+          ...scene,
+          canvasName: scene?.canvasName ?? canvasName,
+          canvasUuid: scene?.canvasUuid ?? canvasUuid,
+          canvas: scene?.canvas ?? entry,
+        })
+      }
+
+      continue
+    }
+
+    scenes.push(entry)
+  }
+
+  return scenes
+}
+
 export function getSceneName(scene: any): string {
   return String(scene?.sceneName ?? scene?.name ?? scene?.scene_name ?? '')
 }
@@ -34,16 +78,21 @@ export function getSceneItemId(item: any): any {
 }
 
 export function getSceneOptions(obsSceneData: any): any[] {
-  return asArray(obsSceneData)
+  return getScenesFromObsSceneData(obsSceneData)
     .map((scene: any) => {
       const title = getSceneName(scene)
       const uuid = getSceneUuid(scene)
+      const canvasName = getCanvasName(scene?.canvas) || scene?.canvasName
+      const canvasUuid = getCanvasUuid(scene?.canvas) || scene?.canvasUuid
 
       if (!title || !uuid) return null
 
       return {
-        title,
+        title: canvasName ? `${canvasName} / ${title}` : title,
         value: uuid,
+        props: {
+          //subtitle: canvasUuid || undefined,
+        },
       }
     })
     .filter(Boolean)
@@ -51,22 +100,22 @@ export function getSceneOptions(obsSceneData: any): any[] {
 }
 
 export function getSceneNames(obsSceneData: any): string[] {
-  return uniqSorted(asArray(obsSceneData).map(getSceneName))
+  return uniqSorted(getScenesFromObsSceneData(obsSceneData).map(getSceneName))
 }
 
 export function getSceneUuids(obsSceneData: any): string[] {
-  return uniqSorted(asArray(obsSceneData).map(getSceneUuid))
+  return uniqSorted(getScenesFromObsSceneData(obsSceneData).map(getSceneUuid))
 }
 
 export function findSceneUuidByName(obsSceneData: any, sceneName: string): string {
   if (!sceneName) return ''
 
-  const scene = asArray(obsSceneData).find((entry: any) => getSceneName(entry) === sceneName)
+  const scene = getScenesFromObsSceneData(obsSceneData).find((entry: any) => getSceneName(entry) === sceneName)
   return scene ? getSceneUuid(scene) : ''
 }
 
 export function getSceneItemOptions(obsSceneData: any, sceneUuid: string): any[] {
-  const scene = asArray(obsSceneData).find((entry: any) => getSceneUuid(entry) === sceneUuid)
+  const scene = getScenesFromObsSceneData(obsSceneData).find((entry: any) => getSceneUuid(entry) === sceneUuid)
 
   return getSceneItems(scene)
     .map((item: any) => {
@@ -109,7 +158,7 @@ export function collectInputNamesFromObsAudioData(obsAudioData: any): string[] {
 export function getInputNames(obsSceneData: any, obsAudioData: any = null): string[] {
   const names: string[] = []
 
-  for (const scene of asArray(obsSceneData)) {
+  for (const scene of getScenesFromObsSceneData(obsSceneData)) {
     for (const item of getSceneItems(scene)) {
       const name = getSourceName(item)
       if (name) names.push(name)
@@ -146,7 +195,7 @@ export function getFilterNames(obsSceneData: any, sourceName: string): string[] 
     }
   }
 
-  for (const scene of asArray(obsSceneData)) {
+  for (const scene of getScenesFromObsSceneData(obsSceneData)) {
     collect(scene)
     getSceneItems(scene).forEach(collect)
   }

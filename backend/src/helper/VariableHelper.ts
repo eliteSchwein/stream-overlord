@@ -111,13 +111,18 @@ export async function getVariable(key: string) {
 }
 
 export async function setVariable(key: string, value: any, toFile: boolean = false) {
+    if (value === undefined || value === null) {
+        logWarn(`skip setting variable ${key}: value is ${value}`);
+        return;
+    }
+
     memoryVariables[key] = value;
 
     if (redis.isReady()) {
         await redis.setVariable(getRedisKey(key), JSON.stringify(value));
     }
 
-    void emitVariablesUpdate()
+    void emitVariablesUpdate();
 
     if (!toFile) return;
 

@@ -202,6 +202,11 @@ export class OBSClient {
             "SceneItemListReindexed",
             "InputNameChanged",
             "CurrentProgramSceneChanged",
+            "CurrentProgramSceneChangedCanvas",
+            "CanvasCreated",
+            "CanvasRemoved",
+            "CanvasNameChanged",
+            "CanvasListChanged",
         ]
 
         events.forEach(event =>
@@ -292,17 +297,22 @@ export class OBSClient {
         return this.getConnection(connectionName)?.audioData ?? {}
     }
 
-    public getSceneItemByUuid(uuid: string, connectionName = 'default') {
-        const sceneData = this.getSceneData(connectionName)
+    public getSceneItemByUuid(uuid: string, connectionName = 'default', canvasUuid?: string) {
+        const canvasData = this.getSceneData(connectionName)
 
-        for (const scene of sceneData) {
-            for (const sceneItem of scene.items) {
-                if(sceneItem.uuid !== uuid) continue
+        for (const canvas of canvasData) {
+            if(canvasUuid && canvas.uuid !== canvasUuid) continue
 
-                const clonedSceneItem = Object.assign({}, sceneItem)
-                clonedSceneItem.scene = scene
+            for (const scene of canvas.scenes ?? []) {
+                for (const sceneItem of scene.items ?? []) {
+                    if(sceneItem.uuid !== uuid) continue
 
-                return clonedSceneItem
+                    const clonedSceneItem = Object.assign({}, sceneItem)
+                    clonedSceneItem.scene = scene
+                    clonedSceneItem.canvas = canvas
+
+                    return clonedSceneItem
+                }
             }
         }
 
@@ -320,6 +330,77 @@ export class OBSClient {
         await connection.obsWebsocket.call(method, data)
     }
 
+    private async getCanvasList(connection: OBSConnection) {
+        if(!connection.obsWebsocket) return []
+
+        try {
+            const {canvases} = await connection.obsWebsocket.call('GetCanvasList')
+
+            if(Array.isArray(canvases) && canvases.length > 0) {
+                return canvases
+            }
+        } catch (error) {
+            logDebug(`GetCanvasList unavailable or failed (${connection.name}), fallback to default canvas:`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
+
+        return [{
+            canvasIndex: 0,
+            canvasName: 'Default',
+            canvasUuid: '',
+        }]
+    }
+
+    private async getSceneList(connection: OBSConnection, canvasUuid: string) {
+        if(!connection.obsWebsocket) return []
+
+        const requestData = canvasUuid ? {canvasUuid} : {}
+        const {scenes} = await connection.obsWebsocket.call('GetSceneList', requestData)
+
+        return scenes ?? []
+    }
+
+    private async getCurrentProgramScene(connection: OBSConnection, canvasUuid: string) {
+        if(!connection.obsWebsocket) {
+            return {
+                uuid: '',
+                name: '',
+            }
+        }
+
+        try {
+            const requestData = canvasUuid ? {canvasUuid} : {}
+            const currentProgramScene = await connection.obsWebsocket.call('GetCurrentProgramScene', requestData)
+
+            return {
+                uuid: String(currentProgramScene.currentProgramSceneUuid ?? ''),
+                name: String(currentProgramScene.currentProgramSceneName ?? ''),
+            }
+        } catch (error) {
+            logDebug(`failed to get current obs program scene (${connection.name})`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+
+            return {
+                uuid: '',
+                name: '',
+            }
+        }
+    }
+
+    private async getSceneItemList(connection: OBSConnection, sceneUuid: string, canvasUuid: string) {
+        if(!connection.obsWebsocket) return []
+
+        const requestData: Record<string, string> = {sceneUuid}
+
+        if(canvasUuid) {
+            requestData.canvasUuid = canvasUuid
+        }
+
+        const {sceneItems} = await connection.obsWebsocket.call('GetSceneItemList', requestData)
+
+        return sceneItems ?? []
+    }
+
     public async fetchItems(connectionName = 'default') {
         const connection = this.getConnection(connectionName)
 
@@ -328,73 +409,81 @@ export class OBSClient {
         const fullObsLog = getLogConfig().full_obs_log
 
         if(fullObsLog) {
-            logNotice(`dump all obs scenes and items (${connectionName}):`)
+            logNotice(`dump all obs canvases, scenes and items (${connectionName}):`)
         } else {
-            logNotice(`dump all obs scenes and items (${connectionName})`)
+            logNotice(`dump all obs canvases, scenes and items (${connectionName})`)
         }
 
-        const {scenes} = await connection.obsWebsocket.call('GetSceneList')
+        const canvasList = await this.getCanvasList(connection)
+        const sceneData: any[] = []
 
-        let currentProgramSceneUuid = ''
-        let currentProgramSceneName = ''
+        for(const canvas of canvasList) {
+            const canvasUuid = String(canvas.canvasUuid ?? '')
+            const canvasName = String(canvas.canvasName ?? 'Default')
+            const canvasIndex = Number(canvas.canvasIndex ?? sceneData.length)
+            const currentProgramScene = await this.getCurrentProgramScene(connection, canvasUuid)
+            const scenes = await this.getSceneList(connection, canvasUuid)
+            const scenesData = []
 
-        try {
-            const currentProgramScene = await connection.obsWebsocket.call('GetCurrentProgramScene')
-            currentProgramSceneUuid = String(currentProgramScene.currentProgramSceneUuid ?? '')
-            currentProgramSceneName = String(currentProgramScene.currentProgramSceneName ?? '')
-        } catch (error) {
-            logDebug(`failed to get current obs program scene (${connectionName})`)
-            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-        }
-
-        const scenesData = []
-
-        for(const scene of scenes) {
-            // @ts-ignore
-            const {sceneItems} = await connection.obsWebsocket.call('GetSceneItemList', {sceneUuid: scene.sceneUuid})
             if(fullObsLog) {
-                logCustom(`sources for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
+                logCustom(`canvas ${canvasName}[${canvasIndex}][${canvasUuid || 'default'}]:`.magenta)
             }
 
-            const sceneData = {
-                index: scene.sceneIndex,
-                name: scene.sceneName,
-                uuid: scene.sceneUuid,
-                active: Boolean(
-                    (currentProgramSceneUuid && scene.sceneUuid === currentProgramSceneUuid)
-                    || (currentProgramSceneName && scene.sceneName === currentProgramSceneName)
-                ),
-                items: []
-            }
+            for(const scene of scenes) {
+                const sceneItems = await this.getSceneItemList(connection, scene.sceneUuid, canvasUuid)
 
-            for(const sceneItem of sceneItems) {
                 if(fullObsLog) {
-                    logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
+                    logCustom(`sources for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
                 }
 
-                sceneData.items.push({
-                    id: sceneItem.sceneItemId,
-                    uuid: sceneItem.sourceUuid,
-                    name: sceneItem.sourceName,
-                    transform: sceneItem.sceneItemTransform
-                })
+                const sceneData = {
+                    index: scene.sceneIndex,
+                    name: scene.sceneName,
+                    uuid: scene.sceneUuid,
+                    canvas: canvasName,
+                    canvasUuid,
+                    active: Boolean(
+                        (currentProgramScene.uuid && scene.sceneUuid === currentProgramScene.uuid)
+                        || (currentProgramScene.name && scene.sceneName === currentProgramScene.name)
+                    ),
+                    items: []
+                }
+
+                for(const sceneItem of sceneItems) {
+                    if(fullObsLog) {
+                        logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
+                    }
+
+                    sceneData.items.push({
+                        id: sceneItem.sceneItemId,
+                        uuid: sceneItem.sourceUuid,
+                        name: sceneItem.sourceName,
+                        transform: sceneItem.sceneItemTransform
+                    })
+                }
+
+                scenesData.push(sceneData)
             }
 
-            scenesData.push(sceneData)
+            const canvasData = {
+                index: canvasIndex,
+                name: canvasName,
+                uuid: canvasUuid,
+                width: canvas.canvasWidth,
+                height: canvas.canvasHeight,
+                scenes: scenesData,
+            }
+
+            sceneData.push(canvasData)
         }
 
-        connection.sceneData = scenesData
+        connection.sceneData = sceneData
 
         if(connectionName === 'default') {
             // @ts-ignore
-            this.sceneData = scenesData
+            this.sceneData = connection.sceneData
             getWebsocketServer().send('notify_obs_scene_update', connection.sceneData)
         }
-
-        getWebsocketServer().send('notify_obs_scene_update_named', {
-            connection: connectionName,
-            scenes: connection.sceneData,
-        })
 
         if(fullObsLog) {
             logNotice(`dump all obs audio sources (${connectionName}):`)
