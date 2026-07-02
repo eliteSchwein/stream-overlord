@@ -100,7 +100,7 @@ export default class WebServer {
             res.sendFile(path.join(__dirname, "../../commander/dist/index.html"));
         });
 
-        this.webServer = this.app.listen(config.port, "0.0.0.0", () => {
+        this.webServer = this.app.listen(config?.port ?? 8105, "0.0.0.0", () => {
             logSuccess("web server is ready");
         });
 
@@ -131,7 +131,7 @@ export default class WebServer {
 
         await registerApiEndpoints();
 
-        if (!twitchConfig.test_mode) return;
+        if (!twitchConfig?.test_mode) return;
 
         logWarn("enable test endpoints");
         new TestApi().register(this.app);

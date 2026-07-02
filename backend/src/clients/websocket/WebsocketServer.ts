@@ -75,7 +75,7 @@ export default class WebsocketServer {
 
         logRegular(`initial websocket server`)
 
-        this.websocket = new WebSocketServer({port: config.port, host: '0.0.0.0', maxPayload: 512 * 1024 * 1024})
+        this.websocket = new WebSocketServer({port: config?.port ?? 8100, host: '0.0.0.0', maxPayload: 512 * 1024 * 1024})
 
         setConnectionUpdateNotifier((connections) => {
             this.send("notify_connection_update", connections)

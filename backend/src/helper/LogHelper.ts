@@ -19,7 +19,7 @@ export function logNotice(message: string) {
 }
 
 export function logDebug(message: string) {
-    const config = getConfig(/logging/g)[0].debug
+    const config = getConfig(/logging/g)[0]?.debug
 
     if(!config) return
 

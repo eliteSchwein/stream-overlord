@@ -1,6 +1,6 @@
 import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
-import {logNotice, logRegular} from "./LogHelper";
+import {logError, logNotice, logRegular, logWarn} from "./LogHelper";
 import {existsSync, mkdirSync, readFileSync, watchFile, writeFileSync} from "node:fs";
 import {reload} from "../App";
 import * as path from "node:path";
@@ -156,12 +156,23 @@ export function getLanguage() {
 
 export default function readConfig(standalone = false) {
     if (standalone) {
-        const standaloneConfig = parseConfig(`${__dirname}/../..`, ".env.conf");
+        let standaloneConfig = {}
+        try {
+            standaloneConfig = parseConfig(`${__dirname}/../..`, ".env.conf");
+        } catch (error) {
+            logNotice('env config load failed:')
+            logNotice(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
         readSystemConfig();
         return withSystemConfig(standaloneConfig);
     }
 
-    config = parseConfig(`${__dirname}/../..`, ".env.conf");
+    try {
+        config = parseConfig(`${__dirname}/../..`, ".env.conf");
+    } catch (error) {
+        logNotice('env config load failed:')
+        logNotice(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
     readSystemConfig();
 
     return withSystemConfig(config);
