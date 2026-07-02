@@ -24,6 +24,7 @@ import {isShowErrorMessage} from "../../helper/CommandHelper";
 import isShieldActive from "../../helper/ShieldHelper";
 import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../helper/MessageEventLinkHelper";
+import TwitchClient from "./Client";
 
 type ConfigParam = {
     name: string;
@@ -43,23 +44,23 @@ const COMMAND_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
 
 let fileCommands: Record<string, any> = {};
 
-export default function buildCommands(bot: Bot) {
+export default function buildCommands(bot: Bot, twitchClient?: TwitchClient) {
     let commands: any[] = [];
 
-    commands = commands.concat(new InfoCommand(bot).register());
-    commands = commands.concat(new SetGameCommand(bot).register());
-    commands = commands.concat(new ShoutoutCommand(bot).register());
-    commands = commands.concat(new ClipCommand(bot).register());
-    commands = commands.concat(new GetGameCommand(bot).register());
-    commands = commands.concat(new ToggleErrorMessageCommand(bot).register());
-    commands = commands.concat(new MacroCommand(bot).register());
-    commands = commands.concat(new ListScenesCommand(bot).register());
-    commands = commands.concat(new SetSceneCommand(bot).register());
-    commands = commands.concat(new MusicCommand(bot).register());
-    commands = commands.concat(new ListRotatingScenes(bot).register());
-    commands = commands.concat(new StartRotatingSceneCommand(bot).register());
-    commands = commands.concat(new ListMacrosCommand(bot).register());
-    commands = commands.concat(new GiveawayEnterCommand(bot).register());
+    commands = commands.concat(new InfoCommand(bot, twitchClient).register());
+    commands = commands.concat(new SetGameCommand(bot, twitchClient).register());
+    commands = commands.concat(new ShoutoutCommand(bot, twitchClient).register());
+    commands = commands.concat(new ClipCommand(bot, twitchClient).register());
+    commands = commands.concat(new GetGameCommand(bot, twitchClient).register());
+    commands = commands.concat(new ToggleErrorMessageCommand(bot, twitchClient).register());
+    commands = commands.concat(new MacroCommand(bot, twitchClient).register());
+    commands = commands.concat(new ListScenesCommand(bot, twitchClient).register());
+    commands = commands.concat(new SetSceneCommand(bot, twitchClient).register());
+    commands = commands.concat(new MusicCommand(bot, twitchClient).register());
+    commands = commands.concat(new ListRotatingScenes(bot, twitchClient).register());
+    commands = commands.concat(new StartRotatingSceneCommand(bot, twitchClient).register());
+    commands = commands.concat(new ListMacrosCommand(bot, twitchClient).register());
+    commands = commands.concat(new GiveawayEnterCommand(bot, twitchClient).register());
 
     commands = buildConfigCommands(commands, bot);
 

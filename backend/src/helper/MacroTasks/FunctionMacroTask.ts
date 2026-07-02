@@ -1,5 +1,4 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
-import {getPrimaryChannel} from "../ConfigHelper";
 import {sleep} from "../../../../helper/GeneralHelper";
 import fillTemplate from "../TemplateHelper";
 import {toggleAutoMacro} from "../AutoMacroHelper";
@@ -9,7 +8,7 @@ import {getTwitchClient} from "../../App";
 import {logRegular, logWarn} from "../LogHelper";
 
 export default class FunctionMacroTask extends BaseMacroTask {
-    channel = "function"
+    channel = "function";
 
     async handle(method: string, data: any = {}, variables: any = {}) {
         logRegular(`trigger function: ${method}`);
@@ -44,12 +43,15 @@ export default class FunctionMacroTask extends BaseMacroTask {
             }
 
             case "sleep": {
-                await sleep(data.time);
+                await sleep(Number(data.time ?? 0));
                 break;
             }
 
             case "speak": {
-                await speak(data.content, data.event_uuid);
+                await speak(
+                    fillTemplate(data.content ?? "", variables),
+                    data.event_uuid ?? variables.eventUuid
+                );
                 break;
             }
 
@@ -59,7 +61,7 @@ export default class FunctionMacroTask extends BaseMacroTask {
                     break;
                 }
 
-                const added = await addSongRequest(fillTemplate(data.url, data));
+                const added = await addSongRequest(fillTemplate(data.url, variables));
 
                 if (!added) {
                     logWarn(`song_request failed`);
@@ -74,26 +76,104 @@ export default class FunctionMacroTask extends BaseMacroTask {
             }
 
             case "send_message": {
-                const primaryChannel = getPrimaryChannel();
-                data.content = fillTemplate(data.content, {});
+                if (!data.content) {
+                    logWarn(`send_message requires content`);
+                    break;
+                }
 
-                await getTwitchClient()
-                    ?.getBot()
-                    ?.api?.chat?.sendChatMessage(primaryChannel, data.content);
+                const twitchClient = getTwitchClient();
+
+                if (!twitchClient) {
+                    logWarn(`send_message skipped: twitch client is not available`);
+                    break;
+                }
+
+                await twitchClient.sendMessage(
+                    fillTemplate(data.content, variables),
+                    data.channel_id ?? data.channelId
+                );
 
                 break;
             }
 
             case "send_dm": {
-                if (!data.user || !data.content) {
-                    logWarn(`send_dm requires user and content`);
+                if (!data.user && !data.user_id && !data.userId) {
+                    logWarn(`send_dm requires user/user_id`);
                     break;
                 }
 
-                const bot = getTwitchClient().getBot();
-                data.content = fillTemplate(data.content, {});
+                if (!data.content) {
+                    logWarn(`send_dm requires content`);
+                    break;
+                }
 
-                await bot?.whisper(data.user, data.content);
+                const twitchClient = getTwitchClient();
+
+                if (!twitchClient) {
+                    logWarn(`send_dm skipped: twitch client is not available`);
+                    break;
+                }
+
+                await twitchClient.sendDm(
+                    data.user_id ?? data.userId ?? data.user,
+                    fillTemplate(data.content, variables)
+                );
+
+                break;
+            }
+
+            case "reply": {
+                if (!data.content) {
+                    logWarn(`reply requires content`);
+                    break;
+                }
+
+                const messageId =
+                    data.message_id ??
+                    data.messageId ??
+                    variables.messageId ??
+                    variables.event?.messageId ??
+                    variables.event?.message?.id;
+
+                if (!messageId) {
+                    logWarn(`reply requires message_id`);
+                    break;
+                }
+
+                const twitchClient = getTwitchClient();
+
+                if (!twitchClient) {
+                    logWarn(`reply skipped: twitch client is not available`);
+                    break;
+                }
+
+                await twitchClient.reply(
+                    fillTemplate(data.content, variables),
+                    messageId,
+                    data.channel_id ?? data.channelId ?? variables.event?.broadcasterId
+                );
+
+                break;
+            }
+
+            case "announce": {
+                if (!data.content) {
+                    logWarn(`announce requires content`);
+                    break;
+                }
+
+                const twitchClient = getTwitchClient();
+
+                if (!twitchClient) {
+                    logWarn(`announce skipped: twitch client is not available`);
+                    break;
+                }
+
+                await twitchClient.announce(
+                    fillTemplate(data.content, variables),
+                    data.color ?? "primary"
+                );
+
                 break;
             }
         }

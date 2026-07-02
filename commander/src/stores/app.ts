@@ -137,8 +137,8 @@ export const useAppStore = defineStore('app', {
 
       this.$patch(state => state.config = {
         ...config,
-        websocketPort: config.websocket.port,
-        webserverPort: config.webserver.port,
+        websocketPort: config?.websocket?.port ?? 8100,
+        webserverPort: config?.webserver?.port ?? 8105,
       })
     },
     async fetchGames() {

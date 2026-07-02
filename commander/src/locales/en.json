@@ -379,6 +379,8 @@
     "search": "Search commands",
     "none": "No commands found",
     "create": "Create command",
-    "upload": "Upload command"
+    "upload": "Upload command",
+    "delete": "Delete command",
+    "deleteConfirm": "Do you want to delete the following command:"
   }
 }

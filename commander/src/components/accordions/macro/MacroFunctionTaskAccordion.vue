@@ -22,11 +22,14 @@ import {
   MacroFunctionSpeakTaskAccordion,
   MacroFunctionToggleAutoMacroTaskAccordion,
 } from '@/components/accordions/macro/functions'
+import MacroFunctionAnnounceTaskAccordion
+  from "@/components/accordions/macro/functions/MacroFunctionAnnounceTaskAccordion.vue";
 
 export default {
   name: 'MacroFunctionTaskAccordion',
 
   components: {
+    MacroFunctionAnnounceTaskAccordion,
     MacroFunctionRandomTaskAccordion,
     MacroFunctionToggleAutoMacroTaskAccordion,
     MacroFunctionSleepTaskAccordion,
@@ -59,6 +62,7 @@ export default {
         song_request_toggle: 'MacroFunctionSongRequestToggleTaskAccordion',
         send_message: 'MacroFunctionSendMessageTaskAccordion',
         send_dm: 'MacroFunctionSendDmTaskAccordion',
+        announce: 'MacroFunctionAnnounceTaskAccordion',
       }
 
       return componentsByMethod[method] ?? 'MacroTaskAccordion'

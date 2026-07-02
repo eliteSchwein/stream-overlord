@@ -57,6 +57,7 @@ declare module 'vue' {
     MacroEffectTaskAccordion: typeof import('./components/accordions/macro/MacroEffectTaskAccordion.vue')['default']
     MacroEndMacroTaskAccordion: typeof import('./components/accordions/macro/MacroEndMacroTaskAccordion.vue')['default']
     MacroFileTaskAccordion: typeof import('./components/accordions/macro/MacroFileTaskAccordion.vue')['default']
+    MacroFunctionAnnounceTaskAccordion: typeof import('./components/accordions/macro/functions/MacroFunctionAnnounceTaskAccordion.vue')['default']
     MacroFunctionBaseTaskAccordion: typeof import('./components/accordions/macro/functions/MacroFunctionBaseTaskAccordion.vue')['default']
     MacroFunctionRandomTaskAccordion: typeof import('./components/accordions/macro/functions/MacroFunctionRandomTaskAccordion.vue')['default']
     MacroFunctionSendDmTaskAccordion: typeof import('./components/accordions/macro/functions/MacroFunctionSendDmTaskAccordion.vue')['default']

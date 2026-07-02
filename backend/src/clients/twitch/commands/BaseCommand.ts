@@ -1,221 +1,291 @@
 import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
+import type TwitchClient from "./Client";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import {hasModerator, hasVip} from "../helper/PermissionHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
 import {isShowErrorMessage} from "../../../helper/CommandHelper";
 import {getPrimaryChannel} from "../../../helper/ConfigHelper";
-import {v4 as uuidv4} from 'uuid';
+import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../../helper/MessageEventLinkHelper";
 
 export default class BaseCommand {
-    command: string
-    aliases = []
-    params = []
-    requiresVip = false
-    requiresMod = false
-    requiresBroadcaster = false
-    globalCooldown = 5
-    userCooldown = 10
-    enforceSame = false
-    registerCommand = true
-    eventUuid: string = `command_${uuidv4()}`
+    command: string;
+    aliases = [];
+    params = [];
+    requiresVip = false;
+    requiresMod = false;
+    requiresBroadcaster = false;
+    globalCooldown = 5;
+    userCooldown = 10;
+    enforceSame = false;
+    registerCommand = true;
+    eventUuid: string = `command_${uuidv4()}`;
 
-    bot: Bot
+    bot: Bot;
+    twitchClient?: TwitchClient;
 
-    public constructor(bot: Bot) {
+    public constructor(bot: Bot, twitchClient?: TwitchClient) {
         this.bot = bot;
+        this.twitchClient = twitchClient;
     }
 
-    // params examples:
-    // {
-    // name: string,
-    // type: number
-    // },
-    // {
-    // name: string,
-    // type: string
-    // },
-    // {
-    // name: string,
-    // type: subcommand,
-    // required: false,
-    // subcommands: [
-    //     {
-    //         name: string
-    //     }
-    // ]
-    // },
-    // {
-    // name: string,
-    // type: user
-    // }
-
     public register() {
-        this.preRegister()
+        this.preRegister();
 
-        if(!this.registerCommand) return
+        if (!this.registerCommand) return;
 
-        const commands = []
+        const commands = [];
 
-        logRegular(`register command: ${this.command}`)
+        logRegular(`register command: ${this.command}`);
 
-        commands.push(createBotCommand(this.command, (param, context) => {
-            void this.handleCommand(param, context)
-        }, {aliases: this.aliases, userCooldown: this.userCooldown, globalCooldown: this.globalCooldown}))
+        commands.push(createBotCommand(
+            this.command,
+            (param, context) => {
+                void this.handleCommand(param, context);
+            },
+            {
+                aliases: this.aliases,
+                userCooldown: this.userCooldown,
+                globalCooldown: this.globalCooldown,
+            }
+        ));
 
-        return commands
+        return commands;
+    }
+
+    private async commandReply(context: BotCommandContext, message: string) {
+        const messageId = context.msg?.id;
+
+        if (this.twitchClient && messageId) {
+            await this.twitchClient.reply(message, messageId, context.broadcasterId);
+            return;
+        }
+
+        if (this.twitchClient) {
+            await this.twitchClient.sendMessage(message, context.broadcasterId);
+            return;
+        }
+
+        await context.reply(message);
+    }
+
+    protected async sendMessage(message: string, channelId?: string) {
+        if (this.twitchClient) {
+            await this.twitchClient.sendMessage(message, channelId);
+            return;
+        }
+
+        const primaryChannel = getPrimaryChannel();
+        const broadcasterId = channelId ?? primaryChannel.id;
+        const sender = await this.bot.api.users.getMe();
+
+        await this.bot.api.chat.sendChatMessage(broadcasterId, sender.id, message);
+    }
+
+    protected async sendDm(userId: string, message: string) {
+        if (this.twitchClient) {
+            await this.twitchClient.sendDm(userId, message);
+            return;
+        }
+
+        const sender = await this.bot.api.users.getMe();
+        await this.bot.api.whispers.sendWhisper(sender.id, userId, message);
+    }
+
+    protected async reply(context: BotCommandContext, message: string) {
+        await this.commandReply(context, message);
+    }
+
+    protected async announce(message: string, color: string = "primary") {
+        if (this.twitchClient) {
+            await this.twitchClient.announce(message, color as any);
+            return;
+        }
+
+        const primaryChannel = getPrimaryChannel();
+
+        await this.bot.api.chat.sendAnnouncement(primaryChannel.id, {
+            message,
+            // @ts-ignore
+            color,
+        });
     }
 
     private async handleCommand(param: string[], context: BotCommandContext) {
-        if(this.enforceSame) {
-            const primaryChannel = getPrimaryChannel()
+        if (this.enforceSame) {
+            const primaryChannel = getPrimaryChannel();
 
-            if(context.broadcasterId !== primaryChannel.id) return
+            if (context.broadcasterId !== primaryChannel.id) return;
         }
-        if(this.requiresBroadcaster && context.broadcasterId !== context.userId) {
-            await this.replyPermissionError(context)
-            return
+
+        if (this.requiresBroadcaster && context.broadcasterId !== context.userId) {
+            await this.replyPermissionError(context);
+            return;
         }
-        if(this.requiresMod &&
+
+        if (
+            this.requiresMod &&
             !hasModerator(context.broadcasterName, context.userId) &&
-            context.broadcasterId !== context.userId) {
-            await this.replyPermissionError(context)
-            return
+            context.broadcasterId !== context.userId
+        ) {
+            await this.replyPermissionError(context);
+            return;
         }
-        if(this.requiresVip &&
+
+        if (
+            this.requiresVip &&
             !hasVip(context.broadcasterName, context.userId) &&
-            context.broadcasterId !== context.userId) {
-            await this.replyPermissionError(context)
-            return
+            context.broadcasterId !== context.userId
+        ) {
+            await this.replyPermissionError(context);
+            return;
         }
 
-        if(isShieldActive() && !hasModerator(context.broadcasterName, context.userId) && context.broadcasterId !== context.userId) {
-            await context.reply('der Schild Modus ist aktiv!')
-            return
+        if (
+            isShieldActive() &&
+            !hasModerator(context.broadcasterName, context.userId) &&
+            context.broadcasterId !== context.userId
+        ) {
+            await this.commandReply(context, "der Schild Modus ist aktiv!");
+            return;
         }
 
-        const params = {}
+        const params = {};
 
         for (const paramOptions of this.params) {
             if (paramOptions.required === undefined) {
-                paramOptions.required = true
+                paramOptions.required = true;
             }
         }
 
-        const requiredParams = this.params.filter(p => p.required)
+        const requiredParams = this.params.filter(p => p.required);
+
         if (param.length < requiredParams.length) {
-            await this.replyMissingParamError(param, context, param.length)
-            return
+            await this.replyMissingParamError(param, context, param.length);
+            return;
         }
 
-        let paramIndex = 0
+        let paramIndex = 0;
 
-        const firstParamOptions = this.params[0]
+        const firstParamOptions = this.params[0];
 
-        if (firstParamOptions && firstParamOptions.type === 'all') {
-            let data = ''
+        if (firstParamOptions && firstParamOptions.type === "all") {
+            let data = "";
+
             for (const paramPartial of param) {
-                data = `${data} ${paramPartial}`
+                data = `${data} ${paramPartial}`;
             }
-            params[firstParamOptions.name] = data.substring(1)
 
-            if(data === '') {
-                await this.replyParamSyntaxError(param, context, paramIndex, 'Text')
-                return
+            params[firstParamOptions.name] = data.substring(1);
+
+            if (data === "") {
+                await this.replyParamSyntaxError(param, context, paramIndex, "Text");
+                return;
             }
         } else {
-
             for (const paramPartial of param) {
-                const paramOptions = this.params[paramIndex]
+                const paramOptions = this.params[paramIndex];
 
-                if (!paramOptions) continue
+                if (!paramOptions) continue;
 
-                if (paramOptions.type === 'number') {
-                    const number = Number(paramPartial)
+                if (paramOptions.type === "number") {
+                    const number = Number(paramPartial);
+
                     if (isNaN(number)) {
-                        await this.replyParamSyntaxError(param, context, paramIndex, 'Nummer')
-                        return
+                        await this.replyParamSyntaxError(param, context, paramIndex, "Nummer");
+                        return;
                     }
-                    params[paramOptions.name] = number
-                    paramIndex++
-                    continue
+
+                    params[paramOptions.name] = number;
+                    paramIndex++;
+                    continue;
                 }
 
-                if (paramOptions.type === 'user') {
-                    let userName = paramPartial
-                    if (userName.startsWith('@')) userName = userName.substring(1)
+                if (paramOptions.type === "user") {
+                    let userName = paramPartial;
 
-                    const user = await this.bot.api.users.getUserByName(userName)
+                    if (userName.startsWith("@")) {
+                        userName = userName.substring(1);
+                    }
+
+                    const user = await this.bot.api.users.getUserByName(userName);
+
                     if (!user) {
-                        await this.replyParamSyntaxError(param, context, paramIndex, 'Benutzer')
-                        return
+                        await this.replyParamSyntaxError(param, context, paramIndex, "Benutzer");
+                        return;
                     }
 
-                    params[paramOptions.name] = user
-                    paramIndex++
-                    continue
+                    params[paramOptions.name] = user;
+                    paramIndex++;
+                    continue;
                 }
 
-                if (paramOptions.type === 'subcommand') {
-                    const subcommand = paramPartial
-                    const validSubcommands = paramOptions.subcommands.map(s => s.name)
-                    const validSubcommand = validSubcommands.includes(subcommand)
+                if (paramOptions.type === "subcommand") {
+                    const subcommand = paramPartial;
+                    const validSubcommands = paramOptions.subcommands.map(s => s.name);
+                    const validSubcommand = validSubcommands.includes(subcommand);
 
                     if (!validSubcommand) {
-                        await this.replyInvalidSubcommand(param, context, paramIndex, validSubcommands)
-                        return
+                        await this.replyInvalidSubcommand(param, context, paramIndex, validSubcommands);
+                        return;
                     }
                 }
 
-                params[paramOptions.name] = paramPartial
-                paramIndex++
+                params[paramOptions.name] = paramPartial;
+                paramIndex++;
             }
         }
 
-        logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
+        logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
 
         try {
             linkMessageToEvent(
                 context.msg?.id,
                 this.eventUuid,
-            )
+            );
 
-            await this.handle(params, context, param)
+            await this.handle(params, context, param);
         } catch (error) {
-            logWarn(`command ${this.command} failed:`)
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            logWarn(`command ${this.command} failed:`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
         }
     }
 
-    protected async replyInvalidSubcommand(param: string[], context: BotCommandContext, index: number, validSubcommands: string[]) {
-        logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
-        await context.reply(`der Parameter ${index+1} ist ungültig, valide Unterbefehle sind: ${validSubcommands.join(', ')}`)
+    protected async replyInvalidSubcommand(
+        param: string[],
+        context: BotCommandContext,
+        index: number,
+        validSubcommands: string[]
+    ) {
+        logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
+        await this.commandReply(context, `der Parameter ${index + 1} ist ungültig, valide Unterbefehle sind: ${validSubcommands.join(", ")}`);
     }
 
     protected async replyMissingParamError(param: string[], context: BotCommandContext, index: number) {
-        logWarn(`missing param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
-        await context.reply(`der Parameter ${index+1} wird benötigt!`)
+        logWarn(`missing param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
+        await this.commandReply(context, `der Parameter ${index + 1} wird benötigt!`);
     }
 
     protected async replyParamSyntaxError(param: string[], context: BotCommandContext, index: number, type: string) {
-        logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(' ')}`)
-        await context.reply(`der Parameter ${index+1} ist ein ${type}!`)
+        logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
+        await this.commandReply(context, `der Parameter ${index + 1} ist ein ${type}!`);
     }
 
     protected async replyPermissionError(context: BotCommandContext) {
-        logWarn(`permission denied: ${context.userName} in ${context.broadcasterName}`)
-        if(!isShowErrorMessage()) return
-        await context.reply('du hast keine Berechtigung auf diesen Befehl!')
+        logWarn(`permission denied: ${context.userName} in ${context.broadcasterName}`);
+
+        if (!isShowErrorMessage()) return;
+
+        await this.commandReply(context, "du hast keine Berechtigung auf diesen Befehl!");
     }
 
     protected async replyCommandError(context: BotCommandContext, message: string) {
-        if(!isShowErrorMessage()) return
-        await context.reply(message)
+        if (!isShowErrorMessage()) return;
+
+        await this.commandReply(context, message);
     }
 
-    async handle(params: any, context: BotCommandContext, rawParam: string[]) {
-
-    }
+    async handle(params: any, context: BotCommandContext, rawParam: string[]) {}
 
     preRegister() {}
 }

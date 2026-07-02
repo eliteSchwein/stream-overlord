@@ -220,7 +220,7 @@ export default {
     MacroObsTransformSceneItemTaskAccordion,
     MacroObsTriggerHotkeyTaskAccordion,
     MacroObsUnlockSceneItemTaskAccordion,
-    MacroObsUnmuteInputTaskAccordion
+    MacroObsUnmuteInputTaskAccordion,
   },
 
   props: {
@@ -332,15 +332,34 @@ export default {
             },
           }),
         },
+
         {
-          title: 'Send DM',
-          icon: 'mdi-message-lock-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'send_dm', data: { user: '', content: '' } }),
-        },
-        {
-          title: 'Chat message',
-          icon: 'mdi-message-text-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'send_message', data: { content: '' } }),
+          title: 'Message',
+          icon: 'mdi-forum-outline',
+          children: [
+            {
+              title: 'Send DM',
+              icon: 'mdi-message-lock-outline',
+              factory: () => this.createTask({ channel: 'function', method: 'send_dm', data: { user: '', content: '' } }),
+            },
+            {
+              title: 'Chat message',
+              icon: 'mdi-message-text-outline',
+              factory: () => this.createTask({ channel: 'function', method: 'send_message', data: { content: '' } }),
+            },
+            {
+              title: 'Announce',
+              icon: 'mdi-bullhorn-outline',
+              factory: () => this.createTask({
+                channel: 'function',
+                method: 'announce',
+                data: {
+                  content: '',
+                  color: 'primary',
+                },
+              }),
+            },
+          ]
         },
         {
           title: 'Time',

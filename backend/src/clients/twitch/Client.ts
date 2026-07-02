@@ -49,9 +49,15 @@ import StreamOnlineEvent from "./events/event_sub/StreamOnlineEvent";
 import UserUpdateEvent from "./events/event_sub/UserUpdateEvent";
 import {updateTwitchData} from "../../helper/TwitchDataHelper";
 
+type TwitchMessageColor = "blue" | "green" | "orange" | "purple" | "primary";
+
 export default class TwitchClient {
     protected auth: TwitchAuth;
+    protected messageAuth?: TwitchAuth;
+
     protected bot?: Bot;
+    protected messageBot?: Bot;
+
     protected eventSub?: EventSubWsListener;
 
     private warnTwitchNetworkError(context: string, error: unknown): boolean {
@@ -80,6 +86,84 @@ export default class TwitchClient {
                 logWarn(`failed to register ${name}`);
                 logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
             }
+        }
+    }
+
+    private async tryMessageAuth(config: any) {
+        this.messageAuth = new TwitchAuth();
+
+        try {
+            const messageAuthProvider = await this.messageAuth.getAuthCode(false, "message" as any);
+
+            if (!messageAuthProvider) {
+                logWarn("twitch message auth is not configured - outgoing messages use control auth");
+                return;
+            }
+
+            this.messageBot = new Bot({
+                authProvider: messageAuthProvider,
+                channels: config.channels,
+                chatClientOptions: null,
+            });
+
+            logSuccess("twitch message auth is ready");
+        } catch (error) {
+            this.messageBot = undefined;
+
+            if (!this.warnTwitchNetworkError("failed to initialize twitch message auth", error)) {
+                logWarn("failed to initialize twitch message auth - outgoing messages use control auth");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
+    }
+
+    private getOutgoingBots() {
+        return [
+            {name: "message", bot: this.messageBot},
+            {name: "control", bot: this.bot},
+        ].filter(entry => !!entry.bot) as {name: "message" | "control"; bot: Bot}[];
+    }
+
+    private async withMessageFallback(
+        actionName: string,
+        action: (bot: Bot, authName: "message" | "control") => Promise<void>
+    ) {
+        const bots = this.getOutgoingBots();
+
+        if (!bots.length) {
+            logWarn(`twitch ${actionName} skipped: twitch is not connected`);
+            return;
+        }
+
+        let lastError: unknown = null;
+
+        for (const entry of bots) {
+            try {
+                await action(entry.bot, entry.name);
+
+                if (entry.name === "message") {
+                    logRegular(`twitch ${actionName} sent via message auth`);
+                }
+
+                return;
+            } catch (error) {
+                lastError = error;
+
+                if (entry.name === "message") {
+                    logWarn(`twitch ${actionName} via message auth failed - fallback to control auth`);
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                    continue;
+                }
+
+                if (!this.warnTwitchNetworkError(`twitch ${actionName} failed`, error)) {
+                    logWarn(`twitch ${actionName} failed:`);
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                }
+            }
+        }
+
+        if (lastError) {
+            logWarn(`twitch ${actionName} failed on all auth providers`);
         }
     }
 
@@ -120,6 +204,12 @@ export default class TwitchClient {
             this.bot = undefined;
         }
 
+        if (this.messageBot?.chat) {
+            logRegular("disconnect twitch message bot");
+            this.messageBot.chat.quit();
+            this.messageBot = undefined;
+        }
+
         if (this.eventSub) {
             logRegular("disconnect eventsub");
             this.eventSub.stop();
@@ -139,16 +229,17 @@ export default class TwitchClient {
         let botActive = false;
         const config = getConfig(/twitch/g)[0];
         const authRequired = config?.auth_required === true || config?.authRequired === true;
-        const authProvider = await this.auth.getAuthCode(authRequired);
+
+        const authProvider = await this.auth.getAuthCode(authRequired, "control" as any);
 
         if (!authProvider) {
             setManagedConnection("twitch", {
                 enabled: false,
                 state: "auth_required",
                 connected: false,
-                message: "Twitch auth is not configured"
+                message: "Twitch control auth is not configured"
             });
-            logWarn("twitch client skipped because auth is not configured");
+            logWarn("twitch client skipped because control auth is not configured");
             return;
         }
 
@@ -157,7 +248,7 @@ export default class TwitchClient {
             channels: config.channels
         });
 
-        const commands = buildCommands(tempBot);
+        const commands = buildCommands(tempBot, this);
 
         this.bot = new Bot({
             authProvider,
@@ -165,6 +256,8 @@ export default class TwitchClient {
             chatClientOptions: null,
             commands
         });
+
+        await this.tryMessageAuth(config);
 
         this.bot.onConnect(() => {
             botActive = true;
@@ -225,13 +318,11 @@ export default class TwitchClient {
         const bot = this.bot;
         const eventSub = this.eventSub;
 
-        // regular EasyBot events - keep raid here, not in event_sub
-        new SubEvent(bot).register();
-        new CommunitySubEvent(bot).register();
-        new SubGiftEvent(bot).register();
-        new RaidEvent(bot).register();
+        new SubEvent(bot, this).register();
+        new CommunitySubEvent(bot, this).register();
+        new SubGiftEvent(bot, this).register();
+        new RaidEvent(bot, this).register();
 
-        // EventSub events that should work for normal channels / moderation scopes
         await this.safeRegister("follow event", () => new FollowEvent(eventSub, bot).register());
         await this.safeRegister("channel update event", () => new ChannelUpdateEvent(eventSub, bot).register());
         await this.safeRegister("user update event", () => new UserUpdateEvent(eventSub, bot).register());
@@ -256,7 +347,6 @@ export default class TwitchClient {
             return;
         }
 
-        // EventSub events that require affiliate/partner/monetization features
         await this.safeRegister("channel ad break begin event", () => new ChannelAdBreakBeginEvent(eventSub, bot).register());
         await this.safeRegister("channel points event", () => new ChannelPointsEvent(eventSub, bot).register());
         await this.safeRegister("channel point edit event", () => new ChannelPointEditEvent(eventSub, bot).register());
@@ -281,29 +371,55 @@ export default class TwitchClient {
         return this.bot;
     }
 
+    public getMessageBot() {
+        return this.messageBot;
+    }
+
     public getEventSub() {
         return this.eventSub;
     }
 
-    public async announce(message: string, color: string = "primary") {
+    public async announce(message: string, color: TwitchMessageColor = "primary") {
         const primaryChannel = getPrimaryChannel();
 
-        try {
-            if (!this.bot) {
-                logWarn("twitch announce skipped: twitch is not connected");
-                return;
-            }
-
-            await this.bot.api.chat.sendAnnouncement(primaryChannel.id, {
-                message: message,
+        await this.withMessageFallback("announce", async (bot) => {
+            await bot.api.chat.sendAnnouncement(primaryChannel.id, {
+                message,
                 // @ts-ignore
-                color: color
+                color,
             });
-        } catch (error) {
-            if (!this.warnTwitchNetworkError("twitch announce failed", error)) {
-                logWarn("twitch announce failed:");
-                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-            }
-        }
+        });
+    }
+
+    public async sendMessage(message: string, channelId?: string) {
+        const primaryChannel = getPrimaryChannel();
+        const broadcasterId = channelId ?? primaryChannel.id;
+
+        await this.withMessageFallback("send message", async (bot) => {
+            const sender = await bot.api.users.getMe();
+
+            await bot.api.chat.sendChatMessage(broadcasterId, sender.id, message);
+        });
+    }
+
+    public async reply(message: string, replyParentMessageId: string, channelId?: string) {
+        const primaryChannel = getPrimaryChannel();
+        const broadcasterId = channelId ?? primaryChannel.id;
+
+        await this.withMessageFallback("reply", async (bot) => {
+            const sender = await bot.api.users.getMe();
+
+            await bot.api.chat.sendChatMessage(broadcasterId, sender.id, message, {
+                replyParentMessageId,
+            });
+        });
+    }
+
+    public async sendDm(userId: string, message: string) {
+        await this.withMessageFallback("send dm", async (bot) => {
+            const sender = await bot.api.users?.getMe();
+
+            await bot.api.whispers.sendWhisper(sender.id, userId, message);
+        });
     }
 }

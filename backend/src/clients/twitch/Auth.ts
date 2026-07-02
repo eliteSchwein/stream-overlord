@@ -1,27 +1,44 @@
-import {RefreshingAuthProvider} from '@twurple/auth';
-import {promises as fs} from 'fs';
-import {getConfig} from "../../helper/ConfigHelper";
+import {RefreshingAuthProvider} from "@twurple/auth";
+import {promises as fs} from "fs";
 import {existsSync} from "node:fs";
-import {WAIT_FOREVER, waitUntil} from "async-wait-until";
-import express, {Request, Response} from 'express';
-import {logEmpty, logError, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import express, {Request, Response} from "express";
 import axios from "axios";
 import * as querystring from "node:querystring";
 import crypto from "crypto";
+import * as path from "node:path";
+import {WAIT_FOREVER, waitUntil} from "async-wait-until";
+import {getConfig, getSystemConfigDirectory} from "../../helper/ConfigHelper";
+import {logEmpty, logError, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {getWebServer, setUnreadyMessage} from "../../App";
 
+export type TwitchAuthType = "control" | "message";
+
+type TwitchTokenData = {
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    obtainmentTimestamp: number;
+    scope?: string[];
+};
+
+type IntegrationsFile = {
+    twitch?: {
+        control?: TwitchTokenData;
+        message?: TwitchTokenData;
+    };
+};
+
 export default class TwitchAuth {
-    protected tokensPath = `${__dirname}/../../twitchTokens.json`;
-    protected tempTokenData: any = null;
+    protected integrationsPath = path.join(getSystemConfigDirectory(), "integrations.json");
+    protected tempTokenData: TwitchTokenData | null = null;
     protected authProvider!: RefreshingAuthProvider;
 
-    protected readonly scopes = [
+    protected readonly controlScopes = [
         "bits:read",
         "channel:bot",
         "channel:edit:commercial",
         "channel:manage:ads",
         "channel:manage:broadcast",
-        "channel:manage:extensions",
         "channel:manage:moderators",
         "channel:manage:polls",
         "channel:manage:predictions",
@@ -75,48 +92,51 @@ export default class TwitchAuth {
         "whispers:read",
     ];
 
-    protected get intends(): string[] {
-        return this.scopes.concat(["chat"]);
+    protected readonly messageScopes = [
+        "chat:read",
+        "chat:edit",
+        "user:read:chat",
+        "user:write:chat",
+        "moderator:manage:announcements",
+    ];
+
+    protected getScopes(type: TwitchAuthType) {
+        return type === "message" ? this.messageScopes : this.controlScopes;
     }
 
-    public hasTokenFile(): boolean {
-        return existsSync(this.tokensPath);
+    protected getIntents(type: TwitchAuthType) {
+        return this.getScopes(type).concat(["chat"]);
     }
 
-    public async getAuthCode(required = false) {
-        const config = getConfig(/twitch/g)[0];
-        if(!config) return null;
-        const clientId = config['client_id'];
-        const clientSecret = config['client_secret'];
+    public hasToken(type: TwitchAuthType = "control"): boolean {
+        const integrations = this.readIntegrationsSync();
+        return !!integrations.twitch?.[type];
+    }
+
+    public async getAuthCode(required = false, type: TwitchAuthType = "control") {
+        const {clientId, clientSecret} = this.getConfiguredClient();
 
         if (!clientId || !clientSecret) {
-            if (required) {
-                throw new Error("missing twitch client_id/client_secret");
-            }
-
+            if (required) throw new Error("missing twitch client_id/client_secret");
             logWarn("twitch auth skipped: missing client_id/client_secret");
             return null;
         }
 
-        if (!required && !this.hasTokenFile()) {
-            logWarn("twitch auth skipped: token file is missing");
-            logWarn("open the Twitch auth flow manually before enabling Twitch features");
+        if (!required && !this.hasToken(type)) {
+            logWarn(`twitch ${type} auth skipped: token is missing`);
             return null;
         }
 
-        const tokenData = await this.readTokenFile(clientId, clientSecret, required);
+        const tokenData = await this.readToken(clientId, clientSecret, required, type);
+        if (!tokenData) return null;
 
-        if (!tokenData) {
-            return null;
-        }
-
-        this.authProvider = new RefreshingAuthProvider({ clientId, clientSecret });
+        this.authProvider = new RefreshingAuthProvider({clientId, clientSecret});
 
         this.authProvider.onRefresh(async (_clientId, newTokenData) => {
-            await fs.writeFile(this.tokensPath, JSON.stringify(newTokenData, null, 4), 'utf-8');
+            await this.writeToken(type, newTokenData as TwitchTokenData);
         });
 
-        await this.authProvider.addUserForToken(tokenData, this.intends);
+        await this.authProvider.addUserForToken(tokenData, this.getIntents(type));
         return this.authProvider;
     }
 
@@ -124,25 +144,78 @@ export default class TwitchAuth {
         return this.authProvider;
     }
 
-    private async readTokenFile(clientId: string, clientSecret: string, required = false) {
-        if (!existsSync(this.tokensPath)) {
-            if (!required) {
-                return null;
-            }
+    private async readToken(
+        clientId: string,
+        clientSecret: string,
+        required: boolean,
+        type: TwitchAuthType
+    ) {
+        const integrations = await this.readIntegrations();
+        const token = integrations.twitch?.[type];
 
-            await this.startAuthapp(clientId, clientSecret);
-            await waitUntil(() => this.tempTokenData !== null, { timeout: WAIT_FOREVER });
-            await fs.writeFile(this.tokensPath, JSON.stringify(this.tempTokenData, null, 4), 'utf-8');
-            return this.tempTokenData;
-        }
+        if (token) return token;
 
-        const tokenData = await fs.readFile(this.tokensPath, "utf8");
-        return JSON.parse(tokenData);
+        if (!required) return null;
+
+        await this.startAuthapp(clientId, clientSecret, type);
+        await waitUntil(() => this.tempTokenData !== null, {timeout: WAIT_FOREVER});
+
+        await this.writeToken(type, this.tempTokenData!);
+        return this.tempTokenData;
     }
 
-    public buildAuthUrl(clientId: string, callbackAddress: string, returnTo: string) {
+    private async readIntegrations(): Promise<IntegrationsFile> {
+        if (!existsSync(this.integrationsPath)) return {};
+
+        try {
+            return JSON.parse(await fs.readFile(this.integrationsPath, "utf8"));
+        } catch {
+            return {};
+        }
+    }
+
+    private readIntegrationsSync(): IntegrationsFile {
+        if (!existsSync(this.integrationsPath)) return {};
+
+        try {
+            return JSON.parse(require("node:fs").readFileSync(this.integrationsPath, "utf8"));
+        } catch {
+            return {};
+        }
+    }
+
+    private async writeIntegrations(data: IntegrationsFile) {
+        await fs.mkdir(path.dirname(this.integrationsPath), {recursive: true});
+        await fs.writeFile(this.integrationsPath, JSON.stringify(data, null, 4), "utf8");
+    }
+
+    private async writeToken(type: TwitchAuthType, tokenData: TwitchTokenData) {
+        const integrations = await this.readIntegrations();
+
+        integrations.twitch ??= {};
+        integrations.twitch[type] = tokenData;
+
+        await this.writeIntegrations(integrations);
+    }
+
+    public getConfiguredClient() {
+        const config = getConfig(/twitch/g)[0];
+
+        return {
+            clientId: config?.["client_id"],
+            clientSecret: config?.["client_secret"],
+        };
+    }
+
+    public buildAuthUrl(
+        clientId: string,
+        callbackAddress: string,
+        returnTo: string,
+        type: TwitchAuthType = "control"
+    ) {
         const statePayload = {
             returnTo,
+            type,
             nonce: crypto.randomBytes(16).toString("hex"),
         };
 
@@ -152,136 +225,100 @@ export default class TwitchAuth {
         url.searchParams.set("client_id", clientId);
         url.searchParams.set("redirect_uri", callbackAddress);
         url.searchParams.set("response_type", "code");
-        url.searchParams.set("scope", this.scopes.join(" "));
+        url.searchParams.set("scope", this.getScopes(type).join(" "));
         url.searchParams.set("state", state);
 
         return url.toString();
     }
 
-    private safeReturnToFromState(state: unknown): string {
-        const fallback = "http://localhost:8105/commander/";
-
-        if (typeof state !== "string" || !state.length) return fallback;
-
-        try {
-            const decoded = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
-            const returnTo = decoded?.returnTo;
-
-            if (typeof returnTo !== "string" || !returnTo.length) {
-                return fallback;
-            }
-
-            const url = new URL(returnTo);
-
-            if (
-                url
-            ) {
-                return url.toString();
-            }
-
-            return fallback;
-        } catch {
-            return fallback;
-        }
-    }
-
-
-    public getConfiguredClient() {
-        const config = getConfig(/twitch/g)[0];
-
-        return {
-            clientId: config?.['client_id'],
-            clientSecret: config?.['client_secret']
-        };
-    }
-
-    public buildConfiguredAuthUrl(callbackAddress: string, returnTo: string) {
-        const { clientId, clientSecret } = this.getConfiguredClient();
+    public buildConfiguredAuthUrl(callbackAddress: string, returnTo: string, type: TwitchAuthType = "control") {
+        const {clientId, clientSecret} = this.getConfiguredClient();
 
         if (!clientId || !clientSecret) {
             throw new Error("missing twitch client_id/client_secret");
         }
 
-        return this.buildAuthUrl(clientId, callbackAddress, returnTo);
+        return this.buildAuthUrl(clientId, callbackAddress, returnTo, type);
     }
 
-    private normalizeTokenData(data: any) {
-        const tokenData = {
-            ...data,
-            obtainmentTimestamp: Date.now(),
-            expiresIn: data['expires_in'],
-            accessToken: data['access_token'],
-            refreshToken: data['refresh_token']
+    private safeState(state: unknown): { returnTo: string; type: TwitchAuthType } {
+        const fallback = {
+            returnTo: "http://localhost:8105/commander/",
+            type: "control" as TwitchAuthType,
         };
 
-        delete tokenData['token_type'];
-        delete tokenData['expires_in'];
-        delete tokenData['access_token'];
-        delete tokenData['refresh_token'];
+        if (typeof state !== "string" || !state.length) return fallback;
 
-        return tokenData;
+        try {
+            const decoded = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
+
+            return {
+                returnTo: typeof decoded?.returnTo === "string" && decoded.returnTo.length
+                    ? new URL(decoded.returnTo).toString()
+                    : fallback.returnTo,
+                type: decoded?.type === "message" ? "message" : "control",
+            };
+        } catch {
+            return fallback;
+        }
     }
 
-    public async handleCallbackRequest(req: Request, res: Response, callbackAddress: string, onSuccess?: () => Promise<void> | void) {
-        const { clientId, clientSecret } = this.getConfiguredClient();
+    private normalizeTokenData(data: any): TwitchTokenData {
+        return {
+            ...data,
+            obtainmentTimestamp: Date.now(),
+            expiresIn: data["expires_in"],
+            accessToken: data["access_token"],
+            refreshToken: data["refresh_token"],
+        };
+    }
+
+    public async handleCallbackRequest(
+        req: Request,
+        res: Response,
+        callbackAddress: string,
+        onSuccess?: () => Promise<void> | void
+    ) {
+        const {clientId, clientSecret} = this.getConfiguredClient();
 
         if (!clientId || !clientSecret) {
-            res.status(500).send('Twitch auth is not configured!');
+            res.status(500).send("Twitch auth is not configured!");
             return;
         }
 
         const code = req.query.code as string | undefined;
-        const state = req.query.state;
         const error = req.query.error as string | undefined;
         const errorDescription = req.query.error_description as string | undefined;
-        const returnTo = this.safeReturnToFromState(state);
+        const state = this.safeState(req.query.state);
+        const type = (req.query.type === "message" || req.query.type === "control")
+            ? req.query.type as TwitchAuthType
+            : state.type;
 
         if (!code) {
-            logError(
-                `OAuth callback without code. ` +
-                `error=${error ?? "none"} ` +
-                `error_description=${errorDescription ?? "none"}`
-            );
-
-            res.status(400).send(`
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>OAuth failed</title>
-</head>
-<body>
-  <h1>OAuth failed</h1>
-  <p>error: ${error ?? "(none)"}</p>
-  <p>description: ${errorDescription ?? "(none)"}</p>
-  <p><a href="${returnTo}">Back</a></p>
-</body>
-</html>
-`);
+            logError(`OAuth callback without code. error=${error ?? "none"} error_description=${errorDescription ?? "none"}`);
+            res.status(400).send(`OAuth failed: ${errorDescription ?? error ?? "unknown error"}`);
             return;
         }
 
-        const params: any = {
-            client_id: clientId,
-            client_secret: clientSecret,
-            code,
-            grant_type: 'authorization_code',
-            redirect_uri: callbackAddress
-        };
-
         try {
             const response = await axios.post(
-                'https://id.twitch.tv/oauth2/token',
-                querystring.stringify(params),
+                "https://id.twitch.tv/oauth2/token",
+                querystring.stringify({
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    code,
+                    grant_type: "authorization_code",
+                    redirect_uri: callbackAddress,
+                }),
                 {
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
                 }
             );
 
             this.tempTokenData = this.normalizeTokenData(response.data);
-            await fs.writeFile(this.tokensPath, JSON.stringify(this.tempTokenData, null, 4), 'utf-8');
+            await this.writeToken(type, this.tempTokenData);
 
             res.on("finish", async () => {
                 if (!onSuccess) return;
@@ -296,179 +333,63 @@ export default class TwitchAuth {
             res.status(200).send(`
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>Auth successful</title>
-</head>
 <body>
-  <p>Auth successful. Returning to app…</p>
-  <script>
-    window.location.replace(${JSON.stringify(returnTo)});
-  </script>
+<p>Twitch ${type} auth successful. Returning to app…</p>
+<script>window.location.replace(${JSON.stringify(state.returnTo)});</script>
 </body>
 </html>
 `);
         } catch (error) {
             logError(`Auth Error: ${JSON.stringify(error, null, 4)}`);
-            res.status(500).send('Auth Error!');
+            res.status(500).send("Auth Error!");
         }
     }
 
-    private async startAuthapp(clientId: string, clientSecret: string) {
+    private async startAuthapp(clientId: string, clientSecret: string, type: TwitchAuthType) {
         const config = getConfig(/webserver/g)[0];
-        const address = 'localhost';
+        const address = "localhost";
         const port = config.port;
         const app = express();
 
-        app.use((req: Request, res: Response, next) => {
-            res.header("Access-Control-Allow-Origin", "*");
-            res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-            res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-            if (req.method === "OPTIONS") {
-                res.sendStatus(204);
-                return;
-            }
-
-            next();
-        });
-
         const hostAddress = `http://${address}:${port}`;
-        const authAddress = `${hostAddress}/`;
-        const callbackAddress = `${hostAddress}/callback`;
+        const callbackAddress = `${hostAddress}/api/auth/twitch`;
+        const authAddress = `${hostAddress}/api/auth/twitch?type=${type}`;
 
         logEmpty();
         logWarn(`please configure ${callbackAddress} in your twitch application`);
         logEmpty();
 
-        setUnreadyMessage('auth in progress');
-
+        setUnreadyMessage("auth in progress");
         getWebServer().getExpressServer().close();
 
         const server = app.listen(port, () => {
             logRegular(`please open ${authAddress} in your web browser`);
         });
 
-        app.get("/", (req: Request, res: Response) => {
-            const returnTo =
-                typeof req.query.returnTo === "string" && req.query.returnTo.length
+        app.get("/api/auth/twitch", async (req: Request, res: Response) => {
+            const requestedType = req.query.type === "message" ? "message" : type;
+
+            if (!req.query.code) {
+                const returnTo = typeof req.query.returnTo === "string" && req.query.returnTo.length
                     ? req.query.returnTo
                     : "http://localhost:1420/";
 
-            res.redirect(this.buildAuthUrl(clientId, callbackAddress, returnTo));
-        });
-
-        app.get(/^\/commander(?:\/.*)?$/, (req: Request, res: Response) => {
-            const returnTo =
-                typeof req.query.returnTo === "string" && req.query.returnTo.length
-                    ? req.query.returnTo
-                    : "http://localhost:1420/";
-
-            res.redirect(this.buildAuthUrl(clientId, callbackAddress, returnTo));
-        });
-
-        app.get("/api/status", (_req: Request, res: Response) => {
-            res.json({ data: { bootup_stage: 'auth', ready: false, updating: false } });
-        });
-
-        app.get('/config.json', (_req: Request, res: Response) => {
-            res.json(getConfig());
-        });
-
-        app.get("/callback", async (req: Request, res: Response) => {
-            const code = req.query.code as string | undefined;
-            const state = req.query.state;
-            const error = req.query.error as string | undefined;
-            const errorDescription = req.query.error_description as string | undefined;
-            const returnTo = this.safeReturnToFromState(state);
-
-            if (!code) {
-                logError(
-                    `OAuth callback without code. ` +
-                    `error=${error ?? "none"} ` +
-                    `error_description=${errorDescription ?? "none"}`
-                );
-
-                res.status(400).send(`
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>OAuth failed</title>
-</head>
-<body>
-  <h1>OAuth failed</h1>
-  <p>error: ${error ?? "(none)"}</p>
-  <p>description: ${errorDescription ?? "(none)"}</p>
-  <p><a href="${returnTo}">Back</a></p>
-</body>
-</html>
-`);
+                res.redirect(this.buildAuthUrl(clientId, callbackAddress, returnTo, requestedType));
                 return;
             }
 
-            const params: any = {
-                client_id: clientId,
-                client_secret: clientSecret,
-                code,
-                grant_type: 'authorization_code',
-                redirect_uri: callbackAddress
-            };
+            await this.handleCallbackRequest(req, res, callbackAddress, async () => {
+                setUnreadyMessage("backend loading");
 
-            try {
-                const response = await axios.post(
-                    'https://id.twitch.tv/oauth2/token',
-                    querystring.stringify(params),
-                    {
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        }
+                server.close(async () => {
+                    try {
+                        await getWebServer().initial();
+                        logSuccess(`twitch ${requestedType} auth successfully!`);
+                    } catch (e) {
+                        logError(`Failed to restart normal server: ${JSON.stringify(e, null, 2)}`);
                     }
-                );
-
-                this.tempTokenData = response.data;
-                this.tempTokenData['obtainmentTimestamp'] = Date.now();
-                this.tempTokenData['expiresIn'] = this.tempTokenData['expires_in'];
-                this.tempTokenData['accessToken'] = this.tempTokenData['access_token'];
-                this.tempTokenData['refreshToken'] = this.tempTokenData['refresh_token'];
-
-                delete this.tempTokenData['token_type'];
-                delete this.tempTokenData['expires_in'];
-                delete this.tempTokenData['access_token'];
-                delete this.tempTokenData['refresh_token'];
-
-                setUnreadyMessage('backend loading');
-
-                res.on("finish", async () => {
-                    server.close(async () => {
-                        try {
-                            await getWebServer().initial();
-                            logSuccess("twitch auth successfully!");
-                        } catch (e) {
-                            logError(`Failed to restart normal server: ${JSON.stringify(e, null, 2)}`);
-                        }
-                    });
                 });
-
-                res.status(200).send(`
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Auth successful</title>
-</head>
-<body>
-  <p>Auth successful. Returning to app…</p>
-  <script>
-    window.location.replace(${JSON.stringify(returnTo)});
-  </script>
-</body>
-</html>
-`);
-            } catch (error) {
-                logError(`Auth Error: ${JSON.stringify(error, null, 4)}`);
-                res.status(500).send('Auth Error!');
-            }
+            });
         });
     }
 }
