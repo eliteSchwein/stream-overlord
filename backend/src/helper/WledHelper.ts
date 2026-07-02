@@ -1,4 +1,4 @@
-import {getWledConfigs} from "./AssetHelper";
+import {getWledIntegrations} from "./IntegrationsHelper";
 import {logRegular, logWarn} from "./LogHelper";
 
 export type WledControl = {
@@ -13,7 +13,7 @@ export type WledControl = {
 export type WledControls = Record<string, WledControl>;
 
 export async function setLedColor(controls: WledControls = {}) {
-    const wledConfigs = getWledConfigs();
+    const wledConfigs = getWledIntegrations();
 
     if (!controls || Object.keys(controls).length === 0) {
         logRegular("no wled controls");
@@ -23,8 +23,8 @@ export async function setLedColor(controls: WledControls = {}) {
     for (const name in controls) {
         const lamp = wledConfigs[name];
 
-        if (!lamp?.url) {
-            logWarn(`unknown wled device ${name}`);
+        if (!lamp?.ip) {
+            logWarn(`unknown wled device "${name}"`);
             continue;
         }
 
@@ -37,23 +37,36 @@ export async function setLedColor(controls: WledControls = {}) {
         const white = Number(control.white ?? 0);
         const effect = Number(control.effect ?? 0);
 
-        logRegular(
-            `update wled ${name}: ` +
-            `R=${red} G=${green} B=${blue} W=${white} FX=${effect}`
-        );
+        const baseUrl = `http://${lamp.ip}`;
+        const requestUrl =
+            `${baseUrl}/win` +
+            `&A=${brightness}` +
+            `&R=${red}` +
+            `&G=${green}` +
+            `&B=${blue}` +
+            `&W=${white}` +
+            `&FX=${effect}`;
+
+        logRegular(`updating wled "${name}"`);
+        logRegular(`  address    : ${lamp.ip}`);
+        logRegular(`  brightness : ${brightness}`);
+        logRegular(`  color      : R=${red} G=${green} B=${blue} W=${white}`);
+        logRegular(`  effect     : ${effect}`);
+        logRegular(`  request    : ${requestUrl}`);
 
         try {
-            await fetch(
-                `${lamp.url}/win` +
-                `&A=${brightness}` +
-                `&R=${red}` +
-                `&G=${green}` +
-                `&B=${blue}` +
-                `&W=${white}` +
-                `&FX=${effect}`
-            );
+            const response = await fetch(requestUrl);
+
+            if (!response.ok) {
+                logWarn(
+                    `wled "${name}" responded with ${response.status} ${response.statusText}`
+                );
+                continue;
+            }
+
+            logRegular(`wled "${name}" updated successfully`);
         } catch (error) {
-            logWarn(`couldn't update lamp ${name}!`);
+            logWarn(`failed to update wled "${name}" (${lamp.ip})`);
             logWarn(
                 JSON.stringify(
                     error,

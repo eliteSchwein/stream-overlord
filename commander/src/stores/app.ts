@@ -51,7 +51,8 @@ export const useAppStore = defineStore('app', {
     obsAudioData: {},
     musicData: {},
     musicCavaData: {},
-    storage: {}
+    storage: {},
+    integrations: {},
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -94,6 +95,7 @@ export const useAppStore = defineStore('app', {
     getAudioOutput: (state) => state.audioOutputs,
     getAudioOutputs: (state) => state.audioOutputs,
     getStorage: (state) => state.storage,
+    getIntegrations: (state) => state.integrations,
     hasApiWebsite: (state) => {
       const parsedConfig: any = state.parsedBackendConfig ?? {}
       const rawConfig = String(state.backendConfig ?? '')
@@ -291,6 +293,10 @@ export const useAppStore = defineStore('app', {
     setStorage(storage: any) {
       this.storage = storage
       this.$patch(state => state.storage = storage)
+    },
+    setIntegrations(integrations: any) {
+      this.integrations = integrations
+      this.$patch(state => state.integrations = integrations)
     },
     async fetchStatus(): Promise<any> {
       let status = 'Unknown'

@@ -21,6 +21,7 @@ import {getStatus} from "../../helper/MusicHelper";
 import {getManagedConnections, setConnectionUpdateNotifier} from "../../helper/ConnectionHelper";
 import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 import {emitVariablesUpdate} from "../../helper/VariableHelper";
+import {getIntegrationsSafe} from "../../helper/IntegrationsHelper";
 
 
 export default class WebsocketServer {
@@ -65,7 +66,8 @@ export default class WebsocketServer {
         'notify_audio_outputs_update',
         'notify_media_update',
         'notify_storage_update',
-        'notify_variables_update'
+        'notify_variables_update',
+        'notify_integrations_update'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -221,6 +223,7 @@ export default class WebsocketServer {
                 this.send("notify_assets_update", getParsedAssetFiles(), client)
                 this.send("notify_audio_outputs_update", getAudioOutputs(), client)
                 this.send("notify_storage_update", getSystemStorageInfo(), client)
+                this.send("notify_integrations_update", getIntegrationsSafe(), client)
 
                 void emitVariablesUpdate(client)
 

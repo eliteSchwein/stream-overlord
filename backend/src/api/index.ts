@@ -99,4 +99,6 @@ export { default as VariableDeleteApi } from "./Variables/VariableDeleteApi";
 export { default as VariableGetApi } from "./Variables/VariableGetApi";
 export { default as VariableListApi } from "./Variables/VariableListApi";
 export { default as VariableSetApi } from "./Variables/VariableSetApi";
+export { default as WledAddApi } from "./Wled/WledAddApi";
+export { default as WledRemoveApi } from "./Wled/WledRemoveApi";
 export { default as YoloboxExecuteApi } from "./Yolobox/YoloboxExecuteApi";
