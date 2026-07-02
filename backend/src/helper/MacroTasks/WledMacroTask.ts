@@ -10,17 +10,33 @@ export default class WledMacroTask extends BaseMacroTask {
 
         switch (method) {
             case "custom": {
-                if (!data || typeof data !== "object") {
-                    logWarn(`wled custom requires data`);
+                if (!data?.name) {
+                    logWarn(`wled custom requires name`);
                     return;
                 }
 
-                await setLedColor(data);
+                await setLedColor({
+                    [data.name]: data,
+                });
                 break;
             }
 
             case "off": {
-                await setLedColor({});
+                if (!data?.name) {
+                    logWarn(`wled off requires name`);
+                    return;
+                }
+
+                await setLedColor({
+                    [data.name]: {
+                        red: 0,
+                        green: 0,
+                        blue: 0,
+                        white: 0,
+                        brightness: 0,
+                        effect: 0,
+                    },
+                });
                 break;
             }
 

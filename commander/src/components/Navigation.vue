@@ -329,6 +329,11 @@ export default {
         color=""
         to="/editConfig"></v-list-item>
       <v-list-item
+        prepend-icon="mdi-vector-link"
+        :title="$t('navigation.tabs.integrations')"
+        color=""
+        to="/integrations"></v-list-item>
+      <v-list-item
         prepend-icon="mdi-webhook"
         :title="$t('navigation.tabs.connections')"
         color=""

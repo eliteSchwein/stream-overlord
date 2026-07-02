@@ -10,7 +10,7 @@
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-row dense>
+    <v-row density="comfortable">
       <v-col cols="12" md="6">
         <v-autocomplete
           v-model="obsData.inputName"

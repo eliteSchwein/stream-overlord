@@ -18,6 +18,7 @@ import {setOverlayCacheRebuildHandler} from "../../helper/OverlayManagementHelpe
 import MacrosUploadApi from "./api/Macros/MacrosUploadApi";
 import ChannelPointsUploadApi from "./api/ChannelPoints/ChannelPointsUploadApi";
 import CommandsUploadApi from "./api/Command/CommandsUploadApi";
+import TwitchAuth from "../twitch/Auth";
 
 export default class WebServer {
     app: Express;
@@ -106,6 +107,32 @@ export default class WebServer {
 
         this.app.get("/config.json", (req, res) => {
             res.json(getConfig());
+        });
+
+        this.app.get("/api/auth/twitch", async (req: Request, res: Response) => {
+            const host = req.get("host") ?? `localhost:${config?.port ?? 8105}`;
+            const protocol = req.protocol ?? "http";
+            const callbackAddress = `${protocol}://${host}/api/auth/twitch`;
+
+            const type = req.query.type === "message" ? "message" : "control";
+            const returnTo =
+                typeof req.query.returnTo === "string" && req.query.returnTo.length
+                    ? req.query.returnTo
+                    : `${protocol}://${host}/commander/`;
+
+            const auth = new TwitchAuth();
+
+            if (!req.query.code) {
+                try {
+                    res.redirect(auth.buildConfiguredAuthUrl(callbackAddress, returnTo, type));
+                } catch (error) {
+                    res.status(500).send(error instanceof Error ? error.message : "Twitch auth error");
+                }
+
+                return;
+            }
+
+            await auth.handleCallbackRequest(req, res, callbackAddress);
         });
 
         // Overlay API

@@ -97,6 +97,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/integrations': RouteRecordInfo<
+      '/integrations',
+      '/integrations',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/macros': RouteRecordInfo<
       '/macros',
       '/macros',
@@ -223,6 +230,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/gameScene.vue': {
       routes:
         | '/gameScene'
+      views:
+        | never
+    }
+    'src/pages/integrations.vue': {
+      routes:
+        | '/integrations'
       views:
         | never
     }

@@ -10,8 +10,19 @@ export type WledIntegration = {
 };
 
 export type Integrations = {
-    twitch?: any;
+    twitch?: {
+        control?: any;
+        message?: any;
+    };
     wled?: Record<string, WledIntegration>;
+};
+
+export type SafeIntegrations = {
+    twitch: {
+        control: boolean;
+        message: boolean;
+    };
+    wled: Record<string, WledIntegration>;
 };
 
 export function readIntegrations(): Integrations {
@@ -29,11 +40,16 @@ export function writeIntegrations(data: Integrations) {
     fs.writeFileSync(integrationsPath, JSON.stringify(data, null, 4), "utf8");
 }
 
-export function getIntegrationsSafe(): Integrations {
+export function getIntegrationsSafe(): SafeIntegrations {
     const integrations = readIntegrations();
-    const {twitch: _twitch, ...safeIntegrations} = integrations;
 
-    return safeIntegrations;
+    return {
+        twitch: {
+            control: Boolean(integrations.twitch?.control?.accessToken),
+            message: Boolean(integrations.twitch?.message?.accessToken),
+        },
+        wled: integrations.wled ?? {},
+    };
 }
 
 export function emitIntegrationsUpdate() {
@@ -46,13 +62,13 @@ export function getWledIntegrations() {
 
 export function addWledIntegration(name: string, data: WledIntegration) {
     if (!name) throw new Error("name is required");
-    if (!data.ip) throw new Error("url is required");
+    if (!data.ip) throw new Error("ip is required");
 
     const integrations = readIntegrations();
 
     integrations.wled ??= {};
     integrations.wled[name] = {
-        ip: data.ip.replace(/\/+$/, "")
+        ip: data.ip.trim().replace(/^https?:\/\//, "").replace(/\/+$/, ""),
     };
 
     writeIntegrations(integrations);
@@ -70,6 +86,4 @@ export function removeWledIntegration(name: string) {
 
     writeIntegrations(integrations);
     emitIntegrationsUpdate();
-
-    return integrations.wled ?? {};
 }

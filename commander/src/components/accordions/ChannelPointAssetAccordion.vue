@@ -212,98 +212,13 @@
         </v-btn>
       </div>
 
-      <v-card
+      <MacroWledControlEditor
         v-for="(control, index) in form.wled"
         :key="index"
+        v-model="form.wled[index]"
+        @remove="removeWledControl(index)"
         class="mb-3"
-        color="grey-darken-4"
-        variant="flat"
-      >
-        <v-card-text>
-          <div class="d-flex align-center ga-2 mb-3">
-            <v-combobox
-              v-model="control.name"
-              :disabled="loadingInternal || disabled"
-              :items="wledOptions"
-              :label="$t('assets.wledName') || 'WLED name'"
-              density="compact"
-              hide-details="auto"
-              variant="outlined"
-              @update:model-value="loadWledEffects($event)"
-            />
-            <v-btn
-              :disabled="loadingInternal || disabled"
-              color="red"
-              icon="mdi-delete"
-              variant="text"
-              @click="removeWledControl(index)"
-            />
-          </div>
-
-          <v-row density="compact">
-            <v-col cols="12" md="4">
-              <v-menu v-model="wledColorMenus[index]" :close-on-content-click="false">
-                <template #activator="{ props }">
-                  <v-text-field
-                    :model-value="getWledRgbHex(control)"
-                    :disabled="loadingInternal || disabled"
-                    :label="$t('assets.color') || 'Color'"
-                    density="compact"
-                    hide-details="auto"
-                    prepend-inner-icon="mdi-palette"
-                    readonly
-                    v-bind="props"
-                    variant="outlined"
-                  >
-                    <template #append-inner>
-                      <div :style="{ backgroundColor: getWledRgbHex(control) }" class="asset-color-preview" />
-                    </template>
-                  </v-text-field>
-                </template>
-                <v-card color="grey-darken-4">
-                  <v-color-picker
-                    :model-value="getWledRgbHex(control)"
-                    hide-inputs
-                    mode="hex"
-                    @update:model-value="setWledRgbHex(control, $event)"
-                  />
-                </v-card>
-              </v-menu>
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-slider
-                v-model="control.white"
-                :disabled="loadingInternal || disabled"
-                :label="$t('assets.white') || 'White'"
-                :max="255"
-                :min="0"
-                :step="1"
-                density="compact"
-                hide-details="auto"
-                thumb-label
-              />
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-autocomplete
-                :model-value="control.effect"
-                :items="wledEffectOptions(control.name)"
-                item-title="title"
-                item-value="value"
-                :label="$t('assets.effect') || 'Effect'"
-                variant="outlined"
-                density="compact"
-                :disabled="loadingInternal || disabled"
-                hide-details="auto"
-                clearable
-                @focus="loadWledEffects(control.name)"
-                @update:model-value="setWledEffect(control, $event)"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-      </v-card>
+      />
       <div class="d-flex justify-end mt-4">
         <YamlImportExportButtons
           :filename="`${name || 'asset'}.yaml`"
@@ -321,6 +236,7 @@
 import { useAppStore } from '@/stores/app'
 import {getWebsocketClient} from "@/plugins/websocketInstance.ts";
 import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
+import MacroWledControlEditor from '@/components/MacroWledControlEditor.vue'
 
 type WledControl = {
   name: string
@@ -329,6 +245,7 @@ type WledControl = {
   blue: number | null
   white: number | null
   effect: number | null
+  brightness: number | null
 }
 
 type MediaEntry = {
@@ -370,6 +287,7 @@ export default {
 
   components: {
     YamlImportExportButtons,
+    MacroWledControlEditor,
   },
 
   props: {
@@ -386,7 +304,7 @@ export default {
       wledColorMenus: [] as boolean[],
       mediaEntries: [] as MediaEntry[],
       localMacroItems: [] as string[],
-      localWledConfigs: {} as Record<string, any>,
+      pendingWledControlIndex: null as number | null,
       wledEffectsByLamp: {} as Record<string, Array<{ title: string; value: number }>>,
       errorMessage: '',
       loadingInternal: false,
@@ -623,12 +541,7 @@ export default {
     },
 
     async fetchWledConfigs() {
-      try {
-        const data = await this.requestEndpoint('assets_list', 'assets/list').catch(() => ({}))
-        this.localWledConfigs = data?.wled ?? data?.configs?.wled ?? {}
-      } catch {
-        this.localWledConfigs = {}
-      }
+      // WLED integrations are provided by notify_integrations_update / appStore.getIntegrations now.
     },
 
     async fetchMacros() {
@@ -811,34 +724,20 @@ export default {
     },
 
     getWledConfigEntries(): Array<Record<string, any>> {
-      const appConfig = this.appStore.getConfig ?? {}
-      const configEntries = Object.entries(appConfig as Record<string, any>)
-      const entriesFromConfig = configEntries
-        .filter(([key]) => /^wled/i.test(key))
-        .map(([key, value]: [string, any]) => {
-          const name = this.stripWledPrefix(key)
-          return value && typeof value === 'object' ? { name, configKey: key, ...value } : { name, configKey: key, url: value }
-        })
+      const integrations = this.appStore?.getIntegrations ?? useAppStore().getIntegrations ?? {}
+      const wled = integrations?.wled ?? {}
 
-      const entriesFromLocal = Object.entries(this.localWledConfigs ?? {}).map(([name, value]: [string, any]) => (
-        value && typeof value === 'object' ? { name: this.stripWledPrefix(name), ...value } : { name: this.stripWledPrefix(name), url: value }
-      ))
-
-      const byName = new Map<string, Record<string, any>>()
-      for (const entry of [...entriesFromConfig, ...entriesFromLocal]) {
-        if (!entry?.name) continue
-        const key = String(entry.name).toLowerCase()
-        if (byName.has(key)) continue
-        byName.set(key, entry)
-      }
-
-      return [...byName.values()]
+      return Object.entries(wled).map(([name, value]: [string, any]) => ({
+        name: this.stripWledPrefix(name),
+        ip: value?.ip ?? value,
+      }))
     },
 
     getWledBaseUrl(lamp: any): string {
-      const rawUrl = String(lamp?.url ?? lamp?.host ?? lamp?.hostname ?? lamp?.address ?? lamp?.ip ?? lamp?.website ?? lamp?.api ?? '').trim()
-      if (!rawUrl) return ''
-      return (/^https?:\/\//i.test(rawUrl) ? rawUrl : `http://${rawUrl}`).replace(/\/+$/, '')
+      const ip = String(lamp?.ip ?? '').trim()
+      if (!ip) return ''
+
+      return (/^https?:\/\//i.test(ip) ? ip : `http://${ip}`).replace(/\/+$/, '')
     },
 
     getWledLampEntry(name: any): Record<string, any> | undefined {
@@ -944,11 +843,26 @@ export default {
         blue: this.toNullableNumber(control?.blue),
         white: this.toNullableNumber(control?.white),
         effect: this.toNullableNumber(control?.effect),
+        brightness: this.toNullableNumber(control?.brightness),
       }))
     },
 
+    openCreateWledDialog(index: number | null = null) {
+      this.pendingWledControlIndex = index
+      this.$refs.wledIntegrationDialog?.open(index !== null ? this.form.wled?.[index]?.name ?? '' : '')
+    },
+
+    handleWledCreated(name: string) {
+      if (this.pendingWledControlIndex !== null && this.form.wled?.[this.pendingWledControlIndex]) {
+        this.form.wled[this.pendingWledControlIndex].name = name
+        void this.loadWledEffects(name)
+      }
+
+      this.pendingWledControlIndex = null
+    },
+
     addWledControl() {
-      this.form.wled.push({ name: '', red: null, green: null, blue: null, white: null, effect: null })
+      this.form.wled.push({ name: '', red: 255, green: 255, blue: 255, white: 0, brightness: 255, effect: null })
       this.wledColorMenus.push(false)
     },
 
@@ -1041,7 +955,7 @@ export default {
         const name = this.cleanString(control.name)
         if (!name) continue
         const data: Record<string, any> = {}
-        for (const key of ['red', 'green', 'blue', 'white', 'effect']) {
+        for (const key of ['red', 'green', 'blue', 'white', 'brightness', 'effect']) {
           const value = this.cleanByte((control as any)[key])
           if (value !== undefined) data[key] = value
         }

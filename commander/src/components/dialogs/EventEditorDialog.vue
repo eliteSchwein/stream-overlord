@@ -17,7 +17,7 @@
 
       <v-divider />
 
-      <v-card-text>
+      <v-card-text class="py-3 px-0">
         <v-alert
           v-if="error || errorMessage"
           type="error"
@@ -27,8 +27,8 @@
           :text="error || errorMessage"
         />
 
-        <v-expansion-panels v-model="openPanels" multiple variant="accordion" @update:model-value="onPanelsChanged">
-          <v-expansion-panel v-if="!isSystemEvent" value="asset" bg-color="grey-darken-3">
+        <v-expansion-panels v-model="openPanels" variant="accordion" @update:model-value="onPanelsChanged">
+          <v-expansion-panel v-if="!isSystemEvent" value="asset">
             <v-expansion-panel-title>
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-palette" />
@@ -46,7 +46,7 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
 
-          <v-expansion-panel value="macro" bg-color="grey-darken-3">
+          <v-expansion-panel value="macro">
             <v-expansion-panel-title :hide-actions="isSystemEvent">
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-code-braces" />

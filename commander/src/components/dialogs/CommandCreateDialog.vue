@@ -10,10 +10,10 @@
         <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)" />
       </v-toolbar>
 
-      <v-card-text>
-        <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-3" :text="errorMessage" />
+      <v-card-text class="px-0 py-3">
+        <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-3 mx-3" :text="errorMessage" />
 
-        <v-row density="comfortable">
+        <v-row density="comfortable" class="px-3">
           <v-col cols="12" md="6">
             <v-text-field v-model="form.name" label="Command" prefix="!" variant="outlined" density="comfortable" hide-details @update:model-value="syncMacro" />
           </v-col>
@@ -23,7 +23,7 @@
           </v-col>
         </v-row>
 
-        <v-row density="comfortable" class="mt-3">
+        <v-row density="comfortable" class="mt-3 px-3">
           <v-col cols="12" md="6">
             <v-text-field v-model.number="form.userCooldown" label="User cooldown" type="number" variant="outlined" density="comfortable" hide-details />
           </v-col>
@@ -33,7 +33,7 @@
           </v-col>
         </v-row>
 
-        <div class="d-flex flex-wrap ga-2 my-3">
+        <div class="d-flex flex-wrap ga-2 my-3 px-3">
           <v-switch v-model="form.enforce_primary" label="Primary only" color="primary" hide-details density="comfortable" />
           <v-switch v-model="form.requiresBroadcaster" label="Broadcaster" color="primary" hide-details density="comfortable" />
           <v-switch v-model="form.requiresMod" label="Mod" color="primary" hide-details density="comfortable" />
@@ -78,20 +78,13 @@
           </v-row>
         </v-card>
 
-        <v-expansion-panels v-model="openPanels" multiple>
-          <v-expansion-panel value="macro" bg-color="grey-darken-4">
-            <v-expansion-panel-title>
-              <div class="d-flex align-center ga-2">
-                <v-icon icon="mdi-code-braces" />
-                Macro: {{ generatedMacroName }}
-              </div>
-            </v-expansion-panel-title>
+        <v-card variant="flat" class="px-0" color="grey-darken-3">
+          <v-card-text>
+            <CommandMacroAccordion ref="macroAccordion" :name="generatedMacroName" :initial-content="macroContent" disable-macro-read />
+          </v-card-text>
+        </v-card>
 
-            <v-expansion-panel-text>
-              <CommandMacroAccordion ref="macroAccordion" :name="generatedMacroName" :initial-content="macroContent" disable-macro-read />
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+
       </v-card-text>
 
       <v-card-actions>

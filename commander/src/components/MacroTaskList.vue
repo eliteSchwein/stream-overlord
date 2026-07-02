@@ -114,7 +114,6 @@ import {
   MacroTaskAccordion,
   MacroWebhookTaskAccordion,
   MacroWebsocketTaskAccordion,
-  MacroWledTaskAccordion,
   MacroYoloboxTaskAccordion, MacroVariableSetTaskAccordion, MacroVariableGetTaskAccordion,
   MacroChannelPointAcceptTaskAccordion, MacroChannelPointCancelTaskAccordion,
   MacroChannelPointPauseTaskAccordion, MacroChannelPointToggleTaskAccordion,
@@ -152,6 +151,8 @@ import {
   MacroObsUnmuteInputTaskAccordion
 } from '@/components/accordions/macro/obs'
 import MacroTimerTaskAccordion from "@/components/accordions/macro/MacroTimerTaskAccordion.vue";
+import MacroWledCustomTaskAccordion from '@/components/accordions/macro/MacroWledCustomTaskAccordion.vue'
+import MacroWledOffTaskAccordion from '@/components/accordions/macro/MacroWledOffTaskAccordion.vue'
 
 export default {
   name: 'MacroTaskList',
@@ -171,7 +172,6 @@ export default {
     MacroWebsocketTaskAccordion,
     MacroRestTaskAccordion,
     MacroObsTaskAccordion,
-    MacroWledTaskAccordion,
     MacroMusicTaskAccordion,
     MacroMacroTaskAccordion,
     MacroFileTaskAccordion,
@@ -192,6 +192,8 @@ export default {
     MacroChannelPointToggleTaskAccordion,
     MacroKeyboardTaskAccordion,
     MacroTimerTaskAccordion,
+    MacroWledCustomTaskAccordion,
+    MacroWledOffTaskAccordion,
     MacroObsDisableSourceFilterTaskAccordion,
     MacroObsEnableSourceFilterTaskAccordion,
     MacroObsHideSceneItemTaskAccordion,
@@ -486,7 +488,6 @@ export default {
             },
           ],
         },
-
         {
           title: 'OBS',
           icon: 'mdi-broadcast',
@@ -568,6 +569,23 @@ export default {
               ],
             },
           ],
+        },
+
+        {
+          title: 'Lights',
+          icon: 'mdi-led-on',
+          children: [
+            {
+              title: 'Wled',
+              icon: 'mdi-led-strip-variant',
+              factory: () => this.createTask({ channel: 'wled', method: 'custom', data: { name: '', red: 255, green: 255, blue: 255, white: 0, brightness: 255, effect: 0 } }),
+            },
+            {
+              title: 'Wled Off',
+              icon: 'mdi-led-strip-variant-off',
+              factory: () => this.createTask({ channel: 'wled', method: 'off', data: { name: '' } }),
+            },
+          ]
         },
         {
           title: 'Expert',
@@ -669,6 +687,14 @@ export default {
         return 'MacroKeyboardTaskAccordion'
       }
 
+      if (item?.task?.channel === 'wled' && item?.task?.method === 'custom') {
+        return 'MacroWledCustomTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'wled' && item?.task?.method === 'off') {
+        return 'MacroWledOffTaskAccordion'
+      }
+
 
       if (item?.task?.channel === 'obs') {
         const data = item?.task?.data ?? {}
@@ -720,7 +746,6 @@ export default {
         function: 'MacroFunctionTaskAccordion',
         websocket: 'MacroWebsocketTaskAccordion',
         rest: 'MacroRestTaskAccordion',
-        wled: 'MacroWledTaskAccordion',
         music: 'MacroMusicTaskAccordion',
         macro: 'MacroMacroTaskAccordion',
         file: 'MacroFileTaskAccordion',
