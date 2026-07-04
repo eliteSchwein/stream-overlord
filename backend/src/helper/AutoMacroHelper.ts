@@ -180,25 +180,6 @@ function normalizeAutoMacroConfig(config: any, fallbackName: string, file?: stri
     };
 }
 
-function loadAutoMacrosFromLegacyConfig() {
-    const config = getConfig(/auto_macro /g, true);
-
-    for (const key in config) {
-        const autoMacro = normalizeAutoMacroConfig(
-            {
-                ...config[key],
-                interval_minutes: config[key]?.interval,
-            },
-            key,
-        );
-
-        if (!autoMacro) continue;
-
-        autoMacros.push(autoMacro);
-        logRegular(`loaded legacy auto macros ${key}`);
-    }
-}
-
 function loadAutoMacrosFromFiles() {
     ensureAutoMacroDirectory();
 
@@ -298,7 +279,6 @@ export function initAutoMacros() {
     autoMacros = [];
 
     loadAutoMacrosFromFiles();
-    loadAutoMacrosFromLegacyConfig();
 
     logSuccess(`loaded ${autoMacros.length} auto macros`);
     notifyAutoMacrosUpdate();

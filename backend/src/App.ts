@@ -27,6 +27,7 @@ import {loadMusicConfig, startMusicPlayer, stopMusicPlayer} from "./helper/Music
 import {redis} from "./clients/redis/Redis";
 import {initVariables} from "./helper/VariableHelper";
 import {updateConfiguredEventIndex} from "./helper/EventHelper";
+import loadRotateScenes from "./helper/RotateSceneHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -148,6 +149,8 @@ async function init() {
     stage = 'starting auto macros...'
     initAutoMacros()
 
+    stage = 'loading scene rotations...'
+    loadRotateScenes()
 
     stage = 'starting music player...'
     loadMusicConfig()

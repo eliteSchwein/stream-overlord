@@ -243,36 +243,11 @@ function loadRotateScenesFromFiles() {
     }
 }
 
-function loadLegacyRotateScenesFromConfig() {
-    const legacyRotateScenes = getConfig((/^rotating_scene /g), true);
-
-    for (const name of Object.keys(legacyRotateScenes ?? {})) {
-        try {
-            const config = legacyRotateScenes[name] ?? {};
-            const scenes = (config.scenes ?? [])
-                .map((scene: string | RotateSceneItem) => normalizeSceneItem(scene))
-                .filter(Boolean) as RotateSceneItem[];
-
-            if (!scenes.length) continue;
-
-            rotatingScenes[name] = {
-                name,
-                interval: Number(config.interval ?? 1),
-                scenes,
-            };
-        } catch (error) {
-            logWarn(`failed to load legacy rotating scene ${name}`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        }
-    }
-}
-
 export default function loadRotateScenes() {
     logRegular("load rotating scenes");
     rotatingScenes = {};
 
     loadRotateScenesFromFiles();
-    loadLegacyRotateScenesFromConfig();
 
     getWebsocketServer().send("notify_rotating_scene_update", {rotatingScenes});
 }
