@@ -153,6 +153,10 @@ import {
 import MacroTimerTaskAccordion from "@/components/accordions/macro/MacroTimerTaskAccordion.vue";
 import MacroWledCustomTaskAccordion from '@/components/accordions/macro/MacroWledCustomTaskAccordion.vue'
 import MacroWledOffTaskAccordion from '@/components/accordions/macro/MacroWledOffTaskAccordion.vue'
+import MacroAutoMacroStartTaskAccordion from '@/components/accordions/macro/MacroAutoMacroStartTaskAccordion.vue'
+import MacroAutoMacroStopTaskAccordion from '@/components/accordions/macro/MacroAutoMacroStopTaskAccordion.vue'
+import MacroRotateSceneStartTaskAccordion from '@/components/accordions/macro/MacroRotateSceneStartTaskAccordion.vue'
+import MacroRotateSceneStopTaskAccordion from '@/components/accordions/macro/MacroRotateSceneStopTaskAccordion.vue'
 
 export default {
   name: 'MacroTaskList',
@@ -194,6 +198,10 @@ export default {
     MacroTimerTaskAccordion,
     MacroWledCustomTaskAccordion,
     MacroWledOffTaskAccordion,
+    MacroAutoMacroStartTaskAccordion,
+    MacroAutoMacroStopTaskAccordion,
+    MacroRotateSceneStartTaskAccordion,
+    MacroRotateSceneStopTaskAccordion,
     MacroObsDisableSourceFilterTaskAccordion,
     MacroObsEnableSourceFilterTaskAccordion,
     MacroObsHideSceneItemTaskAccordion,
@@ -300,6 +308,26 @@ export default {
               factory: () => this.createTask({ channel: 'macro', method: '', data: {} }),
             },
             {
+              title: 'Start auto macro',
+              icon: 'mdi-play-circle-outline',
+              factory: () => this.createTask({ channel: 'auto_macro', method: 'start', data: { name: '' } }),
+            },
+            {
+              title: 'Stop auto macro',
+              icon: 'mdi-stop-circle-outline',
+              factory: () => this.createTask({ channel: 'auto_macro', method: 'stop', data: { name: '' } }),
+            },
+            {
+              title: 'Start scene rotation',
+              icon: 'mdi-play-circle-outline',
+              factory: () => this.createTask({ channel: 'rotate_scene', method: 'start', data: { name: '' } }),
+            },
+            {
+              title: 'Stop scene rotation',
+              icon: 'mdi-stop-circle-outline',
+              factory: () => this.createTask({ channel: 'rotate_scene', method: 'stop', data: { name: '' } }),
+            },
+            {
               title: 'End macro',
               icon: 'mdi-stop-circle-outline',
               factory: () => this.createTask({ channel: 'condition', method: 'end_macro' }),
@@ -393,11 +421,6 @@ export default {
           title: 'Random',
           icon: 'mdi-dice-multiple-outline',
           factory: () => this.createTask({ channel: 'function', method: 'random', data: { key: '', min: 0, max: 100 } }),
-        },
-        {
-          title: 'Toggle auto macro',
-          icon: 'mdi-toggle-switch-outline',
-          factory: () => this.createTask({ channel: 'function', method: 'toggle_auto_macro', data: { name: '', enabled: true } }),
         },
         {
           title: 'File: read asset folder',
@@ -695,6 +718,15 @@ export default {
         return 'MacroWledOffTaskAccordion'
       }
 
+      if (item?.task?.channel === 'auto_macro') {
+        if (['stop', 'disable'].includes(item?.task?.method)) return 'MacroAutoMacroStopTaskAccordion'
+        return 'MacroAutoMacroStartTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'rotate_scene') {
+        if (item?.task?.method === 'stop') return 'MacroRotateSceneStopTaskAccordion'
+        return 'MacroRotateSceneStartTaskAccordion'
+      }
 
       if (item?.task?.channel === 'obs') {
         const data = item?.task?.data ?? {}

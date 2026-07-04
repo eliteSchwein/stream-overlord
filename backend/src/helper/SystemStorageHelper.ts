@@ -8,8 +8,7 @@ import {getMacroDirectory} from "./MacroHelper";
 import {getChannelPointConfigDirectory} from "./ChannelPointHelper";
 import getWebsocketServer from "../App";
 import {getCommandDirectory} from "../clients/twitch/TwitchCommands";
-import {getAutoMacroDirectory} from "./AutoMacroHelper";
-import {getRotateSceneDirectory} from "./RotateSceneHelper";
+import path from "node:path";
 
 export type SystemStorageInfo = {
     root: string;
@@ -44,6 +43,8 @@ export function getSystemStorageInfo(): SystemStorageInfo {
     fs.mkdirSync(getMacroDirectory(), { recursive: true });
     fs.mkdirSync(channelPointRoot, { recursive: true });
     fs.mkdirSync(commandRoot, { recursive: true });
+    fs.mkdirSync(getAutoMacroDirectory(), { recursive: true });
+    fs.mkdirSync(getRotateSceneDirectory(), { recursive: true });
 
     const statfs = fs.statfsSync(root);
 
@@ -69,6 +70,14 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             rotating_scenes: getDirectorySize(getRotateSceneDirectory()),
         },
     };
+}
+
+function getAutoMacroDirectory() {
+    return path.join(getSystemConfigDirectory(), "auto_macros");
+}
+
+function getRotateSceneDirectory() {
+    return path.join(getSystemConfigDirectory(), "rotating_scenes");
 }
 
 function getDirectorySize(directory: string): number {

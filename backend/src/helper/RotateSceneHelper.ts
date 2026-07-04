@@ -5,6 +5,7 @@ import * as yaml from "js-yaml";
 import {activateTimer, deactivateTimer, registerTimerCallback, setTimerTime} from "./TimerHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 import {isDebug, logDebug, logRegular, logWarn} from "./LogHelper";
+import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
 const ROTATE_SCENE_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
 const ROTATE_SCENE_TIMER = "scene_rotation";
@@ -336,6 +337,7 @@ export function editRotateSceneFile(inputPathOrName: string, content: string) {
     fs.writeFileSync(filePath, nextContent, "utf8");
 
     loadRotateScenes();
+    emitSystemStorageUpdate();
 
     return {
         path: relativeRotateScenePath(filePath),
@@ -378,6 +380,7 @@ export async function addRotateSceneFilesFromUpload(files: any[] = [], targetPat
     }
 
     loadRotateScenes();
+    emitSystemStorageUpdate();
 
     return added;
 }
@@ -392,6 +395,7 @@ export function deleteRotateSceneFile(inputPathOrName: string) {
     }
 
     loadRotateScenes();
+    emitSystemStorageUpdate();
 
     return {
         path: relativeRotateScenePath(filePath),
@@ -414,6 +418,7 @@ export function moveRotateSceneFile(source: string, target: string) {
     fs.renameSync(sourcePath, targetPath);
 
     loadRotateScenes();
+    emitSystemStorageUpdate();
 
     return {
         source: normalizeRotateScenePath(source).replace(/\\/g, "/"),
@@ -428,6 +433,7 @@ export function createRotateSceneFolder(inputPath: string = "", name: string) {
 
     const folderPath = resolveRotateScenePath(path.join(inputPath, name));
     fs.mkdirSync(folderPath, {recursive: true});
+    emitSystemStorageUpdate();
 
     return {
         path: path.join(normalizeRotateScenePath(inputPath), name).replace(/\\/g, "/"),

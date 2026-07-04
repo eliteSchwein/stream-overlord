@@ -5,6 +5,7 @@ import * as yaml from "js-yaml";
 import {logDebug, logRegular, logSuccess, logWarn} from "./LogHelper";
 import {triggerMacro} from "./MacroHelper";
 import getWebsocketServer from "../App";
+import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
 type AutoMacroRuntime = {
     name: string;
@@ -387,6 +388,7 @@ export function editAutoMacroFile(inputPathOrName: string, content: string) {
     fs.writeFileSync(filePath, nextContent, "utf8");
 
     initAutoMacros();
+    emitSystemStorageUpdate();
 
     return {
         path: relativeAutoMacroPath(filePath),
@@ -403,6 +405,7 @@ export function deleteAutoMacroFile(inputPathOrName: string) {
     }
 
     initAutoMacros();
+    emitSystemStorageUpdate();
 
     return {
         path: relativeAutoMacroPath(filePath),
@@ -425,6 +428,7 @@ export function moveAutoMacroFile(source: string, target: string) {
     fs.renameSync(sourcePath, targetPath);
 
     initAutoMacros();
+    emitSystemStorageUpdate();
 
     return {
         source: normalizeAutoMacroPath(source).replace(/\\/g, "/"),
@@ -473,6 +477,7 @@ export async function addAutoMacroFilesFromUpload(files: AutoMacroUploadFile[] =
     }
 
     initAutoMacros();
+    emitSystemStorageUpdate();
 
     return added;
 }
@@ -484,6 +489,7 @@ export function createAutoMacroFolder(inputPath: string = "", name: string) {
 
     const folderPath = resolveAutoMacroPath(path.join(inputPath, name));
     fs.mkdirSync(folderPath, {recursive: true});
+    emitSystemStorageUpdate();
 
     return {
         path: path.join(normalizeAutoMacroPath(inputPath), name).replace(/\\/g, "/"),
