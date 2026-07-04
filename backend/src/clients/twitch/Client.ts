@@ -58,6 +58,9 @@ export default class TwitchClient {
     protected bot?: Bot;
     protected messageBot?: Bot;
 
+    protected controlAuthUserId?: string;
+    protected messageAuthUserId?: string;
+
     protected eventSub?: EventSubWsListener;
 
     private warnTwitchNetworkError(context: string, error: unknown): boolean {
@@ -89,6 +92,34 @@ export default class TwitchClient {
         }
     }
 
+    private async loadStoredAuthUserId(auth: TwitchAuth, type: "message" | "control") {
+        const token = await auth.getStoredToken(type);
+
+        if (!token?.userId) {
+            logWarn(`twitch ${type} auth has no stored user id - please reconnect this auth`);
+            return undefined;
+        }
+
+        if (type === "message") {
+            this.messageAuthUserId = token.userId;
+        } else {
+            this.controlAuthUserId = token.userId;
+        }
+
+        logRegular(
+            `twitch ${type} auth connected as ${token.login ?? "-"} ` +
+            `(id=${token.userId})`
+        );
+
+        return token.userId;
+    }
+
+    private getAuthUserId(authName: "message" | "control") {
+        return authName === "message"
+            ? this.messageAuthUserId
+            : this.controlAuthUserId;
+    }
+
     private async tryMessageAuth(config: any) {
         this.messageAuth = new TwitchAuth();
 
@@ -105,6 +136,8 @@ export default class TwitchClient {
                 channels: config.channels,
                 chatClientOptions: null,
             });
+
+            await this.loadStoredAuthUserId(this.messageAuth, "message");
 
             logSuccess("twitch message auth is ready");
         } catch (error) {
@@ -210,6 +243,9 @@ export default class TwitchClient {
             this.messageBot = undefined;
         }
 
+        this.controlAuthUserId = undefined;
+        this.messageAuthUserId = undefined;
+
         if (this.eventSub) {
             logRegular("disconnect eventsub");
             this.eventSub.stop();
@@ -256,6 +292,8 @@ export default class TwitchClient {
             chatClientOptions: null,
             commands
         });
+
+        await this.loadStoredAuthUserId(this.auth, "control");
 
         await this.tryMessageAuth(config);
 
@@ -382,23 +420,34 @@ export default class TwitchClient {
     public async announce(message: string, color: TwitchMessageColor = "primary") {
         const primaryChannel = getPrimaryChannel();
 
-        await this.withMessageFallback("announce", async (bot) => {
-            await bot.api.chat.sendAnnouncement(primaryChannel.id, {
+        if (!this.bot) {
+            logWarn("twitch announce skipped: control auth is not connected");
+            return;
+        }
+
+        try {
+            await this.bot.api.chat.sendAnnouncement(primaryChannel.id, {
                 message,
                 // @ts-ignore
                 color,
             });
-        });
+        } catch (error) {
+            if (!this.warnTwitchNetworkError("twitch announce failed", error)) {
+                logWarn("twitch announce failed:");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
     }
 
     public async sendMessage(message: string, channelId?: string) {
         const primaryChannel = getPrimaryChannel();
         const broadcasterId = channelId ?? primaryChannel.id;
 
-        await this.withMessageFallback("send message", async (bot) => {
-            const sender = await bot.api.users.getMe();
+        await this.withMessageFallback("send message", async (bot, authName) => {
+            const senderId = this.getAuthUserId(authName);
+            if (!senderId) throw new Error(`missing ${authName} auth user id`);
 
-            await bot.api.chat.sendChatMessage(broadcasterId, sender.id, message);
+            await bot.api.chat.sendChatMessageAsApp(senderId, broadcasterId, message);
         });
     }
 
@@ -406,20 +455,22 @@ export default class TwitchClient {
         const primaryChannel = getPrimaryChannel();
         const broadcasterId = channelId ?? primaryChannel.id;
 
-        await this.withMessageFallback("reply", async (bot) => {
-            const sender = await bot.api.users.getMe();
+        await this.withMessageFallback("reply", async (bot, authName) => {
+            const senderId = this.getAuthUserId(authName);
+            if (!senderId) throw new Error(`missing ${authName} auth user id`);
 
-            await bot.api.chat.sendChatMessage(broadcasterId, sender.id, message, {
+            await bot.api.chat.sendChatMessageAsApp(senderId, broadcasterId, message, {
                 replyParentMessageId,
             });
         });
     }
 
     public async sendDm(userId: string, message: string) {
-        await this.withMessageFallback("send dm", async (bot) => {
-            const sender = await bot.api.users?.getMe();
+        await this.withMessageFallback("send dm", async (bot, authName) => {
+            const senderId = this.getAuthUserId(authName);
+            if (!senderId) throw new Error(`missing ${authName} auth user id`);
 
-            await bot.api.whispers.sendWhisper(sender.id, userId, message);
+            await bot.api.whispers.sendWhisper(senderId, userId, message);
         });
     }
 }

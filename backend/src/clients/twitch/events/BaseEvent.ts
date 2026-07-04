@@ -85,8 +85,7 @@ export default class BaseEvent {
         const broadcasterId = channelId ?? primaryChannel.id;
 
         try {
-            const sender = await this.bot.api.users.getMe();
-            await this.bot.api.chat.sendChatMessage(broadcasterId, sender.id, message);
+            await this.bot.api.chat.sendChatMessage(broadcasterId, message);
         } catch (error) {
             logWarn("twitch sendMessage fallback failed");
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -103,9 +102,7 @@ export default class BaseEvent {
         const broadcasterId = channelId ?? primaryChannel.id;
 
         try {
-            const sender = await this.bot.api.users.getMe();
-
-            await this.bot.api.chat.sendChatMessage(broadcasterId, sender.id, message, {
+            await this.bot.api.chat.sendChatMessage(broadcasterId, message, {
                 replyParentMessageId,
             });
         } catch (error) {
@@ -120,9 +117,10 @@ export default class BaseEvent {
             return;
         }
 
+        const primaryChannel = getPrimaryChannel();
+
         try {
-            const sender = await this.bot.api.users.getMe();
-            await this.bot.api.whispers.sendWhisper(sender.id, userId, message);
+            await this.bot.api.whispers.sendWhisper(primaryChannel.botUserId, userId, message);
         } catch (error) {
             logWarn("twitch sendDm fallback failed");
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));

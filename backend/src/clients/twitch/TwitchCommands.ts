@@ -25,6 +25,7 @@ import isShieldActive from "../../helper/ShieldHelper";
 import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../helper/MessageEventLinkHelper";
 import TwitchClient from "./Client";
+import {getTwitchClient} from "../../App";
 
 type ConfigParam = {
     name: string;
@@ -62,14 +63,14 @@ export default function buildCommands(bot: Bot, twitchClient?: TwitchClient) {
     commands = commands.concat(new ListMacrosCommand(bot, twitchClient).register());
     commands = commands.concat(new GiveawayEnterCommand(bot, twitchClient).register());
 
-    commands = buildConfigCommands(commands, bot);
+    commands = buildConfigCommands(commands, bot, twitchClient);
 
-    commands.push(buildOverviewCommand(commands));
+    commands.push(buildOverviewCommand(commands, twitchClient));
 
     return commands.filter((c) => c != null);
 }
 
-function buildOverviewCommand(commands: any[]) {
+function buildOverviewCommand(commands: any[], twitchClient?: TwitchClient) {
     let commandList = "";
 
     for (const command of commands) {
@@ -79,8 +80,12 @@ function buildOverviewCommand(commands: any[]) {
 
     commandList = commandList.substring(1);
 
-    return createBotCommand("commands", (params, { reply }) => {
-        void reply(`Es gibt folgende Befehle: ${commandList}`);
+    return createBotCommand("commands", (params, context) => {
+        void twitchClient?.reply(
+            `Es gibt folgende Befehle: ${commandList}`,
+            context.msg.id,
+            context.broadcasterId
+        )
     });
 }
 
@@ -478,7 +483,7 @@ export async function addCommandFilesFromUpload(files: CommandUploadFile[] = [],
     return added;
 }
 
-function buildConfigCommands(commands: any[], bot: Bot) {
+function buildConfigCommands(commands: any[], bot: Bot, twitchClient: TwitchClient) {
     loadCommandsFromFiles();
 
     const commandNames = Object.keys(fileCommands);
@@ -494,13 +499,13 @@ function buildConfigCommands(commands: any[], bot: Bot) {
             `aliases=${normalizeArray(config?.alias ?? config?.aliases ?? []).join(",") || "-"})`
         );
 
-        commands.push(buildConfigCommand(command, config, bot));
+        commands.push(buildConfigCommand(command, config, bot, twitchClient));
     }
 
     return commands;
 }
 
-function buildConfigCommand(command: string, option: any, bot: Bot) {
+function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient: TwitchClient) {
     const aliases = normalizeArray(option.alias ?? option.aliases ?? []);
     const paramConfig = normalizeArray(option.params ?? []) as ConfigParam[];
     const macro = normalizeString(option.macro);
@@ -551,7 +556,16 @@ function buildConfigCommand(command: string, option: any, bot: Bot) {
                 !hasModerator(context.broadcasterName, context.userId) &&
                 context.broadcasterId !== context.userId
             ) {
-                await context.reply("der Schild Modus ist aktiv!");
+                if (twitchClient && context.msg?.id) {
+                    await twitchClient.reply(
+                        "der Schild Modus ist aktiv!",
+                        context.msg.id,
+                        context.broadcasterId
+                    );
+                } else {
+                    await context.reply("der Schild Modus ist aktiv!");
+                }
+
                 return;
             }
 
@@ -721,10 +735,14 @@ async function replyInvalidSubcommand(
     param: string[],
     context: BotCommandContext,
     index: number,
-    validSubcommands: string[],
+    validSubcommands: string[]
 ) {
     logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${command} ${param.join(" ")}`);
-    await context.reply(`der Parameter ${index + 1} ist ungültig, valide Unterbefehle sind: ${validSubcommands.join(", ")}`);
+
+    await replyWithFallback(
+        context,
+        `der Parameter ${index + 1} ist ungültig, valide Unterbefehle sind: ${validSubcommands.join(", ")}`
+    );
 }
 
 async function replyMissingParamError(
@@ -734,7 +752,11 @@ async function replyMissingParamError(
     index: number,
 ) {
     logWarn(`missing param at ${index} by ${context.userName} in ${context.broadcasterName}: ${command} ${param.join(" ")}`);
-    await context.reply(`der Parameter ${index + 1} wird benötigt!`);
+
+    await replyWithFallback(
+        context,
+        `der Parameter ${index + 1} wird benötigt!`
+    );
 }
 
 async function replyParamSyntaxError(
@@ -745,11 +767,34 @@ async function replyParamSyntaxError(
     type: string,
 ) {
     logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${command} ${param.join(" ")}`);
-    await context.reply(`der Parameter ${index + 1} ist ein ${type}!`);
+
+    await replyWithFallback(
+        context,
+        `der Parameter ${index + 1} ist ein ${type}!`
+    );
 }
 
-async function replyPermissionError(context: BotCommandContext) {
+async function replyPermissionError(
+    context: BotCommandContext,
+) {
     logWarn(`permission denied: ${context.userName} in ${context.broadcasterName}`);
     if (!isShowErrorMessage()) return;
-    await context.reply("du hast keine Berechtigung auf diesen Befehl!");
+
+    await replyWithFallback(
+        context,
+        "du hast keine Berechtigung auf diesen Befehl!",
+    );
+}
+
+async function replyWithFallback(
+    context: BotCommandContext,
+    message: string,
+) {
+    const twitchClient = getTwitchClient()
+    if (twitchClient && context.msg?.id) {
+        await twitchClient.reply(message, context.msg.id, context.broadcasterId);
+        return;
+    }
+
+    await context.reply(message);
 }

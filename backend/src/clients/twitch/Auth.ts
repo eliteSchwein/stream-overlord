@@ -19,6 +19,8 @@ type TwitchTokenData = {
     expiresIn: number;
     obtainmentTimestamp: number;
     scope?: string[];
+    userId?: string;
+    login?: string;
 };
 
 type IntegrationsFile = {
@@ -97,7 +99,6 @@ export default class TwitchAuth {
         "chat:edit",
         "user:read:chat",
         "user:write:chat",
-        "moderator:manage:announcements",
     ];
 
     protected getScopes(type: TwitchAuthType) {
@@ -111,6 +112,11 @@ export default class TwitchAuth {
     public hasToken(type: TwitchAuthType = "control"): boolean {
         const integrations = this.readIntegrationsSync();
         return !!integrations.twitch?.[type];
+    }
+
+    public async getStoredToken(type: TwitchAuthType = "control") {
+        const integrations = await this.readIntegrations();
+        return integrations.twitch?.[type] ?? null;
     }
 
     public async getAuthCode(required = false, type: TwitchAuthType = "control") {
@@ -136,7 +142,11 @@ export default class TwitchAuth {
             await this.writeToken(type, newTokenData as TwitchTokenData);
         });
 
-        await this.authProvider.addUserForToken(tokenData, this.getIntents(type));
+        await this.authProvider.addUserForToken(
+            tokenData,
+            this.getIntents(type),
+            tokenData.userId
+        );
         return this.authProvider;
     }
 
@@ -263,6 +273,19 @@ export default class TwitchAuth {
         }
     }
 
+    private async getTokenUser(accessToken: string) {
+        const response = await axios.get("https://id.twitch.tv/oauth2/validate", {
+            headers: {
+                Authorization: `OAuth ${accessToken}`,
+            },
+        });
+
+        return {
+            userId: response.data.user_id,
+            login: response.data.login,
+        };
+    }
+
     private normalizeTokenData(data: any): TwitchTokenData {
         return {
             ...data,
@@ -318,6 +341,12 @@ export default class TwitchAuth {
             );
 
             this.tempTokenData = this.normalizeTokenData(response.data);
+
+            const tokenUser = await this.getTokenUser(this.tempTokenData.accessToken);
+
+            this.tempTokenData.userId = tokenUser.userId;
+            this.tempTokenData.login = tokenUser.login;
+
             await this.writeToken(type, this.tempTokenData);
 
             res.on("finish", async () => {

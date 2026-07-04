@@ -77,9 +77,8 @@ export default class BaseCommand {
 
         const primaryChannel = getPrimaryChannel();
         const broadcasterId = channelId ?? primaryChannel.id;
-        const sender = await this.bot.api.users.getMe();
 
-        await this.bot.api.chat.sendChatMessage(broadcasterId, sender.id, message);
+        await this.bot.api.chat.sendChatMessage(broadcasterId, message);
     }
 
     protected async sendDm(userId: string, message: string) {
@@ -88,8 +87,9 @@ export default class BaseCommand {
             return;
         }
 
-        const sender = await this.bot.api.users.getMe();
-        await this.bot.api.whispers.sendWhisper(sender.id, userId, message);
+        const primaryChannel = getPrimaryChannel();
+
+        await this.bot.api.whispers.sendWhisper(primaryChannel.botUserId, userId, message);
     }
 
     protected async reply(context: BotCommandContext, message: string) {
