@@ -178,22 +178,42 @@ function loadCommandsFromFiles() {
 
     fileCommands = {};
 
-    for (const filePath of walkCommandFiles(getCommandDirectory())) {
+    const commandDirectory = getCommandDirectory();
+    const commandFiles = walkCommandFiles(commandDirectory);
+
+    logRegular(`detected command config directory: ${commandDirectory}`);
+    logRegular(`detected command config files: ${commandFiles.length}`);
+
+    for (const filePath of commandFiles) {
         try {
             const commandConfig = readCommandConfigFile(filePath) as any;
             const commandName = getCommandNameFromConfig(filePath, commandConfig);
 
-            if (!commandName) continue;
+            if (!commandName) {
+                logWarn(`skip command config without name: ${filePath}`);
+                continue;
+            }
+
+            const relativeFile = path.relative(commandDirectory, filePath).replace(/\\/g, "/");
 
             fileCommands[commandName] = {
                 ...commandConfig,
-                file: path.relative(getCommandDirectory(), filePath).replace(/\\/g, "/"),
+                file: relativeFile,
             };
+
+            logRegular(
+                `loaded command config: ${commandName} ` +
+                `(file=${relativeFile}, macro=${commandConfig?.macro ?? `command_${commandName}`}, ` +
+                `aliases=${normalizeArray(commandConfig?.alias ?? commandConfig?.aliases ?? []).join(",") || "-"}, ` +
+                `params=${normalizeArray(commandConfig?.params ?? []).length})`
+            );
         } catch (error) {
             logWarn(`failed to load command file ${filePath}`);
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
         }
     }
+
+    logRegular(`loaded command configs total: ${Object.keys(fileCommands).length}`);
 }
 
 
@@ -461,9 +481,20 @@ export async function addCommandFilesFromUpload(files: CommandUploadFile[] = [],
 function buildConfigCommands(commands: any[], bot: Bot) {
     loadCommandsFromFiles();
 
-    for (const command in fileCommands) {
-        logRegular(`register command file: ${command}`);
-        commands.push(buildConfigCommand(command, fileCommands[command], bot));
+    const commandNames = Object.keys(fileCommands);
+
+    logRegular(`register configured commands: ${commandNames.length}`);
+
+    for (const command of commandNames) {
+        const config = fileCommands[command];
+
+        logRegular(
+            `register command file: ${command} ` +
+            `(file=${config?.file ?? "-"}, macro=${config?.macro ?? "-"}, ` +
+            `aliases=${normalizeArray(config?.alias ?? config?.aliases ?? []).join(",") || "-"})`
+        );
+
+        commands.push(buildConfigCommand(command, config, bot));
     }
 
     return commands;
