@@ -32,6 +32,7 @@ export default {
         channelPoints: 'channelPoints',
         events: 'events',
         macros: 'macros',
+        rotatingscenes: 'rotatingscene',
         variables: 'variables',
         audio: 'audio',
         music: 'music',
