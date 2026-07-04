@@ -8,6 +8,8 @@ import {getMacroDirectory} from "./MacroHelper";
 import {getChannelPointConfigDirectory} from "./ChannelPointHelper";
 import getWebsocketServer from "../App";
 import {getCommandDirectory} from "../clients/twitch/TwitchCommands";
+import {getAutoMacroDirectory} from "./AutoMacroHelper";
+import {getRotateSceneDirectory} from "./RotateSceneHelper";
 
 export type SystemStorageInfo = {
     root: string;
@@ -22,6 +24,8 @@ export type SystemStorageInfo = {
         macros: number;
         channel_points: number;
         commands: number;
+        rotating_scenes: number;
+        auto_macros: number;
     };
 };
 
@@ -59,8 +63,10 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             overlays: getDirectorySize(overlayRoot),
             music: getDirectorySize(getRegularMusicPath()),
             macros: getDirectorySize(getMacroDirectory()),
+            auto_macros: getDirectorySize(getAutoMacroDirectory()),
             channel_points: getDirectorySize(channelPointRoot),
             commands: getDirectorySize(commandRoot),
+            rotating_scenes: getDirectorySize(getRotateSceneDirectory()),
         },
     };
 }

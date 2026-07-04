@@ -153,6 +153,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/rotatingscenes': RouteRecordInfo<
+      '/rotatingscenes',
+      '/rotatingscenes',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/variables': RouteRecordInfo<
       '/variables',
       '/variables',
@@ -285,6 +292,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/recovery.vue': {
       routes:
         | '/recovery'
+      views:
+        | never
+    }
+    'src/pages/rotatingscenes.vue': {
+      routes:
+        | '/rotatingscenes'
       views:
         | never
     }

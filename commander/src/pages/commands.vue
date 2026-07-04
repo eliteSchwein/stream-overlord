@@ -9,9 +9,16 @@
       </div>
 
       <div class="d-flex align-center ga-2">
-        <v-btn icon="mdi-refresh" variant="text" :loading="loading" @click="refreshCommands" />
+        <v-btn
+          prepend-icon="mdi-refresh"
+          variant="tonal"
+          :loading="loading"
+          @click="refreshCommands"
+        >
+          {{ $t('common.refresh') }}
+        </v-btn>
         <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="openCreateDialog">
-          {{ $t('commands.create') || 'Add command' }}
+          {{ $t('commands.create') }}
         </v-btn>
       </div>
     </v-card-title>

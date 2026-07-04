@@ -8,7 +8,14 @@
         </div>
       </div>
 
-      <v-btn icon="mdi-refresh" variant="text" :loading="loading" @click="refreshEvents" />
+      <v-btn
+        prepend-icon="mdi-refresh"
+        variant="tonal"
+        :loading="loading"
+        @click="refreshEvents"
+      >
+        {{ $t('common.refresh') }}
+      </v-btn>
     </v-card-title>
 
     <v-card-text>

@@ -53,6 +53,11 @@
           <span>{{ formatFileSize(macroUsed) }}</span>
         </div>
 
+        <div v-if="!hideAutoMacroUsed && autoMacroUsed !== null">
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.autoMacroUsed') }}</span>
+          <span>{{ formatFileSize(autoMacroUsed) }}</span>
+        </div>
+
         <div v-if="!hideChannelPointUsed && channelPointUsed !== null">
           <span class="text-caption text-grey-lighten-1">{{ $t('system.channelPointUsed') }}</span>
           <span>{{ formatFileSize(channelPointUsed) }}</span>
@@ -60,7 +65,12 @@
 
         <div v-if="!hideCommandUsed && commandUsed !== null">
           <span class="text-caption text-grey-lighten-1">{{ $t('system.commandUsed') }}</span>
-          <span>{{ formatFileSize(channelPointUsed) }}</span>
+          <span>{{ formatFileSize(commandUsed) }}</span>
+        </div>
+
+        <div v-if="!hideRotatingSceneUsed && rotatingSceneUsed !== null">
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.rotatingSceneUsed') }}</span>
+          <span>{{ formatFileSize(rotatingSceneUsed) }}</span>
         </div>
       </div>
     </v-card-text>
@@ -88,11 +98,19 @@ export default {
       type: Boolean,
       default: true,
     },
+    hideAutoMacroUsed: {
+      type: Boolean,
+      default: true,
+    },
     hideChannelPointUsed: {
       type: Boolean,
       default: true,
     },
     hideCommandUsed: {
+      type: Boolean,
+      default: true,
+    },
+    hideRotatingSceneUsed: {
       type: Boolean,
       default: true,
     },
@@ -147,6 +165,16 @@ export default {
       ])
     },
 
+    autoMacroUsed(): number | null {
+      return this.firstNumber([
+        this.storageInfo?.folders?.auto_macros,
+        this.storageInfo?.folders?.autoMacros,
+        this.storageInfo?.folders?.auto_macro,
+        this.storageInfo?.autoMacroUsed,
+        this.storageInfo?.autoMacrosUsed,
+      ])
+    },
+
     channelPointUsed(): number | null {
       return this.firstNumber([
         this.storageInfo?.folders?.channel_points,
@@ -162,6 +190,18 @@ export default {
         this.storageInfo?.folders?.commands,
         this.storageInfo?.folders?.commands_configs,
         this.storageInfo?.commands,
+        this.storageInfo?.commandUsed,
+        this.storageInfo?.commandsUsed,
+      ])
+    },
+
+    rotatingSceneUsed(): number | null {
+      return this.firstNumber([
+        this.storageInfo?.folders?.rotating_scenes,
+        this.storageInfo?.folders?.rotatingScenes,
+        this.storageInfo?.folders?.rotating_scene,
+        this.storageInfo?.rotatingSceneUsed,
+        this.storageInfo?.rotatingScenesUsed,
       ])
     },
   },

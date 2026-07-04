@@ -279,6 +279,11 @@ export default {
         color=""
         to="/automacros"></v-list-item>
       <v-list-item
+        prepend-icon="mdi-filmstrip"
+        :title="$t('navigation.tabs.rotatingscene')"
+        color=""
+        to="/rotatingscenes"></v-list-item>
+      <v-list-item
         prepend-icon="mdi-variable"
         :title="$t('navigation.tabs.variables')"
         color=""

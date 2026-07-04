@@ -38,7 +38,8 @@
       "events": "Events",
       "commands": "Commands",
       "integrations": "Integrations",
-      "automacros": "Auto Macros"
+      "automacros": "Auto Macros",
+      "rotatingscene": "Scene Rotation"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -239,7 +240,9 @@
     "macroUsed": "Used by Macros",
     "mediaUsed": "Used by Media",
     "channelPointUsed": "Used by Channel Points",
-    "commandUsed": "Used by Commands"
+    "commandUsed": "Used by Commands",
+    "rotatingSceneUsed": "Used by Scene rotation",
+    "autoMacroUsed": "Used by Auto Macros"
   },
   "common": {
     "cancel": "Cancel",
@@ -247,7 +250,8 @@
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",
-    "add": "Add"
+    "add": "Add",
+    "refresh": "Refresh"
   },
   "file": {
     "name": "Filename",

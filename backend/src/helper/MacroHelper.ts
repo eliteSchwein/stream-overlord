@@ -28,6 +28,8 @@ import TimerMacroTask from "./MacroTasks/TimerMacroTask";
 import EffectMacroTask from "./MacroTasks/EffectMacroTask";
 import AnimationMacroTask from "./MacroTasks/AnimationMacroTask";
 import KeyboardMacroTask from "./MacroTasks/KeyboardMacroTask";
+import RotateSceneMacroTask from "./MacroTasks/RotateSceneMacroTask";
+import AutoMacroTask from "./MacroTasks/AutoMacroTask";
 
 let macros: any = {};
 
@@ -602,6 +604,8 @@ export default function loadMacros() {
         new EffectMacroTask(),
         new AnimationMacroTask(),
         new KeyboardMacroTask(),
+        new RotateSceneMacroTask(),
+        new AutoMacroTask(),
     )
 
     loadMacrosFromFiles();

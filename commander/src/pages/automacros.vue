@@ -25,7 +25,7 @@
         <v-col cols="12" md="6">
           <StorageCard
             ref="storageCard"
-            :hide-macro-used="false"
+            :hide-auto-macro-used="false"
           />
         </v-col>
 

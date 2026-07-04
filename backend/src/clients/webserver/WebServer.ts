@@ -20,6 +20,7 @@ import ChannelPointsUploadApi from "./api/ChannelPoints/ChannelPointsUploadApi";
 import CommandsUploadApi from "./api/Command/CommandsUploadApi";
 import TwitchAuth from "../twitch/Auth";
 import AutoMacrosUploadApi from "./api/AutoMacro/AutoMacrosUploadApi";
+import RotateScenesUploadApi from "./api/RotatingScene/RotateScenesUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -159,6 +160,9 @@ export default class WebServer {
 
         // Auto Macro API
         new AutoMacrosUploadApi().register(this.app)
+
+        // Rotate Scene API
+        new RotateScenesUploadApi().register(this.app)
 
         await registerApiEndpoints();
 
