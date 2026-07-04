@@ -37,7 +37,8 @@
       "assets": "Assets",
       "events": "Events",
       "commands": "Commands",
-      "integrations": "Integrations"
+      "integrations": "Integrations",
+      "automacros": "Auto Macros"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -87,7 +88,7 @@
     "createFile": "Add macro",
     "name": "Macro name",
     "editor": "Macro editor",
-    "deleteConfirmTitle": "Delete macro?",
+    "deleteConfirmTitle": "Delete macro",
     "deleteConfirmText": "Do you really want to delete this macro?"
   },
   "giveaway": {
@@ -277,7 +278,7 @@
     "delete": "Delete",
     "copyDialog": "Copy overlay URL",
     "moveDialog": "Move overlay",
-    "deleteConfirmTitle": "Delete overlay?",
+    "deleteConfirmTitle": "Delete overlay",
     "deleteConfirmText": "Do you really want to delete this overlay?",
     "editor": "Overlay editor",
     "code": "Code",
@@ -394,5 +395,16 @@
       "name": "Name",
       "ip": "IP Address"
     }
+  },
+  "autoMacro": {
+    "title": "Auto Macro",
+    "search": "Search auto macros",
+    "none": "No auto macros found",
+    "create": "Create auto macro",
+    "upload": "Upload auto macro",
+    "delete": "Delete auto macro",
+    "deleteConfirmTitle": "Delete auto macro",
+    "deleteConfirmText": "Do you want to delete the following auto macro?",
+    "noAutoMacrosFound": "No auto macros found"
   }
 }

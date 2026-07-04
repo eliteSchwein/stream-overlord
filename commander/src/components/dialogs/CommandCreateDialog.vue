@@ -7,6 +7,15 @@
           <span class="text-truncate">{{ $t('commands.create') || 'Add command' }}</span>
         </v-toolbar-title>
 
+        <YamlImportExportButtons
+          class="mr-2"
+          :filename="exportFilename"
+          :disabled="loading"
+          :export-data="exportPayload"
+          @import="importCommand"
+          @error="handleImportError"
+        />
+
         <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)" />
       </v-toolbar>
 
@@ -102,11 +111,12 @@
 
 <script lang="ts">
 import CommandMacroAccordion from '@/components/accordions/CommandMacroAccordion.vue'
+import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 
 export default {
   name: 'CommandCreateDialog',
 
-  components: { CommandMacroAccordion },
+  components: { CommandMacroAccordion, YamlImportExportButtons },
 
   props: {
     modelValue: { type: Boolean, default: false },
@@ -140,6 +150,14 @@ export default {
 
     generatedMacroName(): string {
       return this.normalizedName ? `command_${this.normalizedName}` : 'command_'
+    },
+
+    exportFilename(): string {
+      return this.normalizedName ? `command_${this.normalizedName}.yaml` : 'command.yaml'
+    },
+
+    exportPayload(): any {
+      return this.buildExportPayload()
     },
 
     canSave(): boolean {
@@ -249,18 +267,98 @@ export default {
         .filter((param: any) => param?.name)
     },
 
-    save() {
-      if (!this.canSave) return
+    getMacroContent() {
+      return (
+        (this.$refs.macroAccordion as any)?.getContent?.() ||
+        this.macroContent ||
+        this.defaultMacroContent(this.generatedMacroName)
+      )
+    },
 
-      this.$emit('save', {
+    buildCommandPayload() {
+      return {
         ...this.form,
         name: this.normalizedName,
         aliases: this.toArray((this.form as any).aliases),
         params: this.normalizeParams(),
-        path: `${this.normalizedName}.yaml`,
-        macroContent:
-          (this.$refs.macroAccordion as any)?.getContent?.() ||
-          this.defaultMacroContent(this.generatedMacroName),
+        macro: this.generatedMacroName,
+      }
+    },
+
+    buildExportPayload() {
+      const command = this.buildCommandPayload()
+
+      return {
+        name: command.name,
+        path: command.name ? `command_${command.name}.yaml` : 'command.yaml',
+        command,
+        macroContent: this.getMacroContent(),
+      }
+    },
+
+    importCommand(payload: any) {
+      try {
+        const data = payload?.data ?? payload ?? {}
+        const command = data.command && typeof data.command === 'object' ? data.command : data
+        const importedName = data.name ?? command.name ?? ''
+        const macroName = command.macro || `command_${this.normalizeName(importedName)}`
+
+        this.setForm({
+          name: importedName,
+          aliases: command.aliases ?? command.alias,
+          params: this.expandImportedParams(command.params),
+          userCooldown: command.userCooldown,
+          globalCooldown: command.globalCooldown,
+          enforce_primary: command.enforce_primary === true || command.enforceSame === true,
+          requiresBroadcaster: command.requiresBroadcaster === true,
+          requiresMod: command.requiresMod === true,
+          requiresVip: command.requiresVip === true,
+        })
+
+        this.setMacroContent(
+          String(data.macroContent ?? data.macro?.content ?? this.defaultMacroContent(macroName)),
+          macroName,
+        )
+
+        this.errorMessage = ''
+      } catch (error: any) {
+        this.handleImportError(error)
+      }
+    },
+
+    expandImportedParams(params: any) {
+      return this.toArray(params).map((param: any) => {
+        if (!param || typeof param !== 'object') {
+          return {
+            name: String(param ?? ''),
+            type: 'string',
+            required: true,
+            subcommandNames: [],
+          }
+        }
+
+        return {
+          ...param,
+          subcommandNames: this.toArray(param.subcommands ?? param.subcommandNames)
+            .map((sub: any) => (typeof sub === 'string' ? sub : sub?.name ?? ''))
+            .filter(Boolean),
+        }
+      })
+    },
+
+    handleImportError(error: any) {
+      this.errorMessage = error?.message || 'Import failed'
+    },
+
+    save() {
+      if (!this.canSave) return
+
+      const payload = this.buildExportPayload()
+
+      this.$emit('save', {
+        ...payload.command,
+        path: payload.path,
+        macroContent: payload.macroContent,
       })
     },
   },

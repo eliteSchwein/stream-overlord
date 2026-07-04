@@ -19,6 +19,7 @@ import MacrosUploadApi from "./api/Macros/MacrosUploadApi";
 import ChannelPointsUploadApi from "./api/ChannelPoints/ChannelPointsUploadApi";
 import CommandsUploadApi from "./api/Command/CommandsUploadApi";
 import TwitchAuth from "../twitch/Auth";
+import AutoMacrosUploadApi from "./api/AutoMacro/AutoMacrosUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -155,6 +156,9 @@ export default class WebServer {
 
         // Command API
         new CommandsUploadApi().register(this.app)
+
+        // Auto Macro API
+        new AutoMacrosUploadApi().register(this.app)
 
         await registerApiEndpoints();
 

@@ -48,6 +48,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/automacros': RouteRecordInfo<
+      '/automacros',
+      '/automacros',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/channelPoints': RouteRecordInfo<
       '/channelPoints',
       '/channelPoints',
@@ -188,6 +195,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/audio.vue': {
       routes:
         | '/audio'
+      views:
+        | never
+    }
+    'src/pages/automacros.vue': {
+      routes:
+        | '/automacros'
       views:
         | never
     }

@@ -274,6 +274,11 @@ export default {
         color=""
         to="/macros"></v-list-item>
       <v-list-item
+        prepend-icon="mdi-auto-mode"
+        :title="$t('navigation.tabs.automacros')"
+        color=""
+        to="/automacros"></v-list-item>
+      <v-list-item
         prepend-icon="mdi-variable"
         :title="$t('navigation.tabs.variables')"
         color=""
