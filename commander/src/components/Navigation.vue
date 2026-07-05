@@ -21,7 +21,8 @@ export default {
       'getConnections',
       'getCurrentGame',
       'getParsedBackendConfig',
-      'getObsAudioData'
+      'getObsAudioData',
+      'getIntegrations'
     ]),
     currentRouteTitle() {
       const path = this.$route.path || '/';
@@ -55,6 +56,13 @@ export default {
         : this.$t('navigation.tabs.dashboard');
     },
     hasObsConfig() {
+      const integrations = this.getIntegrations || {}
+      const obsIntegrations = integrations.obs || {}
+
+      if(obsIntegrations && typeof obsIntegrations === 'object' && Object.keys(obsIntegrations).length > 0) {
+        return true
+      }
+
       const config = this.getParsedBackendConfig || {}
 
       return Object.entries(config).some(([key, value]) => {
@@ -70,6 +78,11 @@ export default {
 
         return false
       })
+    },
+    hasYoloboxEnabled() {
+      const integrations = this.getIntegrations || {}
+
+      return Boolean(integrations.yolobox?.enabled)
     }
   },
   methods: {
@@ -327,7 +340,7 @@ export default {
         color=""
         to="/obs"></v-list-item>
       <v-list-item
-        v-if="getParsedBackendConfig?.yolobox?.enable"
+        v-if="hasYoloboxEnabled"
         prepend-icon="mdi-video-box"
         :title="$t('navigation.tabs.yolobox')"
         color=""

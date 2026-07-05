@@ -4,6 +4,7 @@ import {scanDeviceWithPort} from "../../helper/NetworkHelper";
 import {Websocket, WebsocketEvent} from "websocket-ts";
 import waitUntil from "async-wait-until";
 import getWebsocketServer from "../../App";
+import {getYoloboxIntegration, setYoloboxIntegrationConnected} from "../../helper/IntegrationsHelper";
 
 export class YoloboxClient {
     protected connected = false
@@ -24,27 +25,15 @@ export class YoloboxClient {
     protected commandConnection: Websocket = null
     protected heartbeatConnection: Websocket = null
 
+    protected reconnectTimer: NodeJS.Timeout = null
+
     protected data: any = {}
 
     public async connect()
     {
-        const config = getConfig(/yolobox/g)[0]
+        const config = this.getYoloboxConfig()
 
-        this.connected = false
-        this.connectedDevice = ''
-        this.data = {}
-
-        if(this.commandConnection) {
-            for(const connection of this.websocketConnections) {
-                connection.close()
-            }
-            this.commandConnection.close()
-            this.heartbeatConnection.close()
-
-            this.websocketConnections = []
-            this.commandConnection = null
-            this.heartbeatConnection = null
-        }
+        this.resetState()
 
         if(!config || !config.enable) {
             logDebug("Yolobox Config not found, disable Yolobox Client")
@@ -56,9 +45,7 @@ export class YoloboxClient {
 
         if(foundDevices.length === 0){
             logDebug("no yolobox devices found, retry in 5 sec")
-            setTimeout(async () => {
-                await this.connect()
-            }, 5_000)
+            this.scheduleReconnect()
             return
         }
 
@@ -80,9 +67,61 @@ export class YoloboxClient {
         }
 
         logDebug("no yolobox devices found, retry in 5 sec")
-        setTimeout(async () => {
+        this.scheduleReconnect()
+    }
+
+    public disconnect()
+    {
+        if(this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer)
+            this.reconnectTimer = null
+        }
+
+        this.resetState()
+    }
+
+    private resetState()
+    {
+        this.connected = false
+        this.connectedDevice = ''
+        this.data = {}
+        setYoloboxIntegrationConnected(false)
+
+        for(const connection of this.websocketConnections) {
+            connection?.close()
+        }
+
+        this.commandConnection?.close()
+        this.heartbeatConnection?.close()
+
+        this.websocketConnections = []
+        this.commandConnection = null
+        this.heartbeatConnection = null
+    }
+
+    private scheduleReconnect()
+    {
+        if(this.reconnectTimer) return
+
+        this.reconnectTimer = setTimeout(async () => {
+            this.reconnectTimer = null
             await this.connect()
         }, 5_000)
+    }
+
+    private getYoloboxConfig()
+    {
+        const integrationConfig = getYoloboxIntegration()
+
+        if(integrationConfig && Object.prototype.hasOwnProperty.call(integrationConfig, 'enabled')) {
+            return {
+                enable: Boolean(integrationConfig.enabled),
+                additionalDevices: integrationConfig.additionalDevices ?? [],
+            }
+        }
+
+        // Fallback for old config files. The toggle API writes to integrations.json.
+        return getConfig(/yolobox/g)[0]
     }
 
     private async initConnections()
@@ -110,6 +149,7 @@ export class YoloboxClient {
         }
 
         this.connected = true
+        setYoloboxIntegrationConnected(true)
     }
 
     public async checkConnection()
@@ -138,6 +178,7 @@ export class YoloboxClient {
         this.heartbeatConnection?.removeEventListener(WebsocketEvent.message, handleData)
 
         if(!heartbeat) {
+            setYoloboxIntegrationConnected(false)
             void this.connect()
             return false;
         }

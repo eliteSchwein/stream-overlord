@@ -1,4 +1,5 @@
 import {getConfig} from "../../helper/ConfigHelper";
+import {clearObsIntegrationConnections, getObsIntegrations, setObsIntegrationConnected} from "../../helper/IntegrationsHelper";
 import OBSWebSocket, {OBSWebSocketError} from "obs-websocket-js";
 import {getLogConfig, logCustom, logDebug, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {updateSourceFilters} from "../../helper/SourceHelper";
@@ -44,6 +45,8 @@ export class OBSClient {
         this.sceneData = []
         this.connections = {}
 
+        clearObsIntegrationConnections()
+
         if(Object.keys(configs).length === 0) {
             logDebug("OBS Config not found, disable OBS Client")
             return
@@ -78,6 +81,27 @@ export class OBSClient {
     private getObsConfigs(): Record<string, OBSConfig> {
         const configs: Record<string, OBSConfig> = {}
 
+        const integrationConfigs = getObsIntegrations()
+
+        for(const rawName in integrationConfigs) {
+            const config = integrationConfigs[rawName]
+
+            if(!config?.ip) continue
+
+            const name = this.normalizeConnectionName(rawName)
+
+            configs[name] = {
+                ip: String(config.ip).trim(),
+                port: Number(config.port ?? 4455),
+                password: String(config.password ?? ''),
+            }
+        }
+
+        if(Object.keys(configs).length > 0) {
+            return configs
+        }
+
+        // Fallback for older config files. New/edited connections should use integrations.
         const namedConfigs = getConfig(/^obs/g, true)
 
         if(namedConfigs && !Array.isArray(namedConfigs) && typeof namedConfigs === 'object') {
@@ -88,7 +112,11 @@ export class OBSClient {
 
                 const name = this.normalizeConnectionName(rawName)
 
-                configs[name] = config
+                configs[name] = {
+                    ip: String(config.ip).trim(),
+                    port: Number(config.port ?? 4455),
+                    password: String(config.password ?? ''),
+                }
             }
         }
 
@@ -103,7 +131,11 @@ export class OBSClient {
 
             const name = index === 0 ? 'default' : `obs_${index + 1}`
 
-            configs[name] = config
+            configs[name] = {
+                ip: String(config.ip).trim(),
+                port: Number(config.port ?? 4455),
+                password: String(config.password ?? ''),
+            }
         })
 
         return configs
@@ -135,6 +167,7 @@ export class OBSClient {
         } catch (error) {
             logDebug(`obs connection failed events stage 1 (${name}):`)
             logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            setObsIntegrationConnected(name, false)
             this.reconnectSingle(name)
             return
         }
@@ -142,6 +175,7 @@ export class OBSClient {
         this.registerEvents(connection)
 
         connection.connected = true
+        setObsIntegrationConnected(name, true)
 
         this.syncDefaultConnection()
 
@@ -174,6 +208,8 @@ export class OBSClient {
         this.reconnectTimers = {}
 
         for(const connection of Object.values(this.connections)) {
+            connection.connected = false
+            setObsIntegrationConnected(connection.name, false)
             await connection.obsWebsocket?.disconnect()
         }
     }
@@ -238,6 +274,7 @@ export class OBSClient {
         if(!connection?.connected) return
 
         connection.connected = false
+        setObsIntegrationConnected(name, false)
 
         this.syncDefaultConnection()
 

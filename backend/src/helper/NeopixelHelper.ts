@@ -11,7 +11,7 @@
 // - --index <n> optional. If provided, the PY script should color index -> end
 //   AND preserve other LEDs via its own state file (recommended).
 
-import {getConfig} from "./ConfigHelper";
+import {getNeopixelIntegrations} from "./IntegrationsHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {logDebug, logRegular, logWarn} from "./LogHelper";
 import {spawn} from "node:child_process";
@@ -115,52 +115,16 @@ async function callPythonSet(
     }
 }
 
-// --- Config normalization ---
-// Your getConfig prints like: [ pad7_status: {...} ]
-// That means it's an Array with length 0 but with named properties.
-// Normalize into list of [name, cfg].
-function isNumericKey(k: string) {
-    return /^[0-9]+$/.test(k);
-}
-
-function normalizeNeoConfig(raw: any): Array<[string, NeoCfg]> {
-    const pairs: Array<[string, NeoCfg]> = [];
-
-    if (Array.isArray(raw)) {
-        if (raw.length > 0) {
-            // expected: [ { name: cfg }, ... ]
-            for (const obj of raw) {
-                if (!obj || typeof obj !== "object") continue;
-                for (const [name, cfg] of Object.entries(obj)) {
-                    pairs.push([name, cfg as NeoCfg]);
-                }
-            }
-        } else {
-            // array with named props (your current case)
-            for (const [name, cfg] of Object.entries(raw)) {
-                if (isNumericKey(name)) continue;
-                pairs.push([name, cfg as NeoCfg]);
-            }
-        }
-    } else if (raw && typeof raw === "object") {
-        for (const [name, cfg] of Object.entries(raw)) {
-            pairs.push([name, cfg as NeoCfg]);
-        }
-    }
-
-    return pairs;
-}
-
 export async function initNeopixels() {
     logRegular("init neopixels");
 
-    const raw = getConfig(/^neopixel /g, true) as any;
+    const integrations = getNeopixelIntegrations();
 
     strips.clear();
     heartbeatLeds.length = 0;
     configured = false;
 
-    const pairs = normalizeNeoConfig(raw);
+    const pairs = Object.entries(integrations);
 
     if (pairs.length === 0) {
         logWarn("No neopixel config entries found.");
