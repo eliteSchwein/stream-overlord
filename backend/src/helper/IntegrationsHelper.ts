@@ -51,11 +51,17 @@ export type NeopixelIntegration = {
     heartbeat_index?: number;
 };
 
+export type TwitchIntegration = {
+    client_id?: string;
+    client_secret?: string;
+    clientId?: string;
+    clientSecret?: string;
+    control?: any;
+    message?: any;
+};
+
 export type Integrations = {
-    twitch?: {
-        control?: any;
-        message?: any;
-    };
+    twitch?: TwitchIntegration;
     wled?: Record<string, WledIntegration>;
     obs?: Record<string, ObsIntegration>;
     yolobox?: YoloboxIntegration;
@@ -74,6 +80,8 @@ export type SafeYoloboxIntegration = {
 
 export type SafeIntegrations = {
     twitch: {
+        client_id: string;
+        hasClientSecret: boolean;
         control: boolean;
         message: boolean;
     };
@@ -185,6 +193,8 @@ export function getIntegrationsSafe(): SafeIntegrations {
 
     return {
         twitch: {
+            client_id: integrations.twitch?.client_id ?? integrations.twitch?.clientId ?? "",
+            hasClientSecret: Boolean(integrations.twitch?.client_secret ?? integrations.twitch?.clientSecret),
             control: Boolean(integrations.twitch?.control?.accessToken),
             message: Boolean(integrations.twitch?.message?.accessToken),
         },
@@ -200,6 +210,48 @@ export function getIntegrationsSafe(): SafeIntegrations {
 
 export function emitIntegrationsUpdate() {
     getWebsocketServer().send("notify_integrations_update", getIntegrationsSafe());
+}
+
+
+export function getTwitchIntegration() {
+    return readIntegrations().twitch ?? {};
+}
+
+export function setTwitchClientIntegration(data: {client_id?: string; clientId?: string; client_secret?: string; clientSecret?: string}) {
+    const clientId = String(data.client_id ?? data.clientId ?? "").trim();
+    const clientSecret = String(data.client_secret ?? data.clientSecret ?? "").trim();
+
+    if (!clientId) throw new Error("client_id is required");
+    if (!clientSecret) throw new Error("client_secret is required");
+
+    const integrations = readIntegrations();
+
+    integrations.twitch ??= {};
+    integrations.twitch.client_id = clientId;
+    integrations.twitch.client_secret = clientSecret;
+
+    delete integrations.twitch.clientId;
+    delete integrations.twitch.clientSecret;
+
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+}
+
+export function clearTwitchAuth(type?: "control" | "message") {
+    const integrations = readIntegrations();
+
+    if (!integrations.twitch) return;
+
+    if (!type || type === "control") {
+        delete integrations.twitch.control;
+    }
+
+    if (!type || type === "message") {
+        delete integrations.twitch.message;
+    }
+
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
 }
 
 export function getWledIntegrations() {

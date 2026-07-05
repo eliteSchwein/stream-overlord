@@ -3,7 +3,6 @@ import {getConfig, getPrimaryChannel, loadPrimaryChannel} from "../../helper/Con
 import {Bot} from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
-import {waitUntil} from "async-wait-until";
 import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {setManagedConnection} from "../../helper/ConnectionHelper";
 
@@ -200,6 +199,50 @@ export default class TwitchClient {
         }
     }
 
+
+    private async waitForControlChatConnection(timeoutMs = 30_000): Promise<boolean> {
+        if (!this.bot) return false;
+
+        const chat = (this.bot as any).chat;
+
+        const isConnected = typeof chat?.isConnected === "function"
+            ? chat.isConnected()
+            : chat?.isConnected;
+
+        if (isConnected === true) {
+            return true;
+        }
+
+        return new Promise(resolve => {
+            let finished = false;
+            let timeout: ReturnType<typeof setTimeout>;
+
+            const finish = (connected: boolean) => {
+                if (finished) return;
+
+                finished = true;
+                clearTimeout(timeout);
+                resolve(connected);
+            };
+
+            timeout = setTimeout(() => finish(false), timeoutMs);
+
+            this.bot?.onConnect(() => finish(true));
+
+            if (typeof chat?.onConnect === "function") {
+                chat.onConnect(() => finish(true));
+            }
+
+            if (typeof chat?.onDisconnect === "function") {
+                chat.onDisconnect((_manually: boolean, reason?: Error) => {
+                    if (reason) {
+                        logWarn(`twitch chat disconnected while connecting: ${reason.message}`);
+                    }
+                });
+            }
+        });
+    }
+
     protected async isAffiliateOrPartner(): Promise<boolean> {
         const primaryChannel = getPrimaryChannel();
 
@@ -262,7 +305,6 @@ export default class TwitchClient {
 
         this.auth = new TwitchAuth();
 
-        let botActive = false;
         const config = getConfig(/twitch/g)[0];
         const authRequired = config?.auth_required === true || config?.authRequired === true;
 
@@ -297,23 +339,16 @@ export default class TwitchClient {
 
         await this.tryMessageAuth(config);
 
-        this.bot.onConnect(() => {
-            botActive = true;
-        });
+        const chatConnected = await this.waitForControlChatConnection();
 
-        try {
-            await waitUntil(() => botActive, {
-                intervalBetweenAttempts: 250,
-                timeout: 30_000
-            });
-        } catch (error) {
+        if (!chatConnected) {
+            logWarn("twitch chat connection timed out after 30000 ms - continuing with API/EventSub setup");
             setManagedConnection("twitch", {
                 enabled: true,
-                state: "error",
+                state: "chat_timeout",
                 connected: false,
-                message: "Twitch chat connection timed out"
+                message: "Twitch auth is ready, but chat did not connect yet"
             });
-            throw error;
         }
 
         await loadPrimaryChannel(this);
@@ -339,12 +374,17 @@ export default class TwitchClient {
 
         setManagedConnection("twitch", {
             enabled: true,
-            state: "connected",
-            connected: true,
-            message: "connected"
+            state: chatConnected ? "connected" : "chat_timeout",
+            connected: chatConnected,
+            message: chatConnected
+                ? "connected"
+                : "Twitch API/EventSub is ready, but chat did not connect yet"
         });
 
-        logSuccess("twitch client is ready");
+        logSuccess(chatConnected
+            ? "twitch client is ready"
+            : "twitch api/eventsub is ready, but chat did not connect yet"
+        );
     }
 
     public async registerEvents() {

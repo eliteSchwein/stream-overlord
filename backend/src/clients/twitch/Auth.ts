@@ -23,11 +23,18 @@ type TwitchTokenData = {
     login?: string;
 };
 
+type TwitchIntegration = {
+    client_id?: string;
+    client_secret?: string;
+    clientId?: string;
+    clientSecret?: string;
+    control?: TwitchTokenData;
+    message?: TwitchTokenData;
+};
+
 type IntegrationsFile = {
-    twitch?: {
-        control?: TwitchTokenData;
-        message?: TwitchTokenData;
-    };
+    twitch?: TwitchIntegration;
+    [key: string]: any;
 };
 
 export default class TwitchAuth {
@@ -116,7 +123,8 @@ export default class TwitchAuth {
 
     public async getStoredToken(type: TwitchAuthType = "control") {
         const integrations = await this.readIntegrations();
-        return integrations.twitch?.[type] ?? null;
+        const token = integrations.twitch?.[type];
+        return token ? this.normalizeStoredTokenData(token) : null;
     }
 
     public async getAuthCode(required = false, type: TwitchAuthType = "control") {
@@ -136,6 +144,8 @@ export default class TwitchAuth {
         const tokenData = await this.readToken(clientId, clientSecret, required, type);
         if (!tokenData) return null;
 
+        const enrichedTokenData = await this.ensureTokenUser(type, tokenData);
+
         this.authProvider = new RefreshingAuthProvider({clientId, clientSecret});
 
         this.authProvider.onRefresh(async (_clientId, newTokenData) => {
@@ -143,9 +153,9 @@ export default class TwitchAuth {
         });
 
         await this.authProvider.addUserForToken(
-            tokenData,
+            enrichedTokenData,
             this.getIntents(type),
-            tokenData.userId
+            enrichedTokenData.userId
         );
         return this.authProvider;
     }
@@ -163,7 +173,7 @@ export default class TwitchAuth {
         const integrations = await this.readIntegrations();
         const token = integrations.twitch?.[type];
 
-        if (token) return token;
+        if (token) return this.normalizeStoredTokenData(token);
 
         if (!required) return null;
 
@@ -199,21 +209,57 @@ export default class TwitchAuth {
         await fs.writeFile(this.integrationsPath, JSON.stringify(data, null, 4), "utf8");
     }
 
+    private normalizeStoredTokenData(data: any): TwitchTokenData {
+        return {
+            ...data,
+            accessToken: data.accessToken ?? data["access_token"],
+            refreshToken: data.refreshToken ?? data["refresh_token"],
+            expiresIn: data.expiresIn ?? data["expires_in"],
+            obtainmentTimestamp: data.obtainmentTimestamp ?? Date.now(),
+            scope: data.scope,
+            userId: data.userId ?? data.user_id,
+            login: data.login,
+        };
+    }
+
+    private async ensureTokenUser(type: TwitchAuthType, tokenData: TwitchTokenData): Promise<TwitchTokenData> {
+        const normalized = this.normalizeStoredTokenData(tokenData);
+
+        if (normalized.userId) {
+            return normalized;
+        }
+
+        const tokenUser = await this.getTokenUser(normalized.accessToken);
+        normalized.userId = tokenUser.userId;
+        normalized.login = tokenUser.login;
+
+        await this.writeToken(type, normalized);
+        return normalized;
+    }
+
     private async writeToken(type: TwitchAuthType, tokenData: TwitchTokenData) {
         const integrations = await this.readIntegrations();
+        const oldToken = integrations.twitch?.[type];
+        const normalized = this.normalizeStoredTokenData(tokenData);
 
         integrations.twitch ??= {};
-        integrations.twitch[type] = tokenData;
+        integrations.twitch[type] = {
+            ...normalized,
+            userId: normalized.userId ?? oldToken?.userId,
+            login: normalized.login ?? oldToken?.login,
+        };
 
         await this.writeIntegrations(integrations);
     }
 
     public getConfiguredClient() {
         const config = getConfig(/twitch/g)[0];
+        const integrations = this.readIntegrationsSync();
+        const twitch = integrations.twitch ?? {};
 
         return {
-            clientId: config?.["client_id"],
-            clientSecret: config?.["client_secret"],
+            clientId: twitch.client_id ?? twitch.clientId ?? config?.["client_id"],
+            clientSecret: twitch.client_secret ?? twitch.clientSecret ?? config?.["client_secret"],
         };
     }
 
