@@ -45,7 +45,8 @@ export default {
         connections: 'connections',
         recovery: 'recovery',
         gameScene: 'gameScene',
-        obs: 'obs'
+        obs: 'obs',
+        setttings: 'setttings'
       };
 
       const titleKey = titleMap[firstPathPart] || firstPathPart;
@@ -347,6 +348,11 @@ export default {
         to="/yolobox"></v-list-item>
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.systemTools') }}</v-list-subheader>
+      <v-list-item
+        prepend-icon="mdi-cog"
+        :title="$t('navigation.tabs.setttings')"
+        color=""
+        to="/settings"></v-list-item>
       <v-list-item
         prepend-icon="mdi-cog"
         :title="$t('navigation.tabs.config')"

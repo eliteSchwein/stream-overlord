@@ -27,7 +27,7 @@
       "overlay": "Overlay",
       "music": "Music",
       "yolobox": "YoloBox",
-      "config": "Config",
+      "config": "Config LEGACY",
       "connections": "Connections",
       "recovery": "Recovery",
       "gameScene": "Game scene",
@@ -39,7 +39,8 @@
       "commands": "Commands",
       "integrations": "Integrations",
       "automacros": "Auto Macros",
-      "rotatingscene": "Scene Rotation"
+      "rotatingscene": "Scene Rotation",
+      "setttings": "Settings"
     },
     "routes": {
       "dashboard": "Dashboard",

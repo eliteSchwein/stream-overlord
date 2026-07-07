@@ -160,6 +160,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/settings': RouteRecordInfo<
+      '/settings',
+      '/settings',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/variables': RouteRecordInfo<
       '/variables',
       '/variables',
@@ -298,6 +305,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/rotatingscenes.vue': {
       routes:
         | '/rotatingscenes'
+      views:
+        | never
+    }
+    'src/pages/settings.vue': {
+      routes:
+        | '/settings'
       views:
         | never
     }

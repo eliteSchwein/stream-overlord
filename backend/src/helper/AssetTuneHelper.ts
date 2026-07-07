@@ -1,4 +1,4 @@
-import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
+import {getAssetTuneSettings, getSystemConfigDirectory} from "./ConfigHelper";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import {existsSync} from "node:fs";
@@ -27,7 +27,7 @@ export async function compressAssets(
     force: boolean = false,
     file?: string
 ) {
-    const config = getConfig(/asset_tune/g)[0];
+    const config = getAssetTuneSettings();
 
     const assetDirectory = path.join(getSystemConfigDirectory(), "assets");
     const compressedAssetDirectory = path.join(getSystemConfigDirectory(), "compressed_assets");
@@ -202,22 +202,22 @@ export async function compressAssets(
 }
 
 async function initFfmpeg(): Promise<FfmpegInit> {
-    const config = getConfig(/asset_tune/g)[0];
+    const config = getAssetTuneSettings();
 
     const ffmpegBin = (
-        (config?.ffmpeg?.bin as string) ||
+        config.ffmpeg_bin ||
         process.env.FFMPEG_BIN ||
         "ffmpeg"
     ).trim();
 
     const ffprobeBin = (
-        (config?.ffprobe?.bin as string) ||
+        config.ffprobe_bin ||
         process.env.FFPROBE_BIN ||
         "ffprobe"
     ).trim();
 
     const forceCodec = (
-        (config?.codec as string) ||
+        config.codec ||
         process.env.VIDEO_PROCESSING_CODEC ||
         process.env.VIDEO_PROCCESSING_CODEC ||
         "vp9"
@@ -263,9 +263,9 @@ async function initFfmpeg(): Promise<FfmpegInit> {
     const vaapiDevice = (process.env.VAAPI_DEVICE || "/dev/dri/renderD128").trim();
     const vaapiDeviceOk = isReadable(vaapiDevice);
 
-    const nvencAllowed = !config?.disable_nv && haveNvenc && hasNvidiaGPU;
+    const nvencAllowed = !config.disable_nv && haveNvenc && hasNvidiaGPU;
     const amfAllowed = !Boolean((config as any)?.disable_amf) && haveAmf;
-    const qsvAllowed = !config?.disable_qsv && haveQsv && hasIntelGPU && vaapiDeviceOk;
+    const qsvAllowed = !config.disable_qsv && haveQsv && hasIntelGPU && vaapiDeviceOk;
     const vaapiAllowed = !Boolean((config as any)?.disable_vaapi) && haveVaapi && vaapiDeviceOk;
 
     let inputArgs: string[] = [];

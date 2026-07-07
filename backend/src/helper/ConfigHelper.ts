@@ -11,12 +11,42 @@ let primaryChannel: any = undefined;
 let configWatcherRegistered = false;
 let reloadTimer: NodeJS.Timeout | undefined;
 
+export type AssetTuneCodec = "vp9" | "av1";
+
+export type AssetTuneSettings = {
+    ffmpeg_bin: string;
+    ffprobe_bin: string;
+    codec: AssetTuneCodec;
+    image_compress_level: number;
+    image_compress_percent: number;
+    audio_bitrate: string;
+    disable_nv: boolean;
+    disable_amf: boolean;
+    disable_qsv: boolean;
+    disable_vaapi: boolean;
+};
+
 type StreambotSettings = {
     language: string;
+    asset_tune: AssetTuneSettings;
+};
+
+const defaultAssetTuneSettings: AssetTuneSettings = {
+    ffmpeg_bin: "ffmpeg",
+    ffprobe_bin: "ffprobe",
+    codec: "vp9",
+    image_compress_level: 6,
+    image_compress_percent: 80,
+    audio_bitrate: "128k",
+    disable_nv: false,
+    disable_amf: false,
+    disable_qsv: false,
+    disable_vaapi: false,
 };
 
 let systemConfig: StreambotSettings = {
-    language: "en"
+    language: "en",
+    asset_tune: defaultAssetTuneSettings,
 };
 
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
@@ -77,12 +107,54 @@ function scheduleReload() {
     }, 250);
 }
 
+function normalizeAssetTuneSettings(rawAssetTuneSettings: Partial<AssetTuneSettings> = {}): AssetTuneSettings {
+    const codec = String(rawAssetTuneSettings.codec || defaultAssetTuneSettings.codec)
+        .trim()
+        .toLowerCase();
+
+    return {
+        ffmpeg_bin: stringSetting(rawAssetTuneSettings.ffmpeg_bin, defaultAssetTuneSettings.ffmpeg_bin),
+        ffprobe_bin: stringSetting(rawAssetTuneSettings.ffprobe_bin, defaultAssetTuneSettings.ffprobe_bin),
+        codec: codec === "av1" ? "av1" : "vp9",
+        image_compress_level: numberSetting(rawAssetTuneSettings.image_compress_level, defaultAssetTuneSettings.image_compress_level),
+        image_compress_percent: numberSetting(rawAssetTuneSettings.image_compress_percent, defaultAssetTuneSettings.image_compress_percent),
+        audio_bitrate: stringSetting(rawAssetTuneSettings.audio_bitrate, defaultAssetTuneSettings.audio_bitrate),
+        disable_nv: booleanSetting(rawAssetTuneSettings.disable_nv, defaultAssetTuneSettings.disable_nv),
+        disable_amf: booleanSetting(rawAssetTuneSettings.disable_amf, defaultAssetTuneSettings.disable_amf),
+        disable_qsv: booleanSetting(rawAssetTuneSettings.disable_qsv, defaultAssetTuneSettings.disable_qsv),
+        disable_vaapi: booleanSetting(rawAssetTuneSettings.disable_vaapi, defaultAssetTuneSettings.disable_vaapi),
+    };
+}
+
 function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
     const language = rawSystemConfig.language?.trim().toLowerCase() || detectSystemLanguage();
 
     return {
-        language
+        language,
+        asset_tune: normalizeAssetTuneSettings(rawSystemConfig.asset_tune),
     };
+}
+
+function stringSetting(value: unknown, fallback: string): string {
+    return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function numberSetting(value: unknown, fallback: number): number {
+    const n = Number(value);
+
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function booleanSetting(value: unknown, fallback: boolean): boolean {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+
+        if (["true", "1", "yes", "on"].includes(normalized)) return true;
+        if (["false", "0", "no", "off"].includes(normalized)) return false;
+    }
+
+    return fallback;
 }
 
 function withSystemConfig<T extends object>(parsedConfig: T): T & { system_config: StreambotSettings } {
@@ -108,7 +180,7 @@ export function readSystemConfig() {
         // Only repair the file when a required value is missing/invalid.
         // Do not rewrite on every read, otherwise watchFile sees our own read-normalize-write
         // cycle as another change and reloads forever.
-        if (typeof parsed?.language !== "string" || parsed.language.trim() !== systemConfig.language) {
+        if (serializeSystemConfig(parsed) !== serializeSystemConfig(systemConfig)) {
             writeSystemConfigFile(systemConfig);
         }
     } catch {
@@ -152,6 +224,19 @@ export function getSystemConfig() {
 
 export function getLanguage() {
     return systemConfig.language;
+}
+
+export function getAssetTuneSettings() {
+    return systemConfig.asset_tune;
+}
+
+export function updateAssetTuneSettings(newAssetTuneSettings: Partial<AssetTuneSettings>) {
+    return writeSystemConfig({
+        asset_tune: {
+            ...systemConfig.asset_tune,
+            ...newAssetTuneSettings,
+        },
+    });
 }
 
 export default function readConfig(standalone = false) {
