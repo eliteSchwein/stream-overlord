@@ -13,5 +13,8 @@ RestartSec=5s
 WorkingDirectory=%h/stream-overlord
 ExecStart=/usr/bin/npm run start:backend
 
+StandardOutput=append:%h/.config/streambot/stream-overlord.log
+StandardError=append:%h/.config/streambot/stream-overlord.log
+
 [Install]
 WantedBy=default.target
