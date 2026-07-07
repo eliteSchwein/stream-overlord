@@ -1,5 +1,5 @@
 import {WebSocketServer} from "ws";
-import {getConfig, getRawConfig} from "../../helper/ConfigHelper";
+import {getConfig, getRawConfig, getSettings} from "../../helper/ConfigHelper";
 import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
@@ -67,7 +67,8 @@ export default class WebsocketServer {
         'notify_media_update',
         'notify_storage_update',
         'notify_variables_update',
-        'notify_integrations_update'
+        'notify_integrations_update',
+        'notify_settings_update'
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -224,6 +225,7 @@ export default class WebsocketServer {
                 this.send("notify_audio_outputs_update", getAudioOutputs(), client)
                 this.send("notify_storage_update", getSystemStorageInfo(), client)
                 this.send("notify_integrations_update", getIntegrationsSafe(), client)
+                this.send("notify_settings_update", getSettings(), client)
 
                 void emitVariablesUpdate(client)
 

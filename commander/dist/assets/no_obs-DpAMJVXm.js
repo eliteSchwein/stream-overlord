@@ -1,1 +1,0 @@
-var e=`/commander/assets/no_obs-H7N2NsbP.png`;export{e as t};

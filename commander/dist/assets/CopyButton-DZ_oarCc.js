@@ -1,0 +1,1 @@
+import{Bt as e,Pt as t,tn as n}from"./dimensions-BwEh0F3-.js";import{D as r,P as i}from"./index-Die6rIAp.js";var a=e({__name:`CopyButton`,props:[`content`],setup(e){function a(e){i.$emit(`config:write`,e)}return(i,o)=>(n(),t(r,{icon:`mdi-content-copy`,size:`x-small`,onClick:o[0]||=t=>a(e.content)}))}});export{a as t};

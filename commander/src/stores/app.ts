@@ -53,6 +53,7 @@ export const useAppStore = defineStore('app', {
     musicCavaData: {},
     storage: {},
     integrations: {},
+    settings: {},
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -96,6 +97,7 @@ export const useAppStore = defineStore('app', {
     getAudioOutputs: (state) => state.audioOutputs,
     getStorage: (state) => state.storage,
     getIntegrations: (state) => state.integrations,
+    getSettings: (state) => state.settings,
     hasApiWebsite: (state) => {
       const parsedConfig: any = state.parsedBackendConfig ?? {}
       const rawConfig = String(state.backendConfig ?? '')
@@ -297,6 +299,10 @@ export const useAppStore = defineStore('app', {
     setIntegrations(integrations: any) {
       this.integrations = integrations
       this.$patch(state => state.integrations = integrations)
+    },
+    setSettings(settings: any) {
+      this.settings = settings
+      this.$patch(state => state.settings = settings)
     },
     async fetchStatus(): Promise<any> {
       let status = 'Unknown'

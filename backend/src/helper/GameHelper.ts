@@ -1,6 +1,6 @@
 import {logRegular} from "./LogHelper";
 import getWebsocketServer from "../App";
-import {getConfig} from "./ConfigHelper";
+import {getThemeSettings} from "./ConfigHelper";
 import {setLedColor} from "./WledHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
 import RemoteCacheHelper from "./RemoteCacheHelper";
@@ -22,7 +22,7 @@ const rawGameInfo = {
 let currentGameId = 0
 
 function applyManualAndDefaultColor(info: any) {
-    const config = getConfig(/theme/g)[0]
+    const themeSettings = getThemeSettings()
     const clonedGameInfo = structuredClone(info)
 
     clonedGameInfo.data ??= {}
@@ -34,13 +34,13 @@ function applyManualAndDefaultColor(info: any) {
     }
 
     if(clonedGameInfo.data['theme']['color'] === '') {
-        clonedGameInfo.data['theme']['color'] = '#'+config.default_color
-        clonedGameInfo.data['color'] = '#'+clonedGameInfo.manual
+        clonedGameInfo.data['theme']['color'] = '#'+themeSettings.default_color
+        clonedGameInfo.data['color'] = '#'+themeSettings.default_color
     }
 
     if(!clonedGameInfo.data['theme']['color']) {
-        clonedGameInfo.data['theme']['color'] = '#'+config.default_color
-        clonedGameInfo.data['color'] = '#'+config.default_color
+        clonedGameInfo.data['theme']['color'] = '#'+themeSettings.default_color
+        clonedGameInfo.data['color'] = '#'+themeSettings.default_color
     }
 
     return clonedGameInfo

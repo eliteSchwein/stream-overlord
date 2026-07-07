@@ -2,7 +2,7 @@ import parseConfig from "js-conf-parser";
 import TwitchClient from "../clients/twitch/Client";
 import {logError, logNotice, logRegular, logWarn} from "./LogHelper";
 import {existsSync, mkdirSync, readFileSync, watchFile, writeFileSync} from "node:fs";
-import {reload} from "../App";
+import getWebsocketServer, {reload} from "../App";
 import * as path from "node:path";
 import * as os from "node:os";
 
@@ -26,9 +26,19 @@ export type AssetTuneSettings = {
     disable_vaapi: boolean;
 };
 
+export type TtsSettings = {
+    model: string;
+};
+
+export type ThemeSettings = {
+    default_color: string;
+};
+
 type StreambotSettings = {
     language: string;
     asset_tune: AssetTuneSettings;
+    tts: TtsSettings;
+    theme: ThemeSettings;
 };
 
 const defaultAssetTuneSettings: AssetTuneSettings = {
@@ -44,9 +54,19 @@ const defaultAssetTuneSettings: AssetTuneSettings = {
     disable_vaapi: false,
 };
 
+const defaultTtsSettings: TtsSettings = {
+    model: "de_DE-thorsten-medium",
+};
+
+const defaultThemeSettings: ThemeSettings = {
+    default_color: "ff9800",
+};
+
 let systemConfig: StreambotSettings = {
     language: "en",
     asset_tune: defaultAssetTuneSettings,
+    tts: defaultTtsSettings,
+    theme: defaultThemeSettings,
 };
 
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
@@ -126,12 +146,45 @@ function normalizeAssetTuneSettings(rawAssetTuneSettings: Partial<AssetTuneSetti
     };
 }
 
+function normalizeTtsSettings(rawTtsSettings: Partial<TtsSettings> = {}): TtsSettings {
+    return {
+        model: normalizeTtsModel(rawTtsSettings.model),
+    };
+}
+
+function normalizeTtsModel(value: unknown): string {
+    const model = stringSetting(value, defaultTtsSettings.model);
+
+    return model.endsWith(".onnx") ? model.slice(0, -5) : model;
+}
+
+function normalizeThemeSettings(rawThemeSettings: Partial<ThemeSettings> = {}): ThemeSettings {
+    return {
+        default_color: normalizeHexColor(rawThemeSettings.default_color, defaultThemeSettings.default_color),
+    };
+}
+
+function normalizeHexColor(value: unknown, fallback: string): string {
+    const raw = stringSetting(value, fallback)
+        .replace(/^#/, "")
+        .trim()
+        .toLowerCase();
+
+    if (/^[0-9a-f]{3}$/i.test(raw) || /^[0-9a-f]{6}$/i.test(raw)) {
+        return raw;
+    }
+
+    return fallback;
+}
+
 function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
     const language = rawSystemConfig.language?.trim().toLowerCase() || detectSystemLanguage();
 
     return {
         language,
         asset_tune: normalizeAssetTuneSettings(rawSystemConfig.asset_tune),
+        tts: normalizeTtsSettings(rawSystemConfig.tts),
+        theme: normalizeThemeSettings(rawSystemConfig.theme),
     };
 }
 
@@ -164,6 +217,10 @@ function withSystemConfig<T extends object>(parsedConfig: T): T & { system_confi
     };
 }
 
+function emitSettingsUpdate() {
+    getWebsocketServer().send("notify_settings_update", getSettings());
+}
+
 export function readSystemConfig() {
     if (!existsSync(systemConfigPath)) {
         systemConfig = normalizeSystemConfig();
@@ -194,10 +251,24 @@ export function readSystemConfig() {
 export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
     systemConfig = normalizeSystemConfig({
         ...systemConfig,
-        ...newSystemConfig
+        ...newSystemConfig,
+        asset_tune: {
+            ...systemConfig.asset_tune,
+            ...newSystemConfig.asset_tune,
+        },
+        tts: {
+            ...systemConfig.tts,
+            ...newSystemConfig.tts,
+        },
+        theme: {
+            ...systemConfig.theme,
+            ...newSystemConfig.theme,
+        },
     });
 
     writeSystemConfigFile(systemConfig);
+
+    emitSettingsUpdate()
 
     return systemConfig;
 }
@@ -232,9 +303,32 @@ export function getAssetTuneSettings() {
 
 export function updateAssetTuneSettings(newAssetTuneSettings: Partial<AssetTuneSettings>) {
     return writeSystemConfig({
-        asset_tune: {
-            ...systemConfig.asset_tune,
-            ...newAssetTuneSettings,
+        asset_tune: newAssetTuneSettings as AssetTuneSettings,
+    });
+}
+
+export function getTtsSettings() {
+    return systemConfig.tts;
+}
+
+export function updateTtsSettings(newTtsSettings: Partial<TtsSettings>) {
+    return writeSystemConfig({
+        tts: {
+            ...systemConfig.tts,
+            ...newTtsSettings,
+        },
+    });
+}
+
+export function getThemeSettings() {
+    return systemConfig.theme;
+}
+
+export function updateThemeSettings(newThemeSettings: Partial<ThemeSettings>) {
+    return writeSystemConfig({
+        theme: {
+            ...systemConfig.theme,
+            ...newThemeSettings,
         },
     });
 }

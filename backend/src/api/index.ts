@@ -105,6 +105,8 @@ export { default as RotateSceneStartApi } from "./RotatingScene/RotateSceneStart
 export { default as RotateSceneStatusApi } from "./RotatingScene/RotateSceneStatusApi";
 export { default as RotateSceneStopApi } from "./RotatingScene/RotateSceneStopApi";
 export { default as ShieldApi } from "./Security/ShieldApi";
+export { default as SettingsGetApi } from "./Settings/SettingsGetApi";
+export { default as SettingsSaveApi } from "./Settings/SettingsSaveApi";
 export { default as AddSourceApi } from "./Sources/AddSourceApi";
 export { default as RefreshSourcesApi } from "./Sources/RefreshSourcesApi";
 export { default as SaveSourcesApi } from "./Sources/SaveSourcesApi";

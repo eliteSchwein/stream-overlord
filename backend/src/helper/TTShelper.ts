@@ -1,9 +1,10 @@
-import {getFullConfig} from "./ConfigHelper"
+import {getTtsSettings} from "./ConfigHelper"
 import {execute, executeProcess} from "./CommandHelper"
 import {logDebug, logError, logNotice, logWarn} from "./LogHelper"
 import {getAudioData, getStreambotSinkName} from "./AudioHelper"
 import {getArch, parsePath} from "./SystemHelper"
 import {createWriteStream, existsSync, rmSync} from "node:fs"
+import {execFileSync} from "node:child_process"
 import {mkdirSync} from "fs"
 import {promisify} from "node:util"
 import * as stream from "node:stream"
@@ -15,6 +16,8 @@ const escapeRegex = /[\/'"]/
 
 const HF_REPO = "rhasspy/piper-voices"
 const HF_REV = "main"
+const DEFAULT_PIPER_LOCATION = "~/.config/streambot/piper"
+const DEFAULT_PLAY_COMMAND = "aplay -r 22050 -f S16_LE -t raw -"
 
 let voices: Record<string, string[]> = {}
 
@@ -153,10 +156,10 @@ async function resolveVoicePaths(modelSetting: string): Promise<{ onnxRepoPath: 
 /** Download only the configured voice (config.model) into ${installPath}/models as flat files. */
 export async function downloadVoice() {
     try {
-        const cfg = getFullConfig()["tts"]
-        if (!cfg || !cfg.location || !cfg.model) return
+        const cfg = getTtsSettings()
+        if (!cfg || !cfg.model) return
 
-        const installPath = parsePath(cfg.location)
+        const installPath = getPiperInstallPath()
         const modelsDir = path.join(installPath, "models")
         mkdirSync(modelsDir, { recursive: true })
 
@@ -233,9 +236,7 @@ export async function fetchVoices(): Promise<Record<string, string[]>> {
 }
 
 export async function installPiper() {
-    const config = getFullConfig()["tts"]
-    if (!config || !config.location) return
-    const installPath = parsePath(config.location)
+    const installPath = getPiperInstallPath()
 
     if (existsSync(installPath) && existsSync(`${installPath}/piper`)) {
         if (!existsSync(`${installPath}/models`)) mkdirSync(`${installPath}/models`, { recursive: true })
@@ -278,7 +279,7 @@ export async function speak(
     message: string,
     eventUuid: string | undefined = undefined,
 ) {
-    const config = getFullConfig()["tts"]
+    const config = getTtsSettings()
     const audioData = getAudioData()["tts"]
 
     if (!config) {
@@ -296,10 +297,7 @@ export async function speak(
         return
     }
 
-    let piperAttributes = ""
-    if (config.enable_cuda) {
-        piperAttributes = "--cuda"
-    }
+    const piperAttributes = shouldUseCuda() ? "--cuda" : ""
 
     message = message.replace(escapeRegex, "")
 
@@ -307,12 +305,7 @@ export async function speak(
         const pipewireSinkEnabled = audioData.pipewire_sink === true || audioData.pipewire_sink === "true"
         const sinkName = getStreambotSinkName("tts")
 
-        let playCommand = String(config.play_command ?? "")
-
-        if (!playCommand) {
-            logWarn(`TTS failed: missing play_command`)
-            return
-        }
+        let playCommand = DEFAULT_PLAY_COMMAND
 
         playCommand = playCommand
             .replace(/\$\{volume}/g, pipewireSinkEnabled ? "1" : String(audioData["current_volume"] ?? 1))
@@ -328,7 +321,7 @@ export async function speak(
         const modelFile = path.basename(String(config.model))
 
         const command = `bash -c "cd ${shellEscape(parsePath(
-            config.location
+            getPiperInstallPath()
         ))} && echo ${shellEscape(message)} | ./piper ${piperAttributes} --model models/${shellEscape(`${modelFile}.onnx`)} --output-raw | ${playCommand}"`
 
         logDebug(`TTS Command: ${command}`)
@@ -349,6 +342,33 @@ export async function speak(
     } catch (error: any) {
         logWarn(`TTS failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
+}
+
+function getPiperInstallPath(): string {
+    return parsePath(DEFAULT_PIPER_LOCATION)
+}
+
+function shouldUseCuda(): boolean {
+    if (["0", "false", "off", "no"].includes(String(process.env.PIPER_AUTO_CUDA || "").trim().toLowerCase())) {
+        return false
+    }
+
+    try {
+        if (existsSync("/dev/nvidiactl") || existsSync("/dev/nvidia0")) {
+            return true
+        }
+    } catch (_) {}
+
+    try {
+        execFileSync("nvidia-smi", ["-L"], {
+            encoding: "utf8",
+            stdio: ["ignore", "pipe", "ignore"],
+        })
+
+        return true
+    } catch (_) {
+        return false
     }
 }
 

@@ -27,6 +27,7 @@ import NotifyAudioOutputUpdateMessage from "@/plugins/websocketEvents/websocketM
 import NotifyStorageUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyStorageUpdateMessage.ts";
 import NotifyIntegrationsUpdateMessage
   from "@/plugins/websocketEvents/websocketMessage/NotifyIntegrationsUpdateMessage.ts";
+import NotifySettingsUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifySettingsUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -66,5 +67,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyAudioOutputUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyStorageUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyIntegrationsUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifySettingsUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

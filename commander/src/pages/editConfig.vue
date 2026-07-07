@@ -82,57 +82,6 @@
           </v-card-text>
         </v-card>
 
-        <v-card elevation="0" class="mt-3">
-          <v-toolbar flat density="compact">
-            <v-toolbar-title class="d-flex align-center">
-              {{ $t('editConfig.defaultMacros') }}
-            </v-toolbar-title>
-          </v-toolbar>
-
-          <v-card-text class="pa-0">
-            <v-row
-              align-content="center"
-              justify="center"
-              align="center"
-              density="comfortable"
-              class="pa-3"
-            >
-              <v-col cols="12">
-                <v-btn
-                  width="100%"
-                  prepend-icon="mdi-pause"
-                  color="grey-darken-3"
-                  variant="flat"
-                  elevation="0"
-                  @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:250}}) +'\n')"
-                >
-                  {{ $t('editConfig.pause250ms') }}
-                </v-btn>
-              </v-col>
-
-              <v-col cols="12">
-                <v-btn
-                  width="100%"
-                  prepend-icon="mdi-pause"
-                  color="grey-darken-3"
-                  variant="flat"
-                  elevation="0"
-                  @click="copyToClipboard('- ' + JSON.stringify({channel: 'function', method: 'sleep', data:{time:1000}}) +'\n')"
-                >
-                  {{ $t('editConfig.pause1s') }}
-                </v-btn>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-
-        <template v-if="getParsedBackendConfig?.yolobox?.enable">
-          <YoloboxSettings/>
-        </template>
-        <template v-if="getParsedBackendConfig?.obs?.ip">
-          <OBSSettings/>
-        </template>
-
         <v-card class="mt-3" color="transparent" elevation="0">
           <v-toolbar flat density="compact">
             <v-toolbar-title class="d-flex align-center">
