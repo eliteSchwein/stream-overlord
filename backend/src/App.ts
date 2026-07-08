@@ -23,7 +23,7 @@ import * as apiModules from "./api";
 import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
 import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
 import {initNeopixels} from "./helper/NeopixelHelper";
-import {loadMusicConfig, startMusicPlayer, stopMusicPlayer} from "./helper/MusicHelper";
+import {loadMusicConfig, startCavaFeed, startMusicPlayer, stopMusicPlayer} from "./helper/MusicHelper";
 import {redis} from "./clients/redis/Redis";
 import {initVariables} from "./helper/VariableHelper";
 import {updateConfiguredEventIndex} from "./helper/EventHelper";
@@ -235,6 +235,7 @@ export async function reload() {
         initAutoMacros()
 
         loadMusicConfig()
+        startCavaFeed()
 
         logSuccess('reload finished')
 

@@ -40,7 +40,7 @@
       "integrations": "Integrations",
       "automacros": "Auto Macros",
       "rotatingscene": "Scene Rotation",
-      "setttings": "Settings"
+      "settings": "Settings"
     },
     "routes": {
       "dashboard": "Dashboard",
@@ -252,7 +252,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "add": "Add",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "enabled": "Enabled"
   },
   "file": {
     "name": "Filename",
@@ -369,7 +370,8 @@
     "compressedUrl": "Compressed URL",
     "targetColor": "Target Color",
     "brightness": "Brightness",
-    "preset": "Preset"
+    "preset": "Preset",
+    "wledPresetOverridesColor": "WLED preset from the Lamp Active, other Inputs are now blocked."
   },
   "channelPoints": {
     "add": "Add channel point",
@@ -411,5 +413,32 @@
     "deleteConfirmTitle": "Delete auto macro",
     "deleteConfirmText": "Do you want to delete the following auto macro?",
     "noAutoMacrosFound": "No auto macros found"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "themeDefaultPrimaryColor": "Default primary color",
+    "themeDefaultPrimaryColorHint": "Used as primary color for the whole bot system and for the overlay via --theme-color.",
+    "themeHexColor": "Hex color",
+    "tts": "Text to Speech",
+    "ttsWarning": "Avoid too high quality voice models on small systems. Medium models are usually the best balance for stream alerts.",
+    "selectedVoiceModel": "Selected voice model",
+    "searchVoiceModel": "Search / change voice model",
+    "hideVoices": "Hide voices",
+    "noVoiceModelsFound": "No voice models found. The current/default voice will still be saved.",
+    "assetTune": "Asset Tune",
+    "videoCodec": "Video codec",
+    "imageCompressionLevel": "Image compression level",
+    "imageQualityPercent": "Image quality percent",
+    "saved": "Settings saved",
+    "cava": "Music Visualizer (CAVA)",
+    "cavaBars": "Bars",
+    "cavaDefaultBars": "Default bars",
+    "cavaTargets": "CAVA targets",
+    "cavaTargetsHint": "Add optional extra CAVA outputs like jukebox. These are not created by default.",
+    "cavaTargetName": "Target name",
+    "cavaSettingKey": "Option",
+    "cavaSettingValue": "Option Value"
   }
 }

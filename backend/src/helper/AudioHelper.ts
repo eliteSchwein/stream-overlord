@@ -19,6 +19,30 @@ let sendAudioUpdatePending = false;
 
 const audioOutputsRefreshIntervalMs = 2000;
 
+const defaultAudioConfig: Record<string, any> = {
+    alert: {
+        default_volume: 0.8,
+        min_range: 0,
+        max_range: 1,
+        steps_range: 0.05,
+        pipewire_sink: true,
+    },
+    tts: {
+        default_volume: 0.12,
+        min_range: 0,
+        max_range: 1,
+        steps_range: 0.05,
+        pipewire_sink: true,
+    },
+    music: {
+        default_volume: 0.25,
+        min_range: 0,
+        max_range: 1,
+        steps_range: 0.005,
+        pipewire_sink: true,
+    },
+};
+
 const pipewireLoopbackModuleIds: Record<string, string[]> = {};
 const pipewireLoopbackSinkInputIds: Record<string, string[]> = {};
 
@@ -27,8 +51,28 @@ type PipewireLoopbackModule = {
     outputName: string | null;
 };
 
+function getAudioConfigWithDefaults(): Record<string, any> {
+    const config = getConfig(/audio /g, true) ?? {};
+    const mergedConfig: Record<string, any> = {};
+
+    for (const key in defaultAudioConfig) {
+        mergedConfig[key] = {
+            ...defaultAudioConfig[key],
+            ...(config[key] ?? {}),
+        };
+    }
+
+    for (const key in config) {
+        if (mergedConfig[key]) continue;
+
+        mergedConfig[key] = config[key];
+    }
+
+    return mergedConfig;
+}
+
 export async function initAudio() {
-    const config = getConfig(/audio /g, true);
+    const config = getAudioConfigWithDefaults();
     const savedVolumes = loadSavedAudioVolumes();
     const initTasks: Promise<void>[] = [];
 

@@ -14,7 +14,7 @@ import {Socket} from 'net'
 import os from 'os'
 import path from 'path'
 import getWebsocketServer, {getTwitchClient} from '../App'
-import {getConfig} from './ConfigHelper'
+import {getConfig, getSystemConfig} from './ConfigHelper'
 import {
     getAudioData,
     getPipewireSinkOutputVolumePercent,
@@ -76,18 +76,35 @@ type MusicCrashState = {
     updated_at: string
 }
 
+const defaultMusicConfig = {
+    path: '$HOME/Music/Streambot',
+    songrequest: false,
+    overlay_duration: 15_000,
+}
+
+const defaultCavaConfig = {
+    bars: 36,
+    output: {
+        channels: 'mono',
+    },
+    targets: {},
+}
+
 export function loadMusicConfig() {
     logRegular('init musicplayer')
 
-    const musicConfig = getConfig(/^music$/g)[0] ?? {}
-
-    overlayDuration = Number(musicConfig.overlay_duration ?? 15_000)
-
-    if (!Number.isFinite(overlayDuration)) {
-        overlayDuration = 15_000
+    const musicConfig = {
+        ...defaultMusicConfig,
+        ...(getConfig(/^music$/g)[0] ?? {}),
     }
 
-    musicPath = expandPath(musicConfig.path ?? '$HOME/Music/Streambot')
+    overlayDuration = Number(musicConfig.overlay_duration)
+
+    if (!Number.isFinite(overlayDuration)) {
+        overlayDuration = defaultMusicConfig.overlay_duration
+    }
+
+    musicPath = expandPath(musicConfig.path)
     songRequestEnabled = musicConfig.songrequest === true || musicConfig.songrequest === 'true'
     cavaEnabled = getCavaTargetConfigs().length > 0
     mprisEnabled = parseBooleanValue(
@@ -1425,7 +1442,7 @@ type CavaTargetConfig = {
     values: Record<string, any>
 }
 
-function startCavaFeed() {
+export function startCavaFeed() {
     stopCavaFeed()
 
     const configs = getCavaTargetConfigs()
@@ -1477,23 +1494,52 @@ function stopCavaFeed() {
     cavaProcesses.clear()
 }
 
+function getSystemCavaConfig(): any {
+    const systemCava = getSystemConfig()?.cava ?? {}
+
+    return {
+        ...defaultCavaConfig,
+        ...systemCava,
+        output: {
+            ...defaultCavaConfig.output,
+            ...(systemCava.output ?? {}),
+        },
+        targets: {
+            ...defaultCavaConfig.targets,
+            ...(systemCava.targets ?? {}),
+        },
+    }
+}
+
 function getCavaTargetConfigs(): CavaTargetConfig[] {
-    const rawConfigs = getConfig(/^cava/g, true)
-    const entries = Array.isArray(rawConfigs)
-        ? rawConfigs.map((config: any, index: number) => [index === 0 ? '' : String(index), config])
-        : Object.entries(rawConfigs ?? {})
+    const systemCavaConfig = getSystemCavaConfig()
 
-    return entries
-        .filter(([name]) => !String(name).startsWith('_'))
-        .map(([name, config]: [any, any], index: number) => {
-            const target = getCavaConfigTarget(config, index, String(name))
+    const entries: Array<[string, any]> = [
+        ['', {
+            bars: systemCavaConfig.bars,
+            enabled: true,
+        }],
+        ...Object.entries(systemCavaConfig.targets ?? {}),
+    ]
 
-            return {
-                target,
-                values: stripCavaMetaValues(config ?? {}),
-            }
+    const targetConfigs = new Map<string, CavaTargetConfig>()
+
+    for (const [name, config] of entries) {
+        const target = getCavaConfigTarget(config, targetConfigs.size, String(name))
+        const values = stripCavaMetaValues(config ?? {})
+
+        if (!parseBooleanValue(values.enabled, true)) {
+            targetConfigs.delete(target)
+            continue
+        }
+
+        targetConfigs.set(target, {
+            target,
+            values,
         })
-        .filter(config => parseBooleanValue(config.values.enabled, true))
+    }
+
+    return Array.from(targetConfigs.values())
 }
 
 function getCavaConfigTarget(config: any, index: number, fallbackName = ''): string {
@@ -1542,17 +1588,15 @@ function getCavaConfigPath(target: string): string {
 }
 
 function buildCavaConfig(targetConfig: Record<string, any>): string {
-    const cavaInput = getConfig(/^cava_input$/g)[0] ?? {}
-    const cavaOutput = getConfig(/^cava_output$/g)[0] ?? {}
+    const systemCavaConfig = getSystemCavaConfig()
 
     const general = {
-        bars: 36,
+        bars: systemCavaConfig.bars,
         ...targetConfig,
     }
 
     const input = {
         method: 'pulse',
-        ...cavaInput,
         source: `${streambotMusicSink}.monitor`,
     }
 
@@ -1561,7 +1605,7 @@ function buildCavaConfig(targetConfig: Record<string, any>): string {
         raw_target: '/dev/stdout',
         data_format: 'ascii',
         ascii_max_range: 100,
-        ...cavaOutput,
+        ...systemCavaConfig.output,
     }
 
     return [

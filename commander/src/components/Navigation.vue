@@ -46,7 +46,7 @@ export default {
         recovery: 'recovery',
         gameScene: 'gameScene',
         obs: 'obs',
-        setttings: 'setttings'
+        settings: 'settings'
       };
 
       const titleKey = titleMap[firstPathPart] || firstPathPart;
@@ -350,7 +350,7 @@ export default {
       <v-list-subheader>{{ $t('navigation.sections.systemTools') }}</v-list-subheader>
       <v-list-item
         prepend-icon="mdi-cog"
-        :title="$t('navigation.tabs.setttings')"
+        :title="$t('navigation.tabs.settings')"
         color=""
         to="/settings"></v-list-item>
       <v-list-item

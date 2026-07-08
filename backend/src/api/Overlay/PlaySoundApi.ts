@@ -51,7 +51,7 @@ export default class PlaySoundApi extends BaseApi {
             volume = 1;
         }
 
-        let playCommand = String(config.play_command ?? "");
+        let playCommand = String(config?.play_command ?? "ffplay -v 0 -nodisp -autoexit");
 
         if (!playCommand) {
             return { error: "missing play_command" };

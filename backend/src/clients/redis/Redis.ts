@@ -16,8 +16,8 @@ export default class Redis {
 
         try {
             this.redisClient = createClient({
-                url: `redis://${config.host}:${config.port}`,
-                password: config.password
+                url: `redis://${config.host ?? 'localhost'}:${config.port ?? 6379}`,
+                password: config.password ?? ''
             })
 
             await this.redisClient.connect()

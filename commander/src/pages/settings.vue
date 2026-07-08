@@ -66,21 +66,60 @@
             </v-card-title>
 
             <v-card-text>
-              <v-text-field
-                v-model="form.theme.default_color"
-                label="Default primary color"
-                variant="outlined"
-                density="comfortable"
-                hide-details
-                prefix="#"
-              >
-                <template #append-inner>
+              <v-sheet color="grey-darken-3" rounded class="pa-3 mb-3">
+                <div class="text-caption text-grey-lighten-1 mb-1">
+                  {{ $t('settings.themeDefaultPrimaryColor') || 'Default primary color' }}
+                </div>
+
+                <div class="d-flex align-center ga-3 min-width-0">
                   <div
-                    class="settings-color-preview"
+                    class="settings-color-preview settings-color-preview--large"
                     :style="{ backgroundColor: normalizedDefaultColorPreview }"
                   />
+
+                  <div class="min-width-0">
+                    <div class="text-body-2 text-truncate">{{ normalizedDefaultColorPreview }}</div>
+                    <div class="text-caption text-grey-lighten-1">
+                      {{ $t('settings.themeDefaultPrimaryColorHint') || 'Used as primary color for the whole bot system.' }}
+                    </div>
+                  </div>
+                </div>
+              </v-sheet>
+
+              <v-menu
+                v-model="showThemeColorPicker"
+                :close-on-content-click="false"
+                location="bottom"
+              >
+                <template #activator="{ props }">
+                  <v-text-field
+                    v-model="form.theme.default_color"
+                    :label="$t('settings.themeHexColor') || 'Hex color'"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                    prepend-inner-icon="mdi-palette"
+                    prefix="#"
+                    v-bind="props"
+                    @blur="form.theme.default_color = normalizeHexColor(form.theme.default_color)"
+                  >
+                    <template #append-inner>
+                      <div
+                        class="settings-color-preview"
+                        :style="{ backgroundColor: normalizedDefaultColorPreview }"
+                      />
+                    </template>
+                  </v-text-field>
                 </template>
-              </v-text-field>
+
+                <v-card color="grey-darken-3">
+                  <v-color-picker
+                    v-model="defaultColorPickerValue"
+                    hide-inputs
+                    mode="hex"
+                  />
+                </v-card>
+              </v-menu>
             </v-card-text>
           </v-card>
 
@@ -96,11 +135,11 @@
                 variant="tonal"
                 density="comfortable"
                 class="mb-4"
-                text="Avoid too high quality voice models on small systems. Medium models are usually the best balance for stream alerts."
+                :text="$t('settings.ttsWarning') || 'Avoid too high quality voice models on small systems. Medium models are usually the best balance for stream alerts.'"
               />
 
               <v-sheet color="grey-darken-3" rounded class="pa-3 mb-3">
-                <div class="text-caption text-grey-lighten-1 mb-1">Selected voice model</div>
+                <div class="text-caption text-grey-lighten-1 mb-1">{{ $t('settings.selectedVoiceModel') || 'Selected voice model' }}</div>
                 <div class="d-flex align-center ga-2 min-width-0">
                   <v-icon icon="mdi-check-circle" color="success" size="small" />
                   <span class="text-body-2 text-truncate">{{ form.tts.model || 'de_DE-thorsten-medium' }}</span>
@@ -109,7 +148,7 @@
 
               <v-text-field
                 v-model="voiceSearch"
-                label="Search / change voice model"
+                :label="$t('settings.searchVoiceModel') || 'Search / change voice model'"
                 prepend-inner-icon="mdi-magnify"
                 :append-inner-icon="showVoicePicker ? 'mdi-chevron-up' : 'mdi-chevron-down'"
                 variant="outlined"
@@ -131,7 +170,7 @@
                       prepend-icon="mdi-chevron-up"
                       @click="showVoicePicker = false"
                     >
-                      Hide voices
+                      {{ $t('settings.hideVoices') || 'Hide voices' }}
                     </v-btn>
                   </div>
 
@@ -183,7 +222,7 @@
                     type="info"
                     variant="tonal"
                     density="comfortable"
-                    text="No voice models found. The current/default voice will still be saved."
+                    :text="$t('settings.noVoiceModelsFound') || 'No voice models found. The current/default voice will still be saved.'"
                   />
                 </div>
               </v-expand-transition>
@@ -204,7 +243,7 @@
                   <v-select
                     v-model="form.asset_tune.codec"
                     :items="codecItems"
-                    label="Video codec"
+                    :label="$t('settings.videoCodec') || 'Video codec'"
                     variant="outlined"
                     density="comfortable"
                     hide-details
@@ -214,7 +253,7 @@
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model.number="form.asset_tune.image_compress_level"
-                    label="Image compression level"
+                    :label="$t('settings.imageCompressionLevel') || 'Image compression level'"
                     type="number"
                     min="0"
                     max="6"
@@ -228,7 +267,7 @@
                 <v-col cols="12" md="6">
                   <v-text-field
                     v-model.number="form.asset_tune.image_compress_percent"
-                    label="Image quality percent"
+                    :label="$t('settings.imageQualityPercent') || 'Image quality percent'"
                     type="number"
                     min="1"
                     max="100"
@@ -239,6 +278,208 @@
                   />
                 </v-col>
               </v-row>
+            </v-card-text>
+          </v-card>
+
+          <v-card color="grey-darken-4" elevation="0" class="mt-2">
+            <v-card-title class="d-flex align-center ga-2">
+              <v-icon icon="mdi-chart-bar" />
+              <span>{{ $t('settings.cava') || 'CAVA' }}</span>
+            </v-card-title>
+
+            <v-card-text>
+              <v-row density="compact">
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model.number="form.cava.bars"
+                    :label="$t('settings.cavaBars') || 'Default bars'"
+                    type="number"
+                    min="1"
+                    max="512"
+                    step="1"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details="auto"
+                  />
+                </v-col>
+              </v-row>
+
+              <v-divider class="my-4" />
+
+              <div class="d-flex align-center justify-space-between ga-2 mb-3">
+                <div>
+                  <div class="text-subtitle-2">{{ $t('settings.cavaTargets') || 'CAVA targets' }}</div>
+                  <div class="text-caption text-grey-lighten-1">
+                    {{ $t('settings.cavaTargetsHint') || 'Add optional extra CAVA outputs like jukebox. These are not created by default.' }}
+                  </div>
+                </div>
+              </div>
+
+              <v-sheet color="grey-darken-3" rounded class="pa-3 mb-3">
+                <v-row density="compact" align="center">
+                  <v-col cols="12" md="5">
+                    <v-text-field
+                      v-model="newCavaTargetName"
+                      :label="$t('settings.cavaTargetName') || 'Target name'"
+                      placeholder="jukebox"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details="auto"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="4">
+                    <v-text-field
+                      v-model.number="newCavaTargetBars"
+                      :label="$t('settings.cavaBars') || 'Bars'"
+                      type="number"
+                      min="1"
+                      max="512"
+                      step="1"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details="auto"
+                    />
+                  </v-col>
+
+                  <v-col cols="12" md="3">
+                    <v-btn
+                      block
+                      prepend-icon="mdi-plus"
+                      color="primary"
+                      variant="tonal"
+                      @click="addCavaTarget"
+                    >
+                      {{ $t('common.add') || 'Add' }}
+                    </v-btn>
+                  </v-col>
+                </v-row>
+              </v-sheet>
+
+              <v-expansion-panels
+                v-if="cavaTargetNames.length"
+                variant="accordion"
+                class="mb-3"
+              >
+                <v-expansion-panel
+                  v-for="targetName in cavaTargetNames"
+                  :key="targetName"
+                  color="grey-darken-3"
+                >
+                  <v-expansion-panel-title>
+                    <div class="d-flex align-center ga-2 min-width-0 w-100">
+                      <v-icon icon="mdi-chart-bar" size="small" />
+                      <span class="text-truncate">cava {{ targetName }}</span>
+                      <v-spacer />
+                      <v-chip size="small" variant="tonal">
+                        {{ form.cava.targets[targetName]?.bars || 36 }} bars
+                      </v-chip>
+                    </div>
+                  </v-expansion-panel-title>
+
+                  <v-expansion-panel-text>
+                    <v-row density="compact">
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model.number="form.cava.targets[targetName].bars"
+                          :label="$t('settings.cavaBars') || 'Bars'"
+                          type="number"
+                          min="1"
+                          max="512"
+                          step="1"
+                          variant="outlined"
+                          density="comfortable"
+                          hide-details="auto"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="6">
+                        <v-switch
+                          v-model="form.cava.targets[targetName].enabled"
+                          :label="$t('common.enabled') || 'Enabled'"
+                          color="primary"
+                          inset
+                          hide-details
+                        />
+                      </v-col>
+                    </v-row>
+
+                    <v-table density="compact" class="bg-transparent mt-2">
+                      <tbody>
+                      <tr
+                        v-for="settingKey in cavaTargetSettingKeys(targetName)"
+                        :key="`${targetName}-${settingKey}`"
+                      >
+                        <td class="text-caption text-grey-lighten-1" style="width: 38%">{{ settingKey }}</td>
+                        <td>
+                          <v-text-field
+                            v-model="form.cava.targets[targetName][settingKey]"
+                            variant="outlined"
+                            density="compact"
+                            hide-details
+                          />
+                        </td>
+                        <td class="text-right" style="width: 48px">
+                          <v-btn
+                            icon="mdi-delete"
+                            size="small"
+                            variant="text"
+                            color="red-lighten-2"
+                            @click="removeCavaTargetSetting(targetName, settingKey)"
+                          />
+                        </td>
+                      </tr>
+                      </tbody>
+                    </v-table>
+
+                    <v-row density="compact" align="center" class="mt-2">
+                      <v-col cols="12" md="5">
+                        <v-text-field
+                          v-model="newCavaTargetSettings[targetName].key"
+                          :label="$t('settings.cavaSettingKey')"
+                          placeholder="framerate"
+                          variant="outlined"
+                          density="comfortable"
+                          hide-details="auto"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="5">
+                        <v-text-field
+                          v-model="newCavaTargetSettings[targetName].value"
+                          :label="$t('settings.cavaSettingValue')"
+                          placeholder="60"
+                          variant="outlined"
+                          density="comfortable"
+                          hide-details="auto"
+                        />
+                      </v-col>
+
+                      <v-col cols="12" md="2">
+                        <v-btn
+                          block
+                          prepend-icon="mdi-plus"
+                          variant="tonal"
+                          @click="addCavaTargetSetting(targetName)"
+                        >
+                          {{ $t('common.add') || 'Add' }}
+                        </v-btn>
+                      </v-col>
+                    </v-row>
+
+                    <div class="d-flex justify-end mt-3">
+                      <v-btn
+                        prepend-icon="mdi-delete"
+                        color="red-lighten-2"
+                        variant="text"
+                        @click="removeCavaTarget(targetName)"
+                      >
+                        {{ $t('common.delete') }}
+                      </v-btn>
+                    </div>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
             </v-card-text>
           </v-card>
         </v-col>
@@ -265,6 +506,16 @@ type SettingsForm = {
   theme: {
     default_color: string
   }
+  cava: {
+    bars: number
+    input: {
+      source: string
+    }
+    output: {
+      channels: string
+    }
+    targets: Record<string, Record<string, any>>
+  }
 }
 
 const defaultForm = (): SettingsForm => ({
@@ -280,6 +531,16 @@ const defaultForm = (): SettingsForm => ({
   theme: {
     default_color: 'ff9800',
   },
+  cava: {
+    bars: 36,
+    input: {
+      source: 'streambot_cava.monitor',
+    },
+    output: {
+      channels: 'mono',
+    },
+    targets: {},
+  },
 })
 
 export default {
@@ -293,6 +554,10 @@ export default {
       form: defaultForm(),
       voiceSearch: '',
       showVoicePicker: false,
+      showThemeColorPicker: false,
+      newCavaTargetName: '',
+      newCavaTargetBars: 63,
+      newCavaTargetSettings: {} as Record<string, { key: string, value: string }>,
       languageItems: [
         { title: 'English', value: 'en' },
         { title: 'Deutsch', value: 'de' },
@@ -307,12 +572,17 @@ export default {
   computed: {
     ...mapState(useAppStore, ['systemConfig', 'getVoices']),
 
-    normalizedDefaultColorPreview(): string {
-      const color = String((this as any).form?.theme?.default_color || 'ff9800')
-        .replace(/^#/, '')
-        .trim()
+    defaultColorPickerValue: {
+      get(): string {
+        return (this as any).normalizedDefaultColorPreview
+      },
+      set(value: string) {
+        ;(this as any).form.theme.default_color = (this as any).normalizeHexColor(value)
+      },
+    },
 
-      return `#${color || 'ff9800'}`
+    normalizedDefaultColorPreview(): string {
+      return `#${(this as any).normalizeHexColor((this as any).form?.theme?.default_color || 'ff9800')}`
     },
 
     normalizedVoicesByLanguage(): Record<string, string[]> {
@@ -368,6 +638,10 @@ export default {
       return grouped
     },
 
+    cavaTargetNames(): string[] {
+      return Object.keys((this as any).form?.cava?.targets || {}).sort()
+    },
+
     filteredVoiceLanguages(): string[] {
       return Object.keys((this as any).filteredVoicesByLanguage).sort()
     },
@@ -398,6 +672,7 @@ export default {
       const assetTune = settings.asset_tune || {}
       const tts = settings.tts || {}
       const theme = settings.theme || {}
+      const cava = settings.cava || {}
 
       this.form = {
         ...defaults,
@@ -417,7 +692,108 @@ export default {
           ...theme,
           default_color: this.normalizeHexColor(theme.default_color || defaults.theme.default_color),
         },
+        cava: {
+          ...defaults.cava,
+          ...cava,
+          bars: this.normalizeNumber(cava.bars, defaults.cava.bars),
+          input: {
+            ...defaults.cava.input,
+            ...(cava.input || {}),
+          },
+          output: {
+            ...defaults.cava.output,
+            ...(cava.output || {}),
+          },
+          targets: {
+            ...defaults.cava.targets,
+            ...(cava.targets || {}),
+          },
+        },
       }
+
+      this.ensureCavaTargetSettingDrafts()
+    },
+
+
+    normalizeCavaValue(value: any) {
+      if (typeof value === 'boolean' || typeof value === 'number') return value
+
+      const raw = String(value ?? '').trim()
+      const normalized = raw.toLowerCase()
+
+      if (['true', '1', 'yes', 'on'].includes(normalized)) return true
+      if (['false', '0', 'no', 'off'].includes(normalized)) return false
+
+      const numericValue = Number(raw)
+
+      return raw !== '' && Number.isFinite(numericValue) ? numericValue : raw
+    },
+
+    normalizeCavaTargetName(value: string) {
+      return String(value || '')
+        .replace(/^cava\s+/i, '')
+        .trim()
+        .replace(/\s+/g, '_')
+    },
+
+    ensureCavaTargetSettingDrafts() {
+      for (const targetName of Object.keys(this.form.cava.targets || {})) {
+        if (!this.newCavaTargetSettings[targetName]) {
+          this.newCavaTargetSettings[targetName] = { key: '', value: '' }
+        }
+      }
+    },
+
+    addCavaTarget() {
+      const targetName = this.normalizeCavaTargetName(this.newCavaTargetName)
+
+      if (!targetName || targetName === 'default') return
+
+      this.form.cava.targets = {
+        ...(this.form.cava.targets || {}),
+        [targetName]: {
+          bars: this.normalizeNumber(this.newCavaTargetBars, 63),
+          enabled: true,
+          ...(this.form.cava.targets?.[targetName] || {}),
+        },
+      }
+
+      this.newCavaTargetSettings[targetName] = { key: '', value: '' }
+      this.newCavaTargetName = ''
+      this.newCavaTargetBars = 63
+    },
+
+    removeCavaTarget(targetName: string) {
+      const targets = { ...(this.form.cava.targets || {}) }
+      delete targets[targetName]
+      this.form.cava.targets = targets
+      delete this.newCavaTargetSettings[targetName]
+    },
+
+    cavaTargetSettingKeys(targetName: string) {
+      return Object.keys(this.form.cava.targets?.[targetName] || {})
+        .filter(key => !['bars', 'enabled'].includes(key))
+        .sort()
+    },
+
+    addCavaTargetSetting(targetName: string) {
+      const draft = this.newCavaTargetSettings[targetName] || { key: '', value: '' }
+      const key = String(draft.key || '').trim()
+
+      if (!key || ['bars', 'enabled'].includes(key)) return
+
+      this.form.cava.targets[targetName] = {
+        ...(this.form.cava.targets[targetName] || {}),
+        [key]: this.normalizeCavaValue(draft.value),
+      }
+
+      this.newCavaTargetSettings[targetName] = { key: '', value: '' }
+    },
+
+    removeCavaTargetSetting(targetName: string, settingKey: string) {
+      const target = { ...(this.form.cava.targets?.[targetName] || {}) }
+      delete target[settingKey]
+      this.form.cava.targets[targetName] = target
     },
 
     requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 8_000): Promise<any> {
@@ -473,6 +849,7 @@ export default {
     normalizeHexColor(value: string) {
       const color = String(value || 'ff9800')
         .replace(/^#/, '')
+        .replace(/[^0-9a-f]/gi, '')
         .trim()
         .toLowerCase()
 
@@ -481,6 +858,12 @@ export default {
       }
 
       return 'ff9800'
+    },
+
+    normalizeNumber(value: any, fallback: number) {
+      const number = Number(value)
+
+      return Number.isFinite(number) ? number : fallback
     },
 
     normalizeForm(): SettingsForm {
@@ -498,6 +881,31 @@ export default {
         },
         theme: {
           default_color: this.normalizeHexColor(this.form.theme.default_color || defaults.theme.default_color),
+        },
+        cava: {
+          ...defaults.cava,
+          ...this.form.cava,
+          bars: this.normalizeNumber(this.form.cava.bars, defaults.cava.bars),
+          input: {
+            ...defaults.cava.input,
+            ...(this.form.cava.input || {}),
+          },
+          output: {
+            ...defaults.cava.output,
+            ...(this.form.cava.output || {}),
+          },
+          targets: Object.fromEntries(
+            Object.entries(this.form.cava.targets || {})
+              .map(([targetName, targetConfig]: [string, any]) => [
+                this.normalizeCavaTargetName(targetName),
+                {
+                  ...targetConfig,
+                  bars: this.normalizeNumber(targetConfig?.bars, defaults.cava.bars),
+                  enabled: targetConfig?.enabled !== false,
+                },
+              ])
+              .filter(([targetName]) => targetName && targetName !== 'default'),
+          ),
         },
       }
     },
@@ -536,7 +944,13 @@ export default {
 .settings-color-preview {
   width: 22px;
   height: 22px;
+  flex: 0 0 auto;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.settings-color-preview--large {
+  width: 38px;
+  height: 38px;
 }
 </style>

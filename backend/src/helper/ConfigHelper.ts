@@ -34,11 +34,25 @@ export type ThemeSettings = {
     default_color: string;
 };
 
+export type CavaTargetSettings = Record<string, string | number | boolean>;
+
+export type CavaSettings = {
+    bars: number;
+    input: {
+        source: string;
+    };
+    output: {
+        channels: string;
+    };
+    targets: Record<string, CavaTargetSettings>;
+};
+
 type StreambotSettings = {
     language: string;
     asset_tune: AssetTuneSettings;
     tts: TtsSettings;
     theme: ThemeSettings;
+    cava: CavaSettings;
 };
 
 const defaultAssetTuneSettings: AssetTuneSettings = {
@@ -62,11 +76,23 @@ const defaultThemeSettings: ThemeSettings = {
     default_color: "ff9800",
 };
 
+const defaultCavaSettings: CavaSettings = {
+    bars: 36,
+    input: {
+        source: "streambot_cava.monitor",
+    },
+    output: {
+        channels: "mono",
+    },
+    targets: {},
+};
+
 let systemConfig: StreambotSettings = {
     language: "en",
     asset_tune: defaultAssetTuneSettings,
     tts: defaultTtsSettings,
     theme: defaultThemeSettings,
+    cava: defaultCavaSettings,
 };
 
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
@@ -164,6 +190,82 @@ function normalizeThemeSettings(rawThemeSettings: Partial<ThemeSettings> = {}): 
     };
 }
 
+
+function normalizeCavaTargetSettings(rawTargetSettings: Record<string, unknown> = {}): CavaTargetSettings {
+    const target: CavaTargetSettings = {};
+
+    for (const key in rawTargetSettings) {
+        const normalizedKey = String(key).trim();
+
+        if (!normalizedKey) continue;
+
+        const value = rawTargetSettings[key];
+
+        if (value === undefined || value === null || value === "") continue;
+
+        if (typeof value === "boolean" || typeof value === "number") {
+            target[normalizedKey] = value;
+            continue;
+        }
+
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            const lower = trimmed.toLowerCase();
+
+            if (["true", "1", "yes", "on"].includes(lower)) {
+                target[normalizedKey] = true;
+                continue;
+            }
+
+            if (["false", "0", "no", "off"].includes(lower)) {
+                target[normalizedKey] = false;
+                continue;
+            }
+
+            const numericValue = Number(trimmed);
+
+            target[normalizedKey] = Number.isFinite(numericValue) ? numericValue : trimmed;
+        }
+    }
+
+    if (target.enabled === undefined) {
+        target.enabled = true;
+    }
+
+    if (target.bars === undefined) {
+        target.bars = defaultCavaSettings.bars;
+    }
+
+    return target;
+}
+
+function normalizeCavaSettings(rawCavaSettings: Partial<CavaSettings> = {}): CavaSettings {
+    const rawTargets = rawCavaSettings.targets && typeof rawCavaSettings.targets === "object"
+        ? rawCavaSettings.targets
+        : {};
+
+    const targets: Record<string, CavaTargetSettings> = {};
+
+    for (const key in rawTargets) {
+        const normalizedKey = String(key).trim();
+
+        if (!normalizedKey) continue;
+
+        targets[normalizedKey] = normalizeCavaTargetSettings(rawTargets[key]);
+    }
+
+    return {
+        bars: numberSetting(rawCavaSettings.bars, defaultCavaSettings.bars),
+        input: {
+            source: stringSetting(rawCavaSettings.input?.source, defaultCavaSettings.input.source),
+        },
+        output: {
+            channels: stringSetting(rawCavaSettings.output?.channels, defaultCavaSettings.output.channels),
+        },
+        targets,
+    };
+}
+
 function normalizeHexColor(value: unknown, fallback: string): string {
     const raw = stringSetting(value, fallback)
         .replace(/^#/, "")
@@ -185,6 +287,7 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
         asset_tune: normalizeAssetTuneSettings(rawSystemConfig.asset_tune),
         tts: normalizeTtsSettings(rawSystemConfig.tts),
         theme: normalizeThemeSettings(rawSystemConfig.theme),
+        cava: normalizeCavaSettings(rawSystemConfig.cava),
     };
 }
 
@@ -264,6 +367,25 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
             ...systemConfig.theme,
             ...newSystemConfig.theme,
         },
+        cava: newSystemConfig.cava
+            ? {
+                ...systemConfig.cava,
+                ...newSystemConfig.cava,
+                input: {
+                    ...systemConfig.cava.input,
+                    ...newSystemConfig.cava.input,
+                },
+                output: {
+                    ...systemConfig.cava.output,
+                    ...newSystemConfig.cava.output,
+                },
+                // Important: targets must be replaced, not merged.
+                // Otherwise deleted frontend targets are merged back from the old settings object.
+                targets: newSystemConfig.cava.targets !== undefined
+                    ? newSystemConfig.cava.targets
+                    : systemConfig.cava.targets,
+            }
+            : systemConfig.cava,
     });
 
     writeSystemConfigFile(systemConfig);
@@ -330,6 +452,16 @@ export function updateThemeSettings(newThemeSettings: Partial<ThemeSettings>) {
             ...systemConfig.theme,
             ...newThemeSettings,
         },
+    });
+}
+
+export function getCavaSettings() {
+    return systemConfig.cava;
+}
+
+export function updateCavaSettings(newCavaSettings: Partial<CavaSettings>) {
+    return writeSystemConfig({
+        cava: newCavaSettings as CavaSettings,
     });
 }
 
