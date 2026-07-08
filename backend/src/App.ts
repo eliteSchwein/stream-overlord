@@ -28,6 +28,7 @@ import {redis} from "./clients/redis/Redis";
 import {initVariables} from "./helper/VariableHelper";
 import {updateConfiguredEventIndex} from "./helper/EventHelper";
 import loadRotateScenes from "./helper/RotateSceneHelper";
+import {loadIntegrationsCache} from "./helper/IntegrationsHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -49,6 +50,7 @@ async function init() {
 
     logRegular('load config')
     readConfig()
+    loadIntegrationsCache()
 
     stage = 'loading cache...'
     await redis.connect()
@@ -202,6 +204,7 @@ export async function reload() {
     try {
         logNotice('init reload')
         readConfig()
+        loadIntegrationsCache(true)
 
         await redis.connect()
         await webServer?.precacheConfiguredHtmlTemplates()

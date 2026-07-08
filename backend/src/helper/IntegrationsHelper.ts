@@ -20,6 +20,31 @@ const runtimeState: {
     yoloboxConnected: false,
 };
 
+let integrationsCache: Integrations | null = null;
+
+export function loadIntegrationsCache(force = false): Integrations {
+    if (integrationsCache && !force) {
+        return integrationsCache;
+    }
+
+    if (!fs.existsSync(integrationsPath)) {
+        integrationsCache = {};
+        return integrationsCache;
+    }
+
+    try {
+        integrationsCache = JSON.parse(fs.readFileSync(integrationsPath, "utf8"));
+    } catch {
+        integrationsCache = {};
+    }
+
+    return integrationsCache;
+}
+
+export function reloadIntegrationsCache(): Integrations {
+    return loadIntegrationsCache(true);
+}
+
 export type WledIntegration = {
     ip: string;
 };
@@ -157,18 +182,15 @@ export function ensureDefaultNeopixelIntegration() {
 }
 
 export function readIntegrations(): Integrations {
-    if (!fs.existsSync(integrationsPath)) return {};
-
-    try {
-        return JSON.parse(fs.readFileSync(integrationsPath, "utf8"));
-    } catch {
-        return {};
-    }
+    return loadIntegrationsCache();
 }
 
 export function writeIntegrations(data: Integrations) {
+    const sanitized = sanitizeIntegrationsForDisk(data);
+    integrationsCache = sanitized;
+
     fs.mkdirSync(path.dirname(integrationsPath), {recursive: true});
-    fs.writeFileSync(integrationsPath, JSON.stringify(sanitizeIntegrationsForDisk(data), null, 4), "utf8");
+    fs.writeFileSync(integrationsPath, JSON.stringify(sanitized, null, 4), "utf8");
 }
 
 export function getIntegrationsSafe(): SafeIntegrations {
