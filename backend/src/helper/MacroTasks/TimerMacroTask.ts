@@ -13,7 +13,7 @@ export default class TimerMacroTask extends BaseMacroTask {
                 const started = startTimer(data);
 
                 if (!started) {
-                    logWarn(`timer start requires valid time`);
+                    logWarn(`timer start requires valid name and time`);
                 }
 
                 break;

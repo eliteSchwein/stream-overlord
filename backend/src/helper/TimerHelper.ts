@@ -1,8 +1,37 @@
 import getWebsocketServer from "../App";
 import {calcProgress} from "./DataHelper";
-import {logDebug} from "./LogHelper";
+import {logDebug, logWarn} from "./LogHelper";
 
 const timers: any[] = [];
+
+function getPublicTimerData(timer: any = {}) {
+    const {callback, ...publicTimer} = timer;
+    return publicTimer;
+}
+
+async function triggerFinishedMacro(timer: any) {
+    const finishedMacro = String(timer.finished_macro ?? "").trim();
+
+    if (!finishedMacro) return;
+
+    try {
+        const {triggerMacro} = await import("./MacroHelper");
+
+        await triggerMacro(finishedMacro, {
+            timer: {
+                name: timer.name,
+                time: timer.time,
+                defaultTime: timer.defaultTime,
+                progress: timer.progress,
+                end: timer.end,
+                finished_macro: finishedMacro,
+            },
+        });
+    } catch (error) {
+        logWarn(`failed to trigger finished timer macro ${finishedMacro}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+}
 
 export default function initialTimers() {
     const websocket = getWebsocketServer();
@@ -20,14 +49,16 @@ export default function initialTimers() {
             );
 
             if (timer.time === 0) {
-                websocket.send("notify_timer", {...timer, action: "finish"});
+                websocket.send("notify_timer", {...getPublicTimerData(timer), action: "finish"});
                 timer.active = false;
+
+                void triggerFinishedMacro(timer);
 
                 if (timer.callback) {
                     void timer.callback();
                 }
             } else {
-                websocket.send("notify_timer", {...timer, action: "update"});
+                websocket.send("notify_timer", {...getPublicTimerData(timer), action: "update"});
                 timer.time--;
             }
 
@@ -40,6 +71,7 @@ export function startTimer(data: any = {}) {
     const name = String(data.name ?? "").trim();
     const time = Number(data.time);
     const end = data.end ?? "blink";
+    const finishedMacro = String(data.finished_macro ?? "").trim();
 
     if (!name) return false;
     if (!Number.isFinite(time) || time <= 0) return false;
@@ -51,9 +83,10 @@ export function startTimer(data: any = {}) {
         time,
         defaultTime: time,
         active: true,
-        callback: undefined,
+        callback: data.callback,
         progress: 0,
         end: ["blink", "fade"].includes(end) ? end : "blink",
+        finished_macro: finishedMacro || undefined,
     };
 
     if (existingIndex >= 0) {
@@ -66,7 +99,7 @@ export function startTimer(data: any = {}) {
     }
 
     getWebsocketServer().send("notify_timer", {
-        ...timer,
+        ...getPublicTimerData(timer),
         action: "start",
     });
 
@@ -99,7 +132,7 @@ export function deactivateTimer(name: string) {
 }
 
 export function getTimers() {
-    return timers;
+    return timers.map(getPublicTimerData);
 }
 
 export function setTimerTime(name: string, time: number) {

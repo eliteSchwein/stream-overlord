@@ -46,11 +46,28 @@
           hide-details="auto"
         />
       </v-col>
+
+      <v-col cols="12">
+        <v-combobox
+          v-model="task.data.finished_macro"
+          :items="macroOptions"
+          label="Finished macro"
+          hint="Optional macro that runs when the timer reaches 0"
+          persistent-hint
+          clearable
+          prepend-inner-icon="mdi-playlist-play"
+          density="comfortable"
+          variant="outlined"
+          hide-details="auto"
+          @update:model-value="normalizeFinishedMacro"
+        />
+      </v-col>
     </v-row>
   </MacroTaskAccordionTemplate>
 </template>
 
 <script lang="ts">
+import { useAppStore } from '@/stores/app'
 import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
 
 export default {
@@ -88,14 +105,48 @@ export default {
         task.data.time = 600
       }
 
-      task.data.end ??= ''
+      task.data.end ||= 'blink'
+
+      if (task.data.finished_macro === null) {
+        delete task.data.finished_macro
+      }
 
       return task
+    },
+
+    macroOptions(): string[] {
+      const appStore = useAppStore()
+      const macros = appStore.getMacros ?? {}
+
+      if (Array.isArray(macros)) {
+        return macros
+          .map((item: any) => (typeof item === 'string' ? item : item?.name))
+          .filter(Boolean)
+          .map(String)
+          .sort((a: string, b: string) => a.localeCompare(b))
+      }
+
+      return Object.keys(macros)
+        .filter(Boolean)
+        .sort((a: string, b: string) => a.localeCompare(b))
     },
   },
 
   created() {
     this.task
+  },
+
+  methods: {
+    normalizeFinishedMacro(value: string | null) {
+      const macroName = String(value ?? '').trim()
+
+      if (!macroName) {
+        delete this.task.data.finished_macro
+        return
+      }
+
+      this.task.data.finished_macro = macroName
+    },
   },
 }
 </script>

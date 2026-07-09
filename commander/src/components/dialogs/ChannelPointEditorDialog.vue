@@ -12,6 +12,17 @@
           <span class="text-truncate">{{ title }}</span>
         </v-toolbar-title>
 
+        <v-spacer />
+
+        <YamlImportExportButtons
+          class="mr-2"
+          :filename="exportFilename"
+          :disabled="loading || savingInternal"
+          :export-data="exportPayload"
+          @import="importChannelPoint"
+          @error="handleImportError"
+        />
+
         <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)" />
       </v-toolbar>
 
@@ -138,6 +149,7 @@ import { getWebsocketClient } from '@/plugins/websocketInstance'
 import { useAppStore } from '@/stores/app'
 import ChannelPointAssetAccordion from '@/components/accordions/ChannelPointAssetAccordion.vue'
 import ChannelPointMacroAccordion from '@/components/accordions/ChannelPointMacroAccordion.vue'
+import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 
 export default {
   name: 'ChannelPointEditorDialog',
@@ -145,6 +157,7 @@ export default {
   components: {
     ChannelPointAssetAccordion,
     ChannelPointMacroAccordion,
+    YamlImportExportButtons,
   },
 
   props: {
@@ -190,6 +203,27 @@ export default {
 
     canSave(): boolean {
       return String(this.form.name ?? '').trim().length > 0 && this.normalizedName.length > 0 && !this.loading && !this.savingInternal
+    },
+
+    exportFilename(): string {
+      const name = this.normalizedName || this.normalizeName(this.form.name) || 'new'
+      return `channel_point_${name}.yaml`
+    },
+
+    exportPayload(): Record<string, any> {
+      const normalizedName = this.normalizedName || this.normalizeName(this.form.name)
+      const generatedName = normalizedName ? `channel_point_${normalizedName}` : 'channel_point_'
+
+      return {
+        label: String(this.form.name || normalizedName).trim(),
+        name: normalizedName,
+        enable_default: this.form.enable_default,
+        auto_accept: this.form.auto_accept,
+        strip_emotes: this.form.strip_emotes,
+        input_required: this.form.input_required,
+        asset: generatedName,
+        macro: generatedName,
+      }
     },
   },
 
@@ -302,6 +336,45 @@ export default {
 
     defaultMacroContent(name: string) {
       return `name: ${name}\napis: []\ntasks: []\n`
+    },
+
+    async importChannelPoint(payload: any) {
+      const data = payload?.data ?? {}
+
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        this.errorMessage = 'Imported YAML must be an object'
+        return
+      }
+
+      const importedLabel = String(data.label ?? data.name ?? '').trim()
+      const importedName = this.normalizeName(data.name ?? data.asset ?? data.macro ?? importedLabel)
+
+      this.form = {
+        name: importedLabel || importedName,
+        enable_default: data.enable_default === true,
+        auto_accept: data.auto_accept === true,
+        strip_emotes: data.strip_emotes === true,
+        input_required: data.input_required === true,
+      }
+
+      if (importedName) {
+        this.originalName = importedName
+      }
+
+      this.errorMessage = ''
+
+      await this.$nextTick()
+
+      if (importedName) {
+        await this.loadExistingGeneratedFiles()
+      } else {
+        ;(this.$refs.assetAccordion as any)?.setAsset?.({ channel: 'general', duration: 5 })
+        ;(this.$refs.macroAccordion as any)?.setContent?.(this.defaultMacroContent(this.generatedConfigName), this.generatedConfigName)
+      }
+    },
+
+    handleImportError(error: any) {
+      this.errorMessage = error?.message ?? String(error ?? 'Failed to import YAML')
     },
 
     save() {
