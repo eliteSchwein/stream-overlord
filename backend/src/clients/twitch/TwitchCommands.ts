@@ -7,17 +7,10 @@ import InfoCommand from "./commands/InfoCommand";
 import {logRegular, logWarn} from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
 import ShoutoutCommand from "./commands/ShoutoutCommand";
-import ClipCommand from "./commands/ClipCommand";
 import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
 import {triggerMacro} from "../../helper/MacroHelper";
-import MacroCommand from "./commands/MacroCommand";
-import ListScenesCommand from "./commands/ListScenesCommand";
-import SetSceneCommand from "./commands/SetSceneCommand";
 import MusicCommand from "./commands/MusicCommand";
-import ListRotatingScenes from "./commands/ListRotatingScenes";
-import StartRotatingSceneCommand from "./commands/StartRotatingSceneCommand";
-import {ListMacrosCommand} from "./commands/ListMacrosCommand";
 import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
 import {hasModerator, hasVip} from "./helper/PermissionHelper";
 import {isShowErrorMessage} from "../../helper/CommandHelper";
@@ -51,16 +44,9 @@ export default function buildCommands(bot: Bot, twitchClient?: TwitchClient) {
     commands = commands.concat(new InfoCommand(bot, twitchClient).register());
     commands = commands.concat(new SetGameCommand(bot, twitchClient).register());
     commands = commands.concat(new ShoutoutCommand(bot, twitchClient).register());
-    commands = commands.concat(new ClipCommand(bot, twitchClient).register());
     commands = commands.concat(new GetGameCommand(bot, twitchClient).register());
     commands = commands.concat(new ToggleErrorMessageCommand(bot, twitchClient).register());
-    commands = commands.concat(new MacroCommand(bot, twitchClient).register());
-    commands = commands.concat(new ListScenesCommand(bot, twitchClient).register());
-    commands = commands.concat(new SetSceneCommand(bot, twitchClient).register());
     commands = commands.concat(new MusicCommand(bot, twitchClient).register());
-    commands = commands.concat(new ListRotatingScenes(bot, twitchClient).register());
-    commands = commands.concat(new StartRotatingSceneCommand(bot, twitchClient).register());
-    commands = commands.concat(new ListMacrosCommand(bot, twitchClient).register());
     commands = commands.concat(new GiveawayEnterCommand(bot, twitchClient).register());
 
     commands = buildConfigCommands(commands, bot, twitchClient);
@@ -382,6 +368,14 @@ export function editCommandFile(inputPathOrName: string, content: string) {
 
     loadCommandsFromFiles();
 
+    const twitchClient = getTwitchClient();
+    if (twitchClient) {
+        void twitchClient.reloadCommands().catch((error) => {
+            logWarn("failed to reload Twitch commands after saving command file");
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        });
+    }
+
     return {
         path: relativeCommandPath(filePath),
     };
@@ -397,6 +391,14 @@ export function deleteCommandFile(inputPathOrName: string) {
     }
 
     loadCommandsFromFiles();
+
+    const twitchClient = getTwitchClient();
+    if (twitchClient) {
+        void twitchClient.reloadCommands().catch((error) => {
+            logWarn("failed to reload Twitch commands after deleting command file");
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        });
+    }
 
     return {
         path: relativeCommandPath(filePath),

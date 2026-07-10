@@ -157,6 +157,22 @@ import MacroAutoMacroStartTaskAccordion from '@/components/accordions/macro/Macr
 import MacroAutoMacroStopTaskAccordion from '@/components/accordions/macro/MacroAutoMacroStopTaskAccordion.vue'
 import MacroRotateSceneStartTaskAccordion from '@/components/accordions/macro/MacroRotateSceneStartTaskAccordion.vue'
 import MacroRotateSceneStopTaskAccordion from '@/components/accordions/macro/MacroRotateSceneStopTaskAccordion.vue'
+import MacroTwitchClipTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchClipTaskAccordion.vue'
+import MacroTwitchShoutoutTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchShoutoutTaskAccordion.vue'
+import MacroTwitchCategoryTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchCategoryTaskAccordion.vue'
+import MacroTwitchPollCreateTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchPollCreateTaskAccordion.vue'
+import MacroTwitchPollArchiveTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchPollArchiveTaskAccordion.vue'
+import MacroTwitchPollTerminateTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchPollTerminateTaskAccordion.vue'
+import MacroTwitchPredictionCreateTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchPredictionCreateTaskAccordion.vue'
+import MacroTwitchPredictionLockTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchPredictionLockTaskAccordion.vue'
+import MacroTwitchPredictionResolveTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchPredictionResolveTaskAccordion.vue'
+import MacroTwitchPredictionCancelTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchPredictionCancelTaskAccordion.vue'
+import MacroTwitchStreamMarkerTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchStreamMarkerTaskAccordion.vue'
+import MacroTwitchVipAddTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchVipAddTaskAccordion.vue'
+import MacroTwitchVipRemoveTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchVipRemoveTaskAccordion.vue'
+import MacroTwitchAdTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchAdTaskAccordion.vue'
+import MacroTwitchBanTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchBanTaskAccordion.vue'
+import MacroTwitchTimeoutTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchTimeoutTaskAccordion.vue'
 
 export default {
   name: 'MacroTaskList',
@@ -202,6 +218,22 @@ export default {
     MacroAutoMacroStopTaskAccordion,
     MacroRotateSceneStartTaskAccordion,
     MacroRotateSceneStopTaskAccordion,
+    MacroTwitchClipTaskAccordion,
+    MacroTwitchShoutoutTaskAccordion,
+    MacroTwitchCategoryTaskAccordion,
+    MacroTwitchPollCreateTaskAccordion,
+    MacroTwitchPollArchiveTaskAccordion,
+    MacroTwitchPollTerminateTaskAccordion,
+    MacroTwitchPredictionCreateTaskAccordion,
+    MacroTwitchPredictionLockTaskAccordion,
+    MacroTwitchPredictionResolveTaskAccordion,
+    MacroTwitchPredictionCancelTaskAccordion,
+    MacroTwitchStreamMarkerTaskAccordion,
+    MacroTwitchVipAddTaskAccordion,
+    MacroTwitchVipRemoveTaskAccordion,
+    MacroTwitchAdTaskAccordion,
+    MacroTwitchBanTaskAccordion,
+    MacroTwitchTimeoutTaskAccordion,
     MacroObsDisableSourceFilterTaskAccordion,
     MacroObsEnableSourceFilterTaskAccordion,
     MacroObsHideSceneItemTaskAccordion,
@@ -512,6 +544,52 @@ export default {
           ],
         },
         {
+          title: 'Twitch',
+          icon: 'mdi-twitch',
+          children: [
+            { title: 'Create clip', icon: 'mdi-content-cut', factory: () => this.createTask({ channel: 'twitch', method: 'clip', data: { create_after_delay: false, wait_seconds: 35, variable: 'clip' } }) },
+            { title: 'Shoutout', icon: 'mdi-account-voice', factory: () => this.createTask({ channel: 'twitch', method: 'shoutout', data: { user: '', variable: 'shoutout' } }) },
+            { title: 'Change category', icon: 'mdi-gamepad-variant-outline', factory: () => this.createTask({ channel: 'twitch', method: 'set_category', data: { category: '', variable: 'category' } }) },
+            {
+              title: 'Polls',
+              icon: 'mdi-poll',
+              children: [
+                { title: 'Create poll', icon: 'mdi-plus-circle-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'create', title: '', choices: '', duration: 60, channel_points_voting: false, points_per_vote: 1, variable: 'poll' } }) },
+                { title: 'Archive poll', icon: 'mdi-archive-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'archive', poll_id: '', variable: 'poll' } }) },
+                { title: 'Terminate poll', icon: 'mdi-close-octagon-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'terminate', poll_id: '', variable: 'poll' } }) },
+              ],
+            },
+            {
+              title: 'Predictions',
+              icon: 'mdi-crystal-ball',
+              children: [
+                { title: 'Create prediction', icon: 'mdi-plus-circle-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'create', title: '', outcomes: '', duration: 120, variable: 'prediction' } }) },
+                { title: 'Lock prediction', icon: 'mdi-lock-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'lock', prediction_id: '', variable: 'prediction' } }) },
+                { title: 'Resolve prediction', icon: 'mdi-check-decagram-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'resolve', prediction_id: '', winning_outcome_id: '', variable: 'prediction' } }) },
+                { title: 'Cancel prediction', icon: 'mdi-cancel', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'cancel', prediction_id: '', variable: 'prediction' } }) },
+              ],
+            },
+            { title: 'Create stream marker', icon: 'mdi-map-marker-plus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'stream_marker', data: { description: '', variable: 'stream_marker' } }) },
+            {
+              title: 'VIP',
+              icon: 'mdi-star-outline',
+              children: [
+                { title: 'Add VIP', icon: 'mdi-star-plus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'vip', data: { action: 'add', user: '' } }) },
+                { title: 'Remove VIP', icon: 'mdi-star-minus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'vip', data: { action: 'remove', user: '' } }) },
+              ],
+            },
+            {
+              title: 'Moderation',
+              icon: 'mdi-shield-account-outline',
+              children: [
+                { title: 'Ban user', icon: 'mdi-account-cancel', factory: () => this.createTask({ channel: 'twitch', method: 'ban', data: { user: '', reason: '' } }) },
+                { title: 'Timeout user', icon: 'mdi-account-clock', factory: () => this.createTask({ channel: 'twitch', method: 'timeout', data: { user: '', duration: 600, reason: '' } }) },
+              ],
+            },
+            { title: 'Run ad', icon: 'mdi-advertisements', factory: () => this.createTask({ channel: 'twitch', method: 'ad', data: { duration: 30, variable: 'ad' } }) },
+          ],
+        },
+        {
           title: 'OBS',
           icon: 'mdi-broadcast',
           children: [
@@ -726,6 +804,31 @@ export default {
       if (item?.task?.channel === 'rotate_scene') {
         if (item?.task?.method === 'stop') return 'MacroRotateSceneStopTaskAccordion'
         return 'MacroRotateSceneStartTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'twitch') {
+        if (item?.task?.method === 'clip') return 'MacroTwitchClipTaskAccordion'
+        if (item?.task?.method === 'shoutout') return 'MacroTwitchShoutoutTaskAccordion'
+        if (item?.task?.method === 'set_category') return 'MacroTwitchCategoryTaskAccordion'
+        if (item?.task?.method === 'poll') {
+          if (item?.task?.data?.action === 'archive') return 'MacroTwitchPollArchiveTaskAccordion'
+          if (item?.task?.data?.action === 'terminate') return 'MacroTwitchPollTerminateTaskAccordion'
+          return 'MacroTwitchPollCreateTaskAccordion'
+        }
+        if (item?.task?.method === 'prediction') {
+          if (item?.task?.data?.action === 'lock') return 'MacroTwitchPredictionLockTaskAccordion'
+          if (item?.task?.data?.action === 'resolve') return 'MacroTwitchPredictionResolveTaskAccordion'
+          if (item?.task?.data?.action === 'cancel') return 'MacroTwitchPredictionCancelTaskAccordion'
+          return 'MacroTwitchPredictionCreateTaskAccordion'
+        }
+        if (item?.task?.method === 'stream_marker') return 'MacroTwitchStreamMarkerTaskAccordion'
+        if (item?.task?.method === 'vip') {
+          if (item?.task?.data?.action === 'remove') return 'MacroTwitchVipRemoveTaskAccordion'
+          return 'MacroTwitchVipAddTaskAccordion'
+        }
+        if (item?.task?.method === 'ban') return 'MacroTwitchBanTaskAccordion'
+        if (item?.task?.method === 'timeout') return 'MacroTwitchTimeoutTaskAccordion'
+        if (item?.task?.method === 'ad') return 'MacroTwitchAdTaskAccordion'
       }
 
       if (item?.task?.channel === 'obs') {

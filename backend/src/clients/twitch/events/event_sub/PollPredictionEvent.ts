@@ -6,6 +6,7 @@ import {
     EventSubChannelPredictionEndEvent
 } from "@twurple/eventsub-base";
 import {registerEventEntries} from "../../../../helper/EventHelper";
+import {setVariable} from "../../../../helper/VariableHelper";
 
 export default class PollPredictionEvent extends BaseEvent {
     name = 'PollPredictionEvent'
@@ -35,6 +36,46 @@ export default class PollPredictionEvent extends BaseEvent {
         return { choice: highestChoice, isTie };
     }
 
+    private sanitizeEvent(value: any, seen = new WeakSet<object>()): any {
+        if (value === null || value === undefined) return value;
+
+        if (
+            typeof value === "string"
+            || typeof value === "number"
+            || typeof value === "boolean"
+        ) {
+            return value;
+        }
+
+        if (value instanceof Date) {
+            return value.toISOString();
+        }
+
+        if (Array.isArray(value)) {
+            return value.map((entry) => this.sanitizeEvent(entry, seen));
+        }
+
+        if (typeof value === "object") {
+            if (seen.has(value)) return undefined;
+            seen.add(value);
+
+            const result: Record<string, any> = {};
+
+            for (const [key, entry] of Object.entries(value)) {
+                if (typeof entry === "function" || entry === undefined) continue;
+
+                const sanitized = this.sanitizeEvent(entry, seen);
+                if (sanitized !== undefined) {
+                    result[key] = sanitized;
+                }
+            }
+
+            return result;
+        }
+
+        return String(value);
+    }
+
     async handleRegister() {
         registerEventEntries([
             "event_twitch_poll_begin",
@@ -55,6 +96,7 @@ export default class PollPredictionEvent extends BaseEvent {
         }
 
         if (event instanceof EventSubChannelPollBeginEvent) {
+            await setVariable("twitch_poll", this.sanitizeEvent(event), false);
             await this.triggerConfiguredEvent(event, "event_twitch_poll_begin")
             return;
         }
@@ -91,6 +133,7 @@ export default class PollPredictionEvent extends BaseEvent {
         }
 
         if (event instanceof EventSubChannelPredictionBeginEvent) {
+            await setVariable("twitch_prediction", this.sanitizeEvent(event), false);
             await this.triggerConfiguredEvent(event, "event_twitch_prediction_completed")
             // await this.bot.say(channel, `Es ist eine Vorhersage "${event.title}" aktiv, wenn ihr diese nicht sieht bitte die Seite neuladen.`);
             return;

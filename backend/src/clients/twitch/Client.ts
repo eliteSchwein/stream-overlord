@@ -445,6 +445,11 @@ export default class TwitchClient {
         await this.safeRegister("channel charity donation event", () => new ChannelCharityDonationEvent(eventSub, bot).register());
     }
 
+    public async reloadCommands() {
+        logRegular("reload twitch commands");
+        await this.connect();
+    }
+
     public getBot() {
         return this.bot;
     }

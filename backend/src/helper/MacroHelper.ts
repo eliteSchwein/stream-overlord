@@ -30,6 +30,7 @@ import AnimationMacroTask from "./MacroTasks/AnimationMacroTask";
 import KeyboardMacroTask from "./MacroTasks/KeyboardMacroTask";
 import RotateSceneMacroTask from "./MacroTasks/RotateSceneMacroTask";
 import AutoMacroTask from "./MacroTasks/AutoMacroTask";
+import TwitchMacroTask from "./MacroTasks/TwitchMacroTask";
 
 let macros: any = {};
 
@@ -606,6 +607,7 @@ export default function loadMacros() {
         new KeyboardMacroTask(),
         new RotateSceneMacroTask(),
         new AutoMacroTask(),
+        new TwitchMacroTask(),
     )
 
     loadMacrosFromFiles();
