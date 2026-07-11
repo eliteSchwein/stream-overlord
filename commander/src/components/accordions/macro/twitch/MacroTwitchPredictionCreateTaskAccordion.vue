@@ -13,21 +13,67 @@
       <v-col cols="12">
         <v-text-field v-model="task.data.title" variant="outlined" label="Title" />
       </v-col>
+
       <v-col cols="12">
-        <v-textarea v-model="task.data.outcomes" variant="outlined" label="Outcomes" hint="One outcome per line" persistent-hint rows="4" />
+        <div class="text-subtitle-2 mb-2">Outcomes</div>
+
+        <v-row v-for="(_, outcomeIndex) in outcomeFields" :key="outcomeIndex" dense>
+          <v-col>
+            <v-text-field
+              v-model="outcomeFields[outcomeIndex]"
+              variant="outlined"
+              :label="`Outcome ${outcomeIndex + 1}`"
+              hide-details="auto"
+            />
+          </v-col>
+          <v-col cols="auto" class="d-flex align-center">
+            <v-btn
+              icon="mdi-delete-outline"
+              variant="text"
+              color="error"
+              :disabled="outcomeFields.length <= 2"
+              :aria-label="`Remove outcome ${outcomeIndex + 1}`"
+              @click="removeOutcome(outcomeIndex)"
+            />
+          </v-col>
+        </v-row>
+
+        <v-btn
+          variant="tonal"
+          color="primary"
+          size="small"
+          prepend-icon="mdi-plus"
+          class="mt-1"
+          :disabled="outcomeFields.length >= 10"
+          @click="addOutcome"
+        >
+          Add outcome
+        </v-btn>
+
+        <div class="text-caption text-medium-emphasis mt-2">
+          A prediction requires between 2 and 10 outcomes.
+        </div>
+      </v-col>
+
+      <v-col cols="12" md="6">
+        <v-text-field
+          v-model.number="task.data.duration"
+          variant="outlined"
+          type="number"
+          min="30"
+          max="1800"
+          label="Lock after (seconds)"
+        />
       </v-col>
       <v-col cols="12" md="6">
-        <v-text-field v-model.number="task.data.duration" variant="outlined" type="number" min="30" max="1800" label="Lock after (seconds)" />
-      </v-col>
-      <v-col cols="12" md="6">
-    <v-text-field
-      v-model="task.data.variable"
-      variant="outlined"
-      label="Result variable"
-      placeholder="prediction"
-      hint="The created prediction is available as ${prediction}"
-      persistent-hint
-    />
+        <v-text-field
+          v-model="task.data.variable"
+          variant="outlined"
+          label="Result variable"
+          placeholder="prediction"
+          hint="The created prediction is available as ${prediction}"
+          persistent-hint
+        />
       </v-col>
     </v-row>
   </MacroTaskAccordionTemplate>
@@ -44,8 +90,21 @@ export default {
     index: { type: Number, required: true },
   },
   emits: ['remove', 'move-up', 'move-down'],
+  data() {
+    return {
+      outcomeFields: [] as string[],
+    }
+  },
   computed: {
     task(): any { return (this.item as any).task },
+  },
+  watch: {
+    outcomeFields: {
+      deep: true,
+      handler(value: string[]) {
+        this.task.data.outcomes = value.join('\n')
+      },
+    },
   },
   created() {
     this.task.channel = 'twitch'
@@ -56,6 +115,27 @@ export default {
     this.task.data.outcomes ??= ''
     this.task.data.duration ??= 120
     this.task.data.variable ??= 'prediction'
+
+    const outcomes = Array.isArray(this.task.data.outcomes)
+      ? this.task.data.outcomes
+      : String(this.task.data.outcomes)
+        .split('\n')
+        .map((outcome: string) => outcome.trim())
+        .filter(Boolean)
+
+    this.outcomeFields = outcomes.length >= 2 ? outcomes : ['', '']
+  },
+  methods: {
+    addOutcome() {
+      if (this.outcomeFields.length < 10) {
+        this.outcomeFields.push('')
+      }
+    },
+    removeOutcome(index: number) {
+      if (this.outcomeFields.length > 2) {
+        this.outcomeFields.splice(index, 1)
+      }
+    },
   },
 }
 </script>

@@ -43,6 +43,7 @@
           hide-details="auto"
           clearable
           auto-select-first
+          hide-no-data
         />
       </v-col>
 
@@ -125,12 +126,30 @@ export default {
     },
 
     channelPointOptions(): string[] {
-      const channelPoints = this.appStore.getChannelPoints ?? []
+      const channelPoints = this.appStore.channelPoints ?? {
+        active: [],
+        all: [],
+      }
 
-      return [...new Set((Array.isArray(channelPoints) ? channelPoints : [])
-        .map((point: any) => point?.label ?? point?.name)
+      const active = Array.isArray(channelPoints.active)
+        ? channelPoints.active
+        : []
+
+      const all = Array.isArray(channelPoints.all)
+        ? channelPoints.all
+        : []
+
+      return [...new Set([...active, ...all]
+        .map((point: any) =>
+          point?.label ??
+          point?.name ??
+          point?.title ??
+          point?.reward?.title ??
+          point?.reward?.name,
+        )
         .filter(Boolean)
-        .map(String))]
+        .map((value: any) => String(value).trim())
+        .filter(Boolean))]
         .sort((a, b) => a.localeCompare(b))
     },
   },

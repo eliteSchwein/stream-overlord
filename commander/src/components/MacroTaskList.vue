@@ -107,10 +107,8 @@ import {
   MacroLoopControlTaskAccordion,
   MacroLoopTaskAccordion,
   MacroMediaTaskAccordion,
-  MacroMusicTaskAccordion,
   MacroNeopixelTaskAccordion,
   MacroObsTaskAccordion,
-  MacroRestTaskAccordion,
   MacroTaskAccordion,
   MacroWebhookTaskAccordion,
   MacroWebsocketTaskAccordion,
@@ -173,6 +171,26 @@ import MacroTwitchVipRemoveTaskAccordion from '@/components/accordions/macro/twi
 import MacroTwitchAdTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchAdTaskAccordion.vue'
 import MacroTwitchBanTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchBanTaskAccordion.vue'
 import MacroTwitchTimeoutTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchTimeoutTaskAccordion.vue'
+import MacroMusicPlayTaskAccordion from '@/components/accordions/macro/music/MacroMusicPlayTaskAccordion.vue'
+import MacroMusicPauseTaskAccordion from '@/components/accordions/macro/music/MacroMusicPauseTaskAccordion.vue'
+import MacroMusicTogglePauseTaskAccordion from '@/components/accordions/macro/music/MacroMusicTogglePauseTaskAccordion.vue'
+import MacroMusicPreviousTaskAccordion from '@/components/accordions/macro/music/MacroMusicPreviousTaskAccordion.vue'
+import MacroMusicNextTaskAccordion from '@/components/accordions/macro/music/MacroMusicNextTaskAccordion.vue'
+import MacroMusicStopTaskAccordion from '@/components/accordions/macro/music/MacroMusicStopTaskAccordion.vue'
+import MacroMusicShuffleTaskAccordion from '@/components/accordions/macro/music/MacroMusicShuffleTaskAccordion.vue'
+import MacroMusicLoopTaskAccordion from '@/components/accordions/macro/music/MacroMusicLoopTaskAccordion.vue'
+import MacroMusicLoopFileTaskAccordion from '@/components/accordions/macro/music/MacroMusicLoopFileTaskAccordion.vue'
+import MacroMusicPlaySongTaskAccordion from '@/components/accordions/macro/music/MacroMusicPlaySongTaskAccordion.vue'
+import MacroMusicReloadTaskAccordion from '@/components/accordions/macro/music/MacroMusicReloadTaskAccordion.vue'
+import MacroMusicSongRequestTaskAccordion from '@/components/accordions/macro/music/MacroMusicSongRequestTaskAccordion.vue'
+import MacroMusicToggleSongRequestsTaskAccordion from '@/components/accordions/macro/music/MacroMusicToggleSongRequestsTaskAccordion.vue'
+import MacroAudioSetVolumeTaskAccordion from '@/components/accordions/macro/audio/MacroAudioSetVolumeTaskAccordion.vue'
+import MacroAudioAdjustVolumeTaskAccordion from '@/components/accordions/macro/audio/MacroAudioAdjustVolumeTaskAccordion.vue'
+import MacroApiGetTaskAccordion from '@/components/accordions/macro/api/MacroApiGetTaskAccordion.vue'
+import MacroApiPostTaskAccordion from '@/components/accordions/macro/api/MacroApiPostTaskAccordion.vue'
+import MacroApiPutTaskAccordion from '@/components/accordions/macro/api/MacroApiPutTaskAccordion.vue'
+import MacroApiPatchTaskAccordion from '@/components/accordions/macro/api/MacroApiPatchTaskAccordion.vue'
+import MacroApiDeleteTaskAccordion from '@/components/accordions/macro/api/MacroApiDeleteTaskAccordion.vue'
 
 export default {
   name: 'MacroTaskList',
@@ -190,9 +208,7 @@ export default {
     MacroDummyAlertTaskAccordion,
     MacroFunctionTaskAccordion,
     MacroWebsocketTaskAccordion,
-    MacroRestTaskAccordion,
     MacroObsTaskAccordion,
-    MacroMusicTaskAccordion,
     MacroMacroTaskAccordion,
     MacroFileTaskAccordion,
     MacroLoopControlTaskAccordion,
@@ -234,6 +250,26 @@ export default {
     MacroTwitchAdTaskAccordion,
     MacroTwitchBanTaskAccordion,
     MacroTwitchTimeoutTaskAccordion,
+    MacroMusicPlayTaskAccordion,
+    MacroMusicPauseTaskAccordion,
+    MacroMusicTogglePauseTaskAccordion,
+    MacroMusicPreviousTaskAccordion,
+    MacroMusicNextTaskAccordion,
+    MacroMusicStopTaskAccordion,
+    MacroMusicShuffleTaskAccordion,
+    MacroMusicLoopTaskAccordion,
+    MacroMusicLoopFileTaskAccordion,
+    MacroMusicPlaySongTaskAccordion,
+    MacroMusicReloadTaskAccordion,
+    MacroMusicSongRequestTaskAccordion,
+    MacroMusicToggleSongRequestsTaskAccordion,
+    MacroAudioSetVolumeTaskAccordion,
+    MacroAudioAdjustVolumeTaskAccordion,
+    MacroApiGetTaskAccordion,
+    MacroApiPostTaskAccordion,
+    MacroApiPutTaskAccordion,
+    MacroApiPatchTaskAccordion,
+    MacroApiDeleteTaskAccordion,
     MacroObsDisableSourceFilterTaskAccordion,
     MacroObsEnableSourceFilterTaskAccordion,
     MacroObsHideSceneItemTaskAccordion,
@@ -532,15 +568,54 @@ export default {
               factory: () => this.createTask({ channel: 'function', method: 'speak', data: { content: '', event_uuid: "${eventUuid}" } }),
             },
             {
-              title: 'Song request',
-              icon: 'mdi-music-note-plus',
-              factory: () => this.createTask({ channel: 'function', method: 'song_request', data: { url: '' } }),
+              title: 'Volume control',
+              icon: 'mdi-volume-high',
+              children: [
+                {
+                  title: 'Set volume',
+                  icon: 'mdi-volume-high',
+                  factory: () => this.createTask({
+                    channel: 'audio',
+                    method: 'set_volume',
+                    data: { interface: '', volume: 50 },
+                  }),
+                },
+                {
+                  title: 'Adjust volume',
+                  icon: 'mdi-volume-plus',
+                  factory: () => this.createTask({
+                    channel: 'audio',
+                    method: 'adjust_volume',
+                    data: { interface: '', volume: 10 },
+                  }),
+                },
+              ],
             },
             {
-              title: 'Toggle song requests',
-              icon: 'mdi-music-note-off-outline',
-              factory: () => this.createTask({ channel: 'function', method: 'song_request_toggle', data: {} }),
+              title: 'Music control',
+              icon: 'mdi-music',
+              children: [
+                { title: 'Play', icon: 'mdi-play', factory: () => this.createTask({ channel: 'music', method: 'play', data: {} }) },
+                { title: 'Pause', icon: 'mdi-pause', factory: () => this.createTask({ channel: 'music', method: 'pause', data: {} }) },
+                { title: 'Toggle play / pause', icon: 'mdi-play-pause', factory: () => this.createTask({ channel: 'music', method: 'toggle_pause', data: {} }) },
+                { title: 'Previous song', icon: 'mdi-skip-previous', factory: () => this.createTask({ channel: 'music', method: 'back', data: {} }) },
+                { title: 'Next song', icon: 'mdi-skip-next', factory: () => this.createTask({ channel: 'music', method: 'next', data: {} }) },
+                { title: 'Stop', icon: 'mdi-stop', factory: () => this.createTask({ channel: 'music', method: 'stop', data: {} }) },
+                { title: 'Shuffle', icon: 'mdi-shuffle-variant', factory: () => this.createTask({ channel: 'music', method: 'shuffle', data: {} }) },
+                { title: 'Loop playlist', icon: 'mdi-repeat', factory: () => this.createTask({ channel: 'music', method: 'loop', data: {} }) },
+                { title: 'Loop current song', icon: 'mdi-repeat-once', factory: () => this.createTask({ channel: 'music', method: 'loop_file', data: {} }) },
+                { title: 'Play specific song', icon: 'mdi-music-note', factory: () => this.createTask({ channel: 'music', method: 'play_song', data: { song: '', continue: true, restart: true, pause: false } }) },
+                { title: 'Reload player', icon: 'mdi-refresh', factory: () => this.createTask({ channel: 'music', method: 'reload', data: { restore_state: false } }) },
+              ],
             },
+            {
+              title: 'Song Request control',
+              icon: 'mdi-music-note-plus',
+              children: [
+                { title: 'Add song request', icon: 'mdi-music-note-plus', factory: () => this.createTask({ channel: 'music', method: 'song_request', data: { url: '' } }) },
+                { title: 'Toggle song requests', icon: 'mdi-music-note-off-outline', factory: () => this.createTask({ channel: 'music', method: 'song_request_toggle', data: {} }) },
+              ]
+            }
           ],
         },
         {
@@ -703,9 +778,35 @@ export default {
               factory: () => this.createTask({ channel: 'websocket', method: '', data: {} }),
             },
             {
-              title: 'Rest',
-              icon: 'mdi-web',
-              factory: () => this.createTask({ channel: 'rest', method: '', data: {} }),
+              title: 'API request',
+              icon: 'mdi-api',
+              children: [
+                {
+                  title: 'GET request',
+                  icon: 'mdi-download',
+                  factory: () => this.createApiRequestTask('get'),
+                },
+                {
+                  title: 'POST request',
+                  icon: 'mdi-upload',
+                  factory: () => this.createApiRequestTask('post'),
+                },
+                {
+                  title: 'PUT request',
+                  icon: 'mdi-file-replace-outline',
+                  factory: () => this.createApiRequestTask('put'),
+                },
+                {
+                  title: 'PATCH request',
+                  icon: 'mdi-file-edit-outline',
+                  factory: () => this.createApiRequestTask('patch'),
+                },
+                {
+                  title: 'DELETE request',
+                  icon: 'mdi-delete-outline',
+                  factory: () => this.createApiRequestTask('delete'),
+                },
+              ],
             },
             {
               title: 'Raw task',
@@ -782,6 +883,14 @@ export default {
 
       if (item?.task?.channel === 'channel_point' && ['enable', 'disable', 'toggle'].includes(item?.task?.method)) {
         return 'MacroChannelPointToggleTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'api_request') {
+        if (item?.task?.method === 'get') return 'MacroApiGetTaskAccordion'
+        if (item?.task?.method === 'post') return 'MacroApiPostTaskAccordion'
+        if (item?.task?.method === 'put') return 'MacroApiPutTaskAccordion'
+        if (item?.task?.method === 'patch') return 'MacroApiPatchTaskAccordion'
+        if (item?.task?.method === 'delete') return 'MacroApiDeleteTaskAccordion'
       }
 
       if (item?.task?.channel === 'keyboard') {
@@ -875,13 +984,45 @@ export default {
         if (item?.task?.method === 'SetCurrentSceneCollection') return 'MacroObsSetSceneCollectionTaskAccordion'
       }
 
+      if (item?.task?.channel === 'audio') {
+        const audioComponentsByMethod: Record<string, string> = {
+          set_volume: 'MacroAudioSetVolumeTaskAccordion',
+          adjust_volume: 'MacroAudioAdjustVolumeTaskAccordion',
+          relative_volume: 'MacroAudioAdjustVolumeTaskAccordion',
+        }
+
+        return audioComponentsByMethod[item?.task?.method] ?? 'MacroTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'music') {
+        const musicComponentsByMethod: Record<string, string> = {
+          play: 'MacroMusicPlayTaskAccordion',
+          pause: 'MacroMusicPauseTaskAccordion',
+          toggle_pause: 'MacroMusicTogglePauseTaskAccordion',
+          back: 'MacroMusicPreviousTaskAccordion',
+          previous: 'MacroMusicPreviousTaskAccordion',
+          prev: 'MacroMusicPreviousTaskAccordion',
+          next: 'MacroMusicNextTaskAccordion',
+          stop: 'MacroMusicStopTaskAccordion',          shuffle: 'MacroMusicShuffleTaskAccordion',
+          loop: 'MacroMusicLoopTaskAccordion',
+          loop_playlist: 'MacroMusicLoopTaskAccordion',
+          loop_file: 'MacroMusicLoopFileTaskAccordion',
+          play_song: 'MacroMusicPlaySongTaskAccordion',
+          song: 'MacroMusicPlaySongTaskAccordion',
+          reload: 'MacroMusicReloadTaskAccordion',
+          song_request: 'MacroMusicSongRequestTaskAccordion',
+          song_request_toggle: 'MacroMusicToggleSongRequestsTaskAccordion',
+          toggle_song_request: 'MacroMusicToggleSongRequestsTaskAccordion',
+        }
+
+        return musicComponentsByMethod[item?.task?.method] ?? 'MacroTaskAccordion'
+      }
+
       const componentsByChannel: Record<string, string> = {
         alert: 'MacroAlertTaskAccordion',
         dummy_alert: 'MacroDummyAlertTaskAccordion',
         function: 'MacroFunctionTaskAccordion',
         websocket: 'MacroWebsocketTaskAccordion',
-        rest: 'MacroRestTaskAccordion',
-        music: 'MacroMusicTaskAccordion',
         macro: 'MacroMacroTaskAccordion',
         file: 'MacroFileTaskAccordion',
         media: 'MacroMediaTaskAccordion',
@@ -905,6 +1046,30 @@ export default {
         type: 'task',
         task,
       }
+    },
+
+    createApiRequestTask(method: 'get' | 'post' | 'put' | 'patch' | 'delete') {
+      const supportsBody = method !== 'get'
+
+      return this.createTask({
+        channel: 'api_request',
+        method,
+        data: {
+          url: '',
+          result_variable: 'api_response',
+          headers: {},
+          query: {},
+          timeout: 30000,
+          fail_on_error: false,
+          ...(supportsBody
+            ? {
+              body_type: 'json',
+              body_data: {},
+              form_data: {},
+            }
+            : {}),
+        },
+      })
     },
 
     createConditionTask() {

@@ -1,0 +1,1 @@
+import{Pn as e,Rt as t,Yt as n}from"./dimensions-BXWdpyR8.js";import{T as r,v as i}from"./index-CpLzgsZw.js";var a=n({__name:`CopyButton`,props:[`content`],setup(n){function a(e){r.$emit(`config:write`,e)}return(r,o)=>(e(),t(i,{icon:`mdi-content-copy`,size:`x-small`,onClick:o[0]||=e=>a(n.content)}))}});export{a as t};

@@ -1,4 +1,4 @@
-import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
+import {getSystemConfigDirectory} from "./ConfigHelper";
 import fs from "fs";
 import path from "path";
 import * as yaml from "js-yaml";
@@ -9,7 +9,7 @@ import {redis} from "../clients/redis/Redis";
 import {updateConfiguredEventIndex} from "./EventHelper";
 import BaseMacroTask from "../abstracts/BaseMacroTask";
 import OBSMacroTask from "./MacroTasks/OBSMacroTask";
-import RestMacroTask from "./MacroTasks/RestMacroTask";
+import ApiRequestMacroTask from "./MacroTasks/ApiRequestMacroTask";
 import WebsocketMacroTask from "./MacroTasks/WebsocketMacroTask";
 import FunctionMacroTask from "./MacroTasks/FunctionMacroTask";
 import VariableMacroTask from "./MacroTasks/VariableMacroTask";
@@ -31,6 +31,7 @@ import KeyboardMacroTask from "./MacroTasks/KeyboardMacroTask";
 import RotateSceneMacroTask from "./MacroTasks/RotateSceneMacroTask";
 import AutoMacroTask from "./MacroTasks/AutoMacroTask";
 import TwitchMacroTask from "./MacroTasks/TwitchMacroTask";
+import AudioMacroTask from "./MacroTasks/AudioMacroTask";
 
 let macros: any = {};
 
@@ -337,7 +338,6 @@ function loadMacrosFromFiles() {
             if (!macroName) continue;
 
             macros[macroName] = {
-                apis: macroConfig?.apis ?? [],
                 tasks: macroConfig?.tasks ?? [],
                 file: relativeMacroPath(filePath),
             };
@@ -586,7 +586,8 @@ export default function loadMacros() {
 
     registerMacroTasks(
         new OBSMacroTask(),
-        new RestMacroTask(),
+        new ApiRequestMacroTask(),
+        new AudioMacroTask(),
         new WebsocketMacroTask(),
         new FunctionMacroTask(),
         new VariableMacroTask(),
@@ -777,23 +778,6 @@ export async function triggerMacro(name: string, variables: any = {}) {
     variables = {
         ...getTemplateVariables(),
         ...variables,
-    }
-
-    const macroApis = macros[name]?.apis ?? [];
-
-    for (const macroApi of macroApis) {
-        const regex = new RegExp(`api ${macroApi}`, "g");
-        const apiConfig = getConfig(regex)[0];
-
-        if (apiConfig?.url) {
-            variables = {
-                ...variables,
-                api: {
-                    ...(variables.api || {}),
-                    [macroApi]: await (await fetch(apiConfig.url)).json(),
-                },
-            };
-        }
     }
 
     const tasks = macros[name]?.tasks ?? [];

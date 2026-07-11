@@ -3,8 +3,6 @@ node_modules
 .env.conf
 twitchTokens.json
 assets/*
-music
-!music/placeholder
 compressed_assets
 !compressed_assets/placeholder
 !frontend/src/html/silly.html

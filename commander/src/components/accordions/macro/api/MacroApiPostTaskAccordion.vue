@@ -1,0 +1,46 @@
+<template>
+  <MacroTaskAccordionTemplate
+    :item="item"
+    :index="index"
+    icon="mdi-upload"
+    title="POST request"
+    export-prefix="macro_api_post"
+    @remove="$emit('remove')"
+    @move-up="$emit('move-up')"
+    @move-down="$emit('move-down')"
+  >
+    <MacroApiRequestFields :task="task" :supports-body="true" />
+  </MacroTaskAccordionTemplate>
+</template>
+
+<script lang="ts">
+import MacroTaskAccordionTemplate from '../MacroTaskAccordionTemplate.vue'
+import MacroApiRequestFields from './MacroApiRequestFields.vue'
+
+export default {
+  name: 'MacroApiPostTaskAccordion',
+  components: { MacroTaskAccordionTemplate, MacroApiRequestFields },
+  props: {
+    item: { type: Object, required: true },
+    index: { type: Number, required: true },
+  },
+  emits: ['remove', 'move-up', 'move-down'],
+  computed: {
+    task(): any { return (this.item as any).task },
+  },
+  created() {
+    this.task.channel = 'api_request'
+    this.task.method = 'post'
+    this.task.data = this.task.data && typeof this.task.data === 'object' ? this.task.data : {}
+    this.task.data.url ??= ''
+    this.task.data.result_variable ??= 'api_response'
+    this.task.data.headers ??= {}
+    this.task.data.query ??= {}
+    this.task.data.timeout ??= 30000
+    this.task.data.fail_on_error ??= false
+    this.task.data.body_type ??= 'json'
+    this.task.data.body_data ??= {}
+    this.task.data.form_data ??= {}
+  },
+}
+</script>
