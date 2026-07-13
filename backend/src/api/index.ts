@@ -6,7 +6,6 @@ export { default as RemoveAlertApi } from "./Alert/RemoveAlertApi";
 export { default as AssetsDeleteApi } from "./Assets/AssetsDeleteApi";
 export { default as AssetsEditApi } from "./Assets/AssetsEditApi";
 export { default as AssetsListApi } from "./Assets/AssetsListApi";
-export { default as AssetsMediaUploadApi } from "./Assets/AssetsMediaUploadApi";
 export { default as AssetsReadApi } from "./Assets/AssetsReadApi";
 export { default as AssetsUploadApi } from "./Assets/AssetsUploadApi";
 export { default as MediaCompressApi } from "./Assets/MediaCompressApi";

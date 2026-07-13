@@ -21,6 +21,7 @@ import CommandsUploadApi from "./api/Command/CommandsUploadApi";
 import TwitchAuth from "../twitch/Auth";
 import AutoMacrosUploadApi from "./api/AutoMacro/AutoMacrosUploadApi";
 import RotateScenesUploadApi from "./api/RotatingScene/RotateScenesUploadApi";
+import AssetsMediaUploadApi from "./api/Assets/AssetsMediaUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -145,6 +146,7 @@ export default class WebServer {
 
         // Assets API
         new AssetsUploadApi().register(this.app)
+        new AssetsMediaUploadApi().register(this.app)
 
         // Yolobox API
         new YoloboxPreviewApi().register(this.app)
