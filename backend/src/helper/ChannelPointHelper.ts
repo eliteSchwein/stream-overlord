@@ -432,7 +432,7 @@ function normalizeChannelPointConfigContentForWrite(filePath: string, content: s
     return stringifyChannelPointConfigContent(filePath, config);
 }
 
-export function editChannelPointFile(inputPathOrName: string, content: string, patch: any = {}) {
+export async function editChannelPointFile(inputPathOrName: string, content: string, patch: any = {}) {
     const filePath = resolveEditableChannelPointConfigFile(inputPathOrName);
 
     if (!isChannelPointConfigFile(filePath)) {
@@ -442,7 +442,7 @@ export function editChannelPointFile(inputPathOrName: string, content: string, p
     fs.writeFileSync(filePath, normalizeChannelPointConfigContentForWrite(filePath, content ?? "", patch), "utf8");
 
     loadChannelPointConfigs();
-    emitChannelPointConfigUpdate();
+    await updateChannelPoints();
 
     return {
         path: relativeChannelPointConfigPath(filePath),
@@ -553,7 +553,7 @@ export async function addChannelPointFilesFromUpload(files: any[]) {
     }
 
     loadChannelPointConfigs();
-    emitChannelPointConfigUpdate();
+    await updateChannelPoints();
 
     return added;
 }
@@ -597,6 +597,36 @@ function pushUniqueChannelPoint(target: any[], usedKeys: Set<string>, payload: a
 
 function getTwitchChannelPointInputRequired(channelPoint: any) {
     return channelPoint?.userInputRequired === true || channelPoint?.isUserInputRequired === true;
+}
+
+async function createMissingTwitchChannelPoint(configuredChannelPoint: any, primaryChannel: HelixUser): Promise<HelixCustomReward | undefined> {
+    const title = String(configuredChannelPoint?.label ?? configuredChannelPoint?.name ?? "").trim();
+
+    if (!title) return undefined;
+
+    const bot = getTwitchClient().getBot();
+    const cost = Math.max(1, Number(configuredChannelPoint?.cost) || 1);
+    const isEnabled = coerceChannelPointBoolean(configuredChannelPoint?.enable_default);
+    const userInputRequired = coerceChannelPointBoolean(configuredChannelPoint?.input_required);
+
+    try {
+        logRegular(`create twitch channel point ${title} (cost=${cost}, enabled=${isEnabled ? "yes" : "no"}, input=${userInputRequired ? "yes" : "no"})`);
+
+        const createdChannelPoint = await bot.api.channelPoints.createCustomReward(primaryChannel, {
+            title,
+            cost,
+            isEnabled,
+            userInputRequired,
+        });
+
+        channelPoints[createdChannelPoint.title] = createdChannelPoint;
+
+        return createdChannelPoint;
+    } catch (error) {
+        logWarn(`create twitch channel point ${title} failed:`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return undefined;
+    }
 }
 
 async function syncChannelPointTwitchSettings(configuredChannelPoint: any, twitchChannelPoint: HelixCustomReward | undefined, primaryChannel: HelixUser) {
@@ -727,9 +757,13 @@ export async function updateChannelPoints() {
             continue;
         }
 
-        const twitchChannelPoint = findTwitchChannelPointForConfig(configuredChannelPoint);
+        let twitchChannelPoint = findTwitchChannelPointForConfig(configuredChannelPoint);
 
         logRegular(`match configured channel point ${label}: ${twitchChannelPoint ? `twitch=${twitchChannelPoint.title} (${twitchChannelPoint.id})` : "missing on twitch"}`);
+
+        if (!twitchChannelPoint) {
+            twitchChannelPoint = await createMissingTwitchChannelPoint(configuredChannelPoint, primaryChannel);
+        }
 
         await syncChannelPointTwitchSettings(configuredChannelPoint, twitchChannelPoint, primaryChannel);
 

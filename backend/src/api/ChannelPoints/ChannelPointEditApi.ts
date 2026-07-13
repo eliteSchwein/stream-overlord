@@ -10,7 +10,7 @@ export default class ChannelPointEditApi extends BaseApi {
         try {
             const channelPoint = data?.channel_point ?? data?.channelPoint ?? {};
 
-            const result = editChannelPointFile(
+            const result = await editChannelPointFile(
                 data?.path ?? data?.file ?? data?.name,
                 data?.content ?? "",
                 {
