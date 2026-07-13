@@ -2,6 +2,16 @@ import 'colorts/lib/string';
 import * as util from 'util'
 import {getConfig} from "./ConfigHelper";
 
+type LogConfig = {
+    debug: boolean
+    full_obs_log: boolean
+}
+
+const DEFAULT_LOG_CONFIG: LogConfig = {
+    debug: false,
+    full_obs_log: false,
+}
+
 export function logError(message: string) {
     console.log(`${getLevel('error')} ${getTimeStamp()} ${util.format(message)}`.red)
 }
@@ -19,9 +29,7 @@ export function logNotice(message: string) {
 }
 
 export function logDebug(message: string) {
-    const config = getConfig(/logging/g)[0]?.debug
-
-    if(!config) return
+    if(!isDebug()) return
 
     console.log(`${getLevel('debug')} ${getTimeStamp()} ${util.format(message)}`.grey)
 }
@@ -48,7 +56,14 @@ function getTimeStamp() {
 }
 
 export function isDebug() {
-    return getConfig(/logging/g)[0].debug
+    return getLogConfig().debug
 }
 
-export function getLogConfig() { return getConfig(/logging/g)[0] }
+export function getLogConfig(): LogConfig {
+    const config = getConfig(/logging/g)[0] ?? {}
+
+    return {
+        ...DEFAULT_LOG_CONFIG,
+        ...config,
+    }
+}

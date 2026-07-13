@@ -6,6 +6,35 @@ import getWebsocketServer from "../App";
 import si = require('systeminformation');
 import _ = require("lodash");
 
+const defaultSystemInfoConfig = {
+    entries: [
+        {
+            label: "CPU Usage",
+            short: "CPU",
+            icon: "cpu-64-bit",
+            data: {
+                type: "systeminfo",
+                method: "currentLoad",
+                entry: "currentLoad",
+                decimal: 0,
+                end: "%"
+            }
+        },
+        {
+            label: "CPU Temp",
+            short: "CPU",
+            icon: "thermometer",
+            data: {
+                type: "systeminfo",
+                method: "cpuTemperature",
+                entry: "main",
+                decimal: 0,
+                end: "°C"
+            }
+        }
+    ]
+}
+
 let currentSystemInfo = []
 const systemInformations = {
     cpu: {
@@ -20,7 +49,10 @@ const systemInformations = {
 export async function updateSystemInfo() {
     try {
         await updateSystemComponents()
-        const config = Object.assign({}, getConfig(/systeminfo/g)[0].entries)
+        const configuredSystemInfo = getConfig(/systeminfo/g)?.[0]
+        const config = configuredSystemInfo?.entries?.length
+            ? configuredSystemInfo.entries
+            : defaultSystemInfoConfig.entries
         const newSystemInfo = []
 
         for(const index in config) {
