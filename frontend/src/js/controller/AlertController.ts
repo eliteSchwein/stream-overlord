@@ -161,10 +161,6 @@ export default class AlertController extends BaseController {
         }
 
         if (data.sound) {
-            if (this.videoTarget) {
-                this.videoTarget.style.display = 'none'
-            }
-
             try {
                 this.websocket.send('play_sound', {
                     sound: data.sound,
