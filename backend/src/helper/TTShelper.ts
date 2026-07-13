@@ -17,7 +17,7 @@ const escapeRegex = /[\/'"]/
 const HF_REPO = "rhasspy/piper-voices"
 const HF_REV = "main"
 const DEFAULT_PIPER_LOCATION = "~/.config/streambot/piper"
-const DEFAULT_PLAY_COMMAND = "aplay -r 22050 -f S16_LE -t raw -"
+const DEFAULT_PLAY_COMMAND = "pw-play --raw --rate 22050 --channels 1 --format s16 --target ${sink} -"
 
 let voices: Record<string, string[]> = {}
 
@@ -302,25 +302,17 @@ export async function speak(
     message = message.replace(escapeRegex, "")
 
     try {
-        const pipewireSinkEnabled = audioData.pipewire_sink === true || audioData.pipewire_sink === "true"
         const sinkName = getStreambotSinkName("tts")
 
-        let playCommand = DEFAULT_PLAY_COMMAND
-
-        playCommand = playCommand
-            .replace(/\$\{volume}/g, pipewireSinkEnabled ? "1" : String(audioData["current_volume"] ?? 1))
-            .replace(/\$\{sink}/g, sinkName)
-            .replace(/\$\{audio_sink}/g, sinkName)
-            .replace(/\$\{audio_device}/g, sinkName)
-
-        if (pipewireSinkEnabled) {
-            playCommand = `PULSE_SINK=${shellEscape(sinkName)} PIPEWIRE_NODE=${shellEscape(sinkName)} ${playCommand}`
-        }
+        const playCommand = DEFAULT_PLAY_COMMAND
+            .replace(/\$\{sink}/g, shellEscape(sinkName))
+            .replace(/\$\{audio_sink}/g, shellEscape(sinkName))
+            .replace(/\$\{audio_device}/g, shellEscape(sinkName))
 
         // Use only the filename placed in models/
         const modelFile = path.basename(String(config.model))
 
-        const command = `bash -c "cd ${shellEscape(parsePath(
+        const command = `bash -o pipefail -c "cd ${shellEscape(parsePath(
             getPiperInstallPath()
         ))} && echo ${shellEscape(message)} | ./piper ${piperAttributes} --model models/${shellEscape(`${modelFile}.onnx`)} --output-raw | ${playCommand}"`
 
