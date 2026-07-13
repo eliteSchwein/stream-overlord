@@ -1,8 +1,9 @@
 import * as fs from "node:fs";
 import {existsSync, mkdirSync, readdirSync, unlinkSync, watch} from "node:fs";
-import {logRegular} from "./LogHelper";
+import {logRegular, logWarn} from "./LogHelper";
 import * as path from "node:path";
 import {join} from "node:path";
+import {spawnSync} from "node:child_process";
 import {compressAssets, getAssetFile} from "./AssetTuneHelper";
 import getWebsocketServer from "../App";
 import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
@@ -22,8 +23,204 @@ export const imageRegex = /\.(jpe?g|png)$/i
 export const videoRegex = /\.(mp4|webm)$/i
 export const audioRegex = /\.(mp3)$/i
 
-
 const ASSET_CONFIG_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
+
+function hasValidDuration(value: any): boolean {
+    if (value === undefined || value === null || value === "") return false;
+
+    const duration = Number(value);
+    return Number.isFinite(duration) && duration >= 0;
+}
+
+function collectMediaReferences(config: any): string[] {
+    const references: string[] = [];
+
+    const addReference = (value: any) => {
+        if (typeof value === "string" && value.trim()) {
+            references.push(value.trim());
+            return;
+        }
+
+        if (Array.isArray(value)) {
+            for (const entry of value) addReference(entry);
+            return;
+        }
+
+        if (!value || typeof value !== "object") return;
+
+        for (const key of ["path", "file", "filename", "src", "asset", "url", "value"]) {
+            addReference(value[key]);
+        }
+    };
+
+    // Keep the requested priority: sound first, then video.
+    addReference(config?.sound);
+    addReference(config?.video);
+
+    return [...new Set(references)];
+}
+
+function normalizeLocalMediaReference(reference: string): {
+    root: string;
+    relativePath: string;
+    source: "assets" | "compressed_assets";
+} | undefined {
+    let normalized = String(reference || "")
+        .trim()
+        .replace(/\\/g, "/");
+
+    if (!normalized) return undefined;
+
+    // Only local filesystem-style references are allowed.
+    if (
+        normalized.startsWith("http://") ||
+        normalized.startsWith("https://") ||
+        normalized.startsWith("file://") ||
+        normalized.startsWith("/api/")
+    ) {
+        return undefined;
+    }
+
+    normalized = normalized
+        .split(/[?#]/, 1)[0]
+        .replace(/^\/+/, "");
+
+    if (!normalized) return undefined;
+
+    if (normalized.startsWith("compressed/")) {
+        return {
+            root: compressedPath,
+            relativePath: normalized.slice("compressed/".length),
+            source: "compressed_assets",
+        };
+    }
+
+    if (normalized.startsWith("compressed_assets/")) {
+        return {
+            root: compressedPath,
+            relativePath: normalized.slice("compressed_assets/".length),
+            source: "compressed_assets",
+        };
+    }
+
+    if (normalized.startsWith("assets/")) {
+        normalized = normalized.slice("assets/".length);
+    }
+
+    return {
+        root: assetPath,
+        relativePath: normalized,
+        source: "assets",
+    };
+}
+
+function resolveMediaFile(reference: string, assetName: string): string | undefined {
+
+    const localReference = normalizeLocalMediaReference(reference);
+
+    if (!localReference) {
+        return undefined;
+    }
+
+    const resolved = path.resolve(localReference.root, localReference.relativePath);
+    const allowedRoot = path.resolve(localReference.root);
+
+    if (resolved !== allowedRoot && !resolved.startsWith(`${allowedRoot}${path.sep}`)) {
+        logWarn(`asset duration path rejected for ${assetName}: ${resolved}`);
+        return undefined;
+    }
+
+    if (!fs.existsSync(resolved)) {
+        logWarn(`asset duration media file not found for ${assetName}: ${resolved}`);
+        return undefined;
+    }
+
+    try {
+        if (!fs.statSync(resolved).isFile()) {
+            logWarn(`asset duration path is not a file for ${assetName}: ${resolved}`);
+            return undefined;
+        }
+    } catch (error: any) {
+        logWarn(`failed to stat asset duration media for ${assetName}: ${error?.message ?? error}`);
+        return undefined;
+    }
+    return resolved;
+}
+
+function probeMediaDuration(mediaFile: string, assetName: string): number | undefined {
+
+    const result = spawnSync("ffprobe", [
+        "-v", "error",
+        "-show_entries", "format=duration:stream=duration",
+        "-of", "json",
+        mediaFile,
+    ], {
+        encoding: "utf8",
+        timeout: 15_000,
+    });
+
+    if (result.error) {
+        logWarn(`ffprobe failed for asset ${assetName}: ${result.error.message}`);
+        return undefined;
+    }
+
+    if (result.status !== 0) {
+        logWarn(`ffprobe exited with status ${String(result.status)} for asset ${assetName}`);
+        return undefined;
+    }
+
+    try {
+        const parsed = JSON.parse(String(result.stdout || "{}"));
+        const values = [
+            parsed?.format?.duration,
+            ...(Array.isArray(parsed?.streams) ? parsed.streams.map((stream: any) => stream?.duration) : []),
+        ];
+
+        for (const value of values) {
+            const duration = Number.parseFloat(String(value));
+            if (Number.isFinite(duration) && duration >= 0) {
+                const roundedDuration = Math.ceil(duration);
+                return roundedDuration;
+            }
+        }
+    } catch (error: any) {
+        logWarn(`failed to parse ffprobe duration for asset ${assetName}: ${error?.message ?? error}`);
+    }
+
+    logWarn(`ffprobe returned no valid duration for asset ${assetName}`);
+    return undefined;
+}
+
+function addMediaDuration(assetName: string, config: any) {
+    const normalized = {...config};
+
+    if (hasValidDuration(normalized.duration)) {
+        normalized.duration = Number(normalized.duration);
+        return normalized;
+    }
+
+    // Never expose NaN to the frontend.
+    delete normalized.duration;
+
+    const references = collectMediaReferences(normalized);
+    if (!references.length) {
+        return normalized;
+    }
+
+    for (const reference of references) {
+        const mediaFile = resolveMediaFile(reference, assetName);
+        if (!mediaFile) continue;
+
+        const duration = probeMediaDuration(mediaFile, assetName);
+        if (duration !== undefined) {
+            normalized.duration = duration;
+            return normalized;
+        }
+    }
+
+    logWarn(`automatic duration detection failed for asset ${assetName}`);
+    return normalized;
+}
 
 let assetConfigs: Record<string, any> = {};
 
@@ -225,10 +422,10 @@ function normalizeWledControl(value: any): WledColorControl {
 }
 
 function normalizeAssetConfig(assetName: string, config: any = {}) {
-    const normalized = {
+    const normalized = addMediaDuration(assetName, {
         ...config,
         name: config?.name ?? assetName,
-    };
+    });
 
     if (normalized.lamp_color !== undefined && normalized.wled === undefined) {
         normalized.wled = normalizeWledControls(normalized.lamp_color);
@@ -256,7 +453,7 @@ function loadAssetConfigsFromFiles() {
                 file: path.relative(getAssetConfigDirectory(), filePath).replace(/\\/g, "/"),
             };
         } catch (error) {
-            logRegular(`failed to load asset config file ${filePath}`);
+            logWarn(`failed to load asset config file ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }
@@ -338,7 +535,6 @@ export function getWledConfigs(): Record<string, WledConfig> {
 
     return result;
 }
-
 
 function normalizeAssetConfigPath(inputPath: string = "") {
     const normalized = path.normalize(String(inputPath || "")).replace(/^([/\\])+/, "");
@@ -605,7 +801,6 @@ export async function addAssetConfigFilesFromUpload(files: any[], targetPath: st
 
     return added;
 }
-
 
 export function getParsedAssetFiles() {
     return {
