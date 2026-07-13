@@ -1,7 +1,6 @@
 import BaseController from "./BaseController";
 import {Websocket} from "websocket-ts";
 import {sleep} from "../../../../helper/GeneralHelper";
-import AlertBoxHelper from "../helper/AlertBoxHelper";
 
 export default class ShoutoutController extends BaseController {
     websocketEndpoints = ['notify_shoutout_clip']
@@ -12,38 +11,34 @@ export default class ShoutoutController extends BaseController {
     declare readonly iframeTarget: HTMLIFrameElement
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
-        if(method !== 'notify_shoutout_clip') return
+        if (method !== 'notify_shoutout_clip') return
 
         this.element.classList.add('visible')
 
-        this.alertBoxHelper.show()
-
-        if(!this.iframeTarget) return
-
-        this.iframeTarget.style.display = null
-        this.iframeTarget.src = this.parseData(data, this.iframeTarget.dataset.src)
+        this.iframeTarget.style.display = ''
+        this.iframeTarget.src = data?.url || this.parseData(data, this.iframeTarget.dataset.src || '')
 
         this.channelnameTargets.forEach((element) => {
-            element.innerHTML = data.name
+            element.textContent = data?.name || data?.channel || ''
         })
 
-        await sleep(20_000)
+        const playbackSeconds = Math.min(
+            300,
+            Math.max(5, Number(data?.playback_seconds) || 20),
+        )
 
-        if(!this.iframeTarget) return
+        await sleep(playbackSeconds * 1000)
 
         this.iframeTarget.src = ''
         this.iframeTarget.style.display = 'none'
 
-        this.alertBoxHelper.hide()
-
         await sleep(1000)
-
         this.element.classList.remove('visible')
     }
 
-    private parseData(data: any, input: string): any {
+    private parseData(data: any, input: string): string {
         return input
-            .replace('${channel}', data.channel)
-            .replace('${channelname}', data.name)
+            .replace('${channel}', data?.channel ?? '')
+            .replace('${channelname}', data?.name ?? '')
     }
 }

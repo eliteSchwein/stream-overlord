@@ -87,6 +87,48 @@ export default class TwitchMacroTask extends BaseMacroTask {
 
         try {
             switch (method) {
+
+                case "random_clip": {
+                    const channel = text(data.channel)
+                        || String(primaryChannel.name ?? primaryChannel.displayName ?? primaryChannel.login ?? "");
+
+                    if (!channel) {
+                        logWarn("twitch random_clip requires a channel");
+                        return;
+                    }
+
+                    const params = new URLSearchParams({
+                        mode: data.mode === "top" ? "top" : "random",
+                        info: String(data.info === true),
+                        volume: String(Math.min(100, Math.max(0, number(data.volume, 50) ?? 50))),
+                        max_length: String(Math.min(60, Math.max(5, number(data.max_length, 60) ?? 60))),
+                        filter_long_videos: String(data.filter_long_videos === true),
+                        show_timer: String(data.show_timer === true),
+                        recent_clips: String(Math.max(0, number(data.recent_clips, 0) ?? 0)),
+                        channel,
+                    });
+
+                    const url = `https://streamgood.gg/clips/player?${params.toString()}`;
+                    const playbackSeconds = Math.min(
+                        300,
+                        Math.max(5, number(data.playback_seconds, data.max_length ?? 60) ?? 60),
+                    );
+
+                    this.websocket.send("notify_shoutout_clip", {
+                        channel,
+                        name: channel,
+                        url,
+                        playback_seconds: playbackSeconds,
+                    });
+
+                    storeResult({
+                        url,
+                        channel,
+                        playback_seconds: playbackSeconds,
+                    });
+                    break;
+                }
+
                 case "clip": {
                     const clipId = await api.clips.createClip({
                         channel: primaryChannel,

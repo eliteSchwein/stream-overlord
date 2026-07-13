@@ -19,7 +19,6 @@ export { default as MacroWebhookTaskAccordion } from './MacroWebhookTaskAccordio
 export { default as MacroWebsocketTaskAccordion } from './MacroWebsocketTaskAccordion.vue'
 export { default as MacroWledCustomTaskAccordion } from './MacroWledCustomTaskAccordion.vue'
 export { default as MacroWledOffTaskAccordion } from './MacroWledOffTaskAccordion.vue'
-export { default as MacroYoloboxTaskAccordion } from './MacroYoloboxTaskAccordion.vue'
 export { default as MacroFunctionBaseTaskAccordion } from './functions/MacroFunctionBaseTaskAccordion.vue'
 export { default as MacroFunctionRandomTaskAccordion } from './functions/MacroFunctionRandomTaskAccordion.vue'
 export { default as MacroFunctionSendDmTaskAccordion } from './functions/MacroFunctionSendDmTaskAccordion.vue'

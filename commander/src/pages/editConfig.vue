@@ -81,37 +81,6 @@
             </v-row>
           </v-card-text>
         </v-card>
-
-        <v-card class="mt-3" color="transparent" elevation="0">
-          <v-toolbar flat density="compact">
-            <v-toolbar-title class="d-flex align-center">
-              {{ $t('editConfig.availableVoices') }}
-            </v-toolbar-title>
-          </v-toolbar>
-
-          <v-card-text class="pa-0">
-            <v-expansion-panels color="grey-darken-4">
-              <v-expansion-panel
-                v-for="(voices, voiceLanguage) in getVoices"
-                :key="voiceLanguage"
-              >
-                <v-expansion-panel-title>
-                  {{ voiceLanguage }}
-                </v-expansion-panel-title>
-
-                <v-expansion-panel-text class="pa-0">
-                  <v-table class="wrap-anywhere">
-                    <tbody>
-                    <tr v-for="voice in voices" :key="voice">
-                      <td>{{ voice }} <CopyButton :content="voice" /></td>
-                    </tr>
-                    </tbody>
-                  </v-table>
-                </v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </v-card-text>
-        </v-card>
       </v-col>
     </v-row>
   </v-card>

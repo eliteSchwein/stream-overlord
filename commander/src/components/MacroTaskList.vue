@@ -94,6 +94,8 @@
 </template>
 
 <script lang="ts">
+import { mapState } from 'pinia'
+import { useAppStore } from '@/stores/app'
 import {
   MacroAlertTaskAccordion,
   MacroAnimationTaskAccordion,
@@ -112,7 +114,7 @@ import {
   MacroTaskAccordion,
   MacroWebhookTaskAccordion,
   MacroWebsocketTaskAccordion,
-  MacroYoloboxTaskAccordion, MacroVariableSetTaskAccordion, MacroVariableGetTaskAccordion,
+  MacroVariableSetTaskAccordion, MacroVariableGetTaskAccordion,
   MacroChannelPointAcceptTaskAccordion, MacroChannelPointCancelTaskAccordion,
   MacroChannelPointPauseTaskAccordion, MacroChannelPointToggleTaskAccordion,
   MacroKeyboardTaskAccordion,
@@ -192,6 +194,14 @@ import MacroApiPutTaskAccordion from '@/components/accordions/macro/api/MacroApi
 import MacroApiPatchTaskAccordion from '@/components/accordions/macro/api/MacroApiPatchTaskAccordion.vue'
 import MacroApiDeleteTaskAccordion from '@/components/accordions/macro/api/MacroApiDeleteTaskAccordion.vue'
 
+import MacroYoloboxVideoSourceTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxVideoSourceTaskAccordion.vue'
+import MacroYoloboxOverlayTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxOverlayTaskAccordion.vue'
+import MacroYoloboxLiveStatusTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxLiveStatusTaskAccordion.vue'
+import MacroYoloboxAudioVolumeTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxAudioVolumeTaskAccordion.vue'
+import MacroYoloboxAudioMuteTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxAudioMuteTaskAccordion.vue'
+import MacroYoloboxAudioDelayTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxAudioDelayTaskAccordion.vue'
+import MacroYoloboxAudioAfvTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxAudioAfvTaskAccordion.vue'
+
 export default {
   name: 'MacroTaskList',
 
@@ -202,6 +212,13 @@ export default {
   },
 
   components: {
+    MacroYoloboxVideoSourceTaskAccordion,
+    MacroYoloboxOverlayTaskAccordion,
+    MacroYoloboxLiveStatusTaskAccordion,
+    MacroYoloboxAudioVolumeTaskAccordion,
+    MacroYoloboxAudioMuteTaskAccordion,
+    MacroYoloboxAudioDelayTaskAccordion,
+    MacroYoloboxAudioAfvTaskAccordion,
     MacroTaskAccordion,
     MacroConditionTaskAccordion,
     MacroAlertTaskAccordion,
@@ -215,7 +232,6 @@ export default {
     MacroLoopTaskAccordion,
     MacroMediaTaskAccordion,
     MacroWebhookTaskAccordion,
-    MacroYoloboxTaskAccordion,
     MacroNeopixelTaskAccordion,
     MacroEffectTaskAccordion,
     MacroAnimationTaskAccordion,
@@ -325,12 +341,26 @@ export default {
   },
 
   computed: {
+    ...mapState(useAppStore, ['getIntegrations']),
+
     currentTaskListComponent(): any {
       return this.taskListComponent || this.$options
     },
 
+    hasYoloboxEnabled(): boolean {
+      const integrations = this.getIntegrations || {}
+
+      return Boolean(integrations.yolobox?.enabled)
+    },
+
     availablePresets(): any[] {
-      return this.filterPresets(this.presets)
+      const presets = this.filterPresets(this.presets)
+
+      if (this.hasYoloboxEnabled) {
+        return presets
+      }
+
+      return presets.filter((preset: any) => preset.title !== 'YoloBox')
     },
   },
 
@@ -665,6 +695,138 @@ export default {
           ],
         },
         {
+          title: 'YoloBox',
+          icon: 'mdi-video-wireless-outline',
+          children: [
+            {
+              title: 'Switch video source',
+              icon: 'mdi-video-switch',
+              factory: () => this.createTask({
+                channel: 'yolobox',
+                method: 'switch_video_source',
+                data: { id: '' },
+              }),
+            },
+            {
+              title: 'Overlays',
+              icon: 'mdi-layers-outline',
+              children: [
+                {
+                  title: 'Enable overlay',
+                  icon: 'mdi-eye-outline',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_overlay',
+                    data: { id: '', isSelected: true },
+                  }),
+                },
+                {
+                  title: 'Disable overlay',
+                  icon: 'mdi-eye-off-outline',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_overlay',
+                    data: { id: '', isSelected: false },
+                  }),
+                },
+                {
+                  title: 'Disable all overlays',
+                  icon: 'mdi-layers-off-outline',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_overlay',
+                    data: { id: 'all', isSelected: false },
+                  }),
+                },
+              ],
+            },
+            {
+              title: 'Audio source',
+              icon: 'mdi-tune-vertical',
+              children: [
+                {
+                  title: 'Set volume',
+                  icon: 'mdi-volume-high',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_audio_volume',
+                    data: { id: '', volume: 1 },
+                  }),
+                },
+                {
+                  title: 'Mute',
+                  icon: 'mdi-volume-off',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_audio_muted',
+                    data: { id: '', muted: true },
+                  }),
+                },
+                {
+                  title: 'Unmute',
+                  icon: 'mdi-volume-high',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_audio_muted',
+                    data: { id: '', muted: false },
+                  }),
+                },
+                {
+                  title: 'Set delay',
+                  icon: 'mdi-timer-outline',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_audio_delay',
+                    data: { id: '', delayTime: 0 },
+                  }),
+                },
+                {
+                  title: 'Enable AFV',
+                  icon: 'mdi-link-variant',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_audio_afv',
+                    data: { id: '', AFV: true },
+                  }),
+                },
+                {
+                  title: 'Disable AFV',
+                  icon: 'mdi-link-variant-off',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_audio_afv',
+                    data: { id: '', AFV: false },
+                  }),
+                },
+              ],
+            },
+            {
+              title: 'Streaming',
+              icon: 'mdi-broadcast',
+              children: [
+                {
+                  title: 'Go live',
+                  icon: 'mdi-play-circle-outline',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_live_status',
+                    data: { status: 'start' },
+                  }),
+                },
+                {
+                  title: 'Stop stream',
+                  icon: 'mdi-stop-circle-outline',
+                  factory: () => this.createTask({
+                    channel: 'yolobox',
+                    method: 'set_live_status',
+                    data: { status: 'stop' },
+                  }),
+                },
+              ],
+            },
+          ],
+        },
+        {
           title: 'OBS',
           icon: 'mdi-broadcast',
           children: [
@@ -940,6 +1102,16 @@ export default {
         if (item?.task?.method === 'ad') return 'MacroTwitchAdTaskAccordion'
       }
 
+      if (item?.task?.channel === 'yolobox') {
+        if (item.task.method === 'switch_video_source') return 'MacroYoloboxVideoSourceTaskAccordion'
+        if (item.task.method === 'set_overlay') return 'MacroYoloboxOverlayTaskAccordion'
+        if (item.task.method === 'set_audio_volume') return 'MacroYoloboxAudioVolumeTaskAccordion'
+        if (item.task.method === 'set_audio_muted') return 'MacroYoloboxAudioMuteTaskAccordion'
+        if (item.task.method === 'set_audio_delay') return 'MacroYoloboxAudioDelayTaskAccordion'
+        if (item.task.method === 'set_audio_afv') return 'MacroYoloboxAudioAfvTaskAccordion'
+        if (item.task.method === 'set_live_status') return 'MacroYoloboxLiveStatusTaskAccordion'
+      }
+
       if (item?.task?.channel === 'obs') {
         const data = item?.task?.data ?? {}
 
@@ -1027,7 +1199,6 @@ export default {
         file: 'MacroFileTaskAccordion',
         media: 'MacroMediaTaskAccordion',
         webhook: 'MacroWebhookTaskAccordion',
-        yolobox: 'MacroYoloboxTaskAccordion',
         neopixel: 'MacroNeopixelTaskAccordion',
         effect: 'MacroEffectTaskAccordion',
         animation: 'MacroAnimationTaskAccordion',
