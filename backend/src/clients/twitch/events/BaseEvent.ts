@@ -10,7 +10,7 @@ import registerEventCooldown, {
 import {logError, logRegular, logWarn} from "../../../helper/LogHelper";
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../helper/GeneralHelper";
-import {isMacroPresent, triggerMacro} from "../../../helper/MacroHelper";
+import {interpolateTemplate, isMacroPresent, triggerMacro} from "../../../helper/MacroHelper";
 import {getAssetConfig, isAssetConfigPresent} from "../../../helper/AssetHelper";
 import {addAlert} from "../../../helper/AlertHelper";
 import {registerEventEntry} from "../../../helper/EventHelper";
@@ -173,19 +173,23 @@ export default class BaseEvent {
 
         if (isAssetConfigPresent(configName)) {
             const asset = getAssetConfig(configName);
-
-            addAlert({
+            const variables = this.getMacroVariables(event);
+            const parsedAsset = JSON.parse(interpolateTemplate(JSON.stringify({
                 "sound": asset.sound,
                 "duration": asset.duration,
                 "color": asset.color,
                 "icon": asset.icon,
                 "message": asset.message,
-                "event-uuid": this.eventUuid,
                 "video": asset.video,
                 "lamp_color": asset.lamp_color,
                 "volume": asset.volume,
                 "image": asset.image,
                 "channel": asset.channel,
+            }), variables));
+
+            addAlert({
+                ...parsedAsset,
+                "event-uuid": this.eventUuid,
             });
         }
     }
