@@ -24,7 +24,7 @@ export default class WebsocketClient {
 
     public async connect() {
         const config = getConfig(/websocket/g)[0];
-        this.url = `ws://${window.location.hostname}:${config.port}`;
+        this.url = `ws://${window.location.hostname}:${config?.port ?? 8100}`;
         this.openWebsocket();
         await sleep(500);
     }
