@@ -167,7 +167,7 @@ export default {
     },
 
     soundOptions(): string[] {
-      return this.mediaOptions(/\.(mp3|opus)$/i, false);
+      return this.mediaOptions(/\.(mp3|flac|wav|ogg|m4a|opus)$/i, false);
     },
 
     imageOptions(): string[] {
