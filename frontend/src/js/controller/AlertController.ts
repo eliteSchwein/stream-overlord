@@ -20,7 +20,20 @@ export default class AlertController extends BaseController {
 
     protected channel: string | null = ''
     protected visible = false
+
+    /**
+     * True when the controller temporarily changed the root element
+     * from opacity 0 to opacity 1.
+     */
     protected restoreOpacity = false
+
+    /**
+     * Incremented whenever a new alert is shown.
+     *
+     * This prevents an older hide operation from clearing the contents
+     * of a newer alert after its fade delay has completed.
+     */
+    protected alertGeneration = 0
 
     protected resetActiveTypeElements(): void {
         this.element
@@ -42,7 +55,7 @@ export default class AlertController extends BaseController {
         }
     }
 
-    async postConnect() {
+    async postConnect(): Promise<void> {
         for (const element of this.elementTargets) {
             if (!element.dataset.alertElementType) continue
 
@@ -60,7 +73,9 @@ export default class AlertController extends BaseController {
                     break
 
                 case 'content-container':
-                    this.contentContainerTarget = element as HTMLDivElement
+                case 'contentContainer':
+                    this.contentContainerTarget =
+                        element as HTMLDivElement
                     break
 
                 case 'video':
@@ -89,7 +104,7 @@ export default class AlertController extends BaseController {
         this.resetActiveTypeElements()
     }
 
-    videoEnd(event: Event) {
+    videoEnd(_event: Event): void {
         if (this.videoTarget) {
             this.videoTarget.style.opacity = '0'
         }
@@ -99,15 +114,28 @@ export default class AlertController extends BaseController {
         websocket: Websocket,
         method: string,
         data: any,
-    ) {
-        if (method === 'notify_test_mode') {
-            data.channel = this.channel
-            data.action = data.active ? 'show' : 'hide'
-            data.message = 'TEST TEST TEST TEST'
-            data.icon = 'test-tube'
+    ): Promise<void> {
+        /*
+         * Do not modify the original WebSocket payload.
+         *
+         * In horizontal.html several alert controllers receive the same
+         * payload object. Modifying it directly would allow one controller
+         * to affect the other controllers.
+         */
+        const payload = {
+            ...data,
         }
 
-        if (!data.channel || data.channel !== this.channel) return
+        if (method === 'notify_test_mode') {
+            payload.channel = this.channel
+            payload.action = payload.active ? 'show' : 'hide'
+            payload.message = 'TEST TEST TEST TEST'
+            payload.icon = 'test-tube'
+        }
+
+        if (!payload.channel || payload.channel !== this.channel) {
+            return
+        }
 
         if (
             method !== 'notify_alert' &&
@@ -116,13 +144,13 @@ export default class AlertController extends BaseController {
             return
         }
 
-        switch (data.action) {
+        switch (payload.action) {
             case 'show':
-                await this.showAlert(data)
+                await this.showAlert(payload)
                 return
 
             case 'hide':
-                await this.hideAlert(data)
+                await this.hideAlert(payload)
                 return
         }
     }
@@ -131,10 +159,11 @@ export default class AlertController extends BaseController {
         if (data.dummy) return
         if (this.visible) return
 
+        this.alertGeneration++
         this.visible = true
 
         /*
-         * When the controller element is hidden through opacity,
+         * If the overlay starts hidden using opacity: 0,
          * temporarily make it visible while the alert is active.
          */
         this.restoreOpacity =
@@ -172,17 +201,16 @@ export default class AlertController extends BaseController {
             try {
                 this.videoTarget.muted = true
 
+                const mediaUrl = this.normalizeMediaUrl(data.video)
                 const source =
                     this.videoTarget.querySelector<HTMLSourceElement>(
                         'source',
                     )
 
                 if (source) {
-                    source.src = this.normalizeMediaUrl(data.video)
+                    source.src = mediaUrl
                 } else {
-                    this.videoTarget.src = this.normalizeMediaUrl(
-                        data.video,
-                    )
+                    this.videoTarget.src = mediaUrl
                 }
 
                 this.videoTarget.load()
@@ -197,6 +225,10 @@ export default class AlertController extends BaseController {
                 this.videoTarget.style.opacity = '1'
                 await this.videoTarget.play()
 
+                /*
+                 * Play the video's audio through the backend only when
+                 * no separate sound was provided.
+                 */
                 if (!data.sound) {
                     this.websocket.send('play_sound', {
                         sound: data.video,
@@ -223,7 +255,15 @@ export default class AlertController extends BaseController {
             this.element.classList.add('aspect')
             this.iframeTarget.src = data.iframe
 
+            const generation = this.alertGeneration
+
             setTimeout(() => {
+                /*
+                 * Do not reveal an iframe belonging to an old alert.
+                 */
+                if (generation !== this.alertGeneration) return
+                if (!this.visible) return
+
                 this.iframeTarget?.classList.remove('d-none')
             }, 2_000)
         }
@@ -238,24 +278,44 @@ export default class AlertController extends BaseController {
             this.logoTarget.src = data.logo
         }
 
+        const message = String(data.message ?? '')
+
         for (const contentElement of this.contentTargets) {
-            contentElement.innerHTML = data.message ?? ''
+            contentElement.innerHTML = message
         }
 
+        const generation = this.alertGeneration
+
         setTimeout(() => {
+            /*
+             * Do not modify delayed elements for an alert that has
+             * already been hidden or replaced.
+             */
+            if (generation !== this.alertGeneration) return
+            if (!this.visible) return
+
             for (const delayedElement of this.delayedTargets) {
                 delayedElement.style.display = ''
             }
         }, 250)
 
-        this.iconTarget?.setAttribute(
-            'class',
-            `alert-logo mdi mdi-${data.icon}`,
-        )
+        if (this.iconTarget) {
+            this.iconTarget.setAttribute(
+                'class',
+                data.icon
+                    ? `alert-logo mdi mdi-${data.icon}`
+                    : 'alert-logo mdi',
+            )
+        }
     }
 
     protected async hideAlert(data: any): Promise<void> {
         if (data.dummy) return
+
+        /*
+         * Remember which alert generation this hide belongs to.
+         */
+        const generation = this.alertGeneration
 
         try {
             this.videoTarget?.pause()
@@ -290,6 +350,14 @@ export default class AlertController extends BaseController {
 
         await sleep(500)
 
+        /*
+         * Another alert was shown while this old alert was fading out.
+         * Do not clear the new alert's text, visibility or opacity.
+         */
+        if (generation !== this.alertGeneration) {
+            return
+        }
+
         for (const contentElement of this.contentTargets) {
             contentElement.innerHTML = ''
         }
@@ -302,10 +370,6 @@ export default class AlertController extends BaseController {
 
         this.resetActiveTypeElements()
 
-        /*
-         * Only restore opacity when this controller changed it
-         * from 0 to 1 while showing the alert.
-         */
         if (this.restoreOpacity) {
             this.element.style.opacity = '0'
             this.restoreOpacity = false
@@ -326,7 +390,10 @@ export default class AlertController extends BaseController {
         return `/${normalized}`
     }
 
-    async handleGameUpdate(websocket: Websocket, data: any) {
+    async handleGameUpdate(
+        websocket: Websocket,
+        data: any,
+    ): Promise<void> {
         if (this.element.hasAttribute('data-disable-theme')) return
 
         if (this.iconTarget) {
