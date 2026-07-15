@@ -521,7 +521,11 @@ export default {
     yamlDump(value: any): string {
       const quoteString = (value: string) => {
         if (value === '') return '""'
-        if (/^[a-zA-Z0-9_.\/${}!-]+$/.test(value) && !['true', 'false', 'null'].includes(value)) return value
+        if (
+          /^[a-zA-Z0-9_.\/${}!-]+$/.test(value) &&
+          !/^[!&*%@`{}[\],#|>?'"%-]/.test(value) &&
+          !['true', 'false', 'null'].includes(value.toLowerCase())
+        ) return value
         return JSON.stringify(value)
       }
 
