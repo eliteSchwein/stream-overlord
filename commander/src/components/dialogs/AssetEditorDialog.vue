@@ -1,5 +1,6 @@
 <script lang="ts">
 import {useAppStore} from '@/stores/app'
+import {getWebsocketClient} from '@/plugins/websocketInstance.ts'
 import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 import MacroWledControlEditor from '@/components/MacroWledControlEditor.vue'
 
@@ -100,7 +101,7 @@ export default {
     loading: {type: Boolean, default: false},
     error: {type: String, default: ""},
     macroItems: {type: Array, default: () => []},
-    mediaEntries: {type: [Array, Object], default: () => []},
+    mediaEntries: {type: Array, default: () => []},
     wledItems: {type: Array, default: () => []},
   },
 
@@ -110,6 +111,7 @@ export default {
     return {
       appStore: useAppStore(),
       form: emptyForm(),
+      localMediaEntries: [] as MediaEntry[],
       colorMenu: false,
       wledColorMenus: [] as boolean[],
       mdiSuggestions,
@@ -181,9 +183,261 @@ export default {
   },
 
   methods: {
+    requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
+      const client = getWebsocketClient();
+
+      if (!client) {
+        return Promise.reject(new Error("websocket is not connected"));
+      }
+
+      return client.request(method, params, timeout);
+    },
+
+    unwrapWebsocketResponse(response: any, method: string): any {
+      const resultKey = `result_${method}`;
+      const params = response?.params ?? response;
+
+      const candidates = [
+        params?.[resultKey],
+        params?.data?.[resultKey],
+        params?.payload?.[resultKey],
+        params?.result?.[resultKey],
+        response?.[resultKey],
+        response?.data?.[resultKey],
+        response?.payload?.[resultKey],
+        response?.result?.[resultKey],
+        params?.data,
+        params?.payload,
+        params?.result,
+        params,
+        response?.data,
+        response?.payload,
+        response?.result,
+        response,
+      ];
+
+      for (const candidate of candidates) {
+        if (candidate !== undefined && candidate !== null) return candidate;
+      }
+
+      return {};
+    },
+
+    async requestEndpoint(
+      method: string,
+      params: Record<string, any> = {},
+      timeout = 15_000,
+    ): Promise<any> {
+      const response = await this.requestWebsocket(method, params, timeout);
+      const data = this.unwrapWebsocketResponse(response, method);
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      return data;
+    },
+
+    async ensureMediaEntries() {
+      if ((this.mediaEntries as MediaEntry[]).length || this.localMediaEntries.length) {
+        return;
+      }
+
+      await this.fetchMediaEntries();
+    },
+
+    normalizeMediaEntry(entry: any, fallbackPath = ""): MediaEntry | null {
+      if (!entry) return null;
+
+      if (typeof entry === "string") {
+        const path = this.normalizePath(entry);
+        return path
+          ? {
+            name: path.split("/").pop() ?? path,
+            path,
+            type: "file",
+          }
+          : null;
+      }
+
+      const rawPath =
+        entry.path ??
+        entry.file ??
+        entry.filename ??
+        entry.name ??
+        fallbackPath;
+
+      const path = this.normalizePath(rawPath);
+      if (!path) return null;
+
+      return {
+        ...entry,
+        name: String(entry.name ?? path.split("/").pop() ?? path),
+        path,
+        type:
+          entry.type === "folder" ||
+          entry.isDirectory ||
+          entry.directory
+            ? "folder"
+            : "file",
+      };
+    },
+
+    extractMediaEntries(value: any, basePath = ""): MediaEntry[] {
+      const result: MediaEntry[] = [];
+
+      const add = (entry: any, fallbackPath = "") => {
+        const normalized = this.normalizeMediaEntry(entry, fallbackPath);
+        if (normalized) result.push(normalized);
+      };
+
+      if (Array.isArray(value)) {
+        for (const item of value) add(item);
+        return result;
+      }
+
+      if (!value || typeof value !== "object") return result;
+
+      for (const key of ["files", "items", "entries", "children"]) {
+        if (Array.isArray(value[key])) {
+          for (const item of value[key]) add(item);
+        }
+      }
+
+      for (const [key, item] of Object.entries(value)) {
+        if (
+          ["files", "items", "entries", "children", "assets", "wled", "wleds"].includes(key)
+        ) {
+          continue;
+        }
+
+        const fallbackPath = basePath ? `${basePath}/${key}` : key;
+
+        if (typeof item === "string") {
+          add(item);
+          continue;
+        }
+
+        if (!item || typeof item !== "object") continue;
+
+        const mediaItem = item as any;
+
+        if (
+          mediaItem.type ||
+          mediaItem.path ||
+          mediaItem.file ||
+          mediaItem.filename ||
+          mediaItem.name ||
+          mediaItem.asset ||
+          mediaItem.original ||
+          mediaItem.compressed
+        ) {
+          add(
+            {
+              ...mediaItem,
+              path:
+                mediaItem.path ??
+                mediaItem.file ??
+                mediaItem.filename ??
+                fallbackPath,
+            },
+            fallbackPath,
+          );
+        }
+
+        if (mediaItem.asset) {
+          if (typeof mediaItem.asset === "string") {
+            add(mediaItem.asset);
+          } else if (typeof mediaItem.asset === "object") {
+            add(mediaItem.asset.original);
+            add(mediaItem.asset.compressed);
+          }
+        }
+
+        add(mediaItem.original);
+        add(mediaItem.compressed);
+      }
+
+      return result;
+    },
+
+    uniqueMediaEntries(entries: MediaEntry[]): MediaEntry[] {
+      const unique = new Map<string, MediaEntry>();
+
+      for (const entry of entries) {
+        const normalized = this.normalizeMediaEntry(entry);
+        if (!normalized?.path) continue;
+        if (!unique.has(normalized.path)) {
+          unique.set(normalized.path, normalized);
+        }
+      }
+
+      return [...unique.values()];
+    },
+
+    async fetchMediaEntries(path = ""): Promise<MediaEntry[]> {
+      try {
+        const data = await this.requestEndpoint(
+          "media_list",
+          { path },
+          15_000,
+        );
+
+        const files =
+          data?.files ??
+          data?.items ??
+          data?.entries ??
+          data?.children ??
+          data ??
+          [];
+
+        const result: MediaEntry[] = [];
+
+        for (const rawEntry of this.extractMediaEntries(files)) {
+          result.push(rawEntry);
+
+          if (rawEntry.type === "folder" && rawEntry.path) {
+            result.push(...await this.fetchMediaEntries(rawEntry.path));
+          }
+        }
+
+        const unique = this.uniqueMediaEntries(result);
+
+        if (!path) {
+          this.localMediaEntries = unique.filter(
+            (entry) => entry.type === "file",
+          );
+        }
+
+        return unique;
+      } catch {
+        if (!path) {
+          await this.fetchMediaEntriesFromAssetsList();
+        }
+
+        return [];
+      }
+    },
+
+    async fetchMediaEntriesFromAssetsList() {
+      try {
+        const data = await this.requestEndpoint("assets_list");
+        const entries = this.extractMediaEntries(data?.assets ?? data ?? {});
+
+        this.localMediaEntries = this.uniqueMediaEntries(entries).filter(
+          (entry) => entry.type === "file",
+        );
+      } catch {
+        this.localMediaEntries = [];
+      }
+    },
+
     async open() {
       this.resetForm();
-      await this.initializeWledData("open");
+      await Promise.all([
+        this.initializeWledData("open"),
+        this.ensureMediaEntries(),
+      ]);
     },
 
     async initializeWledData(reason = "unknown") {
@@ -382,168 +636,21 @@ export default {
       return "";
     },
 
-    normalizeMediaEntry(entry: any, fallbackPath = ""): MediaEntry | null {
-      if (!entry) return null;
-
-      if (typeof entry === "string") {
-        const path = this.normalizePath(entry);
-        return path
-          ? {
-            name: path.split("/").pop() ?? path,
-            path,
-            type: "file",
-          }
-          : null;
-      }
-
-      const rawPath =
-        entry.path ??
-        entry.file ??
-        entry.filename ??
-        entry.name ??
-        fallbackPath;
-
-      const path = this.normalizePath(rawPath);
-      if (!path) return null;
-
-      const type =
-        entry.type === "folder" ||
-        entry.isDirectory ||
-        entry.directory
-          ? "folder"
-          : "file";
-
-      return {
-        ...entry,
-        name: String(entry.name ?? path.split("/").pop() ?? path),
-        path,
-        type,
-      };
-    },
-
-    extractMediaEntries(value: any, basePath = ""): MediaEntry[] {
-      const result: MediaEntry[] = [];
-
-      const add = (entry: any, fallbackPath = "") => {
-        const normalized = this.normalizeMediaEntry(entry, fallbackPath);
-        if (normalized) result.push(normalized);
-      };
-
-      if (Array.isArray(value)) {
-        for (const item of value) {
-          const nested = this.extractMediaEntries(item, basePath);
-          if (nested.length) result.push(...nested);
-          else add(item);
-        }
-
-        return result;
-      }
-
-      if (!value || typeof value !== "object") {
-        add(value, basePath);
-        return result;
-      }
-
-      for (const key of ["files", "items", "entries", "children"]) {
-        if (value[key] !== undefined) {
-          result.push(...this.extractMediaEntries(value[key], basePath));
-        }
-      }
-
-      for (const [key, item] of Object.entries(value)) {
-        if (
-          ["files", "items", "entries", "children", "assets", "wled", "wleds"].includes(key)
-        ) {
-          continue;
-        }
-
-        const fallbackPath = basePath ? `${basePath}/${key}` : key;
-
-        if (typeof item === "string") {
-          add(item, fallbackPath);
-          continue;
-        }
-
-        if (!item || typeof item !== "object") continue;
-
-        const mediaItem = item as any;
-
-        if (
-          mediaItem.type ||
-          mediaItem.path ||
-          mediaItem.file ||
-          mediaItem.filename ||
-          mediaItem.name ||
-          mediaItem.asset ||
-          mediaItem.original ||
-          mediaItem.compressed
-        ) {
-          add(
-            {
-              ...mediaItem,
-              path:
-                mediaItem.path ??
-                mediaItem.file ??
-                mediaItem.filename ??
-                fallbackPath,
-            },
-            fallbackPath,
-          );
-        }
-
-        if (mediaItem.asset) {
-          if (typeof mediaItem.asset === "string") {
-            add(mediaItem.asset);
-          } else if (typeof mediaItem.asset === "object") {
-            add(mediaItem.asset.original);
-            add(mediaItem.asset.compressed);
-          }
-        }
-
-        add(mediaItem.original);
-        add(mediaItem.compressed);
-
-        if (
-          !mediaItem.path &&
-          !mediaItem.file &&
-          !mediaItem.filename &&
-          !mediaItem.asset &&
-          !mediaItem.original &&
-          !mediaItem.compressed
-        ) {
-          result.push(...this.extractMediaEntries(mediaItem, fallbackPath));
-        }
-      }
-
-      return result;
-    },
-
     mediaOptions(regex: RegExp, compressedFirst: boolean): string[] {
       const values: string[] = [];
-
       const add = (value: string) => {
         const normalized = this.normalizePath(value);
-        if (!normalized) return;
-
+        if (!normalized || !regex.test(normalized)) return;
         regex.lastIndex = 0;
-        if (!regex.test(normalized)) return;
-
         if (!values.includes(normalized)) values.push(normalized);
       };
 
-      const source =
-        (this.mediaEntries as any)?.files ??
-        (this.mediaEntries as any)?.items ??
-        (this.mediaEntries as any)?.entries ??
-        (this.mediaEntries as any)?.children ??
-        (this.mediaEntries as any)?.media ??
-        this.mediaEntries;
-
-      const entries = this.extractMediaEntries(source);
+      const entries = (this.mediaEntries as MediaEntry[]).length
+        ? (this.mediaEntries as MediaEntry[])
+        : this.localMediaEntries;
 
       for (const entry of entries) {
         if (!entry || entry.type !== "file") continue;
-
         const original = this.getEntryOriginal(entry);
         const compressed = this.getEntryCompressed(entry);
 
@@ -556,7 +663,7 @@ export default {
         }
       }
 
-      return values.sort((a, b) => a.localeCompare(b));
+      return values;
     },
 
     normalizePath(value: any): string {
@@ -832,6 +939,8 @@ export default {
                 hide-details="auto"
                 prepend-inner-icon="mdi-volume-high"
                 variant="outlined"
+                @focus="ensureMediaEntries"
+                @click="ensureMediaEntries"
               />
             </v-col>
 
@@ -935,6 +1044,8 @@ export default {
                 hide-details="auto"
                 prepend-inner-icon="mdi-image"
                 variant="outlined"
+                @focus="ensureMediaEntries"
+                @click="ensureMediaEntries"
               />
             </v-col>
 
@@ -948,6 +1059,8 @@ export default {
                 hide-details="auto"
                 prepend-inner-icon="mdi-video"
                 variant="outlined"
+                @focus="ensureMediaEntries"
+                @click="ensureMediaEntries"
               />
             </v-col>
 
