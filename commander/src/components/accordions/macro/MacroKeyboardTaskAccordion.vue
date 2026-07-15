@@ -323,7 +323,7 @@ export default {
           { label: 'Enter', value: 'ENTER', size: 'enter' },
         ],
         [
-          { label: 'Shift', value: 'SHIFT', size: 'shift-left' },
+          { label: 'Shift L', value: 'shift_left', size: 'shift-left' },
           { label: 'Z', value: 'Z' },
           { label: 'X', value: 'X' },
           { label: 'C', value: 'C' },
@@ -334,17 +334,17 @@ export default {
           { label: ',', value: ',' },
           { label: '.', value: '.' },
           { label: '/', value: '/' },
-          { label: 'Shift', value: 'SHIFT', size: 'shift-right' },
+          { label: 'Shift R', value: 'shift_right', size: 'shift-right' },
         ],
         [
-          { label: 'Ctrl', value: 'CTRL', size: 'mod' },
-          { label: 'Win', value: 'META', size: 'mod' },
-          { label: 'Alt', value: 'ALT', size: 'mod' },
+          { label: 'Ctrl L', value: 'ctrl_left', size: 'mod' },
+          { label: 'Win L', value: 'meta_left', size: 'mod' },
+          { label: 'Alt L', value: 'alt_left', size: 'mod' },
           { label: 'Space', value: 'SPACE', size: 'space' },
-          { label: 'Alt', value: 'ALT', size: 'mod' },
-          { label: 'Win', value: 'META', size: 'mod' },
+          { label: 'Alt R', value: 'alt_right', size: 'mod' },
+          { label: 'Win R', value: 'meta_right', size: 'mod' },
           { label: 'Menu', value: 'MENU', size: 'mod' },
-          { label: 'Ctrl', value: 'CTRL', size: 'mod' },
+          { label: 'Ctrl R', value: 'ctrl_right', size: 'mod' },
         ],
       ]
     },
@@ -438,7 +438,7 @@ export default {
         event.preventDefault()
         event.stopPropagation()
 
-        this.pressedKeys.add(this.normalizeRecordedKey(event.key))
+        this.pressedKeys.add(this.normalizeRecordedKey(event))
       }
 
       const onKeyUp = (event: KeyboardEvent) => {
@@ -469,12 +469,39 @@ export default {
       }
     },
 
-    normalizeRecordedKey(key: string): string {
-      const map: Record<string, string> = {
-        Control: 'CTRL',
-        Shift: 'SHIFT',
-        Alt: 'ALT',
-        Meta: 'META',
+    normalizeRecordedKey(event: KeyboardEvent): string {
+      const codeMap: Record<string, string> = {
+        ControlLeft: 'ctrl_left',
+        ControlRight: 'ctrl_right',
+        AltLeft: 'alt_left',
+        AltRight: 'alt_right',
+        ShiftLeft: 'shift_left',
+        ShiftRight: 'shift_right',
+        MetaLeft: 'meta_left',
+        MetaRight: 'meta_right',
+        NumpadEnter: 'NUMPAD_ENTER',
+        NumpadDivide: 'NUMPAD_DIVIDE',
+        NumpadMultiply: 'NUMPAD_MULTIPLY',
+        NumpadSubtract: 'NUMPAD_SUBTRACT',
+        NumpadAdd: 'NUMPAD_ADD',
+        NumpadDecimal: 'NUMPAD_DECIMAL',
+        Numpad0: 'NUMPAD_0',
+        Numpad1: 'NUMPAD_1',
+        Numpad2: 'NUMPAD_2',
+        Numpad3: 'NUMPAD_3',
+        Numpad4: 'NUMPAD_4',
+        Numpad5: 'NUMPAD_5',
+        Numpad6: 'NUMPAD_6',
+        Numpad7: 'NUMPAD_7',
+        Numpad8: 'NUMPAD_8',
+        Numpad9: 'NUMPAD_9',
+      }
+
+      if (codeMap[event.code]) {
+        return codeMap[event.code]
+      }
+
+      const keyMap: Record<string, string> = {
         Escape: 'ESC',
         ' ': 'SPACE',
         ArrowUp: 'UP',
@@ -496,7 +523,7 @@ export default {
         CapsLock: 'CAPSLOCK',
       }
 
-      return map[key] ?? key.toUpperCase()
+      return keyMap[event.key] ?? event.key.toUpperCase()
     },
   },
 }
