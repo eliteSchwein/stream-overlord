@@ -11,7 +11,7 @@
     @move-down="$emit('move-down')"
   >
     <v-text-field
-      v-model="item.task.check"
+      v-model="conditionCheck"
       label="Condition"
       density="comfortable"
       variant="outlined"
@@ -50,8 +50,9 @@
 
         <v-text-field
           v-if="branch.task.method === 'else_if'"
-          v-model="branch.task.check"
+          :model-value="getBranchCheck(branch)"
           label="Condition"
+          @update:model-value="setBranchCheck(branch, $event)"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -123,6 +124,15 @@ export default {
     task(): any {
       return (this.item as any).task
     },
+
+    conditionCheck: {
+      get(): string {
+        return String((this.item as any).task?.check ?? '')
+      },
+      set(value: unknown) {
+        ;(this.item as any).task.check = String(value ?? '')
+      },
+    },
   },
 
   created() {
@@ -133,9 +143,26 @@ export default {
     if (!Array.isArray((this.item as any).children)) {
       ;(this.item as any).children = []
     }
+
+    ;(this.item as any).task.check = String((this.item as any).task?.check ?? '')
+
+    for (const branch of (this.item as any).branches) {
+      if (branch?.task?.method === 'else_if') {
+        branch.task.check = String(branch.task.check ?? '')
+      }
+    }
   },
 
   methods: {
+    getBranchCheck(branch: any): string {
+      return String(branch?.task?.check ?? '')
+    },
+
+    setBranchCheck(branch: any, value: unknown) {
+      if (!branch.task) branch.task = {}
+      branch.task.check = String(value ?? '')
+    },
+
     uid() {
       return `${Date.now()}_${Math.random().toString(16).slice(2)}`
     },
