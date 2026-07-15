@@ -1,19 +1,21 @@
-/* Shared animation used only by these two isolated alert components. */
 @keyframes power-alert-stack-in {
     0% {
         opacity: 0;
         transform: translateX(-5%);
         text-shadow: -2px 3px 0 red, 2px -3px 0 blue;
     }
+
     60% {
         opacity: 0.5;
         transform: translateX(5%);
     }
+
     80% {
         opacity: 1;
         transform: none;
         text-shadow: 2px -3px 0 red, -2px 3px 0 blue;
     }
+
     100% {
         opacity: 1;
         transform: none;
@@ -26,9 +28,11 @@
         text-shadow: -2px 3px 0 red, 2px -3px 0 blue;
         transform: translate(var(--power-alert-glitch-translate));
     }
+
     2% {
         text-shadow: 2px -3px 0 red, -2px 3px 0 blue;
     }
+
     4%,
     100% {
         text-shadow: none;
@@ -42,15 +46,18 @@
         transform: translateX(-5%);
         text-shadow: -2px 3px 0 red, 2px -3px 0 blue;
     }
+
     60% {
         opacity: 0.5;
         transform: translateX(5%);
     }
+
     80% {
         opacity: 1;
         transform: none;
         text-shadow: 2px -3px 0 red, -2px 3px 0 blue;
     }
+
     100% {
         opacity: 1;
         transform: none;
@@ -63,9 +70,11 @@
         text-shadow: -2px 3px 0 red, 2px -3px 0 blue;
         transform: translate(var(--ed-alert-glitch-translate));
     }
+
     2% {
         text-shadow: 2px -3px 0 red, -2px 3px 0 blue;
     }
+
     4%,
     100% {
         text-shadow: none;
@@ -74,17 +83,18 @@
 }
 
 /* Power alert */
+
 .power-alert-root {
-    transition: opacity 0.25s ease-in-out;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 300px;
     width: 100%;
     height: auto;
+    margin-top: 300px;
     border-radius: 0;
     box-shadow: 0 0 45px #000 !important;
+    transition: opacity 0.25s ease-in-out;
 }
 
 .power-alert-content-container {
@@ -96,14 +106,14 @@
 .power-alert-content {
     z-index: 4;
     width: 100%;
-    padding-left: 20px !important;
     margin-top: 0 !important;
-    font-size: 60px;
-    font-family: 'Orbitron', sans-serif;
+    padding-left: 20px !important;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     color: #fff;
+    font-size: 60px;
+    font-family: 'Orbitron', sans-serif;
     word-wrap: anywhere;
 }
 
@@ -111,15 +121,22 @@
     width: 100%;
 }
 
-.power-alert-logo {
-    z-index: 4;
-    margin-left: 75px !important;
-    margin-right: 35px !important;
-    font-size: 250px !important;
-    color: #d65100;
+/*
+ * AlertController replaces the icon's class with:
+ * alert-logo mdi mdi-{icon}
+ *
+ * Therefore this selector intentionally targets .alert-logo
+ * inside the unique power alert root.
+ */
+.power-alert-root .alert-logo {
     position: relative !important;
     top: auto !important;
     right: auto !important;
+    z-index: 4;
+    margin-left: 75px !important;
+    margin-right: 35px !important;
+    color: #d65100 !important;
+    font-size: 250px !important;
     text-shadow: 0 0 15px #000000c4;
     transition: 0.5s ease-in-out;
 }
@@ -127,10 +144,10 @@
 .power-alert-video-container {
     position: absolute;
     inset: 0;
+    z-index: 2;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2;
     overflow: hidden;
 }
 
@@ -144,9 +161,9 @@
 .power-alert-iframe {
     position: absolute;
     inset: 0;
+    z-index: 2;
     width: 100%;
     height: 100%;
-    z-index: 2;
     border: 0;
     overflow: hidden;
 }
@@ -159,28 +176,50 @@
 .power-alert-stack span {
     grid-row-start: 1;
     grid-column-start: 1;
-    --power-alert-stack-height: calc(100% / var(--power-alert-stacks) - 1px);
-    --power-alert-inverse-index: calc(
-            (var(--power-alert-stacks) - 1) - var(--power-alert-index)
-    );
-    --power-alert-clip-top: calc(
-            var(--power-alert-stack-height) * var(--power-alert-index)
-    );
-    --power-alert-clip-bottom: calc(
-            var(--power-alert-stack-height) * var(--power-alert-inverse-index)
-    );
 
-    clip-path: inset(
-            var(--power-alert-clip-top)
-            0
-            var(--power-alert-clip-bottom)
-            0
-    );
+    --power-alert-stack-height:
+            calc(100% / var(--power-alert-stacks) - 1px);
+
+    --power-alert-inverse-index:
+            calc(
+                    (var(--power-alert-stacks) - 1)
+                    - var(--power-alert-index)
+            );
+
+    --power-alert-clip-top:
+            calc(
+                    var(--power-alert-stack-height)
+                    * var(--power-alert-index)
+            );
+
+    --power-alert-clip-bottom:
+            calc(
+                    var(--power-alert-stack-height)
+                    * var(--power-alert-inverse-index)
+            );
+
+    clip-path:
+            inset(
+                    var(--power-alert-clip-top)
+                    0
+                    var(--power-alert-clip-bottom)
+                    0
+            );
 
     animation:
-            power-alert-stack-in 340ms cubic-bezier(.46, .29, 0, 1.24)
-            1 backwards calc(var(--power-alert-index) * 120ms),
-            power-alert-glitch 3s ease infinite 1s alternate-reverse;
+            power-alert-stack-in
+            340ms
+            cubic-bezier(.46, .29, 0, 1.24)
+            1
+            backwards
+            calc(var(--power-alert-index) * 120ms),
+
+            power-alert-glitch
+            3s
+            ease
+            infinite
+            1s
+            alternate-reverse;
 }
 
 .power-alert-stack span:nth-child(odd) {
@@ -192,18 +231,20 @@
 }
 
 /* ED / Elite Override alert */
+
 .ed-alert-root {
-    transition: opacity 0.25s ease-in-out;
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 300px;
     width: 100%;
     height: auto;
-    border-radius: 0;
+    margin-top: 300px;
     border-bottom: #fb1b03 5px solid;
+    border-radius: 0;
     box-shadow: 0 0 45px #000 !important;
+    transition: opacity 0.25s ease-in-out;
+
     transform:
             scaleX(1)
             scaleY(1)
@@ -219,14 +260,14 @@
 }
 
 .ed-alert-header {
+    color: #fb1b03;
     border-top: #fb1b03 5px solid;
     border-bottom: #fb1b03 5px solid;
-    color: #fb1b03;
     background: rgba(85, 85, 85, 0.89);
 }
 
 .ed-alert-header-icon {
-    color: inherit;
+    color: #fb1b03 !important;
 }
 
 .ed-alert-content-container {
@@ -243,25 +284,29 @@
 .ed-alert-content {
     z-index: 4;
     width: 100%;
-    padding-left: 20px !important;
     margin-top: 0 !important;
-    font-size: 60px;
-    font-family: 'Orbitron', sans-serif;
+    padding-left: 20px !important;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
+    font-size: 60px;
+    font-family: 'Orbitron', sans-serif;
     word-wrap: anywhere;
 }
 
-.ed-alert-logo {
-    z-index: 4;
+/*
+ * AlertController keeps the generic alert-logo class,
+ * so the fixed white ED icon color is scoped through the unique root.
+ */
+.ed-alert-root .alert-logo {
     position: relative !important;
     top: auto !important;
     right: auto !important;
+    z-index: 4;
     margin-left: 150px;
+    color: #fff !important;
     font-size: 250px !important;
-    color: #fff;
     text-shadow: 0 0 15px #000000c4;
     transition: 0.5s ease-in-out;
 }
@@ -269,10 +314,10 @@
 .ed-alert-video-container {
     position: absolute;
     inset: 0;
+    z-index: 2;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2;
     overflow: hidden;
 }
 
@@ -291,28 +336,50 @@
 .ed-alert-stack span {
     grid-row-start: 1;
     grid-column-start: 1;
-    --ed-alert-stack-height: calc(100% / var(--ed-alert-stacks) - 1px);
-    --ed-alert-inverse-index: calc(
-            (var(--ed-alert-stacks) - 1) - var(--ed-alert-index)
-    );
-    --ed-alert-clip-top: calc(
-            var(--ed-alert-stack-height) * var(--ed-alert-index)
-    );
-    --ed-alert-clip-bottom: calc(
-            var(--ed-alert-stack-height) * var(--ed-alert-inverse-index)
-    );
 
-    clip-path: inset(
-            var(--ed-alert-clip-top)
-            0
-            var(--ed-alert-clip-bottom)
-            0
-    );
+    --ed-alert-stack-height:
+            calc(100% / var(--ed-alert-stacks) - 1px);
+
+    --ed-alert-inverse-index:
+            calc(
+                    (var(--ed-alert-stacks) - 1)
+                    - var(--ed-alert-index)
+            );
+
+    --ed-alert-clip-top:
+            calc(
+                    var(--ed-alert-stack-height)
+                    * var(--ed-alert-index)
+            );
+
+    --ed-alert-clip-bottom:
+            calc(
+                    var(--ed-alert-stack-height)
+                    * var(--ed-alert-inverse-index)
+            );
+
+    clip-path:
+            inset(
+                    var(--ed-alert-clip-top)
+                    0
+                    var(--ed-alert-clip-bottom)
+                    0
+            );
 
     animation:
-            ed-alert-stack-in 340ms cubic-bezier(.46, .29, 0, 1.24)
-            1 backwards calc(var(--ed-alert-index) * 120ms),
-            ed-alert-glitch 3s ease infinite 1s alternate-reverse;
+            ed-alert-stack-in
+            340ms
+            cubic-bezier(.46, .29, 0, 1.24)
+            1
+            backwards
+            calc(var(--ed-alert-index) * 120ms),
+
+            ed-alert-glitch
+            3s
+            ease
+            infinite
+            1s
+            alternate-reverse;
 }
 
 .ed-alert-stack span:nth-child(odd) {
@@ -323,9 +390,10 @@
     --ed-alert-glitch-translate: -8px;
 }
 
-/* Controller-driven state classes */
+/* State class added by AlertController for iframe/video alerts. */
+
 .power-alert-root.aspect,
 .ed-alert-root.aspect {
-    aspect-ratio: 16 / 9;
     height: auto;
+    aspect-ratio: 16 / 9;
 }
