@@ -127,6 +127,19 @@ export default class AlertController extends BaseController {
         }
 
         if (method === 'notify_test_mode') {
+            if (payload.channel && payload.channel !== this.channel) {
+                return
+            }
+
+            /*
+             * When no channel was supplied, only use test mode for the
+             * regular/default alert controller. This prevents every custom alert
+             * inside horizontal.html from activating simultaneously.
+             */
+            if (!payload.channel && this.channel !== 'alert') {
+                return
+            }
+
             payload.channel = this.channel
             payload.action = payload.active ? 'show' : 'hide'
             payload.message = 'TEST TEST TEST TEST'
