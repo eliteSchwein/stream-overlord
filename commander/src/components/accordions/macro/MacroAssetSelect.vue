@@ -89,9 +89,15 @@ export default {
   computed: {
     assetConfigs(): Record<string, any> {
       const appStore = useAppStore()
-      const storeAssets = appStore.getAssets
+      const storeValue: any = appStore.getAssets
 
-      return storeAssets && !Array.isArray(storeAssets) && Object.keys(storeAssets).length
+      // Depending on where the store was populated, getAssets can either be
+      // the asset map itself or the complete assets_list response envelope.
+      const storeAssets = storeValue?.assets && typeof storeValue.assets === 'object' && !Array.isArray(storeValue.assets)
+        ? storeValue.assets
+        : storeValue
+
+      return storeAssets && typeof storeAssets === 'object' && !Array.isArray(storeAssets) && Object.keys(storeAssets).length
         ? storeAssets as Record<string, any>
         : this.localAssets
     },
@@ -117,7 +123,14 @@ export default {
     },
 
     wledItems(): string[] {
-      return Object.keys(this.localWledConfigs ?? {}).sort((a, b) => a.localeCompare(b))
+      const appStore = useAppStore()
+      const storeValue: any = appStore.getAssets
+      const storeWleds = storeValue?.wleds ?? storeValue?.wled ?? appStore.getWledConfigs
+      const wleds = Object.keys(this.localWledConfigs ?? {}).length
+        ? this.localWledConfigs
+        : (storeWleds && typeof storeWleds === 'object' && !Array.isArray(storeWleds) ? storeWleds : {})
+
+      return Object.keys(wleds).sort((a, b) => a.localeCompare(b))
     },
 
     createLabel(): string {
@@ -212,10 +225,11 @@ export default {
         const data = await this.requestAssetEndpoint('assets_list', 'assets/list')
 
         this.localAssets = data?.assets ?? {}
-        this.localWledConfigs = data?.wled ?? {}
+        this.localWledConfigs = data?.wleds ?? data?.wled ?? {}
         this.hasLoadedAssets = true
 
         appStore.setAssets(this.localAssets)
+        appStore.setWledConfigs(this.localWledConfigs)
         await this.fetchMediaEntries()
       } catch (error) {
         this.localAssets = this.localAssets ?? {}
