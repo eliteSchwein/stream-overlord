@@ -397,3 +397,10 @@
     height: auto;
     aspect-ratio: 16 / 9;
 }
+
+.power-alert-root .alert-logo,
+.ed-alert-root .alert-logo {
+    opacity: 1 !important;
+    transition: none !important;
+    animation: none !important;
+}
