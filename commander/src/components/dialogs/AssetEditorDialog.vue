@@ -100,7 +100,7 @@ export default {
     loading: {type: Boolean, default: false},
     error: {type: String, default: ""},
     macroItems: {type: Array, default: () => []},
-    mediaEntries: {type: Array, default: () => []},
+    mediaEntries: {type: [Array, Object], default: () => []},
     wledItems: {type: Array, default: () => []},
   },
 
@@ -108,6 +108,7 @@ export default {
 
   data() {
     return {
+      appStore: useAppStore(),
       form: emptyForm(),
       colorMenu: false,
       wledColorMenus: [] as boolean[],
@@ -381,17 +382,168 @@ export default {
       return "";
     },
 
+    normalizeMediaEntry(entry: any, fallbackPath = ""): MediaEntry | null {
+      if (!entry) return null;
+
+      if (typeof entry === "string") {
+        const path = this.normalizePath(entry);
+        return path
+          ? {
+            name: path.split("/").pop() ?? path,
+            path,
+            type: "file",
+          }
+          : null;
+      }
+
+      const rawPath =
+        entry.path ??
+        entry.file ??
+        entry.filename ??
+        entry.name ??
+        fallbackPath;
+
+      const path = this.normalizePath(rawPath);
+      if (!path) return null;
+
+      const type =
+        entry.type === "folder" ||
+        entry.isDirectory ||
+        entry.directory
+          ? "folder"
+          : "file";
+
+      return {
+        ...entry,
+        name: String(entry.name ?? path.split("/").pop() ?? path),
+        path,
+        type,
+      };
+    },
+
+    extractMediaEntries(value: any, basePath = ""): MediaEntry[] {
+      const result: MediaEntry[] = [];
+
+      const add = (entry: any, fallbackPath = "") => {
+        const normalized = this.normalizeMediaEntry(entry, fallbackPath);
+        if (normalized) result.push(normalized);
+      };
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          const nested = this.extractMediaEntries(item, basePath);
+          if (nested.length) result.push(...nested);
+          else add(item);
+        }
+
+        return result;
+      }
+
+      if (!value || typeof value !== "object") {
+        add(value, basePath);
+        return result;
+      }
+
+      for (const key of ["files", "items", "entries", "children"]) {
+        if (value[key] !== undefined) {
+          result.push(...this.extractMediaEntries(value[key], basePath));
+        }
+      }
+
+      for (const [key, item] of Object.entries(value)) {
+        if (
+          ["files", "items", "entries", "children", "assets", "wled", "wleds"].includes(key)
+        ) {
+          continue;
+        }
+
+        const fallbackPath = basePath ? `${basePath}/${key}` : key;
+
+        if (typeof item === "string") {
+          add(item, fallbackPath);
+          continue;
+        }
+
+        if (!item || typeof item !== "object") continue;
+
+        const mediaItem = item as any;
+
+        if (
+          mediaItem.type ||
+          mediaItem.path ||
+          mediaItem.file ||
+          mediaItem.filename ||
+          mediaItem.name ||
+          mediaItem.asset ||
+          mediaItem.original ||
+          mediaItem.compressed
+        ) {
+          add(
+            {
+              ...mediaItem,
+              path:
+                mediaItem.path ??
+                mediaItem.file ??
+                mediaItem.filename ??
+                fallbackPath,
+            },
+            fallbackPath,
+          );
+        }
+
+        if (mediaItem.asset) {
+          if (typeof mediaItem.asset === "string") {
+            add(mediaItem.asset);
+          } else if (typeof mediaItem.asset === "object") {
+            add(mediaItem.asset.original);
+            add(mediaItem.asset.compressed);
+          }
+        }
+
+        add(mediaItem.original);
+        add(mediaItem.compressed);
+
+        if (
+          !mediaItem.path &&
+          !mediaItem.file &&
+          !mediaItem.filename &&
+          !mediaItem.asset &&
+          !mediaItem.original &&
+          !mediaItem.compressed
+        ) {
+          result.push(...this.extractMediaEntries(mediaItem, fallbackPath));
+        }
+      }
+
+      return result;
+    },
+
     mediaOptions(regex: RegExp, compressedFirst: boolean): string[] {
       const values: string[] = [];
+
       const add = (value: string) => {
         const normalized = this.normalizePath(value);
-        if (!normalized || !regex.test(normalized)) return;
+        if (!normalized) return;
+
         regex.lastIndex = 0;
+        if (!regex.test(normalized)) return;
+
         if (!values.includes(normalized)) values.push(normalized);
       };
 
-      for (const entry of this.mediaEntries as MediaEntry[]) {
+      const source =
+        (this.mediaEntries as any)?.files ??
+        (this.mediaEntries as any)?.items ??
+        (this.mediaEntries as any)?.entries ??
+        (this.mediaEntries as any)?.children ??
+        (this.mediaEntries as any)?.media ??
+        this.mediaEntries;
+
+      const entries = this.extractMediaEntries(source);
+
+      for (const entry of entries) {
         if (!entry || entry.type !== "file") continue;
+
         const original = this.getEntryOriginal(entry);
         const compressed = this.getEntryCompressed(entry);
 
@@ -404,7 +556,7 @@ export default {
         }
       }
 
-      return values;
+      return values.sort((a, b) => a.localeCompare(b));
     },
 
     normalizePath(value: any): string {
