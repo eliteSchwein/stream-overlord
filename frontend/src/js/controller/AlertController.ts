@@ -20,6 +20,7 @@ export default class AlertController extends BaseController {
 
     protected channel: string | null = ''
     protected visible = false
+    protected restoreOpacity = false
 
     protected resetActiveTypeElements(): void {
         this.element
@@ -32,7 +33,9 @@ export default class AlertController extends BaseController {
     protected showActiveTypeElements(types: string[]): void {
         for (const type of types) {
             this.element
-                .querySelectorAll<HTMLElement>(`[data-alert-active-type=\"${type}\"]`)
+                .querySelectorAll<HTMLElement>(
+                    `[data-alert-active-type="${type}"]`,
+                )
                 .forEach(element => {
                     element.style.display = ''
                 })
@@ -47,31 +50,41 @@ export default class AlertController extends BaseController {
                 case 'icon':
                     this.iconTarget = element
                     break
+
                 case 'content':
                     this.contentTargets.push(element as HTMLDivElement)
                     break
+
                 case 'delayed':
                     this.delayedTargets.push(element as HTMLDivElement)
                     break
+
                 case 'content-container':
                     this.contentContainerTarget = element as HTMLDivElement
                     break
+
                 case 'video':
                     this.videoTarget = element as HTMLVideoElement
                     break
+
                 case 'logo':
                     this.logoTarget = element as HTMLImageElement
                     break
+
                 case 'image':
                     this.imageTarget = element as HTMLImageElement
                     break
+
                 case 'iframe':
                     this.iframeTarget = element as HTMLIFrameElement
                     break
             }
         }
 
-        this.videoTarget?.addEventListener('ended', event => this.videoEnd(event))
+        this.videoTarget?.addEventListener('ended', event => {
+            this.videoEnd(event)
+        })
+
         this.channel = this.element.getAttribute('data-alert-channel')
         this.resetActiveTypeElements()
     }
@@ -82,7 +95,11 @@ export default class AlertController extends BaseController {
         }
     }
 
-    async handleMessage(websocket: Websocket, method: string, data: any) {
+    async handleMessage(
+        websocket: Websocket,
+        method: string,
+        data: any,
+    ) {
         if (method === 'notify_test_mode') {
             data.channel = this.channel
             data.action = data.active ? 'show' : 'hide'
@@ -91,7 +108,13 @@ export default class AlertController extends BaseController {
         }
 
         if (!data.channel || data.channel !== this.channel) return
-        if (method !== 'notify_alert' && method !== 'notify_test_mode') return
+
+        if (
+            method !== 'notify_alert' &&
+            method !== 'notify_test_mode'
+        ) {
+            return
+        }
 
         switch (data.action) {
             case 'show':
@@ -110,6 +133,17 @@ export default class AlertController extends BaseController {
 
         this.visible = true
 
+        /*
+         * When the controller element is hidden through opacity,
+         * temporarily make it visible while the alert is active.
+         */
+        this.restoreOpacity =
+            getComputedStyle(this.element).opacity === '0'
+
+        if (this.restoreOpacity) {
+            this.element.style.opacity = '1'
+        }
+
         this.resetActiveTypeElements()
 
         const activeTypes: string[] = []
@@ -124,25 +158,39 @@ export default class AlertController extends BaseController {
 
         this.showActiveTypeElements(activeTypes)
 
-        this.element.style.height = null
-        this.element.style.width = null
-        this.element.style.padding = null
+        this.element.style.height = ''
+        this.element.style.width = ''
+        this.element.style.padding = ''
 
         if (this.videoTarget) {
             this.videoTarget.style.opacity = '0'
         }
 
         if (data.video && this.videoTarget) {
-            this.videoTarget.style.display = null
+            this.videoTarget.style.display = ''
 
             try {
                 this.videoTarget.muted = true
-                this.videoTarget.querySelector('source')!.src = this.normalizeMediaUrl(data.video)
+
+                const source =
+                    this.videoTarget.querySelector<HTMLSourceElement>(
+                        'source',
+                    )
+
+                if (source) {
+                    source.src = this.normalizeMediaUrl(data.video)
+                } else {
+                    this.videoTarget.src = this.normalizeMediaUrl(
+                        data.video,
+                    )
+                }
+
                 this.videoTarget.load()
 
                 await sleep(50)
 
-                this.element.style.height = `${this.videoTarget.getBoundingClientRect().height}px`
+                this.element.style.height =
+                    `${this.videoTarget.getBoundingClientRect().height}px`
 
                 await sleep(50)
 
@@ -155,8 +203,8 @@ export default class AlertController extends BaseController {
                         volume: data.volume,
                     })
                 }
-            } catch (e) {
-                console.error(e)
+            } catch (error) {
+                console.error(error)
             }
         }
 
@@ -166,8 +214,8 @@ export default class AlertController extends BaseController {
                     sound: data.sound,
                     volume: data.volume,
                 })
-            } catch (e) {
-                console.error(e)
+            } catch (error) {
+                console.error(error)
             }
         }
 
@@ -191,16 +239,19 @@ export default class AlertController extends BaseController {
         }
 
         for (const contentElement of this.contentTargets) {
-            contentElement.innerHTML = data.message
+            contentElement.innerHTML = data.message ?? ''
         }
 
         setTimeout(() => {
             for (const delayedElement of this.delayedTargets) {
-                delayedElement.style.display = null
+                delayedElement.style.display = ''
             }
         }, 250)
 
-        this.iconTarget?.setAttribute('class', `alert-logo mdi mdi-${data.icon}`)
+        this.iconTarget?.setAttribute(
+            'class',
+            `alert-logo mdi mdi-${data.icon}`,
+        )
     }
 
     protected async hideAlert(data: any): Promise<void> {
@@ -208,8 +259,12 @@ export default class AlertController extends BaseController {
 
         try {
             this.videoTarget?.pause()
-        } catch (e) {
-            console.error(e)
+        } catch (error) {
+            console.error(error)
+        }
+
+        if (this.videoTarget) {
+            this.videoTarget.style.opacity = '0'
         }
 
         if (this.iframeTarget) {
@@ -223,14 +278,15 @@ export default class AlertController extends BaseController {
         }
 
         if (this.imageTarget) {
+            this.imageTarget.src = ''
             this.imageTarget.classList.add('d-none')
         }
 
         this.element.classList.remove('expand')
         this.element.classList.remove('aspect')
-        this.element.style.height = null
-        this.element.style.width = null
-        this.element.style.padding = null
+        this.element.style.height = ''
+        this.element.style.width = ''
+        this.element.style.padding = ''
 
         await sleep(500)
 
@@ -243,12 +299,25 @@ export default class AlertController extends BaseController {
         }
 
         this.iconTarget?.setAttribute('class', 'alert-logo mdi')
+
         this.resetActiveTypeElements()
+
+        /*
+         * Only restore opacity when this controller changed it
+         * from 0 to 1 while showing the alert.
+         */
+        if (this.restoreOpacity) {
+            this.element.style.opacity = '0'
+            this.restoreOpacity = false
+        }
+
         this.visible = false
     }
 
     protected normalizeMediaUrl(value: string): string {
-        const normalized = String(value ?? '').replace(/\\/g, '/').replace(/^\/+/, '')
+        const normalized = String(value ?? '')
+            .replace(/\\/g, '/')
+            .replace(/^\/+/, '')
 
         if (!normalized) return ''
         if (/^https?:\/\//i.test(normalized)) return normalized
@@ -258,7 +327,6 @@ export default class AlertController extends BaseController {
     }
 
     async handleGameUpdate(websocket: Websocket, data: any) {
-
         if (this.element.hasAttribute('data-disable-theme')) return
 
         if (this.iconTarget) {
