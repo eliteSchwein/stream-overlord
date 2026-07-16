@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-music-note-plus"
-    title="Add song request"
+    :title="$t('macro.music.songRequest.title')"
     export-prefix="macro_music_song_request"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,8 +11,8 @@
   >
     <v-text-field
       v-model="task.data.url"
-      label="Song URL"
-      placeholder="https://..."
+      :label="$t('macro.music.fields.songUrl')"
+      :placeholder="$t('macro.music.fields.urlPlaceholder')"
       variant="outlined"
       density="comfortable"
     />

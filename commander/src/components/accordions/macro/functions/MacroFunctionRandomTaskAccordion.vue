@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Random number"
+    :title-prefix="$t('macro.function.random.title')"
     icon="mdi-dice-multiple-outline"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,13 +11,13 @@
   >
     <template #default="{ data }">
       <v-col cols="12" md="4">
-        <v-text-field v-model="data.key" label="Variable key" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model="data.key" :label="$t('macro.function.fields.variableKey')" density="compact" variant="outlined" hide-details />
       </v-col>
       <v-col cols="12" md="4">
-        <v-text-field v-model.number="data.min" label="Min" type="number" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model.number="data.min" :label="$t('macro.function.fields.min')" type="number" density="compact" variant="outlined" hide-details />
       </v-col>
       <v-col cols="12" md="4">
-        <v-text-field v-model.number="data.max" label="Max" type="number" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model.number="data.max" :label="$t('macro.function.fields.max')" type="number" density="compact" variant="outlined" hide-details />
       </v-col>
     </template>
   </MacroFunctionBaseTaskAccordion>

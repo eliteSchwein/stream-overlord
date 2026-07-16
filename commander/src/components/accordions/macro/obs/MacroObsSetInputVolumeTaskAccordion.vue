@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-source"
-    title="Set input volume"
+    :title="$t('macro.obs.setInputVolume.title')"
     export-prefix="macro_obs_set_input_volume"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -15,7 +15,7 @@
         <v-autocomplete
           v-model="data.inputName"
           :items="inputOptions"
-          label="Input / source"
+          :label="$t('macro.obs.fields.inputSource')"
           prepend-inner-icon="mdi-import"
           variant="outlined"
           hide-details="auto"
@@ -28,7 +28,7 @@
         <v-text-field
           v-model.number="data.inputVolumeDb"
           type="number"
-          label="Volume dB"
+          :label="$t('macro.obs.fields.volumeDb')"
           prepend-inner-icon="mdi-volume-high"
           variant="outlined"
           hide-details="auto"

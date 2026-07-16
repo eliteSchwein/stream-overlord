@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-file-edit-outline"
-    title="PATCH request"
+    :title="$t('macro.api.requestTitles.patch')"
     export-prefix="macro_api_patch"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"

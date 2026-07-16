@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Song request"
+    :title-prefix="$t('macro.function.songRequest.title')"
     icon="mdi-music-note-plus"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,7 +11,7 @@
   >
     <template #default="{ data }">
       <v-col cols="12" md="12">
-        <v-text-field v-model="data.url" label="URL" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model="data.url" :label="$t('macro.function.fields.url')" density="compact" variant="outlined" hide-details />
       </v-col>
     </template>
   </MacroFunctionBaseTaskAccordion>

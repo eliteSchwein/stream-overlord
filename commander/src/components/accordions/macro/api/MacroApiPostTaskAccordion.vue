@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-upload"
-    title="POST request"
+    :title="$t('macro.api.requestTitles.post')"
     export-prefix="macro_api_post"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"

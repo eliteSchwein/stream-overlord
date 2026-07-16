@@ -13,7 +13,7 @@
       <v-col cols="12" sm="6" md="8">
         <v-text-field
           v-model.number="timeValue"
-          label="Time"
+          :label="$t('macro.function.sleep.time')"
           type="number"
           min="0"
           step="any"
@@ -30,7 +30,7 @@
           :items="timeUnits"
           item-title="title"
           item-value="value"
-          label="Unit"
+          :label="$t('macro.function.sleep.unit')"
           density="compact"
           variant="outlined"
           hide-details
@@ -72,12 +72,6 @@ export default {
     return {
       timeValue: 0,
       timeUnit: 'seconds' as TimeUnit,
-      timeUnits: [
-        { title: 'Milliseconds', value: 'milliseconds' },
-        { title: 'Seconds', value: 'seconds' },
-        { title: 'Minutes', value: 'minutes' },
-        { title: 'Hours', value: 'hours' },
-      ],
     }
   },
 
@@ -86,8 +80,19 @@ export default {
       return (this.item as any).task
     },
 
+    timeUnits(): Array<{ title: string; value: TimeUnit }> {
+      return [
+        { title: String(this.$t('macro.function.sleep.units.milliseconds')), value: 'milliseconds' },
+        { title: String(this.$t('macro.function.sleep.units.seconds')), value: 'seconds' },
+        { title: String(this.$t('macro.function.sleep.units.minutes')), value: 'minutes' },
+        { title: String(this.$t('macro.function.sleep.units.hours')), value: 'hours' },
+      ]
+    },
+
     sleepTitle(): string {
-      return `Sleep: ${this.formatDuration(this.getMilliseconds())}`
+      return String(this.$t('macro.function.sleep.title', {
+        duration: this.formatDuration(this.getMilliseconds()),
+      }))
     },
   },
 
@@ -137,23 +142,31 @@ export default {
 
     formatDuration(milliseconds: number): string {
       if (milliseconds < 1000) {
-        return `${milliseconds} ms`
+        return String(this.$t('macro.function.sleep.duration.milliseconds', {
+          count: milliseconds,
+        }))
       }
 
       const totalSeconds = milliseconds / 1000
 
       if (totalSeconds < 60) {
-        return `${this.formatNumber(totalSeconds)} ${totalSeconds === 1 ? 'second' : 'seconds'}`
+        return String(this.$t('macro.function.sleep.duration.seconds', {
+          count: this.formatNumber(totalSeconds),
+        }))
       }
 
       const totalMinutes = totalSeconds / 60
 
       if (totalMinutes < 60) {
-        return `${this.formatNumber(totalMinutes)} ${totalMinutes === 1 ? 'minute' : 'minutes'}`
+        return String(this.$t('macro.function.sleep.duration.minutes', {
+          count: this.formatNumber(totalMinutes),
+        }))
       }
 
       const totalHours = totalMinutes / 60
-      return `${this.formatNumber(totalHours)} ${totalHours === 1 ? 'hour' : 'hours'}`
+      return String(this.$t('macro.function.sleep.duration.hours', {
+        count: this.formatNumber(totalHours),
+      }))
     },
 
     formatNumber(value: number): string {

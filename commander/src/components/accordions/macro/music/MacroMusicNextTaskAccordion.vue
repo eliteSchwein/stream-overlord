@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-skip-next"
-    title="Next song"
+    :title="$t('macro.music.next.title')"
     export-prefix="macro_music_next"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -13,7 +13,7 @@
       type="info"
       variant="tonal"
       density="compact"
-      text="Skip to the next playlist entry."
+      :text="$t('macro.music.next.info')"
     />
   </MacroTaskAccordionTemplate>
 </template>

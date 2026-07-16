@@ -2,12 +2,12 @@
   "navigation": {
     "status": {
       "throttled": "Gedrosselt",
-      "shield": "Schutzmodus"
+      "shield": "Schutz"
     },
     "actions": {
       "reloadPage": "Seite neu laden",
       "restartBot": "Bot neu starten",
-      "reloadBrowserSources": "Browser-Quellen neu laden",
+      "reloadBrowserSources": "Browserquellen neu laden",
       "updateBot": "Bot aktualisieren",
       "shutdownSystem": "System herunterfahren"
     },
@@ -21,33 +21,40 @@
     },
     "tabs": {
       "dashboard": "Dashboard",
-      "channelPoints": "Channel Points",
+      "channelPoints": "Kanalpunkte",
       "audio": "Audio",
       "macros": "Makros",
       "overlay": "Overlay",
-      "assets": "Assets",
       "music": "Musik",
       "yolobox": "YoloBox",
-      "config": "Konfiguration",
+      "config": "Config LEGACY",
       "connections": "Verbindungen",
-      "recovery": "Recovery",
-      "gameScene": "Game Scene",
-      "variables": "Variablen",
-      "obs": "OBS"
+      "recovery": "Wiederherstellung",
+      "gameScene": "Game scene",
+      "variables": "Variables",
+      "obs": "OBS",
+      "media": "Media",
+      "assets": "Assets",
+      "events": "Events",
+      "commands": "Commands",
+      "integrations": "Integrations",
+      "automacros": "Auto Macros",
+      "rotatingscene": "Scene Rotation",
+      "settings": "Einstellungen"
     },
     "routes": {
       "dashboard": "Dashboard",
-      "channelPoints": "Channel Points",
+      "channelPoints": "Kanalpunkte",
       "audio": "Audio",
       "macros": "Makros",
       "overlay": "Overlay",
-      "assets": "Assets",
       "music": "Musik",
       "yolobox": "YoloBox",
-      "editConfig": "Konfiguration",
+      "editConfig": "Config",
       "connections": "Verbindungen",
-      "recovery": "Recovery",
-      "gameScene": "Game Scene"
+      "recovery": "Wiederherstellung",
+      "gameScene": "Game scene",
+      "media": "Media"
     }
   },
   "music": {
@@ -55,257 +62,719 @@
     "songRequests": "Song Requests",
     "playlist": "Playlist",
     "songCount": "{count} Songs",
-    "noSong": "Kein Song",
-    "unknownArtist": "Unbekannter Künstler",
-    "unknownSong": "Unbekannter Song",
-    "playlistWebsocketFailed": "Musik-Playlist-Websocket fehlgeschlagen"
+    "noSong": "Kein Titel",
+    "unknownArtist": "Unbekannter Interpret",
+    "unknownSong": "Unbekannter Titel",
+    "playlistWebsocketFailed": "Music playlist websocket failed"
   },
   "musicPlaylist": {
-    "title": "Musik Playlist",
-    "addSongs": "Lieder hinzufügen (max. 30 auf einmal)",
-    "searchSong": "Song suchen",
-    "noMusicFound": "Keine Musik gefunden.",
-    "showPrevious": "Vorherige anzeigen",
-    "showNext": "Nächste anzeigen"
+    "title": "Music Playlist",
+    "addSongs": "Add songs (max. 30 at a time)",
+    "searchSong": "Search song",
+    "noMusicFound": "No music found.",
+    "showPrevious": "Show previous",
+    "showNext": "Show next"
   },
   "macro": {
-    "trigger": "Makro ausführen",
+    "trigger": "Run macro",
     "table": {
-      "channel": "Kanal",
-      "method": "Methode",
-      "data": "Daten"
+      "channel": "Channel",
+      "method": "Method",
+      "data": "Data"
+    },
+    "title": "Makros",
+    "upload": "Upload macro",
+    "search": "Search macros",
+    "noMacrosFound": "No macros found",
+    "create": "Create macro",
+    "createFile": "Add macro",
+    "name": "Macro name",
+    "editor": "Macro editor",
+    "deleteConfirmTitle": "Delete macro",
+    "deleteConfirmText": "Do you really want to delete this macro?",
+    "rawYamlEditor": "Raw YAML editor",
+    "visualEditor": "Visual macro editor",
+    "code": "Code",
+    "errors": {
+      "importFailed": "Import failed",
+      "readFailed": "Failed to read macro",
+      "loadFailed": "Failed to load macro",
+      "saveFailed": "Failed to save macro",
+      "parseFailed": "Failed to parse macro YAML",
+      "invalidYaml": "Invalid macro YAML",
+      "websocketDisconnected": "WebSocket is not connected"
+    },
+    "api": {
+      "requestTitles": {
+        "get": "GET request",
+        "post": "POST request",
+        "put": "PUT request",
+        "patch": "PATCH request",
+        "delete": "DELETE request"
+      },
+      "url": "URL",
+      "resultVariable": "Result variable",
+      "queryParameters": "Query parameters",
+      "addQueryParameter": "Add query parameter",
+      "parameter": "Parameter",
+      "customHeaders": "Custom headers",
+      "addHeader": "Add header",
+      "header": "Header",
+      "value": "Value",
+      "bodyType": "Body type",
+      "timeoutMs": "Timeout (ms)",
+      "failOnHttpError": "Fail macro task on HTTP error",
+      "multipartFormData": "Multipart form data",
+      "formData": "Form data",
+      "addMultipartField": "Add multipart field",
+      "addFormField": "Add form field",
+      "field": "Field",
+      "removeRow": "Remove {label} row",
+      "noneConfigured": "No {label} configured.",
+      "invalidJson": "Invalid JSON",
+      "invalidJsonWithReason": "Invalid JSON: {reason}",
+      "bodyTypes": {
+        "none": "No body",
+        "json": "JSON",
+        "form": "Form URL encoded",
+        "multipart": "Multipart form data",
+        "raw": "Raw body"
+      },
+      "placeholders": {
+        "url": "https://example.com/api/items",
+        "resultVariable": "api_response",
+        "queryKey": "limit",
+        "queryValue": "10",
+        "headerKey": "Authorization",
+        "headerValue": "Bearer ${token}",
+        "fieldName": "name",
+        "templateValue": "${user.name}"
+      }
+    },
+    "audio": {
+      "setVolumeTitle": "Set audio volume",
+      "adjustVolumeTitle": "Adjust audio volume",
+      "interface": "Audio interface",
+      "interfacePlaceholder": "Select or enter an interface",
+      "volume": "Volume",
+      "volumeAdjustment": "Volume adjustment",
+      "negativeVolumeHint": "Use a negative value to lower the volume"
+    },
+    "function": {
+      "defaultTitle": "Function",
+      "unknownMethod": "method",
+      "titleWithMethod": "{prefix}: {method}",
+      "fields": {
+        "function": "Function",
+        "message": "Message",
+        "color": "Color",
+        "variableKey": "Variable key",
+        "min": "Min",
+        "max": "Max",
+        "user": "User",
+        "url": "URL",
+        "text": "Text",
+        "eventId": "Event ID",
+        "autoMacroName": "Auto macro name"
+      },
+      "announce": {
+        "title": "Announce"
+      },
+      "random": {
+        "title": "Random number"
+      },
+      "sendDm": {
+        "title": "Send DM"
+      },
+      "sendMessage": {
+        "title": "Send chat message"
+      },
+      "songRequest": {
+        "title": "Song request"
+      },
+      "songRequestToggle": {
+        "title": "Toggle song requests",
+        "info": "No settings needed. This toggles song requests."
+      },
+      "speak": {
+        "title": "Speak"
+      },
+      "toggleAutoMacro": {
+        "title": "Toggle auto macro"
+      },
+      "sleep": {
+        "title": "Sleep: {duration}",
+        "time": "Time",
+        "unit": "Unit",
+        "units": {
+          "milliseconds": "Milliseconds",
+          "seconds": "Seconds",
+          "minutes": "Minutes",
+          "hours": "Hours"
+        },
+        "duration": {
+          "milliseconds": "{count} ms",
+          "seconds": "{count} seconds",
+          "minutes": "{count} minutes",
+          "hours": "{count} hours"
+        }
+      }
+    },
+    "music": {
+      "actions": {
+        "toggle": "Toggle",
+        "enable": "Enable",
+        "disable": "Disable"
+      },
+      "fields": {
+        "action": "Action",
+        "song": "Song, filename, or path",
+        "continuePlaylist": "Continue playlist afterwards",
+        "restartSong": "Restart song",
+        "loadPaused": "Load paused",
+        "volumeAdjustment": "Volume adjustment",
+        "negativeVolumeHint": "Use a negative value to lower the volume",
+        "restoreState": "Restore previous player state",
+        "songUrl": "Song URL",
+        "urlPlaceholder": "https://..."
+      },
+      "loop": {
+        "title": "Playlist loop"
+      },
+      "loopFile": {
+        "title": "Current-song loop"
+      },
+      "next": {
+        "title": "Next song",
+        "info": "Skip to the next playlist entry."
+      },
+      "pause": {
+        "title": "Pause music",
+        "info": "Pause music playback."
+      },
+      "playSong": {
+        "title": "Play specific song"
+      },
+      "play": {
+        "title": "Play music",
+        "info": "Resume music playback."
+      },
+      "previous": {
+        "title": "Previous song",
+        "info": "Return to the previous playlist entry."
+      },
+      "relativeVolume": {
+        "title": "Adjust music volume"
+      },
+      "reload": {
+        "title": "Reload music player"
+      },
+      "shuffle": {
+        "title": "Music shuffle"
+      },
+      "songRequest": {
+        "title": "Add song request"
+      },
+      "togglePause": {
+        "title": "Toggle play / pause",
+        "info": "Toggle the current playback state."
+      },
+      "stop": {
+        "title": "Stop music",
+        "info": "Stop the current playback."
+      },
+      "toggleSongRequests": {
+        "title": "Toggle song requests",
+        "info": "Enable or disable song requests."
+      }
+    },
+    "obs": {
+      "fields": {
+        "connection": "OBS connection",
+        "scene": "Scene",
+        "sceneItem": "Scene item",
+        "source": "Source",
+        "filter": "Filter",
+        "input": "Input",
+        "muted": "Muted",
+        "volume": "Volume",
+        "profile": "Profile",
+        "sceneCollection": "Scene collection",
+        "locked": "Locked",
+        "filterName": "Filter name",
+        "inputSource": "Input / source",
+        "volumeDb": "Volume dB",
+        "profileName": "Profile name",
+        "sceneCollectionName": "Scene collection name",
+        "visibility": "Visibility",
+        "hotkeyName": "Hotkey name",
+        "positionX": "X",
+        "positionY": "Y",
+        "scaleX": "Scale X",
+        "scaleY": "Scale Y",
+        "rotation": "Rotation"
+      },
+      "disableSourceFilter": {
+        "title": "Disable source filter",
+        "info": "Disable the selected source filter."
+      },
+      "enableSourceFilter": {
+        "title": "Enable source filter",
+        "info": "Enable the selected source filter."
+      },
+      "hideSceneItem": {
+        "title": "Hide scene item",
+        "info": "Hide the selected scene item."
+      },
+      "lockSceneItem": {
+        "title": "Lock scene item"
+      },
+      "muteInput": {
+        "title": "Mute input",
+        "info": "Mute the selected input."
+      },
+      "pauseRecord": {
+        "title": "Pause recording",
+        "info": "Pause the active recording."
+      },
+      "reloadBrowserSources": {
+        "title": "Browserquellen neu laden",
+        "info": "Reload all OBS browser sources."
+      },
+      "resumeRecord": {
+        "title": "Resume recording",
+        "info": "Resume the active recording."
+      },
+      "saveReplayBuffer": {
+        "title": "Save replay buffer",
+        "info": "Save the current replay buffer."
+      },
+      "setInputMute": {
+        "title": "Set input mute state"
+      },
+      "setInputVolume": {
+        "title": "Set input volume"
+      },
+      "setProfile": {
+        "title": "Set OBS profile"
+      },
+      "setSceneCollection": {
+        "title": "Set scene collection"
+      },
+      "startRecord": {
+        "title": "Start recording",
+        "info": "Start recording."
+      },
+      "showSceneItem": {
+        "title": "Show scene item",
+        "info": "Show the selected scene item."
+      },
+      "noExtraOptions": "This OBS action has no extra options.",
+      "visibility": {
+        "show": "Show",
+        "hide": "Hide"
+      },
+      "stopRecord": {
+        "title": "Stop recording"
+      },
+      "toggleStream": {
+        "title": "Toggle stream"
+      },
+      "switchPreviewScene": {
+        "title": "Switch preview scene"
+      },
+      "startReplayBuffer": {
+        "title": "Start replay buffer"
+      },
+      "toggleRecord": {
+        "title": "Toggle recording"
+      },
+      "startStream": {
+        "title": "Start stream"
+      },
+      "stopStream": {
+        "title": "Stop stream"
+      },
+      "switchScene": {
+        "title": "Switch scene"
+      },
+      "triggerHotkey": {
+        "title": "Trigger OBS hotkey"
+      },
+      "toggleSceneItem": {
+        "title": "Set scene item visibility"
+      },
+      "toggleInputMute": {
+        "title": "Toggle input mute"
+      },
+      "transformSceneItem": {
+        "title": "Transform scene item"
+      },
+      "stopReplayBuffer": {
+        "title": "Stop replay buffer"
+      },
+      "unmuteInput": {
+        "title": "Unmute input"
+      },
+      "unlockSceneItem": {
+        "title": "Unlock scene item"
+      }
     }
   },
   "giveaway": {
     "title": "Giveaway",
-    "winner": "Gewinner",
-    "active": "Aktiv",
-    "participants": "Teilnehmer",
+    "winner": "Winner",
+    "active": "Active",
+    "participants": "participants",
     "name": "Name",
-    "contentLabel": "Was wird verlost?",
-    "durationLabel": "Dauer",
-    "create": "Erstellen"
+    "contentLabel": "What is being raffled?",
+    "durationLabel": "Duration",
+    "create": "Create"
   },
   "alerts": {
     "activeAlert": {
-      "title": "Alarm: {uuid} - {duration}",
+      "title": "Alert: {uuid} - {duration}",
       "name": "Name",
-      "value": "Wert",
-      "channel": "Kanal",
-      "icon": "Symbol",
-      "message": "Nachricht",
-      "sound": "Ton",
+      "value": "Value",
+      "channel": "Channel",
+      "icon": "Icon",
+      "message": "Message",
+      "sound": "Sound",
       "video": "Video",
-      "lampColor": "Lampenfarbe"
+      "lampColor": "Lamp Color"
     }
   },
   "yolobox": {
     "settings": {
-      "title": "Yolobox Makros",
-      "videoSources": "Videoquellen",
-      "overlaySources": "Overlay-Quellen",
-      "audioSources": "Audioquellen",
-      "generalCommands": "Allgemeine Befehle",
+      "title": "Yolobox Macros",
+      "videoSources": "Video Sources",
+      "overlaySources": "Overlay Sources",
+      "audioSources": "Audio Sources",
+      "generalCommands": "General Commands",
       "name": "Name",
-      "actions": "Aktionen",
-      "overlayOrderWarning": "Die Reihenfolge der Aktivierung ist wichtig!",
-      "volumeWarning": "Die Lautstärke geht von 0 bis 1. 0.5 sind 50%. Wichtig: Punkt verwenden, kein Komma!",
-      "disableAllOverlays": "Alle Overlays deaktivieren",
-      "goLive": "Live gehen",
-      "stopStream": "Stream stoppen",
+      "actions": "Actions",
+      "overlayOrderWarning": "The activation order is important!",
+      "volumeWarning": "Volume ranges from 0 to 1. 0.5 means 50%. Important: use a dot, not a comma!",
+      "disableAllOverlays": "Disable all overlays",
+      "goLive": "Go live",
+      "stopStream": "Stop stream",
       "tooltips": {
-        "switchVideoSource": "Zu dieser Videoquelle wechseln",
-        "enableOverlay": "Dieses Overlay aktivieren",
-        "disableOverlay": "Dieses Overlay deaktivieren",
-        "muteAudioSource": "Diese Audioquelle stummschalten",
-        "unmuteAudioSource": "Diese Audioquelle entstummen",
-        "copyAudioVolume": "Die Lautstärke dieser Audioquelle kopieren"
+        "switchVideoSource": "Switch to this video source",
+        "enableOverlay": "Enable this overlay",
+        "disableOverlay": "Disable this overlay",
+        "muteAudioSource": "Mute this audio source",
+        "unmuteAudioSource": "Unmute this audio source",
+        "copyAudioVolume": "Copy the volume from this audio source"
       }
     },
     "audioMixer": {
-      "title": "Yolobox Audio-Mixer",
-      "delay": "Verzögerung {delay}ms"
+      "title": "Yolobox Audio Mixer",
+      "delay": "Delay {delay}ms"
     },
     "tabs": {
-      "source": "Quelle",
+      "source": "Source",
       "overlay": "Overlay",
       "audio": "Audio"
     },
-    "autoRefresh": "Automatische Aktualisierung"
+    "autoRefresh": "Auto Refresh"
   },
   "obs": {
     "settings": {
       "name": "Name",
-      "title": "OBS-Szenen",
+      "title": "OBS Scenes for Canvas ",
       "uuid": "UUID",
       "index": "Index",
       "id": "ID",
-      "activeScene": "Aktive Szene",
-      "empty": "Keine Szenen erkannt",
-      "addSource": "Quelle hinzufügen auf der Webseite"
+      "activeScene": "Active Scene",
+      "empty": "No Scenes detected",
+      "addSource": "Add Source to Website"
     },
     "audioMixer": {
-      "title": "OBS-Audiomixer",
+      "title": "OBS Audio Mixer",
       "balance": "Balance",
-      "search": "Audiospur suchen",
-      "volumeControl": "Lautstärke",
+      "search": "Search Audio Track",
+      "volumeControl": "Volume",
       "name": "Name",
-      "empty": "Keine Audiospuren erkannt"
+      "empty": "No Audio Tracks detected"
     },
-    "instance": "OBS Instanz",
-    "disclaimer": "Die OBS-Adminpanel-Integration ist aktuell noch stark experimentell und sehr rudimentär umgesetzt. Sie wurde vorerst speziell dafür entwickelt, die Quellenelemente (Sources) einfacher in meine Remote-API integrieren zu können."
+    "instance": "OBS Instance",
+    "disclaimer": "The OBS Admin Panel Integration is super experimental and bare metal. Its specific designed for now that i can easier integrate the source stuff to my remote api."
   },
   "power": {
     "dialog": {
-      "title": "System herunterfahren?",
-      "reboot": "Neustarten",
-      "shutdown": "Herunterfahren"
+      "title": "Shut down system?",
+      "reboot": "Reboot",
+      "shutdown": "Shutdown"
     }
   },
   "connectDialog": {
-    "reconnecting": "Verbinde neu...",
-    "connectionLost": "Verbindung verloren",
-    "connectionLostText": "Die Verbindung mit dem Bot Backend wurde verloren, neuverbinden?",
-    "reconnect": "Neu verbinden"
+    "reconnecting": "Reconnecting...",
+    "connectionLost": "Connection Lost",
+    "connectionLostText": "The connection to the bot backend was lost. Reconnect?",
+    "reconnect": "Reconnect"
   },
   "audio": {
     "title": "Bot Audio Mixer",
     "name": "Name",
-    "volumeControl": "Lautstärkeregelung",
-    "sink": "Senke",
-    "unknownOutput": "Unbekannter Ausgang",
-    "output": "Ausgang",
-    "defaultSink": "Standard-Ausgang",
-    "active": "Aktiv"
+    "volumeControl": "Volume Control",
+    "sink": "Sink",
+    "unknownOutput": "Unknown Output",
+    "output": "Output",
+    "defaultSink": "Default Sink",
+    "active": "Active"
   },
   "editConfig": {
-    "title": "Bot Konfiguration",
+    "title": "Bot Configuration",
     "save": "Speichern",
     "cursor": "Cursor",
-    "selection": "Auswahl",
-    "systemFunctions": "Diverse System Funktionen",
-    "testMode": "Test Modus",
-    "defaultMacros": "Standard Makros",
+    "selection": "Selection",
+    "systemFunctions": "System Functions",
+    "testMode": "Test Mode",
+    "defaultMacros": "Default Macros",
     "pause250ms": "250ms Pause",
     "pause1s": "1s Pause",
-    "availableVoices": "Verfügbare Stimmen"
+    "availableVoices": "Available Voices"
   },
   "gameScene": {
-    "saveScene": "Szene speichern",
-    "reloadScene": "Szene neu laden"
+    "saveScene": "Save Scene",
+    "reloadScene": "Reload Scene"
   },
   "currentGame": {
-    "title": "Aktuell aktives Spiel",
-    "gameId": "Spiel ID",
-    "deaths": "Tode",
+    "title": "Currently Active Game",
+    "gameId": "Game ID",
+    "deaths": "Deaths",
     "tags": "Tags",
-    "channelPoints": "Kanalpunkte"
+    "channelPoints": "Channel Points"
   },
   "dashboard": {
-    "noAlerts": "Es sind derzeit keine Alerts!",
-    "noAutoMacros": "Es gibt aktuell keine automatischen Makros!"
+    "noAlerts": "There are currently no alerts!",
+    "noAutoMacros": "There are currently no automatic macros!"
   },
   "recovery": {
-    "warning": "Hier gibt es keine Abfrage ob du diese Aktion auslösen willst, bitte nur auslösen wenn du dir ABSOLUT sicher bist was du machst.",
-    "deleteAuthText": "Twitch Verknüpfung löschen, danach bitte oben rechts den Bot neustarten.",
+    "warning": "There is no confirmation before triggering these actions. Only trigger them if you are ABSOLUTELY sure what you are doing.",
+    "deleteAuthText": "Delete Twitch connection. After that, please restart the bot in the top right.",
     "authReset": "AUTH RESET",
-    "botReloadText": "Hier kannst du den Bot intern neuladen, das sollte in der Regel nichts kaputt machen.",
+    "botReloadText": "Reload the bot internally. This usually should not break anything.",
     "botReload": "BOT RELOAD",
-    "compressAssetsText": "Hier kannst du die Assets (Bilder/Videos) manuell komprimieren, das komprimiert alle Assets nochmal neu. Hier bitte Geduld, das dauert ein bisschen.",
-    "compressAssets": "COMPRESS ASSETS"
-  },
-  "assets": {
-    "title": "Assets",
-    "upload": "Hochladen",
-    "search": "Asset suchen",
-    "compressed": "komprimiert",
-    "noAssetsFound": "Keine Assets gefunden!",
-    "normalUrl": "Normale URL",
-    "compressedUrl": "Komprimierte URL",
-    "compress": "Komprimieren",
-    "move": "Verschieben",
-    "delete": "Löschen",
-    "open": "Öffnen",
-    "previewFailed": "Vorschau fehlgeschlagen!",
-    "noPreview": "Keine Vorschau verfügbar!",
-    "preview": "Vorschau",
-    "copy": "Kopieren",
-    "copyDialog": "URLs kopieren",
-    "moveDialog": "Asset verschieben",
-    "createFolder": "Ordner erstellen",
-    "deleteConfirmTitle": "Datei/Ordner löschen",
-    "deleteConfirmText": "Möchtest du diese Datei oder diesen Ordner wirklich löschen?"
+    "compressAssetsText": "Manually compress the media (images/videos). This recompresses all media again. Please be patient, this takes a little while.",
+    "compressAssets": "COMPRESS MEDIA"
   },
   "system": {
-    "storage": "Speicher",
-    "storageUsed": "Belegter Speicher",
-    "storageFree": "Freier Speicher",
-    "storageTotal": "Gesamtspeicher",
-    "assetsUsed": "Von Assets belegt",
-    "overlayUsed": "Von Überlagerungen belegt",
-    "musicUsed": "Von Musik belegt",
-    "macroUsed": "Von Markos belegt"
+    "storage": "Storage",
+    "storageUsed": "Used Storage",
+    "storageFree": "Free Storage",
+    "storageTotal": "Total Storage",
+    "musicUsed": "Used by Music",
+    "overlayUsed": "Used by Overlays",
+    "macroUsed": "Used by Macros",
+    "mediaUsed": "Used by Media",
+    "channelPointUsed": "Used by Channel Points",
+    "commandUsed": "Used by Commands",
+    "rotatingSceneUsed": "Used by Scene rotation",
+    "autoMacroUsed": "Used by Auto Macros"
   },
   "common": {
     "cancel": "Abbrechen",
-    "target": "Ziel",
+    "target": "Target",
     "save": "Speichern",
     "edit": "Bearbeiten",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "add": "Hinzufügen",
+    "refresh": "Aktualisieren",
+    "enabled": "Aktiviert",
+    "yes": "Ja",
+    "no": "Nein"
   },
   "file": {
-    "name": "Dateiname",
-    "folder": "Ordner",
+    "name": "Filename",
+    "folder": "Folder",
     "delete": "Löschen",
-    "folderUp": "Übergeordneter Ordner",
-    "dropFiles": "Dateien hier ablegen, um sie hochzuladen",
-    "noFoldersFound": "Keine Ordner gefunden",
-    "noPresetsFound": "Keine Presets gefunden"
+    "folderUp": "Parent folder",
+    "dropFiles": "Drop Files here to upload",
+    "noFoldersFound": "No Folders found",
+    "noPresetsFound": "No presets found"
   },
   "variables": {
-    "title": "Variablen",
-    "empty": "Keine Variablen gefunden",
-    "reload": "Neu laden",
+    "title": "Variables",
+    "empty": "No variables found",
+    "reload": "Reload",
     "save": "Speichern",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "search": "Search variable"
   },
   "overlay": {
     "title": "Overlays",
-    "upload": "Overlays hochladen",
-    "search": "Overlays suchen",
-    "createFile": "Datei erstellen",
-    "createFolder": "Ordner erstellen",
-    "noOverlayFound": "Keine Overlays gefunden",
-    "open": "Öffnen",
-    "move": "Verschieben",
+    "upload": "Upload overlays",
+    "search": "Search overlays",
+    "createFile": "Create file",
+    "createFolder": "Create folder",
+    "noOverlayFound": "No overlays found",
+    "open": "Open",
+    "move": "Move",
     "delete": "Löschen",
-    "copyDialog": "Overlay-URL kopieren",
-    "moveDialog": "Overlay verschieben",
-    "deleteConfirmTitle": "Overlay löschen?",
-    "deleteConfirmText": "Möchtest du dieses Overlay wirklich löschen?",
-    "editor": "Overlay-Editor",
+    "copyDialog": "Copy overlay URL",
+    "moveDialog": "Move overlay",
+    "deleteConfirmTitle": "Delete overlay",
+    "deleteConfirmText": "Do you really want to delete this overlay?",
+    "editor": "Overlay editor",
     "code": "Code",
-    "preview": "Vorschau",
-    "content": "Inhalt",
+    "preview": "Preview",
+    "content": "Content",
     "url": "URL",
     "template": "Template",
-    "templatePreviewWarning": "Template-Includes werden über die Backend-Vorschau gerendert.",
-    "previewMode": "Vorschaumodus",
-    "previewPreset": "Vorschau-Preset",
-    "previewWidth": "Vorschau-Breite",
-    "previewHeight": "Vorschau-Höhe",
+    "templatePreviewWarning": "Template includes are rendered by the backend preview.",
+    "previewMode": "Preview mode",
+    "previewPreset": "Preview preset",
+    "previewWidth": "Preview width",
+    "previewHeight": "Preview height",
     "previewPresets": {
       "4kHorizontal": "4K horizontal",
       "1440pHorizontal": "1440p horizontal",
       "1080pHorizontal": "1080p horizontal",
-      "1080pVertical": "1080p vertikal",
+      "1080pVertical": "1080p vertical",
       "720pHorizontal": "720p horizontal",
-      "720pVertical": "720p vertikal",
-      "custom": "Benutzerdefiniert"
+      "720pVertical": "720p vertical",
+      "custom": "Custom"
     },
     "previewModes": {
-      "rendered": "Gerenderte gespeicherte Datei",
-      "raw": "Rohes ungespeichertes HTML"
+      "rendered": "Rendered saved file",
+      "raw": "Raw unsaved HTML"
     }
+  },
+  "media": {
+    "title": "Media",
+    "upload": "Upload",
+    "search": "Search media",
+    "compressed": "compressed",
+    "normalUrl": "Normal URL",
+    "compressedUrl": "Compressed URL",
+    "compress": "Compress",
+    "move": "Move",
+    "delete": "Löschen",
+    "open": "Open",
+    "previewFailed": "Preview failed!",
+    "noPreview": "No Preview!",
+    "preview": "Preview",
+    "copy": "Copy",
+    "copyDialog": "Copy URLs",
+    "moveDialog": "Move Asset",
+    "createFolder": "Create Folder",
+    "deleteConfirmTitle": "Delete File/Folder",
+    "deleteConfirmText": "Are you sure you want to delete this File/Folder?",
+    "noMediaFound": "No media found!",
+    "noAssetsFound": "No media found!"
+  },
+  "assets": {
+    "title": "Assets",
+    "bits": "Bits",
+    "sound": "Sound",
+    "icon": "Icon",
+    "color": "Color",
+    "channel": "Channel",
+    "duration": "Duration",
+    "volume": "Volume",
+    "image": "Image",
+    "video": "Video",
+    "message": "Message",
+    "name": "Asset name",
+    "editor": "Asset editor",
+    "createFile": "Add asset",
+    "uploadConfig": "Upload asset config",
+    "startMacros": "Start macros",
+    "idleMacros": "Idle macros",
+    "endMacros": "End macros",
+    "wled": "WLED",
+    "addWled": "Add WLED control",
+    "wledName": "WLED name",
+    "red": "Red",
+    "green": "Green",
+    "blue": "Blue",
+    "white": "White",
+    "effect": "Effect",
+    "noValuesSet": "No values set",
+    "configFile": "Asset config",
+    "deleteConfirmTitle": "Delete asset",
+    "deleteConfirmText": "Are you sure you want to delete this asset?",
+    "search": "Search assets",
+    "noAssetsFound": "No assets found",
+    "compressedUrl": "Compressed URL",
+    "targetColor": "Target Color",
+    "brightness": "Brightness",
+    "preset": "Preset",
+    "wledPresetOverridesColor": "WLED preset from the Lamp Active, other Inputs are now blocked.",
+    "general": "General",
+    "media": "Media",
+    "timing": "Timing",
+    "theme": "Theme",
+    "macros": "Makros",
+    "importFailed": "Asset import failed"
+  },
+  "channelPoints": {
+    "add": "Add channel point",
+    "title": "Channel Points",
+    "search": "Search channel points",
+    "upload": "Upload channel point",
+    "edit": "Edit channel point",
+    "create": "Create channel point",
+    "none": "No channel points found"
+  },
+  "events": {
+    "title": "Events",
+    "search": "Search events",
+    "none": "No events found"
+  },
+  "commands": {
+    "title": "Commands",
+    "search": "Search commands",
+    "none": "No commands found",
+    "create": "Create command",
+    "upload": "Upload command",
+    "delete": "Delete command",
+    "deleteConfirm": "Do you want to delete the following command:"
+  },
+  "integrations": {
+    "wled": {
+      "add": "Add WLED",
+      "name": "Name",
+      "ip": "IP Address"
+    }
+  },
+  "autoMacro": {
+    "title": "Auto Macro",
+    "search": "Search auto macros",
+    "none": "No auto macros found",
+    "create": "Create auto macro",
+    "upload": "Upload auto macro",
+    "delete": "Delete auto macro",
+    "deleteConfirmTitle": "Delete auto macro",
+    "deleteConfirmText": "Do you want to delete the following auto macro?",
+    "noAutoMacrosFound": "No auto macros found"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Language",
+    "theme": "Theme",
+    "themeDefaultPrimaryColor": "Default primary color",
+    "themeDefaultPrimaryColorHint": "Used as primary color for the whole bot system and for the overlay via --theme-color.",
+    "themeHexColor": "Hex color",
+    "tts": "Text to Speech",
+    "ttsWarning": "Avoid too high quality voice models on small systems. Medium models are usually the best balance for stream alerts.",
+    "selectedVoiceModel": "Selected voice model",
+    "searchVoiceModel": "Search / change voice model",
+    "hideVoices": "Hide voices",
+    "noVoiceModelsFound": "No voice models found. The current/default voice will still be saved.",
+    "assetTune": "Asset Tune",
+    "videoCodec": "Video codec",
+    "imageCompressionLevel": "Image compression level",
+    "imageQualityPercent": "Image quality percent",
+    "saved": "Settings saved",
+    "cava": "Music Visualizer (CAVA)",
+    "cavaBars": "Bars",
+    "cavaDefaultBars": "Default bars",
+    "cavaTargets": "CAVA targets",
+    "cavaTargetsHint": "Add optional extra CAVA outputs like jukebox. These are not created by default.",
+    "cavaTargetName": "Target name",
+    "cavaSettingKey": "Option",
+    "cavaSettingValue": "Option Value"
   }
 }

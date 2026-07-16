@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-pause"
-    title="Pause music"
+    :title="$t('macro.music.pause.title')"
     export-prefix="macro_music_pause"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -13,7 +13,7 @@
       type="info"
       variant="tonal"
       density="compact"
-      text="Pause music playback."
+      :text="$t('macro.music.pause.info')"
     />
   </MacroTaskAccordionTemplate>
 </template>

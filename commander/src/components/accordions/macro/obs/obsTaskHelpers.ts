@@ -1,9 +1,11 @@
 import { useAppStore } from '@/stores/app'
 
-export const OBS_BOOLEAN_ITEMS = [
-  { title: 'Yes', value: true },
-  { title: 'No', value: false },
-]
+export function getObsBooleanItems(t: (key: string) => unknown) {
+  return [
+    { title: String(t('common.yes')), value: true },
+    { title: String(t('common.no')), value: false },
+  ]
+}
 
 export function asArray(value: any): any[] {
   return Array.isArray(value) ? value : []

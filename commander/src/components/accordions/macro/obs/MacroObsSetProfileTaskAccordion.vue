@@ -14,7 +14,7 @@
       <v-col cols="12" md="6">
         <v-text-field
           v-model="data.profileName"
-          label="Profile name"
+          :label="$t('macro.obs.fields.profileName')"
           prepend-inner-icon="mdi-account-cog"
           variant="outlined"
           hide-details="auto"

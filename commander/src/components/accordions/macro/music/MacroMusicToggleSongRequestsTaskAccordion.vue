@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-music-note-off-outline"
-    title="Toggle song requests"
+    :title="$t('macro.music.toggleSongRequests.title')"
     export-prefix="macro_music_song_request_toggle"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -13,7 +13,7 @@
       type="info"
       variant="tonal"
       density="compact"
-      text="Enable or disable song requests."
+      :text="$t('macro.music.toggleSongRequests.info')"
     />
   </MacroTaskAccordionTemplate>
 </template>

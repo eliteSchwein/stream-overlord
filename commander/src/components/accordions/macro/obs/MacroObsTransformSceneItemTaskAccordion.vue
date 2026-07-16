@@ -15,7 +15,7 @@
         <v-autocomplete
           v-model="data.sceneName"
           :items="sceneOptions"
-          label="Scene"
+          :label="$t('macro.obs.fields.scene')"
           prepend-inner-icon="mdi-view-dashboard"
           variant="outlined"
           hide-details="auto"
@@ -28,9 +28,9 @@
         <v-autocomplete
           v-model="data.sceneItemId"
           :items="sceneItemOptions"
-          item-title="title"
+          item-:title="$t('macro.obs.transformSceneItem.title')"
           item-value="value"
-          label="Scene item"
+          :label="$t('macro.obs.fields.sceneItem')"
           prepend-inner-icon="mdi-layers-outline"
           variant="outlined"
           hide-details="auto"
@@ -43,7 +43,7 @@
         <v-text-field
           v-model.number="data.sceneItemTransform.positionX"
           type="number"
-          label="X"
+          :label="$t('macro.obs.fields.positionX')"
           variant="outlined"
           hide-details="auto"
         />
@@ -53,7 +53,7 @@
         <v-text-field
           v-model.number="data.sceneItemTransform.positionY"
           type="number"
-          label="Y"
+          :label="$t('macro.obs.fields.positionY')"
           variant="outlined"
           hide-details="auto"
         />
@@ -63,7 +63,7 @@
         <v-text-field
           v-model.number="data.sceneItemTransform.scaleX"
           type="number"
-          label="Scale X"
+          :label="$t('macro.obs.fields.scaleX')"
           variant="outlined"
           hide-details="auto"
         />
@@ -73,7 +73,7 @@
         <v-text-field
           v-model.number="data.sceneItemTransform.scaleY"
           type="number"
-          label="Scale Y"
+          :label="$t('macro.obs.fields.scaleY')"
           variant="outlined"
           hide-details="auto"
         />
@@ -83,7 +83,7 @@
         <v-text-field
           v-model.number="data.sceneItemTransform.rotation"
           type="number"
-          label="Rotation"
+          :label="$t('macro.obs.fields.rotation')"
           variant="outlined"
           hide-details="auto"
         />
@@ -127,7 +127,7 @@ export default {
     },
 
     title(): string {
-      return 'Transform scene item'
+      return String(this.$t('macro.obs.transformSceneItem.title'))
     },
 
     sceneOptions(): string[] {

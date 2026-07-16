@@ -34,13 +34,13 @@
         variant="text"
         color="error"
         class="mt-1"
-        :aria-label="`Remove ${label} row`"
+        :aria-label="$t('macro.api.removeRow', { label })"
         @click="removeEntry(entryIndex)"
       />
     </div>
 
     <div v-if="entries.length === 0" class="text-medium-emphasis text-body-2 mb-2">
-      No {{ label.toLowerCase() }} configured.
+      {{ $t('macro.api.noneConfigured', { label }) }}
     </div>
 
     <v-btn
@@ -76,15 +76,15 @@ export default {
     },
     addLabel: {
       type: String,
-      default: 'Add field',
+      required: true,
     },
     keyLabel: {
       type: String,
-      default: 'Key',
+      required: true,
     },
     valueLabel: {
       type: String,
-      default: 'Value',
+      required: true,
     },
     keyPlaceholder: {
       type: String,

@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-history"
-    title="Start replay buffer"
+    :title="$t('macro.obs.startReplayBuffer.title')"
     export-prefix="macro_obs_start_replay_buffer"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,7 +14,7 @@
       type="info"
       variant="tonal"
       density="comfortable"
-      text="This OBS action has no extra options."
+      :text="$t('macro.obs.noExtraOptions')"
     />
   </MacroTaskAccordionTemplate>
 </template>

@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-broadcast-off"
-    title="Stop stream"
+    :title="$t('macro.obs.stopStream.title')"
     export-prefix="macro_obs_stop_stream"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,7 +14,7 @@
       type="info"
       variant="tonal"
       density="comfortable"
-      text="This OBS action has no extra options."
+      :text="$t('macro.obs.noExtraOptions')"
     />
   </MacroTaskAccordionTemplate>
 </template>

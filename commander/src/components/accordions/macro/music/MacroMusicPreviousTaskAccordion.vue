@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-skip-previous"
-    title="Previous song"
+    :title="$t('macro.music.previous.title')"
     export-prefix="macro_music_back"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -13,7 +13,7 @@
       type="info"
       variant="tonal"
       density="compact"
-      text="Return to the previous playlist entry."
+      :text="$t('macro.music.previous.info')"
     />
   </MacroTaskAccordionTemplate>
 </template>

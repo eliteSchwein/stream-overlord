@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-repeat"
-    title="Playlist loop"
+    :title="$t('macro.music.loop.title')"
     export-prefix="macro_music_loop"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,7 +14,7 @@
       :items="modes"
       item-title="title"
       item-value="value"
-      label="Action"
+      :label="$t('macro.music.fields.action')"
       variant="outlined"
       density="comfortable"
     />
@@ -32,16 +32,7 @@ export default {
     index: { type: Number, required: true },
   },
   emits: ['remove', 'move-up', 'move-down'],
-  data() {
-    return {
-      modes: [
-        { title: 'Toggle', value: 'toggle' },
-        { title: 'Enable', value: 'enable' },
-        { title: 'Disable', value: 'disable' },
-      ],
-    }
-  },
-  computed: {
+computed: {
     task(): any { return (this.item as any).task },
     mode: {
       get(): string {

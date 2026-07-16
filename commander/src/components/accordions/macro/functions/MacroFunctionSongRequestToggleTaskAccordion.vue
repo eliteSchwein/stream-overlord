@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Toggle song requests"
+    :title-prefix="$t('macro.function.songRequestToggle.title')"
     icon="mdi-music-note-off-outline"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,7 +11,7 @@
   >
     <template #default>
       <v-col cols="12" md="12">
-        <v-alert type="info" color="grey-darken-3" density="compact" variant="tonal" text="No settings needed. This toggles song requests." />
+        <v-alert type="info" color="grey-darken-3" density="compact" variant="tonal" :text="$t('macro.function.songRequestToggle.info')" />
       </v-col>
     </template>
   </MacroFunctionBaseTaskAccordion>

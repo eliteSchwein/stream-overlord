@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Send chat message"
+    :title-prefix="$t('macro.function.sendMessage.title')"
     icon="mdi-message-text-outline"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,7 +11,7 @@
   >
     <template #default="{ data }">
       <v-col cols="12" md="12">
-        <v-text-field v-model="data.content" label="Message" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model="data.content" :label="$t('macro.function.fields.message')" density="compact" variant="outlined" hide-details />
       </v-col>
     </template>
   </MacroFunctionBaseTaskAccordion>

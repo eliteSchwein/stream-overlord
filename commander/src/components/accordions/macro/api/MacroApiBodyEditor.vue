@@ -25,12 +25,12 @@
     <MacroApiKeyValueEditor
       v-else-if="bodyType === 'form' || bodyType === 'multipart'"
       v-model="formValue"
-      :label="bodyType === 'multipart' ? 'Multipart form data' : 'Form data'"
-      :add-label="bodyType === 'multipart' ? 'Add multipart field' : 'Add form field'"
-      key-label="Field"
-      value-label="Value"
-      key-placeholder="name"
-      value-placeholder="${user.name}"
+      :label="$t(bodyType === 'multipart' ? 'macro.api.multipartFormData' : 'macro.api.formData')"
+      :add-label="$t(bodyType === 'multipart' ? 'macro.api.addMultipartField' : 'macro.api.addFormField')"
+      :key-label="$t('macro.api.field')"
+      :value-label="$t('macro.api.value')"
+      :key-placeholder="$t('macro.api.placeholders.fieldName')"
+      :value-placeholder="$t('macro.api.placeholders.templateValue')"
     />
   </div>
 </template>
@@ -146,7 +146,9 @@ export default {
         this.jsonError = ''
         this.$emit('update:bodyData', parsed)
       } catch (error: any) {
-        this.jsonError = error?.message ?? 'Invalid JSON'
+        this.jsonError = error?.message
+          ? this.$t('macro.api.invalidJsonWithReason', { reason: error.message })
+          : this.$t('macro.api.invalidJson')
         this.$emit('update:bodyData', value)
       }
     },

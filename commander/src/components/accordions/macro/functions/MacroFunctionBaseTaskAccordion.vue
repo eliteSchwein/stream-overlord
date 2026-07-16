@@ -13,7 +13,7 @@
     <v-text-field
       v-model="task.method"
       class="d-none"
-      label="Function"
+      :label="$t('macro.function.fields.function')"
       density="compact"
       variant="outlined"
       hide-details
@@ -41,7 +41,7 @@ export default {
     item: { type: Object, required: true },
     index: { type: Number, required: true },
     depth: { type: Number, default: 0 },
-    titlePrefix: { type: String, default: 'Function' },
+    titlePrefix: { type: String, default: '' },
     customTitle: { type: String, default: '' },
     icon: { type: String, default: 'mdi-function' },
   },
@@ -72,13 +72,13 @@ export default {
 
       const prefix = typeof this.titlePrefix === 'string' && this.titlePrefix.trim()
         ? this.titlePrefix.trim()
-        : 'Function'
+        : String(this.$t('macro.function.defaultTitle'))
 
       const method = typeof this.task?.method === 'string' && this.task.method.trim()
         ? this.task.method.trim()
-        : 'method'
+        : String(this.$t('macro.function.unknownMethod'))
 
-      return `${prefix}: ${method}`
+      return String(this.$t('macro.function.titleWithMethod', { prefix, method }))
     },
   },
 

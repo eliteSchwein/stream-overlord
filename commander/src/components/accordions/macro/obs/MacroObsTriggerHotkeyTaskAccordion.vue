@@ -14,7 +14,7 @@
       <v-col cols="12" md="6">
         <v-text-field
           v-model="data.hotkeyName"
-          label="Hotkey name"
+          :label="$t('macro.obs.fields.hotkeyName')"
           prepend-inner-icon="mdi-keyboard"
           variant="outlined"
           hide-details="auto"
@@ -51,7 +51,7 @@ export default {
     },
 
     title(): string {
-      return 'Trigger OBS hotkey'
+      return String(this.$t('macro.obs.triggerHotkey.title'))
     },
   },
 

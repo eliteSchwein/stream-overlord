@@ -14,7 +14,7 @@
       <v-col cols="12" md="6">
         <v-text-field
           v-model="data.sceneCollectionName"
-          label="Scene collection name"
+          :label="$t('macro.obs.fields.sceneCollectionName')"
           prepend-inner-icon="mdi-folder-cog"
           variant="outlined"
           hide-details="auto"

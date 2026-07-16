@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Toggle auto macro"
+    :title-prefix="$t('macro.function.toggleAutoMacro.title')"
     icon="mdi-toggle-switch-outline"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,10 +11,10 @@
   >
     <template #default="{ data }">
       <v-col cols="12" md="7">
-        <v-text-field v-model="data.name" label="Auto macro name" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model="data.name" :label="$t('macro.function.fields.autoMacroName')" density="compact" variant="outlined" hide-details />
       </v-col>
       <v-col cols="12" md="5">
-        <v-switch v-model="data.enabled" label="Enabled" color="primary" density="compact" hide-details inset />
+        <v-switch v-model="data.enabled" :label="$t('common.enabled')" color="primary" density="compact" hide-details inset />
       </v-col>
     </template>
   </MacroFunctionBaseTaskAccordion>

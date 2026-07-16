@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-mute"
-    title="Set input mute"
+    :title="$t('macro.obs.setInputMute.title')"
     export-prefix="macro_obs_set_input_mute"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -15,7 +15,7 @@
         <v-autocomplete
           v-model="obsData.inputName"
           :items="inputNames"
-          label="Input / source"
+          :label="$t('macro.obs.fields.inputSource')"
           clearable
           hide-details="auto"
           prepend-inner-icon="mdi-import"
@@ -28,7 +28,7 @@
         <v-select
           v-model="obsData.inputMuted"
           :items="booleanItems"
-          label="Muted"
+          :label="$t('macro.obs.fields.muted')"
           hide-details="auto"
           variant="outlined"
           density="comfortable"
@@ -40,7 +40,7 @@
 
 <script lang="ts">
 import MacroTaskAccordionTemplate from '../MacroTaskAccordionTemplate.vue'
-import { ensureObsTask, obsStoreMixin, OBS_BOOLEAN_ITEMS } from './obsTaskHelpers'
+import { ensureObsTask, getObsBooleanItems, obsStoreMixin } from './obsTaskHelpers'
 
 export default {
   name: 'MacroObsSetInputMuteTaskAccordion',
@@ -61,7 +61,7 @@ export default {
 
   computed: {
     booleanItems(): any[] {
-      return OBS_BOOLEAN_ITEMS
+      return getObsBooleanItems(this.$t)
     },
   },
 

@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-plus"
-    title="Adjust audio volume"
+    :title="$t('macro.audio.adjustVolumeTitle')"
     export-prefix="macro_audio_adjust_volume"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -12,8 +12,8 @@
     <v-autocomplete
       v-model="task.data.interface"
       :items="audioInterfaces"
-      label="Audio interface"
-      placeholder="Select or enter an interface"
+      :label="$t('macro.audio.interface')"
+      :placeholder="$t('macro.audio.interfacePlaceholder')"
       variant="outlined"
       density="comfortable"
       clearable
@@ -23,10 +23,10 @@
 
     <v-text-field
       v-model.number="task.data.volume"
-      label="Volume adjustment"
+      :label="$t('macro.audio.volumeAdjustment')"
       type="number"
       suffix="%"
-      hint="Use a negative value to lower the volume"
+      :hint="$t('macro.audio.negativeVolumeHint')"
       persistent-hint
       variant="outlined"
       density="comfortable"

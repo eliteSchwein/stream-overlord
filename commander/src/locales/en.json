@@ -103,6 +103,322 @@
       "parseFailed": "Failed to parse macro YAML",
       "invalidYaml": "Invalid macro YAML",
       "websocketDisconnected": "WebSocket is not connected"
+    },
+    "api": {
+      "requestTitles": {
+        "get": "GET request",
+        "post": "POST request",
+        "put": "PUT request",
+        "patch": "PATCH request",
+        "delete": "DELETE request"
+      },
+      "url": "URL",
+      "resultVariable": "Result variable",
+      "queryParameters": "Query parameters",
+      "addQueryParameter": "Add query parameter",
+      "parameter": "Parameter",
+      "customHeaders": "Custom headers",
+      "addHeader": "Add header",
+      "header": "Header",
+      "value": "Value",
+      "bodyType": "Body type",
+      "timeoutMs": "Timeout (ms)",
+      "failOnHttpError": "Fail macro task on HTTP error",
+      "multipartFormData": "Multipart form data",
+      "formData": "Form data",
+      "addMultipartField": "Add multipart field",
+      "addFormField": "Add form field",
+      "field": "Field",
+      "removeRow": "Remove {label} row",
+      "noneConfigured": "No {label} configured.",
+      "invalidJson": "Invalid JSON",
+      "invalidJsonWithReason": "Invalid JSON: {reason}",
+      "bodyTypes": {
+        "none": "No body",
+        "json": "JSON",
+        "form": "Form URL encoded",
+        "multipart": "Multipart form data",
+        "raw": "Raw body"
+      },
+      "placeholders": {
+        "url": "https://example.com/api/items",
+        "resultVariable": "api_response",
+        "queryKey": "limit",
+        "queryValue": "10",
+        "headerKey": "Authorization",
+        "headerValue": "Bearer ${token}",
+        "fieldName": "name",
+        "templateValue": "${user.name}"
+      }
+    },
+    "audio": {
+      "setVolumeTitle": "Set audio volume",
+      "adjustVolumeTitle": "Adjust audio volume",
+      "interface": "Audio interface",
+      "interfacePlaceholder": "Select or enter an interface",
+      "volume": "Volume",
+      "volumeAdjustment": "Volume adjustment",
+      "negativeVolumeHint": "Use a negative value to lower the volume"
+    },
+    "function": {
+      "defaultTitle": "Function",
+      "unknownMethod": "method",
+      "titleWithMethod": "{prefix}: {method}",
+      "fields": {
+        "function": "Function",
+        "message": "Message",
+        "color": "Color",
+        "variableKey": "Variable key",
+        "min": "Min",
+        "max": "Max",
+        "user": "User",
+        "url": "URL",
+        "text": "Text",
+        "eventId": "Event ID",
+        "autoMacroName": "Auto macro name"
+      },
+      "announce": {
+        "title": "Announce"
+      },
+      "random": {
+        "title": "Random number"
+      },
+      "sendDm": {
+        "title": "Send DM"
+      },
+      "sendMessage": {
+        "title": "Send chat message"
+      },
+      "songRequest": {
+        "title": "Song request"
+      },
+      "songRequestToggle": {
+        "title": "Toggle song requests",
+        "info": "No settings needed. This toggles song requests."
+      },
+      "speak": {
+        "title": "Speak"
+      },
+      "toggleAutoMacro": {
+        "title": "Toggle auto macro"
+      },
+      "sleep": {
+        "title": "Sleep: {duration}",
+        "time": "Time",
+        "unit": "Unit",
+        "units": {
+          "milliseconds": "Milliseconds",
+          "seconds": "Seconds",
+          "minutes": "Minutes",
+          "hours": "Hours"
+        },
+        "duration": {
+          "milliseconds": "{count} ms",
+          "seconds": "{count} seconds",
+          "minutes": "{count} minutes",
+          "hours": "{count} hours"
+        }
+      }
+    },
+    "music": {
+      "actions": {
+        "toggle": "Toggle",
+        "enable": "Enable",
+        "disable": "Disable"
+      },
+      "fields": {
+        "action": "Action",
+        "song": "Song, filename, or path",
+        "continuePlaylist": "Continue playlist afterwards",
+        "restartSong": "Restart song",
+        "loadPaused": "Load paused",
+        "volumeAdjustment": "Volume adjustment",
+        "negativeVolumeHint": "Use a negative value to lower the volume",
+        "restoreState": "Restore previous player state",
+        "songUrl": "Song URL",
+        "urlPlaceholder": "https://..."
+      },
+      "loop": {
+        "title": "Playlist loop"
+      },
+      "loopFile": {
+        "title": "Current-song loop"
+      },
+      "next": {
+        "title": "Next song",
+        "info": "Skip to the next playlist entry."
+      },
+      "pause": {
+        "title": "Pause music",
+        "info": "Pause music playback."
+      },
+      "playSong": {
+        "title": "Play specific song"
+      },
+      "play": {
+        "title": "Play music",
+        "info": "Resume music playback."
+      },
+      "previous": {
+        "title": "Previous song",
+        "info": "Return to the previous playlist entry."
+      },
+      "relativeVolume": {
+        "title": "Adjust music volume"
+      },
+      "reload": {
+        "title": "Reload music player"
+      },
+      "shuffle": {
+        "title": "Music shuffle"
+      },
+      "songRequest": {
+        "title": "Add song request"
+      },
+      "togglePause": {
+        "title": "Toggle play / pause",
+        "info": "Toggle the current playback state."
+      },
+      "stop": {
+        "title": "Stop music",
+        "info": "Stop the current playback."
+      },
+      "toggleSongRequests": {
+        "title": "Toggle song requests",
+        "info": "Enable or disable song requests."
+      }
+    },
+    "obs": {
+      "fields": {
+        "connection": "OBS connection",
+        "scene": "Scene",
+        "sceneItem": "Scene item",
+        "source": "Source",
+        "filter": "Filter",
+        "input": "Input",
+        "muted": "Muted",
+        "volume": "Volume",
+        "profile": "Profile",
+        "sceneCollection": "Scene collection",
+        "locked": "Locked",
+        "filterName": "Filter name",
+        "inputSource": "Input / source",
+        "volumeDb": "Volume dB",
+        "profileName": "Profile name",
+        "sceneCollectionName": "Scene collection name",
+        "visibility": "Visibility",
+        "hotkeyName": "Hotkey name",
+        "positionX": "X",
+        "positionY": "Y",
+        "scaleX": "Scale X",
+        "scaleY": "Scale Y",
+        "rotation": "Rotation"
+      },
+      "disableSourceFilter": {
+        "title": "Disable source filter",
+        "info": "Disable the selected source filter."
+      },
+      "enableSourceFilter": {
+        "title": "Enable source filter",
+        "info": "Enable the selected source filter."
+      },
+      "hideSceneItem": {
+        "title": "Hide scene item",
+        "info": "Hide the selected scene item."
+      },
+      "lockSceneItem": {
+        "title": "Lock scene item"
+      },
+      "muteInput": {
+        "title": "Mute input",
+        "info": "Mute the selected input."
+      },
+      "pauseRecord": {
+        "title": "Pause recording",
+        "info": "Pause the active recording."
+      },
+      "reloadBrowserSources": {
+        "title": "Reload browser sources",
+        "info": "Reload all OBS browser sources."
+      },
+      "resumeRecord": {
+        "title": "Resume recording",
+        "info": "Resume the active recording."
+      },
+      "saveReplayBuffer": {
+        "title": "Save replay buffer",
+        "info": "Save the current replay buffer."
+      },
+      "setInputMute": {
+        "title": "Set input mute state"
+      },
+      "setInputVolume": {
+        "title": "Set input volume"
+      },
+      "setProfile": {
+        "title": "Set OBS profile"
+      },
+      "setSceneCollection": {
+        "title": "Set scene collection"
+      },
+      "startRecord": {
+        "title": "Start recording",
+        "info": "Start recording."
+      },
+      "showSceneItem": {
+        "title": "Show scene item",
+        "info": "Show the selected scene item."
+      },
+      "noExtraOptions": "This OBS action has no extra options.",
+      "visibility": {
+        "show": "Show",
+        "hide": "Hide"
+      },
+      "stopRecord": {
+        "title": "Stop recording"
+      },
+      "toggleStream": {
+        "title": "Toggle stream"
+      },
+      "switchPreviewScene": {
+        "title": "Switch preview scene"
+      },
+      "startReplayBuffer": {
+        "title": "Start replay buffer"
+      },
+      "toggleRecord": {
+        "title": "Toggle recording"
+      },
+      "startStream": {
+        "title": "Start stream"
+      },
+      "stopStream": {
+        "title": "Stop stream"
+      },
+      "switchScene": {
+        "title": "Switch scene"
+      },
+      "triggerHotkey": {
+        "title": "Trigger OBS hotkey"
+      },
+      "toggleSceneItem": {
+        "title": "Set scene item visibility"
+      },
+      "toggleInputMute": {
+        "title": "Toggle input mute"
+      },
+      "transformSceneItem": {
+        "title": "Transform scene item"
+      },
+      "stopReplayBuffer": {
+        "title": "Stop replay buffer"
+      },
+      "unmuteInput": {
+        "title": "Unmute input"
+      },
+      "unlockSceneItem": {
+        "title": "Unlock scene item"
+      }
     }
   },
   "giveaway": {
@@ -265,7 +581,9 @@
     "delete": "Delete",
     "add": "Add",
     "refresh": "Refresh",
-    "enabled": "Enabled"
+    "enabled": "Enabled",
+    "yes": "Yes",
+    "no": "No"
   },
   "file": {
     "name": "Filename",
@@ -383,7 +701,13 @@
     "targetColor": "Target Color",
     "brightness": "Brightness",
     "preset": "Preset",
-    "wledPresetOverridesColor": "WLED preset from the Lamp Active, other Inputs are now blocked."
+    "wledPresetOverridesColor": "WLED preset from the Lamp Active, other Inputs are now blocked.",
+    "general": "General",
+    "media": "Media",
+    "timing": "Timing",
+    "theme": "Theme",
+    "macros": "Macros",
+    "importFailed": "Asset import failed"
   },
   "channelPoints": {
     "add": "Add channel point",

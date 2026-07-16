@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Speak"
+    :title-prefix="$t('macro.function.speak.title')"
     icon="mdi-account-voice"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,9 +11,9 @@
   >
     <template #default="{ data }">
       <v-col cols="12">
-        <v-text-field v-model="data.content" label="Text" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model="data.content" :label="$t('macro.function.fields.text')" density="compact" variant="outlined" hide-details />
       </v-col>
-      <v-text-field class="d-none" v-model="data.event_uuid" label="Event ID" density="compact" variant="outlined" hide-details />
+      <v-text-field class="d-none" v-model="data.event_uuid" :label="$t('macro.function.fields.eventId')" density="compact" variant="outlined" hide-details />
     </template>
   </MacroFunctionBaseTaskAccordion>
 </template>

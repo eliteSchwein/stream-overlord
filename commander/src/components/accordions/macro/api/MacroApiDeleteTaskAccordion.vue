@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-delete-outline"
-    title="DELETE request"
+    :title="$t('macro.api.requestTitles.delete')"
     export-prefix="macro_api_delete"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"

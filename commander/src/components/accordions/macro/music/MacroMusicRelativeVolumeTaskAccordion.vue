@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-plus"
-    title="Adjust music volume"
+    :title="$t('macro.music.relativeVolume.title')"
     export-prefix="macro_music_relative_volume"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,10 +11,10 @@
   >
     <v-text-field
       v-model.number="task.data.volume"
-      label="Volume adjustment"
+      :label="$t('macro.music.fields.volumeAdjustment')"
       type="number"
             suffix="%"
-      hint="Use a negative value to lower the volume"
+      :hint="$t('macro.music.fields.negativeVolumeHint')"
       persistent-hint
       variant="outlined"
       density="comfortable"

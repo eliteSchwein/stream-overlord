@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-high"
-    title="Unmute input"
+    :title="$t('macro.obs.unmuteInput.title')"
     export-prefix="macro_obs_unmute_input"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -15,7 +15,7 @@
         <v-autocomplete
           v-model="task.data.inputName"
           :items="inputOptions"
-          label="Input / source"
+          :label="$t('macro.obs.fields.inputSource')"
           prepend-inner-icon="mdi-import"
           variant="outlined"
           hide-details="auto"

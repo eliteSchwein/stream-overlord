@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Announce"
+    :title-prefix="$t('macro.function.announce.title')"
     icon="mdi-bullhorn-outline"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -13,7 +13,7 @@
       <v-col cols="12" md="8">
         <v-text-field
           v-model="data.content"
-          label="Message"
+          :label="$t('macro.function.fields.message')"
           density="compact"
           variant="outlined"
           hide-details
@@ -24,7 +24,7 @@
         <v-select
           v-model="data.color"
           :items="colors"
-          label="Color"
+          :label="$t('macro.function.fields.color')"
           density="compact"
           variant="outlined"
           hide-details

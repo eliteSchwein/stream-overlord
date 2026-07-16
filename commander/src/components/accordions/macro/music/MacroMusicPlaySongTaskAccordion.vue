@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-music-note"
-    title="Play specific song"
+    :title="$t('macro.music.playSong.title')"
     export-prefix="macro_music_play_song"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,16 +11,16 @@
   >
     <v-text-field
       v-model="task.data.song"
-      label="Song, filename, or path"
+      :label="$t('macro.music.fields.song')"
       placeholder="${song}"
       variant="outlined"
       density="comfortable"
     />
 
     <div class="d-flex flex-wrap ga-4">
-      <v-switch v-model="task.data.continue" label="Continue playlist afterwards" color="primary" hide-details />
-      <v-switch v-model="task.data.restart" label="Restart song" color="primary" hide-details />
-      <v-switch v-model="task.data.pause" label="Load paused" color="primary" hide-details />
+      <v-switch v-model="task.data.continue" :label="$t('macro.music.fields.continuePlaylist')" color="primary" hide-details />
+      <v-switch v-model="task.data.restart" :label="$t('macro.music.fields.restartSong')" color="primary" hide-details />
+      <v-switch v-model="task.data.pause" :label="$t('macro.music.fields.loadPaused')" color="primary" hide-details />
     </div>
   </MacroTaskAccordionTemplate>
 </template>

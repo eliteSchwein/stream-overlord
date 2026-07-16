@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     :depth="depth"
-    title-prefix="Send DM"
+    :title-prefix="$t('macro.function.sendDm.title')"
     icon="mdi-message-lock-outline"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,10 +11,10 @@
   >
     <template #default="{ data }">
       <v-col cols="12" md="6">
-        <v-text-field v-model="data.user" label="User" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model="data.user" :label="$t('macro.function.fields.user')" density="compact" variant="outlined" hide-details />
       </v-col>
       <v-col cols="12" md="6">
-        <v-text-field v-model="data.content" label="Message" density="compact" variant="outlined" hide-details />
+        <v-text-field v-model="data.content" :label="$t('macro.function.fields.message')" density="compact" variant="outlined" hide-details />
       </v-col>
     </template>
   </MacroFunctionBaseTaskAccordion>

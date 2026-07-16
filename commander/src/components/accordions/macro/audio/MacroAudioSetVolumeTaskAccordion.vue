@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-high"
-    title="Set audio volume"
+    :title="$t('macro.audio.setVolumeTitle')"
     export-prefix="macro_audio_set_volume"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -12,8 +12,8 @@
     <v-autocomplete
       v-model="task.data.interface"
       :items="audioInterfaces"
-      label="Audio interface"
-      placeholder="Select or enter an interface"
+      :label="$t('macro.audio.interface')"
+      :placeholder="$t('macro.audio.interfacePlaceholder')"
       variant="outlined"
       density="comfortable"
       clearable
@@ -23,7 +23,7 @@
 
     <v-text-field
       v-model.number="task.data.volume"
-      label="Volume"
+      :label="$t('macro.audio.volume')"
       type="number"
       min="0"
       max="100"

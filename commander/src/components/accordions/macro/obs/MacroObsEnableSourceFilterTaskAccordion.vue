@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-filter-check"
-    title="Enable source filter"
+    :title="$t('macro.obs.enableSourceFilter.title')"
     export-prefix="macro_obs_enable_source_filter"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -15,7 +15,7 @@
         <v-autocomplete
           v-model="task.data.sourceName"
           :items="sourceOptions"
-          label="Source"
+          :label="$t('macro.obs.fields.source')"
           prepend-inner-icon="mdi-import"
           variant="outlined"
           hide-details="auto"
@@ -28,7 +28,7 @@
         <v-autocomplete
           v-model="task.data.filterName"
           :items="filterOptions"
-          label="Filter name"
+          :label="$t('macro.obs.fields.filterName')"
           prepend-inner-icon="mdi-filter"
           variant="outlined"
           hide-details="auto"

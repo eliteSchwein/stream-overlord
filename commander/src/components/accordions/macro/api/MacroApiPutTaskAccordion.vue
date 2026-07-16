@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-file-replace-outline"
-    title="PUT request"
+    :title="$t('macro.api.requestTitles.put')"
     export-prefix="macro_api_put"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"

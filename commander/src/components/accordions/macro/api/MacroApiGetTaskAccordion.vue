@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-download"
-    title="GET request"
+    :title="$t('macro.api.requestTitles.get')"
     export-prefix="macro_api_get"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"

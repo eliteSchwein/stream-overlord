@@ -15,9 +15,9 @@
         <v-autocomplete
           v-model="data.sceneUuid"
           :items="sceneOptions"
-          item-title="title"
+          item-:title="$t('macro.obs.switchScene.title')"
           item-value="value"
-          label="Scene"
+          :label="$t('macro.obs.fields.scene')"
           prepend-inner-icon="mdi-view-dashboard"
           variant="outlined"
           hide-details="auto"
@@ -74,7 +74,7 @@ export default {
     },
 
     title(): string {
-      return 'Switch scene'
+      return String(this.$t('macro.obs.switchScene.title'))
     },
 
     sceneOptions(): any[] {

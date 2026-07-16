@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-refresh"
-    title="Reload music player"
+    :title="$t('macro.music.reload.title')"
     export-prefix="macro_music_reload"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,7 +11,7 @@
   >
     <v-switch
       v-model="task.data.restore_state"
-      label="Restore previous player state"
+      :label="$t('macro.music.fields.restoreState')"
       color="primary"
       hide-details
     />
