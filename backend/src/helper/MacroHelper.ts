@@ -965,7 +965,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
                 taskData.endpoint = task.endpoint;
             }
 
-            await macroTask.run(task.channel, task.method, taskData, variables);
+            await macroTask.run(task.channel, task.method, taskData, variables)
         } catch (error) {
             logWarn(`task failed:`);
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));

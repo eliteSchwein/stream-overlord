@@ -319,7 +319,7 @@ export default {
     },
 
     defaultMacroYaml(name: string) {
-      return `name: ${this.yamlScalar(name)}\napis: []\ntasks: []\n`
+      return `name: ${this.yamlScalar(name)}\ntasks: []\n`
     },
 
     yamlScalar(value: any) {

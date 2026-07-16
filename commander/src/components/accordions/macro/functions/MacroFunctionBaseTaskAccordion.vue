@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     :icon="icon"
-    :title="title"
+    :title="accordionTitle"
     export-prefix="macro_function"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -42,6 +42,7 @@ export default {
     index: { type: Number, required: true },
     depth: { type: Number, default: 0 },
     titlePrefix: { type: String, default: 'Function' },
+    customTitle: { type: String, default: '' },
     icon: { type: String, default: 'mdi-function' },
   },
 
@@ -60,8 +61,24 @@ export default {
       return this.task.data
     },
 
-    title(): string {
-      return `${this.titlePrefix}: ${this.task.method || 'method'}`
+    accordionTitle(): string {
+      const customTitle = typeof this.customTitle === 'string'
+        ? this.customTitle.trim()
+        : ''
+
+      if (customTitle) {
+        return customTitle
+      }
+
+      const prefix = typeof this.titlePrefix === 'string' && this.titlePrefix.trim()
+        ? this.titlePrefix.trim()
+        : 'Function'
+
+      const method = typeof this.task?.method === 'string' && this.task.method.trim()
+        ? this.task.method.trim()
+        : 'method'
+
+      return `${prefix}: ${method}`
     },
   },
 

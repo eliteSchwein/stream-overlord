@@ -354,11 +354,6 @@ export default {
         color=""
         to="/settings"></v-list-item>
       <v-list-item
-        prepend-icon="mdi-cog"
-        :title="$t('navigation.tabs.config')"
-        color=""
-        to="/editConfig"></v-list-item>
-      <v-list-item
         prepend-icon="mdi-vector-link"
         :title="$t('navigation.tabs.integrations')"
         color=""

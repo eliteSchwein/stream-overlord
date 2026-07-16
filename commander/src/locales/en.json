@@ -91,7 +91,19 @@
     "name": "Macro name",
     "editor": "Macro editor",
     "deleteConfirmTitle": "Delete macro",
-    "deleteConfirmText": "Do you really want to delete this macro?"
+    "deleteConfirmText": "Do you really want to delete this macro?",
+    "rawYamlEditor": "Raw YAML editor",
+    "visualEditor": "Visual macro editor",
+    "code": "Code",
+    "errors": {
+      "importFailed": "Import failed",
+      "readFailed": "Failed to read macro",
+      "loadFailed": "Failed to load macro",
+      "saveFailed": "Failed to save macro",
+      "parseFailed": "Failed to parse macro YAML",
+      "invalidYaml": "Invalid macro YAML",
+      "websocketDisconnected": "WebSocket is not connected"
+    }
   },
   "giveaway": {
     "title": "Giveaway",

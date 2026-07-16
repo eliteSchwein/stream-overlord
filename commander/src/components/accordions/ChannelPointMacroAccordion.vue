@@ -11,7 +11,7 @@
 
     <div class="d-flex align-center justify-space-between ga-3 mb-3">
       <div class="min-width-0">
-        <div class="text-caption text-grey-lighten-1">{{ rawMode ? 'Raw YAML editor' : 'Visual macro editor' }}</div>
+        <div class="text-caption text-grey-lighten-1">{{ rawMode ? $t('macro.rawYamlEditor') : $t('macro.visualEditor') }}</div>
       </div>
 
       <div class="d-flex align-center ga-2">
@@ -21,7 +21,7 @@
           :export-data="rawMode ? null : exportMacroData()"
           :disabled="loadingInternal"
           @import="importMacroYaml"
-          @error="errorMessage = $event?.message ?? 'import failed'"
+          @error="errorMessage = $event?.message ?? $t('macro.errors.importFailed')"
         />
 
         <v-switch
@@ -30,7 +30,7 @@
           density="comfortable"
           hide-details
           inset
-          label="Code"
+          :label="$t('macro.code')"
           @update:model-value="toggleRawMode"
         />
       </div>
@@ -54,24 +54,11 @@
                    class="d-none">
               <v-text-field
                 v-model="visualMacro.name"
-                label="Name"
+                :label="$t('macro.name')"
                 density="comfortable"
                 variant="outlined"
                 readonly
                 hide-details
-              />
-            </v-col>
-
-            <v-col cols="12" md="12">
-              <v-combobox
-                v-model="visualMacro.apis"
-                label="APIs"
-                density="comfortable"
-                variant="outlined"
-                hide-details
-                multiple
-                chips
-                closable-chips
               />
             </v-col>
           </v-row>
@@ -128,7 +115,6 @@ export default {
       hasVisualErrors: false,
       visualMacro: {
         name: '',
-        apis: [] as string[],
         items: [] as VisualTask[],
       },
       editorOptions: {
@@ -231,7 +217,7 @@ export default {
         }
       }
 
-      throw lastError ?? new Error('macro read failed')
+      throw lastError ?? new Error(this.$t('macro.errors.readFailed'))
     },
 
     async loadMacro(name = this.name) {
@@ -256,7 +242,7 @@ export default {
         }
 
         this.setContent(this.defaultMacroContent(name), name)
-        this.errorMessage = this.isTimeoutError(error) ? '' : (error?.message ?? 'loading macro failed')
+        this.errorMessage = this.isTimeoutError(error) ? '' : (error?.message ?? this.$t('macro.errors.loadFailed'))
       } finally {
         this.loadingInternal = false
       }
@@ -267,7 +253,7 @@ export default {
     },
 
     defaultMacroContent(name: string) {
-      return `name: ${name}\napis: []\ntasks: []\n`
+      return `name: ${name}\ntasks: []\n`
     },
 
     setContent(content: string, name = this.name) {
@@ -297,7 +283,6 @@ export default {
 
         this.visualMacro = {
           name: parsed.name ?? fallbackName,
-          apis: Array.isArray(parsed.apis) ? parsed.apis : [],
           items: result.items,
         }
 
@@ -305,7 +290,7 @@ export default {
         this.errorMessage = ''
       } catch (error: any) {
         this.hasVisualErrors = true
-        this.errorMessage = error?.message ?? 'Failed to parse macro YAML'
+        this.errorMessage = error?.message ?? this.$t('macro.errors.parseFailed')
       }
     },
 
@@ -370,7 +355,6 @@ export default {
     exportMacroData() {
       return {
         name: this.name,
-        apis: this.visualMacro.apis ?? [],
         tasks: this.flattenVisualTasks(this.visualMacro.items),
       }
     },
@@ -380,21 +364,20 @@ export default {
         const imported = this.yamlLoad(String(payload?.content ?? '')) ?? {}
 
         if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
-          throw new Error('invalid macro yaml')
+          throw new Error(this.$t('macro.errors.invalidYaml'))
         }
 
         imported.name = this.name
         this.setContent(this.yamlDump(imported), this.name)
         this.rawMode = false
       } catch (error: any) {
-        this.errorMessage = error?.message ?? 'import failed'
+        this.errorMessage = error?.message ?? this.$t('macro.errors.importFailed')
       }
     },
 
     syncVisualToContent() {
       const macro = {
         name: this.name,
-        apis: this.visualMacro.apis ?? [],
         tasks: this.flattenVisualTasks(this.visualMacro.items),
       }
 

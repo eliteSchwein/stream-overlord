@@ -75,7 +75,7 @@
     "undici": "8.7.0",
     "uuid": "^14.0.1",
     "websocket-ts": "^2.3.0",
-    "ws": "^8.21.0"
+    "ws": "^8.21.1"
   },
   "dependencies": {
     "@dotlottie/player-component": "^2.7.12",
@@ -86,7 +86,7 @@
     "multer": "^2.2.0",
     "redis": "^6.1.0",
     "sharp": "^0.35.3",
-    "systeminformation": "^5.31.16",
+    "systeminformation": "^5.31.17",
     "tesmart-api": "^1.0.0"
   },
   "allowScripts": {

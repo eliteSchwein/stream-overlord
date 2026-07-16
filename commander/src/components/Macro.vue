@@ -42,16 +42,8 @@ export default {
       return Array.isArray(this.macro?.tasks) ? this.macro.tasks : []
     },
 
-    apis(): string[] {
-      return Array.isArray(this.macro?.apis) ? this.macro.apis : []
-    },
-
     taskCount(): number {
       return this.tasks.length
-    },
-
-    apiCount(): number {
-      return this.apis.length
     },
   },
 
@@ -124,9 +116,6 @@ export default {
           <v-chip size="x-small" variant="tonal">
             {{ taskCount }} tasks
           </v-chip>
-          <v-chip v-if="apiCount" size="x-small" variant="tonal">
-            {{ apiCount }} APIs
-          </v-chip>
         </div>
 
         <v-spacer />
@@ -140,7 +129,7 @@ export default {
             {{ name }}
           </div>
           <div class="text-caption text-grey-lighten-1">
-            {{ taskCount }} tasks{{ apiCount ? ` · ${apiCount} APIs` : '' }}
+            {{ taskCount }} tasks
           </div>
         </div>
 
@@ -168,18 +157,6 @@ export default {
             {{ $t('common.delete') || 'Delete' }}
           </v-btn>
         </div>
-      </div>
-
-      <div v-if="apis.length" class="px-4 pb-3 d-flex flex-wrap ga-1">
-        <v-chip
-          v-for="api in apis"
-          :key="api"
-          size="x-small"
-          variant="tonal"
-          prepend-icon="mdi-api"
-        >
-          {{ api }}
-        </v-chip>
       </div>
 
       <v-table density="compact" class="macro-panel__table">

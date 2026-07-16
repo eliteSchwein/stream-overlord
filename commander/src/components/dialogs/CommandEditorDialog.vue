@@ -143,7 +143,7 @@ export default {
         // default below
       }
 
-      return `name: ${name}\napis: []\ntasks: []\n`
+      return `name: ${name}\ntasks: []\n`
     },
 
     save(payload: any) {

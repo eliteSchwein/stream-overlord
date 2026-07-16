@@ -122,6 +122,27 @@ export default {
   },
 
   computed: {
+    volumePercent: {
+      get(): number {
+        const volume = Number(this.form.volume ?? 1)
+        if (!Number.isFinite(volume)) return 100
+        return Math.round(Math.min(1, Math.max(0, volume)) * 100)
+      },
+      set(value: number | string | null) {
+        const percent = Math.min(100, Math.max(0, Number(value) || 0))
+        this.form.volume = percent / 100
+      },
+    },
+
+    volumeIcon(): string {
+      const volume = Number(this.volumePercent ?? 0)
+
+      if (!Number.isFinite(volume) || volume <= 0) return "mdi-volume-off"
+      if (volume <= 33) return "mdi-volume-low"
+      if (volume <= 66) return "mdi-volume-medium"
+      return "mdi-volume-high"
+    },
+
     title(): string {
       return this.assetName
         ? `${this.$t("assets.editor")}: ${this.assetName}`
@@ -550,7 +571,7 @@ export default {
         .replace(/^#/, "")
         .toUpperCase();
       form.channel = String(asset?.channel ?? "");
-      form.volume = this.toNullableNumber(asset?.volume);
+      form.volume = this.toNormalizedVolume(asset?.volume);
       form.image = String(asset?.image ?? "");
       form.video = String(asset?.video ?? "");
       form.start_macros = this.toStringArray(asset?.start_macros);
@@ -588,7 +609,7 @@ export default {
         .replace(/^#/, "")
         .toUpperCase();
       form.channel = String(asset?.channel ?? "");
-      form.volume = this.toNullableNumber(asset?.volume);
+      form.volume = this.toNormalizedVolume(asset?.volume);
       form.image = String(asset?.image ?? "");
       form.video = String(asset?.video ?? "");
       form.start_macros = this.toStringArray(asset?.start_macros);
@@ -598,6 +619,12 @@ export default {
 
       this.form = form;
       this.wledColorMenus = form.wled.map(() => false);
+    },
+
+    toNormalizedVolume(value: any): number | null {
+      const normalized = this.toNullableNumber(value);
+      if (normalized === null) return null;
+      return Math.min(1, Math.max(0, normalized));
     },
 
     normalizeIconName(value: any): string {
@@ -810,7 +837,7 @@ export default {
       if (duration !== undefined) asset.duration = duration;
 
       const volume = this.cleanNumber(this.form.volume);
-      if (volume !== undefined) asset.volume = volume;
+      if (volume !== undefined) asset.volume = Math.min(1, Math.max(0, volume));
 
       for (const key of ["start_macros", "idle_macros", "end_macros"]) {
         const values = this.toStringArray((this.form as any)[key]);
@@ -875,7 +902,7 @@ export default {
           :export-data="buildAssetPayload()"
           :disabled="loading"
           @import="importAssetYaml"
-          @error="importError = $event?.message ?? 'import failed'"
+          @error="importError = $event?.message ?? $t('assets.importFailed')"
         />
         <v-btn
           icon="mdi-close"
@@ -895,215 +922,197 @@ export default {
         />
 
         <v-form @submit.prevent="submit">
-          <v-row density="comfortable">
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="form.name"
-                :disabled="Boolean(assetName) || loading"
-                :label="$t('assets.name')"
-                hide-details="auto"
-                prepend-inner-icon="mdi-palette"
-                variant="outlined"
-              />
-            </v-col>
+          <div class="asset-form-section">
+            <div class="asset-form-section__label">{{ $t('assets.general') }}</div>
+            <v-row density="comfortable">
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="form.name"
+                  :disabled="Boolean(assetName) || loading"
+                  :label="$t('assets.name')"
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-palette"
+                  variant="outlined"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-combobox
+                  v-model="form.channel"
+                  :disabled="loading"
+                  :label="$t('assets.channel')"
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-broadcast"
+                  variant="outlined"
+                />
+              </v-col>
+            </v-row>
+          </div>
 
-            <v-col cols="12" md="6">
-              <v-combobox
-                v-model="form.channel"
-                :disabled="loading"
-                :label="$t('assets.channel')"
-                hide-details="auto"
-                prepend-inner-icon="mdi-broadcast"
-                variant="outlined"
-              />
-            </v-col>
+          <div class="asset-form-section">
+            <div class="asset-form-section__label">{{ $t('assets.message') }}</div>
+            <v-row density="comfortable">
+              <v-col cols="12">
+                <v-text-field
+                  v-model="form.message"
+                  :disabled="loading"
+                  :label="$t('assets.message')"
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-message-text"
+                  variant="outlined"
+                />
+              </v-col>
+            </v-row>
+          </div>
 
-            <v-col cols="12">
-              <v-text-field
-                v-model="form.message"
-                :disabled="loading"
-                :label="$t('assets.message')"
-                hide-details="auto"
-                prepend-inner-icon="mdi-message-text"
-                variant="outlined"
-              />
-            </v-col>
+          <div class="asset-form-section">
+            <div class="asset-form-section__label">{{ $t('assets.media') }}</div>
+            <v-row density="comfortable">
+              <v-col cols="12" md="4">
+                <v-autocomplete
+                  v-model="form.sound"
+                  :disabled="loading"
+                  :items="soundOptions"
+                  :label="$t('assets.sound')"
+                  clearable
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-volume-high"
+                  variant="outlined"
+                  @focus="ensureMediaEntries"
+                  @click="ensureMediaEntries"
+                />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-autocomplete
+                  v-model="form.image"
+                  :disabled="loading"
+                  :items="imageOptions"
+                  :label="$t('assets.image')"
+                  clearable
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-image"
+                  variant="outlined"
+                  @focus="ensureMediaEntries"
+                  @click="ensureMediaEntries"
+                />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-autocomplete
+                  v-model="form.video"
+                  :disabled="loading"
+                  :items="videoOptions"
+                  :label="$t('assets.video')"
+                  clearable
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-video"
+                  variant="outlined"
+                  @focus="ensureMediaEntries"
+                  @click="ensureMediaEntries"
+                />
+              </v-col>
+            </v-row>
+          </div>
 
-            <v-col cols="12" md="6">
-              <v-autocomplete
-                v-model="form.sound"
-                :disabled="loading"
-                :items="soundOptions"
-                :label="$t('assets.sound')"
-                clearable
-                hide-details="auto"
-                prepend-inner-icon="mdi-volume-high"
-                variant="outlined"
-                @focus="ensureMediaEntries"
-                @click="ensureMediaEntries"
-              />
-            </v-col>
+          <div class="asset-form-section">
+            <div class="asset-form-section__label">{{ $t('assets.timing') }}</div>
+            <v-row density="comfortable">
+              <v-col cols="12" md="6">
+                <v-number-input
+                  v-model="form.duration"
+                  :disabled="loading"
+                  :label="$t('assets.duration')"
+                  :step="0.1"
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-timer"
+                  suffix="s"
+                  variant="outlined"
+                  :precision="2"
+                />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-number-input
+                  v-model="volumePercent"
+                  :disabled="loading"
+                  :label="$t('assets.volume')"
+                  :max="100"
+                  :min="0"
+                  :step="1"
+                  hide-details="auto"
+                  :prepend-inner-icon="volumeIcon"
+                  suffix="%"
+                  variant="outlined"
+                  :precision="0"
+                />
+              </v-col>
+            </v-row>
+          </div>
 
-            <v-col cols="12" md="6">
-              <v-combobox
-                v-model="form.icon"
-                :disabled="loading"
-                :items="iconOptions"
-                :label="$t('assets.icon')"
-                clearable
-                hide-details="auto"
-                prepend-inner-icon="mdi-emoticon"
-                variant="outlined"
-                @update:model-value="form.icon = normalizeIconName($event)"
-              >
-                <template #item="{ props, item }">
-                  <v-list-item v-bind="props">
-                    <template #prepend>
-                      <v-icon
-                        :icon="
-                          iconValue(item?.raw ?? item?.title ?? item?.value)
-                        "
-                      />
-                    </template>
-                    <v-list-item-title>{{
-                        normalizeIconName(item?.raw ?? item?.title ?? item?.value)
-                      }}
-                    </v-list-item-title>
-                  </v-list-item>
-                </template>
-                <template #chip="{ item, props }">
-                  <v-chip :prepend-icon="iconValue(form.icon)" v-bind="props"/>
-                </template>
-              </v-combobox>
-            </v-col>
+          <div class="asset-form-section">
+            <div class="asset-form-section__label">{{ $t('assets.theme') }}</div>
+            <v-row density="comfortable">
+              <v-col cols="12" md="6">
+                <v-menu v-model="colorMenu" :close-on-content-click="false">
+                  <template #activator="{ props }">
+                    <v-text-field
+                      v-model="form.color"
+                      :disabled="loading"
+                      :label="$t('assets.color')"
+                      hide-details="auto"
+                      prepend-inner-icon="mdi-palette"
+                      v-bind="props"
+                      variant="outlined"
+                    >
+                      <template #append-inner>
+                        <div :style="{ backgroundColor: normalizedColor }" class="asset-color-preview" />
+                      </template>
+                    </v-text-field>
+                  </template>
+                  <v-card color="grey-darken-3">
+                    <v-color-picker v-model="normalizedColor" hide-inputs mode="hex" />
+                  </v-card>
+                </v-menu>
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-combobox
+                  v-model="form.icon"
+                  :disabled="loading"
+                  :items="iconOptions"
+                  :label="$t('assets.icon')"
+                  clearable
+                  hide-details="auto"
+                  prepend-inner-icon="mdi-emoticon"
+                  variant="outlined"
+                  @update:model-value="form.icon = normalizeIconName($event)"
+                >
+                  <template #item="{ props, item }">
+                    <v-list-item v-bind="props">
+                      <template #prepend>
+                        <v-icon :icon="iconValue(item?.raw ?? item?.title ?? item?.value)" />
+                      </template>
+                      <v-list-item-title>{{ normalizeIconName(item?.raw ?? item?.title ?? item?.value) }}</v-list-item-title>
+                    </v-list-item>
+                  </template>
+                  <template #chip="{ props }">
+                    <v-chip :prepend-icon="iconValue(form.icon)" v-bind="props" />
+                  </template>
+                </v-combobox>
+              </v-col>
+            </v-row>
+          </div>
 
-            <v-col cols="12" md="4">
-              <v-menu v-model="colorMenu" :close-on-content-click="false">
-                <template #activator="{ props }">
-                  <v-text-field
-                    v-model="form.color"
-                    :disabled="loading"
-                    :label="$t('assets.color')"
-                    hide-details="auto"
-                    prepend-inner-icon="mdi-palette"
-                    v-bind="props"
-                    variant="outlined"
-                  >
-                    <template #append-inner>
-                      <div
-                        :style="{ backgroundColor: normalizedColor }"
-                        class="asset-color-preview"
-                      />
-                    </template>
-                  </v-text-field>
-                </template>
-                <v-card color="grey-darken-3">
-                  <v-color-picker
-                    v-model="normalizedColor"
-                    hide-inputs
-                    mode="hex"
-                  />
-                </v-card>
-              </v-menu>
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-number-input
-                v-model="form.duration"
-                :disabled="loading"
-                :label="$t('assets.duration')"
-                :step="0.1"
-                hide-details="auto"
-                prepend-inner-icon="mdi-timer"
-                variant="outlined"
-                :precision="2"
-              />
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-number-input
-                v-model="form.volume"
-                :disabled="loading"
-                :label="$t('assets.volume')"
-                :max="1"
-                :step="0.1"
-                hide-details="auto"
-                prepend-inner-icon="mdi-volume-medium"
-                variant="outlined"
-                :precision="2"
-              />
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-autocomplete
-                v-model="form.image"
-                :disabled="loading"
-                :items="imageOptions"
-                :label="$t('assets.image')"
-                clearable
-                hide-details="auto"
-                prepend-inner-icon="mdi-image"
-                variant="outlined"
-                @focus="ensureMediaEntries"
-                @click="ensureMediaEntries"
-              />
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-autocomplete
-                v-model="form.video"
-                :disabled="loading"
-                :items="videoOptions"
-                :label="$t('assets.video')"
-                clearable
-                hide-details="auto"
-                prepend-inner-icon="mdi-video"
-                variant="outlined"
-                @focus="ensureMediaEntries"
-                @click="ensureMediaEntries"
-              />
-            </v-col>
-
-            <v-col cols="12" md="4">
-              <v-combobox
-                v-model="form.start_macros"
-                :disabled="loading"
-                :items="macroOptions"
-                :label="$t('assets.startMacros')"
-                chips
-                closable-chips
-                hide-details="auto"
-                multiple
-                variant="outlined"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-combobox
-                v-model="form.idle_macros"
-                :disabled="loading"
-                :items="macroOptions"
-                :label="$t('assets.idleMacros')"
-                chips
-                closable-chips
-                hide-details="auto"
-                multiple
-                variant="outlined"
-              />
-            </v-col>
-            <v-col cols="12" md="4">
-              <v-combobox
-                v-model="form.end_macros"
-                :disabled="loading"
-                :items="macroOptions"
-                :label="$t('assets.endMacros')"
-                chips
-                closable-chips
-                hide-details="auto"
-                multiple
-                variant="outlined"
-              />
-            </v-col>
-          </v-row>
+          <div class="asset-form-section">
+            <div class="asset-form-section__label">{{ $t('assets.macros') }}</div>
+            <v-row density="comfortable">
+              <v-col cols="12" md="4">
+                <v-combobox v-model="form.start_macros" :disabled="loading" :items="macroOptions" :label="$t('assets.startMacros')" chips closable-chips hide-details="auto" multiple variant="outlined" />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-combobox v-model="form.idle_macros" :disabled="loading" :items="macroOptions" :label="$t('assets.idleMacros')" chips closable-chips hide-details="auto" multiple variant="outlined" />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-combobox v-model="form.end_macros" :disabled="loading" :items="macroOptions" :label="$t('assets.endMacros')" chips closable-chips hide-details="auto" multiple variant="outlined" />
+              </v-col>
+            </v-row>
+          </div>
 
           <v-divider class="my-4"/>
 
@@ -1164,5 +1173,18 @@ export default {
 
 .min-width-0 {
   min-width: 0;
+}
+
+.asset-form-section {
+  margin-bottom: 20px;
+}
+
+.asset-form-section__label {
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.72;
 }
 </style>

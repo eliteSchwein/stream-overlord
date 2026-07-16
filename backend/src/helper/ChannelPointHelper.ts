@@ -682,27 +682,28 @@ export async function updateChannelPoints() {
             .filter(Boolean),
     );
 
-    const validGameChannelPoints = gameChannelPoints
-        .filter((point: any) => typeof point?.name === "string" && point.name.trim().length > 0)
-        .filter((point: any) => typeof point?.asset === "string" && point.asset.trim().length > 0)
-        .filter((point: any) => typeof point?.macro === "string" && point.macro.trim().length > 0)
-        .map((point: any) => normalizeChannelPointConfig(point.name, {...point, source: "game"}));
+    // Game API channel points are selectors only. All metadata (macro, asset, cost,
+    // input settings, etc.) always comes from the local channel point configs.
+    const gameChannelPointNames = gameChannelPoints
+        .map((point: any) => typeof point === "string" ? point : point?.name ?? point?.label)
+        .filter((name: any): name is string => typeof name === "string" && name.trim().length > 0)
+        .map(name => name.trim());
 
-    const skippedGameChannelPoints = gameChannelPoints.length - validGameChannelPoints.length;
+    const gameChannelPointSet = new Set(
+        gameChannelPointNames.map(normalizeChannelPointLookup),
+    );
 
-    if (skippedGameChannelPoints > 0) {
-        logWarn(`skipped invalid game channel point configs: ${skippedGameChannelPoints}`);
-    }
+    const configuredPoints = localChannelPoints;
 
-    const configuredPoints = [
-        ...localChannelPoints,
-        ...validGameChannelPoints,
-    ];
-
-    logChannelPointConfigSummary("detected merged channel point configs", configuredPoints);
+    logRegular(`game channel point toggles: ${gameChannelPointNames.length}${gameChannelPointNames.length ? ` (${gameChannelPointNames.join(", ")})` : ""}`);
 
     const desiredEnabledNames = configuredPoints
-        .filter((point: any) => point?.enable_default === true || gameChannelPoints.includes(point))
+        .filter((point: any) => {
+            const name = point?.label ?? point?.name;
+
+            return point?.enable_default === true
+                || gameChannelPointSet.has(normalizeChannelPointLookup(name));
+        })
         .map((point: any) => point?.label ?? point?.name)
         .filter((name: any): name is string => typeof name === "string" && name.trim().length > 0)
         .filter(name => !blockedSet.has(normalizeChannelPointLookup(name)));

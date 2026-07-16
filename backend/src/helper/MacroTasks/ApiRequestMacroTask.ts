@@ -11,24 +11,24 @@ type KeyValueEntry = {
 type RequestBodyType = "none" | "json" | "form" | "multipart" | "raw";
 
 export default class ApiRequestMacroTask extends BaseMacroTask {
-    channel = "api_request";
+    channel = "api_request"
 
     async handle(method: string, data: any = {}, variables: any = {}) {
-        const requestMethod = this.normalizeMethod(method);
-        const url = String(data.url ?? "").trim();
+        const requestMethod = this.normalizeMethod(method)
+        const url = String(data.url ?? "").trim()
 
         if (!url) {
-            logWarn(`api request ${requestMethod} requires url`);
-            return;
+            logWarn(`api request ${requestMethod} requires url`)
+            return
         }
 
-        const resultKey = String(data.result_variable ?? data.resultVariable ?? "api_response").trim();
-        const timeout = this.normalizeTimeout(data.timeout);
-        const headers = this.normalizeRecord(data.headers);
-        const query = this.normalizeRecord(data.query ?? data.query_params ?? data.queryParams);
-        const requestUrl = this.appendQuery(url, query);
-        const controller = new AbortController();
-        const timeoutHandle = setTimeout(() => controller.abort(), timeout);
+        const resultKey = String(data.result_variable ?? data.resultVariable ?? "api_response").trim()
+        const timeout = this.normalizeTimeout(data.timeout)
+        const headers = this.normalizeRecord(data.headers)
+        const query = this.normalizeRecord(data.query ?? data.query_params ?? data.queryParams)
+        const requestUrl = this.appendQuery(url, query)
+        const controller = new AbortController()
+        const timeoutHandle = setTimeout(() => controller.abort(), timeout)
 
         try {
             const options: RequestInit = {
@@ -38,30 +38,20 @@ export default class ApiRequestMacroTask extends BaseMacroTask {
             };
 
             if (this.methodSupportsBody(requestMethod)) {
-                const body = this.createBody(data, headers);
+                const body = this.createBody(data, headers)
 
                 if (body !== undefined) {
-                    options.body = body;
+                    options.body = body
                 }
             }
 
-            logRegular(`api request ${requestMethod} ${requestUrl}`);
+            logRegular(`api request ${requestMethod} ${requestUrl}`)
 
-            const response = await fetch(requestUrl, options);
-            const responseBody = await this.parseResponseBody(response);
-            const responseHeaders = Object.fromEntries(response.headers.entries());
-
-            const result = {
-                ok: response.ok,
-                status: response.status,
-                status_text: response.statusText,
-                url: response.url,
-                headers: responseHeaders,
-                body: responseBody,
-            };
+            const response = await fetch(requestUrl, options)
+            const result = await this.parseResponseBody(response)
 
             if (resultKey) {
-                variables[resultKey] = result;
+                variables[resultKey] = result
             }
 
             if (!response.ok && data.fail_on_error === true) {

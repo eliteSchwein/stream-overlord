@@ -18,7 +18,7 @@
           density="comfortable"
           hide-details
           inset
-          label="Code"
+          :label="$t('macro.code')"
           class="mr-3"
           @update:model-value="toggleRawMode"
         />
@@ -30,7 +30,7 @@
           :export-data="rawMode ? null : exportMacroData()"
           :disabled="loadingFile || saving"
           @import="importMacroYaml"
-          @error="errorMessage = $event?.message ?? 'import failed'"
+          @error="errorMessage = $event?.message ?? $t('macro.errors.importFailed')"
         />
 
         <v-btn icon="mdi-refresh" variant="text" :loading="loadingFile" @click="loadMacro" />
@@ -43,7 +43,7 @@
           :disabled="!name || loadingFile || hasVisualErrors"
           @click="saveMacro"
         >
-          {{ $t('common.save') || 'Save' }}
+          {{ $t('common.save') }}
         </v-btn>
 
         <v-btn icon="mdi-close" variant="text" @click="$emit('update:modelValue', false)" />
@@ -77,23 +77,10 @@
               <v-col cols="12" md="4">
                 <v-text-field
                   v-model="visualMacro.name"
-                  label="Name"
+                  :label="$t('macro.name')"
                   density="comfortable"
                   variant="outlined"
                   hide-details
-                />
-              </v-col>
-
-              <v-col cols="12" md="8">
-                <v-combobox
-                  v-model="visualMacro.apis"
-                  label="APIs"
-                  density="comfortable"
-                  variant="outlined"
-                  hide-details
-                  multiple
-                  chips
-                  closable-chips
                 />
               </v-col>
             </v-row>
@@ -151,7 +138,6 @@ export default {
       rawMode: false,
       visualMacro: {
         name: '',
-        apis: [] as string[],
         items: [] as VisualTask[],
       },
       loadingFile: false,
@@ -178,7 +164,7 @@ export default {
       const client = getWebsocketClient()
 
       if (!client) {
-        throw new Error('websocket is not connected')
+        throw new Error(this.$t('macro.errors.websocketDisconnected'))
       }
 
       const response = await client.request(method, params, timeout)
@@ -245,7 +231,7 @@ export default {
 
         this.$emit('saved')
       } catch (error: any) {
-        this.errorMessage = error?.message ?? 'saving macro failed'
+        this.errorMessage = error?.message ?? this.$t('macro.errors.saveFailed')
       } finally {
         this.saving = false
       }
@@ -259,14 +245,13 @@ export default {
 
         this.visualMacro = {
           name: parsed.name ?? this.name,
-          apis: Array.isArray(parsed.apis) ? parsed.apis : [],
           items: result.items,
         }
 
         this.hasVisualErrors = false
       } catch (error: any) {
         this.hasVisualErrors = true
-        this.errorMessage = error?.message ?? 'Failed to parse macro YAML'
+        this.errorMessage = error?.message ?? this.$t('macro.errors.parseFailed')
       }
     },
 
@@ -331,7 +316,6 @@ export default {
     exportMacroData() {
       return {
         name: this.name,
-        apis: this.visualMacro.apis ?? [],
         tasks: this.flattenVisualTasks(this.visualMacro.items),
       }
     },
@@ -341,7 +325,7 @@ export default {
         const imported = this.yamlLoad(String(payload?.content ?? '')) ?? {}
 
         if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
-          throw new Error('invalid macro yaml')
+          throw new Error(this.$t('macro.errors.invalidYaml'))
         }
 
         imported.name = this.name
@@ -349,14 +333,13 @@ export default {
         this.parseContentToVisual()
         this.rawMode = false
       } catch (error: any) {
-        this.errorMessage = error?.message ?? 'import failed'
+        this.errorMessage = error?.message ?? this.$t('macro.errors.importFailed')
       }
     },
 
     syncVisualToContent() {
       const macro = {
         name: this.name,
-        apis: this.visualMacro.apis ?? [],
         tasks: this.flattenVisualTasks(this.visualMacro.items),
       }
 
@@ -600,7 +583,6 @@ export default {
     macroToYaml(name: string, macro: any): string {
       return this.yamlDump({
         name,
-        apis: Array.isArray(macro?.apis) ? macro.apis : [],
         tasks: Array.isArray(macro?.tasks) ? macro.tasks : [],
       })
     },

@@ -26,18 +26,8 @@
           </div>
 
           <div class="text-caption text-grey-lighten-1 mb-1">
-            {{ taskCount }} tasks · {{ apiCount }} APIs
+            {{ taskCount }} tasks
           </div>
-
-          <v-chip
-            v-for="api in macro?.apis || []"
-            :key="api"
-            size="x-small"
-            class="mr-1 mb-1"
-            variant="tonal"
-          >
-            {{ api }}
-          </v-chip>
         </v-card>
       </v-card-text>
 
@@ -93,10 +83,6 @@ export default {
   computed: {
     taskCount(): number {
       return Array.isArray(this.macro?.tasks) ? this.macro.tasks.length : 0
-    },
-
-    apiCount(): number {
-      return Array.isArray(this.macro?.apis) ? this.macro.apis.length : 0
     },
   },
 }

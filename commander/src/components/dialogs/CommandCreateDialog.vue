@@ -220,7 +220,7 @@ export default {
     },
 
     defaultMacroContent(name: string) {
-      return `name: ${name}\napis: []\ntasks: []\n`
+      return `name: ${name}\ntasks: []\n`
     },
 
     syncMacro() {
