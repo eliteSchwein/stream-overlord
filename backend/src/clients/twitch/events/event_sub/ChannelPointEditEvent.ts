@@ -8,9 +8,7 @@ export default class ChannelPointEditEvent extends BaseEvent {
     configName = 'event_twitch_channelpoint_edit'
 
     async handle(event: EventSubChannelRewardEvent) {
-        updateActiveChannelPoint(event.id, !event.isPaused)
-
-        emitChannelPointConfigUpdate()
+        updateActiveChannelPoint(event.id, event.isEnabled)
 
         await this.triggerConfiguredEvent(event)
     }

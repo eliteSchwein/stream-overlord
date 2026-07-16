@@ -487,7 +487,8 @@ export default {
       try {
         const data = await this.requestChannelPointEndpoint('toggle_channel_point', {
           channel_point: channelPoint,
-          state: channelPoint.active ? 'disable' : 'enable',
+          state: 'toggle',
+          active: channelPoint.active,
         }, 30_000)
 
         if (data?.error) throw new Error(data.error)

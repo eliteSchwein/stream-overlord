@@ -28,7 +28,7 @@ export default class ToggleChannelPointApi extends BaseApi {
                 await toggleChannelPoint(channelPoint, true)
                 break
             case 'toggle':
-                await toggleChannelPoint(channelPoint, channelPoint.active)
+                await toggleChannelPoint(channelPoint, !channelPoint.active)
                 break
             default:
                 return {"error": "invalid state"}

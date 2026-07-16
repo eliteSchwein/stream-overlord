@@ -4,7 +4,7 @@ import * as yaml from "js-yaml";
 import {getPrimaryChannel, getSystemConfigDirectory} from "./ConfigHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
-import {logRegular, logWarn} from "./LogHelper";
+import {logError, logRegular, logWarn} from "./LogHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
 import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
@@ -654,7 +654,7 @@ async function syncChannelPointTwitchSettings(configuredChannelPoint: any, twitc
     }
 }
 
-export async function updateChannelPoints() {
+export async function updateChannelPoints(ignoreDefaultEnabled = false) {
     await fetchChannelPointData();
 
     const gameData = await getGameInfoData();
@@ -664,13 +664,19 @@ export async function updateChannelPoints() {
 
     const localChannelPoints = getConfiguredChannelPoints();
 
-    logChannelPointConfigSummary("detected local channel point configs", localChannelPoints);
+    logChannelPointConfigSummary(
+        "detected local channel point configs",
+        localChannelPoints,
+    );
 
     const gameChannelPoints = Array.isArray(gameData?.channel_points)
         ? gameData.channel_points
         : [];
 
-    logChannelPointConfigSummary("detected game channel point configs", gameChannelPoints);
+    logChannelPointConfigSummary(
+        "detected game channel point configs",
+        gameChannelPoints,
+    );
 
     const blockedChannelPoints = Array.isArray(gameData?.blocked_channel_points)
         ? gameData.blocked_channel_points
@@ -682,11 +688,18 @@ export async function updateChannelPoints() {
             .filter(Boolean),
     );
 
-    // Game API channel points are selectors only. All metadata (macro, asset, cost,
-    // input settings, etc.) always comes from the local channel point configs.
+    // Game API channel points are selectors only. All metadata such as macro,
+    // asset, cost and input settings comes from local channel point configs.
     const gameChannelPointNames = gameChannelPoints
-        .map((point: any) => typeof point === "string" ? point : point?.name ?? point?.label)
-        .filter((name: any): name is string => typeof name === "string" && name.trim().length > 0)
+        .map((point: any) =>
+            typeof point === "string"
+                ? point
+                : point?.name ?? point?.label,
+        )
+        .filter(
+            (name: any): name is string =>
+                typeof name === "string" && name.trim().length > 0,
+        )
         .map(name => name.trim());
 
     const gameChannelPointSet = new Set(
@@ -695,44 +708,97 @@ export async function updateChannelPoints() {
 
     const configuredPoints = localChannelPoints;
 
-    logRegular(`game channel point toggles: ${gameChannelPointNames.length}${gameChannelPointNames.length ? ` (${gameChannelPointNames.join(", ")})` : ""}`);
+    logRegular(
+        `game channel point toggles: ${gameChannelPointNames.length}${
+            gameChannelPointNames.length
+                ? ` (${gameChannelPointNames.join(", ")})`
+                : ""
+        }`,
+    );
+
+    logRegular(
+        `ignore default enabled channel points: ${
+            ignoreDefaultEnabled ? "yes" : "no"
+        }`,
+    );
 
     const desiredEnabledNames = configuredPoints
         .filter((point: any) => {
             const name = point?.label ?? point?.name;
+            const isEnabledByGame = gameChannelPointSet.has(
+                normalizeChannelPointLookup(name),
+            );
+            const isEnabledByDefault =
+                !ignoreDefaultEnabled && point?.enable_default === true;
 
-            return point?.enable_default === true
-                || gameChannelPointSet.has(normalizeChannelPointLookup(name));
+            return isEnabledByDefault || isEnabledByGame;
         })
         .map((point: any) => point?.label ?? point?.name)
-        .filter((name: any): name is string => typeof name === "string" && name.trim().length > 0)
-        .filter(name => !blockedSet.has(normalizeChannelPointLookup(name)));
+        .filter(
+            (name: any): name is string =>
+                typeof name === "string" && name.trim().length > 0,
+        )
+        .filter(
+            name => !blockedSet.has(normalizeChannelPointLookup(name)),
+        );
 
-    const desiredEnabledSet = new Set(desiredEnabledNames.map(normalizeChannelPointLookup));
+    const desiredEnabledSet = new Set(
+        desiredEnabledNames.map(normalizeChannelPointLookup),
+    );
 
-    logRegular(`blocked channel points: ${blockedSet.size}${blockedSet.size ? ` (${Array.from(blockedSet).join(", ")})` : ""}`);
-    logRegular(`desired enabled channel points: ${desiredEnabledNames.length}${desiredEnabledNames.length ? ` (${desiredEnabledNames.join(", ")})` : ""}`);
+    logRegular(
+        `blocked channel points: ${blockedSet.size}${
+            blockedSet.size
+                ? ` (${Array.from(blockedSet).join(", ")})`
+                : ""
+        }`,
+    );
+
+    logRegular(
+        `desired enabled channel points: ${desiredEnabledNames.length}${
+            desiredEnabledNames.length
+                ? ` (${desiredEnabledNames.join(", ")})`
+                : ""
+        }`,
+    );
 
     for (const channelPoint of configuredPoints) {
         const label = channelPoint?.label ?? channelPoint?.name;
 
-        if (!label || blockedSet.has(normalizeChannelPointLookup(label))) continue;
+        if (!label) continue;
+        if (blockedSet.has(normalizeChannelPointLookup(label))) continue;
 
-        if (typeof channelPoint.macro === "string" && channelPoint.macro.trim().length > 0) {
+        if (
+            typeof channelPoint.macro === "string"
+            && channelPoint.macro.trim().length > 0
+        ) {
             gameMacros[label] = channelPoint.macro.trim();
         }
     }
 
-    const toDisable = Object.values(channelPoints).filter(point =>
-        !desiredEnabledSet.has(normalizeChannelPointLookup(point.title)),
+    const toDisable = Object.values(channelPoints).filter(
+        point =>
+            !desiredEnabledSet.has(
+                normalizeChannelPointLookup(point.title),
+            ),
     );
 
-    const toEnable = Object.values(channelPoints).filter(point =>
-        desiredEnabledSet.has(normalizeChannelPointLookup(point.title)),
+    const toEnable = Object.values(channelPoints).filter(
+        point =>
+            desiredEnabledSet.has(
+                normalizeChannelPointLookup(point.title),
+            ),
     );
 
-    logChannelPointDiffSummary("twitch channel points to enable", toEnable);
-    logChannelPointDiffSummary("twitch channel points to disable", toDisable);
+    logChannelPointDiffSummary(
+        "twitch channel points to enable",
+        toEnable,
+    );
+
+    logChannelPointDiffSummary(
+        "twitch channel points to disable",
+        toDisable,
+    );
 
     for (const channelPoint of toDisable) {
         await enableChannelPoint(channelPoint, primaryChannel, false);
@@ -749,58 +815,102 @@ export async function updateChannelPoints() {
     const allKeys = new Set<string>();
 
     for (const configuredChannelPoint of configuredPoints) {
-        const label = configuredChannelPoint?.label ?? configuredChannelPoint?.name;
+        const label =
+            configuredChannelPoint?.label
+            ?? configuredChannelPoint?.name;
 
         if (!label) continue;
 
         if (blockedSet.has(normalizeChannelPointLookup(label))) {
-            logRegular(`skipping blocked configured channel point: ${label}`);
+            logRegular(
+                `skipping blocked configured channel point: ${label}`,
+            );
             continue;
         }
 
-        let twitchChannelPoint = findTwitchChannelPointForConfig(configuredChannelPoint);
+        let twitchChannelPoint =
+            findTwitchChannelPointForConfig(configuredChannelPoint);
 
-        logRegular(`match configured channel point ${label}: ${twitchChannelPoint ? `twitch=${twitchChannelPoint.title} (${twitchChannelPoint.id})` : "missing on twitch"}`);
+        logRegular(
+            `match configured channel point ${label}: ${
+                twitchChannelPoint
+                    ? `twitch=${twitchChannelPoint.title} (${twitchChannelPoint.id})`
+                    : "missing on twitch"
+            }`,
+        );
 
         if (!twitchChannelPoint) {
-            twitchChannelPoint = await createMissingTwitchChannelPoint(configuredChannelPoint, primaryChannel);
+            twitchChannelPoint = await createMissingTwitchChannelPoint(
+                configuredChannelPoint,
+                primaryChannel,
+            );
         }
 
-        await syncChannelPointTwitchSettings(configuredChannelPoint, twitchChannelPoint, primaryChannel);
+        await syncChannelPointTwitchSettings(
+            configuredChannelPoint,
+            twitchChannelPoint,
+            primaryChannel,
+        );
+
+        const isActive = twitchChannelPoint
+            ? desiredEnabledSet.has(
+                normalizeChannelPointLookup(twitchChannelPoint.title),
+            )
+            : false;
 
         const payload = createChannelPointPayload(
             configuredChannelPoint,
             twitchChannelPoint,
-            twitchChannelPoint ? desiredEnabledSet.has(normalizeChannelPointLookup(twitchChannelPoint.title)) : false,
+            isActive,
         );
 
         pushUniqueChannelPoint(allChannelPoints, allKeys, payload);
 
-        if (twitchChannelPoint && desiredEnabledSet.has(normalizeChannelPointLookup(twitchChannelPoint.title))) {
-            pushUniqueChannelPoint(activeChannelPoints, activeKeys, payload);
+        if (twitchChannelPoint && isActive) {
+            pushUniqueChannelPoint(
+                activeChannelPoints,
+                activeKeys,
+                payload,
+            );
         }
     }
 
     for (const twitchChannelPoint of Object.values(channelPoints)) {
-        if (blockedSet.has(normalizeChannelPointLookup(twitchChannelPoint.title))) {
-            logRegular(`skipping blocked twitch channel point: ${twitchChannelPoint.title}`);
+        if (
+            blockedSet.has(
+                normalizeChannelPointLookup(twitchChannelPoint.title),
+            )
+        ) {
+            logRegular(
+                `skipping blocked twitch channel point: ${twitchChannelPoint.title}`,
+            );
             continue;
         }
+
+        const isActive = desiredEnabledSet.has(
+            normalizeChannelPointLookup(twitchChannelPoint.title),
+        );
 
         const payload = createChannelPointPayload(
             {},
             twitchChannelPoint,
-            desiredEnabledSet.has(normalizeChannelPointLookup(twitchChannelPoint.title)),
+            isActive,
         );
 
         pushUniqueChannelPoint(allChannelPoints, allKeys, payload);
 
-        if (desiredEnabledSet.has(normalizeChannelPointLookup(twitchChannelPoint.title))) {
-            pushUniqueChannelPoint(activeChannelPoints, activeKeys, payload);
+        if (isActive) {
+            pushUniqueChannelPoint(
+                activeChannelPoints,
+                activeKeys,
+                payload,
+            );
         }
     }
 
-    logRegular(`channel point update complete: active=${activeChannelPoints.length}, all=${allChannelPoints.length}, macros=${Object.keys(gameMacros).length}`);
+    logRegular(
+        `channel point update complete: active=${activeChannelPoints.length}, all=${allChannelPoints.length}, macros=${Object.keys(gameMacros).length}`,
+    );
 
     emitChannelPointConfigUpdate();
 }

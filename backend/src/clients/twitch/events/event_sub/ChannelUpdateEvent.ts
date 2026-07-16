@@ -55,7 +55,7 @@ export default class ChannelUpdateEvent extends BaseEvent {
         );
 
         await updateTwitchData();
-        await updateChannelPoints();
+        await updateChannelPoints(true);
         await fetchGameInfo();
         pushGameInfo();
 
