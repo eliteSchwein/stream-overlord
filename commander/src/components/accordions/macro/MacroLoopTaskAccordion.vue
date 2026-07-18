@@ -14,7 +14,7 @@
       <v-col cols="12" md="4">
         <v-text-field
           v-model="loopData.key"
-          label="Key"
+          :label="$t('macro.core.loop.key')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -24,7 +24,7 @@
       <v-col cols="12" md="4">
         <v-text-field
           v-model.number="loopData.from"
-          label="From"
+          :label="$t('macro.core.loop.from')"
           type="number"
           density="comfortable"
           variant="outlined"
@@ -35,7 +35,7 @@
       <v-col cols="12" md="4">
         <v-text-field
           v-model.number="loopData.to"
-          label="To"
+          :label="$t('macro.core.loop.to')"
           type="number"
           density="comfortable"
           variant="outlined"
@@ -46,7 +46,7 @@
       <v-col cols="12" md="4">
         <v-text-field
           v-model.number="loopData.step"
-          label="Step"
+          :label="$t('macro.core.loop.step')"
           type="number"
           density="comfortable"
           variant="outlined"
@@ -58,7 +58,7 @@
       <v-col cols="12" md="8">
         <v-text-field
           v-model="loopData.data"
-          label="Data / variable path"
+          :label="$t('macro.core.loop.dataVariablePath')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -67,9 +67,7 @@
       </v-col>
     </v-row>
 
-    <div class="text-caption text-medium-emphasis mt-4 mb-2">
-      Loop tasks
-    </div>
+    <div class="text-caption text-medium-emphasis mt-4 mb-2">{{ $t('macro.core.loop.loopTasks') }}</div>
 
     <component
       :is="taskListComponent"

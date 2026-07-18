@@ -3,13 +3,13 @@
     :item="item"
     :index="index"
     icon="mdi-advertisements"
-    title="Run ad"
+    :title="$t('macro.twitch.ad.title')"
     export-prefix="macro_twitch_ad"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-select v-model="task.data.duration" variant="outlined" :items="[30, 60, 90, 120, 150, 180]" label="Duration (seconds)" />
+    <v-select v-model="task.data.duration" variant="outlined" :items="[30, 60, 90, 120, 150, 180]" :label="$t('macro.twitch.fields.durationSeconds')" />
   </MacroTaskAccordionTemplate>
 </template>
 

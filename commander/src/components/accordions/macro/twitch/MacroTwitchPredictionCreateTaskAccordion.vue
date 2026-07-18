@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-crystal-ball"
-    title="Create prediction"
+    :title="$t('macro.twitch.predictionCreate.title')"
     export-prefix="macro_twitch_prediction_create"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,18 +11,18 @@
   >
     <v-row>
       <v-col cols="12">
-        <v-text-field v-model="task.data.title" variant="outlined" label="Title" />
+        <v-text-field v-model="task.data.title" variant="outlined" :label="$t('macro.twitch.fields.title')" />
       </v-col>
 
       <v-col cols="12">
-        <div class="text-subtitle-2 mb-2">Outcomes</div>
+        <div class="text-subtitle-2 mb-2">{{ $t('macro.twitch.predictionCreate.outcomes') }}</div>
 
         <v-row v-for="(_, outcomeIndex) in outcomeFields" :key="outcomeIndex" dense>
           <v-col>
             <v-text-field
               v-model="outcomeFields[outcomeIndex]"
               variant="outlined"
-              :label="`Outcome ${outcomeIndex + 1}`"
+              :label="$t('macro.twitch.predictionCreate.outcome', { number: outcomeIndex + 1 })"
               hide-details="auto"
             />
           </v-col>
@@ -32,7 +32,7 @@
               variant="text"
               color="error"
               :disabled="outcomeFields.length <= 2"
-              :aria-label="`Remove outcome ${outcomeIndex + 1}`"
+              :aria-label="$t('macro.twitch.predictionCreate.removeOutcome', { number: outcomeIndex + 1 })"
               @click="removeOutcome(outcomeIndex)"
             />
           </v-col>
@@ -47,11 +47,11 @@
           :disabled="outcomeFields.length >= 10"
           @click="addOutcome"
         >
-          Add outcome
+          {{ $t('macro.twitch.predictionCreate.addOutcome') }}
         </v-btn>
 
         <div class="text-caption text-medium-emphasis mt-2">
-          A prediction requires between 2 and 10 outcomes.
+          {{ $t('macro.twitch.predictionCreate.requirement') }}
         </div>
       </v-col>
 
@@ -62,16 +62,16 @@
           type="number"
           min="30"
           max="1800"
-          label="Lock after (seconds)"
+          :label="$t('macro.twitch.predictionCreate.lockAfterSeconds')"
         />
       </v-col>
       <v-col cols="12" md="6">
         <v-text-field
           v-model="task.data.variable"
           variant="outlined"
-          label="Result variable"
-          placeholder="prediction"
-          hint="The created prediction is available as ${prediction}"
+          :label="$t('macro.twitch.fields.resultVariable')"
+          :placeholder="$t('macro.twitch.placeholders.predictionVariable')"
+          :hint="$t('macro.twitch.predictionCreate.resultHint')"
           persistent-hint
         />
       </v-col>

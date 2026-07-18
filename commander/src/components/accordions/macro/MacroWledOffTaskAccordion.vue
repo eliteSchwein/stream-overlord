@@ -14,7 +14,7 @@
       <v-col cols="12">
         <MacroWledSelect
           v-model="wledData.name"
-          label="WLED device"
+          :label="$t('macro.cleanup.wledOff.wledDevice')"
         />
       </v-col>
 
@@ -23,9 +23,7 @@
           type="warning"
           variant="tonal"
           density="comfortable"
-        >
-          This task uses the <strong>off</strong> method and turns the selected WLED device off.
-        </v-alert>
+        >{{ $t('macro.cleanup.wledOff.thisTaskUsesThe') }}<strong>{{ $t('macro.cleanup.wledOff.off') }}</strong>{{ $t('macro.cleanup.wledOff.methodAndTurnsTheSelectedWLEDDeviceOff') }}</v-alert>
       </v-col>
     </v-row>
   </MacroTaskAccordionTemplate>

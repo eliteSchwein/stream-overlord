@@ -15,7 +15,7 @@
       variant="tonal"
       density="comfortable"
       class="mb-4"
-      text="Pauses, unpauses, or sets the pause state of a Twitch channel point reward. If no name is set, a channel point redemption macro can use the current reward."
+      :text="$t('macro.core.channelPointPause.pausesUnpausesOrSetsThePauseStateOfATwitchChannelPointRewardIfNoNameIsSetAChannelPointRedemptionMacroCanUseTheCurrentReward')"
     />
 
     <v-row density="comfortable">
@@ -25,7 +25,7 @@
           :items="methodOptions"
           item-title="title"
           item-value="value"
-          label="Pause action"
+          :label="$t('macro.core.channelPointPause.pauseAction')"
           prepend-inner-icon="mdi-pause-circle-outline"
           variant="outlined"
           hide-details="auto"
@@ -36,7 +36,7 @@
         <v-autocomplete
           v-model="task.data.name"
           :items="channelPointOptions"
-          label="Channel point name"
+          :label="$t('macro.core.channelPointPause.channelPointName')"
           persistent-hint
           prepend-inner-icon="mdi-star-circle"
           variant="outlined"
@@ -53,8 +53,8 @@
           :items="stateOptions"
           item-title="title"
           item-value="value"
-          label="Pause state"
-          hint="Leave empty behavior depends on backend fallback"
+          :label="$t('macro.core.channelPointPause.pauseState')"
+          :hint="$t('macro.core.channelPointPause.leaveEmptyBehaviorDependsOnBackendFallback')"
           persistent-hint
           prepend-inner-icon="mdi-toggle-switch-outline"
           variant="outlined"
@@ -88,13 +88,13 @@ export default {
     return {
       appStore: useAppStore(),
       methodOptions: [
-        { title: 'Pause reward', value: 'pause' },
-        { title: 'Unpause reward', value: 'unpause' },
-        { title: 'Set/toggle pause state', value: 'toggle_pause' },
+        { title: String(this.$t('macro.core.channelPointPause.pauseReward')), value: 'pause' },
+        { title: String(this.$t('macro.core.channelPointPause.unpauseReward')), value: 'unpause' },
+        { title: String(this.$t('macro.core.channelPointPause.setTogglePauseState')), value: 'toggle_pause' },
       ],
       stateOptions: [
-        { title: 'Paused', value: 'pause' },
-        { title: 'Unpaused', value: 'unpause' },
+        { title: String(this.$t('macro.core.channelPointPause.paused')), value: 'pause' },
+        { title: String(this.$t('macro.core.channelPointPause.unpaused')), value: 'unpause' },
       ],
     }
   },

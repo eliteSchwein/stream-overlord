@@ -14,7 +14,7 @@
       <v-col cols="12" md="4">
         <v-text-field
           v-model="task.channel"
-          label="Channel"
+          :label="$t('macro.final.taskAccordion.channel')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -28,7 +28,7 @@
       >
         <v-text-field
           v-model="task.method"
-          label="Method"
+          :label="$t('macro.final.taskAccordion.method')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -38,7 +38,7 @@
       <v-col v-if="task.channel === 'rest'" cols="12" md="4">
         <v-text-field
           v-model="task.endpoint"
-          label="Endpoint"
+          :label="$t('macro.final.taskAccordion.endpoint')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -49,7 +49,7 @@
         <v-col cols="12" md="6">
           <v-text-field
             v-model="task.message"
-            label="Message"
+            :label="$t('macro.final.taskAccordion.message')"
             density="comfortable"
             variant="outlined"
             hide-details
@@ -59,7 +59,7 @@
         <v-col cols="12" md="6">
           <v-text-field
             v-model="task.asset"
-            label="Asset"
+            :label="$t('macro.final.taskAccordion.asset')"
             density="comfortable"
             variant="outlined"
             hide-details
@@ -71,7 +71,7 @@
         <v-col cols="12" md="6">
           <v-text-field
             v-model="task.message"
-            label="Message"
+            :label="$t('macro.final.taskAccordion.message2')"
             density="comfortable"
             variant="outlined"
             hide-details
@@ -81,7 +81,7 @@
         <v-col cols="12" md="3">
           <v-text-field
             v-model="task.icon"
-            label="Icon"
+            :label="$t('macro.final.taskAccordion.icon')"
             density="comfortable"
             variant="outlined"
             hide-details
@@ -91,7 +91,7 @@
         <v-col cols="12" md="3">
           <v-text-field
             v-model="task.duration"
-            label="Duration"
+            :label="$t('macro.final.taskAccordion.duration')"
             density="comfortable"
             variant="outlined"
             hide-details
@@ -102,7 +102,7 @@
       <v-col v-if="usesData" cols="12">
         <v-textarea
           v-model="dataText"
-          label="Data"
+          :label="$t('macro.final.taskAccordion.data')"
           density="comfortable"
           variant="outlined"
           rows="6"
@@ -118,7 +118,7 @@
       >
         <v-textarea
           v-model="rawText"
-          label="Raw task fields"
+          :label="$t('macro.final.taskAccordion.rawTaskFields')"
           density="comfortable"
           variant="outlined"
           rows="6"

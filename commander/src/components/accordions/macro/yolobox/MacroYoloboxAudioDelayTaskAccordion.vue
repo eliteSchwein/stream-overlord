@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-timer-outline"
-    title="Set YoloBox audio delay"
+    :title="$t('macro.yolobox.audioDelay.title')"
     export-prefix="macro_yolobox_set_audio_delay"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -16,7 +16,7 @@
           :items="audioSources"
           item-title="title"
           item-value="value"
-          label="Audio source"
+          :label="$t('macro.yolobox.fields.audioSource')"
           variant="outlined"
           clearable
         />
@@ -27,7 +27,7 @@
           type="number"
           min="0"
           step="1"
-          label="Audio delay"
+          :label="$t('macro.yolobox.fields.audioDelay')"
           suffix="ms"
           variant="outlined"
         />

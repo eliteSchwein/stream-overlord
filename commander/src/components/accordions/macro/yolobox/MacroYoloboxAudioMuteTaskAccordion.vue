@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-off"
-    title="Mute or unmute YoloBox audio"
+    :title="$t('macro.yolobox.audioMute.title')"
     export-prefix="macro_yolobox_set_audio_muted"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -16,7 +16,7 @@
           :items="audioSources"
           item-title="title"
           item-value="value"
-          label="Audio source"
+          :label="$t('macro.yolobox.fields.audioSource')"
           variant="outlined"
           clearable
         />
@@ -24,13 +24,10 @@
       <v-col cols="12">
         <v-select
           v-model="task.data.muted"
-          :items="[
-            { title: 'Mute', value: true },
-            { title: 'Unmute', value: false },
-          ]"
+          :items="muteItems"
           item-title="title"
           item-value="value"
-          label="Action"
+          :label="$t('macro.yolobox.fields.action')"
           variant="outlined"
         />
       </v-col>
@@ -55,6 +52,12 @@ export default {
     ...mapState(useAppStore, ['getYoloboxData']),
     task(): any {
       return (this.item as any).task
+    },
+    muteItems(): Array<{ title: string; value: boolean }> {
+      return [
+        { title: String(this.$t('macro.yolobox.audioMute.mute')), value: true },
+        { title: String(this.$t('macro.yolobox.audioMute.unmute')), value: false },
+      ]
     },
     audioSources(): Array<{ title: string; value: string }> {
       return (this.getYoloboxData?.MixerList ?? []).map((source: any) => ({

@@ -15,7 +15,7 @@
         <v-combobox
           v-model="fileData.path"
           :items="assetFolderOptions"
-          label="Asset folder path"
+          :label="$t('macro.core.file.assetFolderPath')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -27,7 +27,7 @@
         <v-combobox
           v-model="fileData.fileExtension"
           :items="extensionOptions"
-          label="File extension (optional)"
+          :label="$t('macro.core.file.fileExtensionOptional')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -38,7 +38,7 @@
       <v-col cols="12" md="3">
         <v-text-field
           v-model="fileData.key"
-          label="Variable key"
+          :label="$t('macro.core.file.variableKey')"
           density="comfortable"
           variant="outlined"
           hide-details

@@ -15,7 +15,7 @@
       <v-col cols="12" md="6">
         <v-text-field
           v-model="task.data.target"
-          label="Target"
+          :label="$t('macro.core.animation.target')"
           prepend-inner-icon="mdi-crosshairs-gps"
           hide-details="auto"
           variant="outlined"
@@ -28,7 +28,7 @@
           v-model="task.data.src"
           :items="sourceOptions"
           :loading="loadingSources"
-          label="Source"
+          :label="$t('macro.core.animation.source')"
           prepend-inner-icon="mdi-file-code"
           clearable
           hide-details="auto"
@@ -41,7 +41,7 @@
       <v-col cols="12" md="6">
         <v-number-input
           v-model="task.data.startFrame"
-          label="Start frame"
+          :label="$t('macro.core.animation.startFrame')"
           prepend-inner-icon="mdi-ray-start"
           hide-details="auto"
           variant="outlined"
@@ -52,7 +52,7 @@
       <v-col cols="12" md="6">
         <v-number-input
           v-model="task.data.stopFrame"
-          label="Stop frame"
+          :label="$t('macro.core.animation.stopFrame')"
           prepend-inner-icon="mdi-ray-end"
           hide-details="auto"
           variant="outlined"
@@ -63,7 +63,7 @@
       <v-col cols="12" md="6">
         <v-number-input
           v-model="task.data.speed"
-          label="Speed"
+          :label="$t('macro.core.animation.speed')"
           prepend-inner-icon="mdi-speedometer"
           hide-details="auto"
           variant="outlined"
@@ -76,7 +76,7 @@
         <v-combobox
           v-model="task.data.frameRate"
           :items="frameRateOptions"
-          label="Frame rate"
+          :label="$t('macro.core.animation.frameRate')"
           prepend-inner-icon="mdi-filmstrip"
           clearable
           hide-details="auto"
@@ -89,7 +89,7 @@
       <v-col cols="12" md="6">
         <v-switch
           v-model="task.data.loop"
-          label="Loop"
+          :label="$t('macro.core.animation.loop')"
           color="primary"
           hide-details="auto"
           density="comfortable"
@@ -99,7 +99,7 @@
       <v-col cols="12" md="6">
         <v-switch
           v-model="task.data.reverse"
-          label="Reverse"
+          :label="$t('macro.core.animation.reverse')"
           color="primary"
           hide-details="auto"
           density="comfortable"
@@ -108,7 +108,7 @@
 
       <v-col cols="12">
         <div class="d-flex align-center justify-space-between mb-2">
-          <div class="text-subtitle-2">Variables</div>
+          <div class="text-subtitle-2">{{ $t('macro.core.animation.variables') }}</div>
 
           <v-btn
             size="small"
@@ -116,9 +116,7 @@
             color="primary"
             prepend-icon="mdi-plus"
             @click="addVariable"
-          >
-            Add variable
-          </v-btn>
+          >{{ $t('macro.core.animation.addVariable') }}</v-btn>
         </div>
 
         <v-alert
@@ -127,9 +125,7 @@
           variant="tonal"
           density="compact"
           class="mb-2"
-        >
-          No variables configured.
-        </v-alert>
+        >{{ $t('macro.core.animation.noVariablesConfigured') }}</v-alert>
 
         <v-row
           v-for="(variable, variableIndex) in variableRows"
@@ -140,7 +136,7 @@
           <v-col cols="12" md="5">
             <v-text-field
               v-model="variable.key"
-              label="Key"
+              :label="$t('macro.core.animation.key')"
               prepend-inner-icon="mdi-key-outline"
               hide-details="auto"
               variant="outlined"
@@ -152,7 +148,7 @@
           <v-col cols="12" md="6">
             <v-text-field
               v-model="variable.value"
-              label="Value"
+              :label="$t('macro.core.animation.value')"
               prepend-inner-icon="mdi-code-braces"
               hide-details="auto"
               variant="outlined"

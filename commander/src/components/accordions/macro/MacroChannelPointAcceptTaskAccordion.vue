@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-check-circle-outline"
-    title="Accept channel point reward"
+    :title="$t('macro.core.channelPointAccept.acceptChannelPointReward')"
     export-prefix="macro_channel_point_accept"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,7 +14,7 @@
       type="info"
       variant="tonal"
       density="comfortable"
-      text="Marks the current channel point redemption as fulfilled."
+      :text="$t('macro.core.channelPointAccept.marksTheCurrentChannelPointRedemptionAsFulfilled')"
     />
   </MacroTaskAccordionTemplate>
 </template>

@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-link-variant"
-    title="Set YoloBox audio follows video"
+    :title="$t('macro.yolobox.audioAfv.title')"
     export-prefix="macro_yolobox_set_audio_afv"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -16,7 +16,7 @@
           :items="audioSources"
           item-title="title"
           item-value="value"
-          label="Audio source"
+          :label="$t('macro.yolobox.fields.audioSource')"
           variant="outlined"
           clearable
         />
@@ -24,13 +24,10 @@
       <v-col cols="12">
         <v-select
           v-model="task.data.AFV"
-          :items="[
-            { title: 'Enable AFV', value: true },
-            { title: 'Disable AFV', value: false },
-          ]"
+          :items="afvItems"
           item-title="title"
           item-value="value"
-          label="Audio follows video"
+          :label="$t('macro.yolobox.fields.audioFollowsVideo')"
           variant="outlined"
         />
       </v-col>
@@ -55,6 +52,12 @@ export default {
     ...mapState(useAppStore, ['getYoloboxData']),
     task(): any {
       return (this.item as any).task
+    },
+    afvItems(): Array<{ title: string; value: boolean }> {
+      return [
+        { title: String(this.$t('macro.yolobox.audioAfv.enable')), value: true },
+        { title: String(this.$t('macro.yolobox.audioAfv.disable')), value: false },
+      ]
     },
     audioSources(): Array<{ title: string; value: string }> {
       return (this.getYoloboxData?.MixerList ?? []).map((source: any) => ({

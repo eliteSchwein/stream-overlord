@@ -3,7 +3,9 @@
     :item="item"
     :index="index"
     icon="mdi-layers-outline"
-    :title="task.data.isSelected ? 'Enable YoloBox overlay' : 'Disable YoloBox overlay'"
+    :title="task.data.isSelected
+      ? $t('macro.yolobox.overlay.enableTitle')
+      : $t('macro.yolobox.overlay.disableTitle')"
     export-prefix="macro_yolobox_overlay"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -16,7 +18,7 @@
           :items="overlays"
           item-title="title"
           item-value="value"
-          label="Overlay"
+          :label="$t('macro.yolobox.fields.overlay')"
           variant="outlined"
           clearable
         />
@@ -28,7 +30,7 @@
           :items="stateItems"
           item-title="title"
           item-value="value"
-          label="State"
+          :label="$t('macro.yolobox.fields.state')"
           variant="outlined"
         />
       </v-col>
@@ -49,18 +51,16 @@ export default {
     index: { type: Number, required: true },
   },
   emits: ['remove', 'move-up', 'move-down'],
-  data() {
-    return {
-      stateItems: [
-        { title: 'Enable', value: true },
-        { title: 'Disable', value: false },
-      ],
-    }
-  },
   computed: {
     ...mapState(useAppStore, ['getYoloboxData']),
     task(): any {
       return (this.item as any).task
+    },
+    stateItems(): Array<{ title: string; value: boolean }> {
+      return [
+        { title: String(this.$t('macro.yolobox.overlay.enable')), value: true },
+        { title: String(this.$t('macro.yolobox.overlay.disable')), value: false },
+      ]
     },
     overlays(): Array<{ title: string; value: string }> {
       const items = (this.getYoloboxData?.MaterialList ?? []).map((overlay: any) => ({
@@ -68,7 +68,7 @@ export default {
         value: String(overlay.id),
       }))
 
-      return [{ title: 'All overlays', value: 'all' }, ...items]
+      return [{ title: String(this.$t('macro.yolobox.overlay.allOverlays')), value: 'all' }, ...items]
     },
   },
   created() {

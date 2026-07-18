@@ -419,6 +419,426 @@
       "unlockSceneItem": {
         "title": "Unlock scene item"
       }
+    },
+    "twitch": {
+      "fields": {
+        "durationSeconds": "Duration (seconds)",
+        "user": "User",
+        "reason": "Reason",
+        "category": "Category",
+        "resultVariable": "Result variable",
+        "pollId": "Poll ID",
+        "title": "Title",
+        "predictionId": "Prediction ID",
+        "twitchChannel": "Twitch channel",
+        "mode": "Mode",
+        "volume": "Volume",
+        "twitchUser": "Twitch user",
+        "description": "Description"
+      },
+      "placeholders": {
+        "usernameOrVariable": "username or {{variable}}",
+        "optionalReasonOrVariable": "Optional reason or {{variable}}",
+        "categoryOrVariable": "Just Chatting or {{variable}}",
+        "clipVariable": "clip",
+        "pollIdOrVariable": "${poll.id} or {{variable}}",
+        "pollVariable": "poll",
+        "predictionIdOrVariable": "${prediction.id} or {{variable}}",
+        "predictionVariable": "prediction",
+        "predictionId": "${prediction.id}",
+        "winningOutcomeId": "${prediction.outcomes.0.id}",
+        "randomClipVariable": "random_clip",
+        "optionalMarkerDescription": "Optional marker description"
+      },
+      "ad": {
+        "title": "Run ad"
+      },
+      "ban": {
+        "title": "Ban user"
+      },
+      "category": {
+        "title": "Change category"
+      },
+      "clip": {
+        "title": "Create clip",
+        "createAfterDelay": "Create after delay",
+        "waitBeforeFetch": "Wait before fetching clip (seconds)",
+        "resultHint": "The completed clip is available as e.g. ${clip.url}"
+      },
+      "pollArchive": {
+        "title": "Archive poll"
+      },
+      "pollCreate": {
+        "title": "Create poll",
+        "choices": "Choices",
+        "choice": "Choice {number}",
+        "removeChoice": "Remove choice {number}",
+        "addChoice": "Add choice",
+        "requirement": "A poll requires between 2 and 5 choices.",
+        "allowChannelPointVotes": "Allow channel point votes",
+        "pointsPerAdditionalVote": "Points per additional vote",
+        "resultHint": "The created poll is available as ${poll}"
+      },
+      "pollTerminate": {
+        "title": "Terminate poll"
+      },
+      "predictionCancel": {
+        "title": "Cancel prediction"
+      },
+      "predictionLock": {
+        "title": "Lock prediction"
+      },
+      "predictionCreate": {
+        "title": "Create prediction",
+        "outcomes": "Outcomes",
+        "outcome": "Outcome {number}",
+        "removeOutcome": "Remove outcome {number}",
+        "addOutcome": "Add outcome",
+        "requirement": "A prediction requires between 2 and 10 outcomes.",
+        "lockAfterSeconds": "Lock after (seconds)",
+        "resultHint": "The created prediction is available as ${prediction}"
+      },
+      "predictionResolve": {
+        "title": "Resolve prediction",
+        "winningOutcomeId": "Winning outcome ID"
+      },
+      "randomClip": {
+        "title": "Random clip",
+        "serviceInfo": "This task uses {service} to load and play Twitch clips.",
+        "primaryChannelPlaceholder": "Leave empty for the primary channel",
+        "templateVariablesHint": "Supports template variables.",
+        "recentClips": "Recent clips",
+        "maximumClipLength": "Maximum clip length",
+        "seconds": "{count} seconds",
+        "longClipBehavior": "Clips longer than the maximum",
+        "filterOutClips": "Filter out clips",
+        "stopClipsEarly": "Stop clips early",
+        "showInformationOverlay": "Show information overlay",
+        "showTimer": "Show timer",
+        "overlayDurationSeconds": "Overlay duration (seconds)",
+        "overlayDurationHint": "How long the clip player remains visible.",
+        "resultHint": "Stores the generated URL, channel and playback duration.",
+        "modes": {
+          "random": "Random",
+          "top": "Top"
+        },
+        "periods": {
+          "allTime": "All time",
+          "last7Days": "Last 7 days",
+          "last30Days": "Last 30 days",
+          "last6Months": "Last 6 months",
+          "lastYear": "Last year"
+        }
+      },
+      "streamMarker": {
+        "title": "Create stream marker"
+      },
+      "shoutout": {
+        "title": "Shoutout"
+      },
+      "timeout": {
+        "title": "Timeout user",
+        "durationSeconds": "Duration in seconds",
+        "maximumHint": "Maximum: 1,209,600 seconds (14 days)"
+      },
+      "vipAdd": {
+        "title": "Add VIP"
+      },
+      "vipRemove": {
+        "title": "Remove VIP"
+      }
+    },
+    "yolobox": {
+      "fields": {
+        "audioSource": "Audio source",
+        "audioFollowsVideo": "Audio follows video",
+        "audioDelay": "Audio delay",
+        "action": "Action",
+        "volume": "Volume",
+        "streamAction": "Stream action",
+        "overlay": "Overlay",
+        "state": "State",
+        "videoSource": "Video source"
+      },
+      "audioAfv": {
+        "title": "Set YoloBox audio follows video",
+        "enable": "Enable AFV",
+        "disable": "Disable AFV"
+      },
+      "audioDelay": {
+        "title": "Set YoloBox audio delay"
+      },
+      "audioMute": {
+        "title": "Mute or unmute YoloBox audio",
+        "mute": "Mute",
+        "unmute": "Unmute"
+      },
+      "audioVolume": {
+        "title": "Set YoloBox audio volume"
+      },
+      "liveStatus": {
+        "startTitle": "Start YoloBox stream",
+        "stopTitle": "Stop YoloBox stream",
+        "goLive": "Go live",
+        "stopStream": "Stop stream"
+      },
+      "overlay": {
+        "enableTitle": "Enable YoloBox overlay",
+        "disableTitle": "Disable YoloBox overlay",
+        "enable": "Enable",
+        "disable": "Disable",
+        "allOverlays": "All overlays"
+      },
+      "videoSource": {
+        "title": "Switch YoloBox video source"
+      }
+    },
+    "core": {
+      "autoMacroSelect": {
+        "timeout30000Promise": "= {}, timeout = 30_000): Promise",
+        "timeout30000Promise2": "= {}, timeout = 30_000): Promise"
+      },
+      "alert": {
+        "message": "Message",
+        "speak": "Speak",
+        "asset": "Asset"
+      },
+      "animation": {
+        "target": "Target",
+        "source": "Source",
+        "startFrame": "Start frame",
+        "stopFrame": "Stop frame",
+        "speed": "Speed",
+        "frameRate": "Frame rate",
+        "loop": "Loop",
+        "reverse": "Reverse",
+        "key": "Key",
+        "value": "Value",
+        "variables": "Variables",
+        "addVariable": "Add variable",
+        "noVariablesConfigured": "No variables configured.",
+        "timeout15000Promise": "= {}, timeout = 15_000): Promise"
+      },
+      "assetSelect": {
+        "timeout8000Promise": "= {}, timeout = 8_000): Promise",
+        "timeout8000Promise2": "= {}, timeout = 8_000): Promise"
+      },
+      "autoMacroStart": {
+        "startAutoMacro": "Start auto macro",
+        "autoMacro": "Auto macro"
+      },
+      "autoMacroStop": {
+        "stopAutoMacro": "Stop auto macro",
+        "autoMacro": "Auto macro"
+      },
+      "channelPointAccept": {
+        "acceptChannelPointReward": "Accept channel point reward",
+        "marksTheCurrentChannelPointRedemptionAsFulfilled": "Marks the current channel point redemption as fulfilled."
+      },
+      "channelPointCancel": {
+        "cancelChannelPointReward": "Cancel channel point reward",
+        "marksTheCurrentChannelPointRedemptionAsCanceled": "Marks the current channel point redemption as canceled."
+      },
+      "channelPointPause": {
+        "pauseAction": "Pause action",
+        "channelPointName": "Channel point name",
+        "pauseState": "Pause state",
+        "leaveEmptyBehaviorDependsOnBackendFallback": "Leave empty behavior depends on backend fallback",
+        "pausesUnpausesOrSetsThePauseStateOfATwitchChannelPointRewardIfNoNameIsSetAChannelPointRedemptionMacroCanUseTheCurrentReward": "Pauses, unpauses, or sets the pause state of a Twitch channel point reward. If no name is set, a channel point redemption macro can use the current reward.",
+        "pauseReward": "Pause reward",
+        "unpauseReward": "Unpause reward",
+        "setTogglePauseState": "Set/toggle pause state",
+        "paused": "Paused",
+        "unpaused": "Unpaused"
+      },
+      "channelPointToggle": {
+        "enabledAction": "Enabled action",
+        "channelPointName": "Channel point name",
+        "enabledState": "Enabled state",
+        "requiredForBackendMethodToggle": "Required for backend method toggle",
+        "enablesDisablesOrSetsTheEnabledStateOfATwitchChannelPointRewardIfNoNameIsSetAChannelPointRedemptionMacroCanUseTheCurrentReward": "Enables, disables, or sets the enabled state of a Twitch channel point reward. If no name is set, a channel point redemption macro can use the current reward.",
+        "enableReward": "Enable reward",
+        "disableReward": "Disable reward",
+        "setEnabledState": "Set enabled state",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+      },
+      "condition": {
+        "condition": "Condition",
+        "branch": "Branch",
+        "condition2": "Condition",
+        "then": "Then",
+        "addElseIf": "Add else if",
+        "addElse": "Add else"
+      },
+      "dummyAlert": {},
+      "effect": {},
+      "endMacro": {
+        "endMacro": "End Macro",
+        "stopsTheCurrentMacroHereWhenThisTaskIsReached": "Stops the current macro here when this task is reached."
+      },
+      "file": {
+        "assetFolderPath": "Asset folder path",
+        "fileExtensionOptional": "File extension (optional)",
+        "variableKey": "Variable key"
+      },
+      "functionTask": {},
+      "keyboard": {
+        "name": "Name",
+        "duration": "Duration",
+        "macro": "macro",
+        "keyPress": "Key press",
+        "variable": "{{ recordingKeys ? 'Stop recording' : 'Record key press' }}",
+        "clear": "Clear",
+        "pressAllKeysYouWantThenClick": "Press all keys you want, then click",
+        "stopRecording": "Stop recording",
+        "variable2": "{{ key.label }}",
+        "variable3": "{{ key.label }}",
+        "variable4": "{{ key.label }}"
+      },
+      "loopControl": {
+        "variable": "{{ description }}"
+      },
+      "loop": {
+        "key": "Key",
+        "from": "From",
+        "to": "To",
+        "step": "Step",
+        "dataVariablePath": "Data / variable path",
+        "loopTasks": "Loop tasks"
+      },
+      "macroTask": {
+        "macro": "Macro"
+      }
+    },
+    "final": {
+      "dummyAlert": {},
+      "effect": {},
+      "functionTask": {},
+      "media": {
+        "target": "Target",
+        "mediaPathURLPlaceholder": "Media path / URL / placeholder",
+        "assetsImageWebpHttpsExampleComImagePngVariable": "assets/image.webp, https://example.com/image.png, ${ variables.media_url }",
+        "noMediaSuggestionsFound": "No media suggestions found",
+        "type": "Type",
+        "clearWhenPathIsEmpty": "Clear when path is empty",
+        "autoplay": "Autoplay",
+        "loop": "Loop",
+        "muted": "Muted",
+        "controls": "Controls",
+        "timeout15000Promise": "= {}, timeout = 15_000): Promise",
+        "autoDetect": "Auto detect",
+        "image": "Image",
+        "video": "Video",
+        "audio": "Audio",
+        "iframe": "Iframe"
+      },
+      "musicTask": {},
+      "neopixel": {},
+      "obsTask": {},
+      "rest": {},
+      "rotateSceneStart": {
+        "startRotatingScene": "Start rotating scene",
+        "rotatingScene": "Rotating scene"
+      },
+      "rotateSceneStop": {
+        "stopRotatingScene": "Stop rotating scene",
+        "stopsTheCurrentlyRunningRotatingScene": "Stops the currently running rotating scene."
+      },
+      "taskAccordion": {
+        "channel": "Channel",
+        "method": "Method",
+        "endpoint": "Endpoint",
+        "message": "Message",
+        "asset": "Asset",
+        "message2": "Message",
+        "icon": "Icon",
+        "duration": "Duration",
+        "data": "Data",
+        "rawTaskFields": "Raw task fields"
+      },
+      "taskAccordionTemplate": {},
+      "taskActions": {
+        "export": "Export",
+        "import": "Import"
+      },
+      "taskTitle": {
+        "variable": "#{{ index + 1 }}",
+        "variable2": "{{ title }}"
+      },
+      "timer": {
+        "timerName": "Timer name",
+        "time": "Time",
+        "endAction": "End action",
+        "finishedMacro": "Finished macro",
+        "optionalMacroThatRunsWhenTheTimerReaches0": "Optional macro that runs when the timer reaches 0",
+        "blink": "Blink",
+        "fade": "Fade"
+      },
+      "variableGet": {
+        "variableKey": "Variable key"
+      },
+      "variableSet": {
+        "variableKey": "Variable key",
+        "value": "Value",
+        "saveToFile": "Save to file"
+      },
+      "webhook": {
+        "webhook": "Webhook",
+        "method": "Method",
+        "url": "URL",
+        "rawBody": "Raw body",
+        "raw": "Raw",
+        "rawBody2": "Raw body",
+        "messageContent": "Message content",
+        "authorName": "Author name",
+        "color": "Color",
+        "authorIconURL": "Author icon URL",
+        "embedTitle": "Embed title",
+        "description": "Description",
+        "imageURL": "Image URL",
+        "footerText": "Footer text",
+        "name": "Name",
+        "value": "Value",
+        "inline": "Inline",
+        "discordWebhookDetectedButTheBodyHasNoContentOrEmbeds": "Discord webhook detected, but the body has no content or embeds.",
+        "discordWebhookDetectedButTheRawBodyIsNotValidJSONYet": "Discord webhook detected, but the raw body is not valid JSON yet.",
+        "discordEmbedEditor": "Discord embed editor",
+        "formatJSON": "Format JSON",
+        "minifyJSON": "Minify JSON",
+        "fields": "Fields",
+        "addField": "Add field",
+        "discordPreview": "Discord preview",
+        "variable": "{{ discordPayload.content }}",
+        "variable2": "{{ embed.title }}",
+        "variable3": "{{ embed.description }}",
+        "variable4": "{{ embed.footer.text }}"
+      },
+      "websocket": {},
+      "wledCustom": {
+        "wledCustom": "WLED Custom"
+      }
+    },
+    "cleanup": {
+      "dummyAlertCleanup": {},
+      "effectCleanup": {},
+      "functionTaskCleanup": {},
+      "musicTaskCleanup": {},
+      "neopixelCleanup": {},
+      "obsTaskCleanup": {},
+      "restCleanup": {},
+      "taskAccordionTemplateCleanup": {},
+      "websocketCleanup": {},
+      "wledOff": {
+        "wledDevice": "WLED device",
+        "thisTaskUsesThe": "This task uses the",
+        "off": "off",
+        "methodAndTurnsTheSelectedWLEDDeviceOff": "method and turns the selected WLED device off."
+      },
+      "rotatingSceneSelect": {
+        "timeout30000Promise": "= {}, timeout = 30_000): Promise",
+        "timeout30000Promise2": "= {}, timeout = 30_000): Promise"
+      }
     }
   },
   "giveaway": {

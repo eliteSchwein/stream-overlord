@@ -15,9 +15,7 @@
       density="comfortable"
       variant="tonal"
       color="warning"
-    >
-      {{ description }}
-    </v-alert>
+    >{{ $t('macro.core.loopControl.variable') }}</v-alert>
   </MacroTaskAccordionTemplate>
 </template>
 

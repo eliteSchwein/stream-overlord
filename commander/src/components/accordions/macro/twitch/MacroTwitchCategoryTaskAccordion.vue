@@ -3,13 +3,13 @@
     :item="item"
     :index="index"
     icon="mdi-gamepad-variant"
-    title="Change category"
+    :title="$t('macro.twitch.category.title')"
     export-prefix="macro_twitch_category"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-text-field v-model="task.data.category" variant="outlined" label="Category" placeholder="Just Chatting or {{variable}}" />
+    <v-text-field v-model="task.data.category" variant="outlined" :label="$t('macro.twitch.fields.category')" :placeholder="$t('macro.twitch.placeholders.categoryOrVariable')" />
   </MacroTaskAccordionTemplate>
 </template>
 

@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-stop-circle-outline"
-    title="End Macro"
+    :title="$t('macro.core.endMacro.endMacro')"
     export-prefix="macro_end_macro"
     color="primary"
     @remove="$emit('remove')"
@@ -16,7 +16,7 @@
       color="warning"
       density="comfortable"
       variant="tonal"
-      text="Stops the current macro here when this task is reached."
+      :text="$t('macro.core.endMacro.stopsTheCurrentMacroHereWhenThisTaskIsReached')"
     />
   </MacroTaskAccordionTemplate>
 </template>

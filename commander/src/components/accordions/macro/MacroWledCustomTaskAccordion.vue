@@ -5,7 +5,7 @@
     :index="index"
     :depth="depth"
     icon="mdi-led-strip-variant"
-    title="WLED Custom"
+    :title="$t('macro.final.wledCustom.wledCustom')"
     export-prefix="macro_wled_custom"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"

@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-webhook"
-    title="Webhook"
+    :title="$t('macro.final.webhook.webhook')"
     export-prefix="macro_webhook"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -15,7 +15,7 @@
         <v-select
           v-model="task.method"
           :items="methodOptions"
-          label="Method"
+          :label="$t('macro.final.webhook.method')"
           prepend-inner-icon="mdi-swap-horizontal"
           variant="outlined"
           density="comfortable"
@@ -26,7 +26,7 @@
       <v-col cols="12" md="9">
         <v-text-field
           v-model="formData.url"
-          label="URL"
+          :label="$t('macro.final.webhook.url')"
           prepend-inner-icon="mdi-link"
           variant="outlined"
           density="comfortable"
@@ -38,7 +38,7 @@
         <template v-if="!isDiscordWebhook">
           <v-textarea
             v-model="formData.content"
-            label="Raw body"
+            :label="$t('macro.final.webhook.rawBody')"
             variant="outlined"
             density="comfortable"
             hide-details="auto"
@@ -52,11 +52,11 @@
         <v-card v-else variant="tonal" class="discord-visual-editor">
           <v-card-title class="d-flex align-center ga-2 text-subtitle-1">
             <v-icon icon="mdi-discord" />
-            <span>Discord embed editor</span>
+            <span>{{ $t('macro.final.webhook.discordEmbedEditor') }}</span>
             <v-spacer />
             <v-switch
               v-model="rawDiscordEditor"
-              label="Raw"
+              :label="$t('macro.final.webhook.raw')"
               color="primary"
               density="compact"
               hide-details
@@ -68,7 +68,7 @@
             <template v-if="rawDiscordEditor">
               <v-textarea
                 v-model="formData.content"
-                label="Raw body"
+                :label="$t('macro.final.webhook.rawBody2')"
                 variant="outlined"
                 density="comfortable"
                 hide-details="auto"
@@ -85,9 +85,7 @@
                   prepend-icon="mdi-code-json"
                   :disabled="!canFormatContent"
                   @click="formatContent"
-                >
-                  Format JSON
-                </v-btn>
+                >{{ $t('macro.final.webhook.formatJSON') }}</v-btn>
 
                 <v-btn
                   size="small"
@@ -95,16 +93,14 @@
                   prepend-icon="mdi-code-braces"
                   :disabled="!canFormatContent"
                   @click="minifyContent"
-                >
-                  Minify JSON
-                </v-btn>
+                >{{ $t('macro.final.webhook.minifyJSON') }}</v-btn>
               </div>
             </template>
 
             <template v-else>
               <v-textarea
                 :model-value="discordContent"
-                label="Message content"
+                :label="$t('macro.final.webhook.messageContent')"
                 variant="outlined"
                 density="comfortable"
                 hide-details="auto"
@@ -119,7 +115,7 @@
                 <v-col cols="12" md="8">
                   <v-text-field
                     :model-value="firstEmbed.author?.name ?? ''"
-                    label="Author name"
+                    :label="$t('macro.final.webhook.authorName')"
                     variant="outlined"
                     density="comfortable"
                     hide-details="auto"
@@ -133,7 +129,7 @@
                       <v-text-field
                         v-bind="props"
                         :model-value="firstEmbedColorHex"
-                        label="Color"
+                        :label="$t('macro.final.webhook.color')"
                         prepend-inner-icon="mdi-palette"
                         variant="outlined"
                         density="comfortable"
@@ -163,7 +159,7 @@
                 <v-col cols="12">
                   <v-text-field
                     :model-value="firstEmbed.author?.icon_url ?? ''"
-                    label="Author icon URL"
+                    :label="$t('macro.final.webhook.authorIconURL')"
                     variant="outlined"
                     density="comfortable"
                     hide-details="auto"
@@ -174,7 +170,7 @@
                 <v-col cols="12">
                   <v-text-field
                     :model-value="firstEmbed.title ?? ''"
-                    label="Embed title"
+                    :label="$t('macro.final.webhook.embedTitle')"
                     variant="outlined"
                     density="comfortable"
                     hide-details="auto"
@@ -185,7 +181,7 @@
                 <v-col cols="12">
                   <v-textarea
                     :model-value="firstEmbed.description ?? ''"
-                    label="Description"
+                    :label="$t('macro.final.webhook.description')"
                     variant="outlined"
                     density="comfortable"
                     hide-details="auto"
@@ -198,7 +194,7 @@
                 <v-col cols="12">
                   <v-text-field
                     :model-value="firstEmbed.image?.url ?? ''"
-                    label="Image URL"
+                    :label="$t('macro.final.webhook.imageURL')"
                     variant="outlined"
                     density="comfortable"
                     hide-details="auto"
@@ -209,7 +205,7 @@
                 <v-col cols="12">
                   <v-text-field
                     :model-value="firstEmbed.footer?.text ?? ''"
-                    label="Footer text"
+                    :label="$t('macro.final.webhook.footerText')"
                     variant="outlined"
                     density="comfortable"
                     hide-details="auto"
@@ -219,10 +215,8 @@
               </v-row>
 
               <div class="d-flex align-center justify-space-between mt-4 mb-2">
-                <div class="text-subtitle-2">Fields</div>
-                <v-btn size="small" variant="tonal" prepend-icon="mdi-plus" @click="addDiscordField">
-                  Add field
-                </v-btn>
+                <div class="text-subtitle-2">{{ $t('macro.final.webhook.fields') }}</div>
+                <v-btn size="small" variant="tonal" prepend-icon="mdi-plus" @click="addDiscordField">{{ $t('macro.final.webhook.addField') }}</v-btn>
               </div>
 
               <v-card
@@ -234,7 +228,7 @@
                   <div class="discord-field-editor-grid">
                     <v-text-field
                       :model-value="field.name ?? ''"
-                      label="Name"
+                      :label="$t('macro.final.webhook.name')"
                       variant="outlined"
                       density="comfortable"
                       hide-details="auto"
@@ -243,7 +237,7 @@
 
                     <v-text-field
                       :model-value="field.value ?? ''"
-                      label="Value"
+                      :label="$t('macro.final.webhook.value')"
                       variant="outlined"
                       density="comfortable"
                       hide-details="auto"
@@ -252,7 +246,7 @@
 
                     <v-checkbox
                       :model-value="field.inline === true"
-                      label="Inline"
+                      :label="$t('macro.final.webhook.inline')"
                       density="compact"
                       hide-details
                       class="discord-field-inline-toggle"
@@ -278,14 +272,10 @@
       <v-col v-if="isDiscordWebhook" cols="12" md="5">
         <v-card class="discord-preview" variant="flat">
           <v-card-title class="d-flex align-center ga-2 text-subtitle-1">
-            <v-icon icon="mdi-discord" />
-            Discord preview
-          </v-card-title>
+            <v-icon icon="mdi-discord" />{{ $t('macro.final.webhook.discordPreview') }}</v-card-title>
 
           <v-card-text v-if="discordPayload">
-            <div v-if="discordPayload.content" class="discord-message mb-3">
-              {{ discordPayload.content }}
-            </div>
+            <div v-if="discordPayload.content" class="discord-message mb-3">{{ $t('macro.final.webhook.variable') }}</div>
 
             <div
               v-for="(embed, embedIndex) in discordEmbeds"
@@ -300,13 +290,9 @@
                 <span>{{ embed.author.name }}</span>
               </div>
 
-              <div v-if="embed.title" class="discord-title mb-1">
-                {{ embed.title }}
-              </div>
+              <div v-if="embed.title" class="discord-title mb-1">{{ $t('macro.final.webhook.variable2') }}</div>
 
-              <div v-if="embed.description" class="discord-description mb-2">
-                {{ embed.description }}
-              </div>
+              <div v-if="embed.description" class="discord-description mb-2">{{ $t('macro.final.webhook.variable3') }}</div>
 
               <div v-if="Array.isArray(embed.fields) && embed.fields.length" class="discord-fields">
                 <div
@@ -328,9 +314,7 @@
                 cover
               />
 
-              <div v-if="embed.footer?.text" class="discord-footer mt-2">
-                {{ embed.footer.text }}
-              </div>
+              <div v-if="embed.footer?.text" class="discord-footer mt-2">{{ $t('macro.final.webhook.variable4') }}</div>
             </div>
 
             <v-alert
@@ -338,7 +322,7 @@
               type="info"
               variant="tonal"
               density="comfortable"
-              text="Discord webhook detected, but the body has no content or embeds."
+              :text="$t('macro.final.webhook.discordWebhookDetectedButTheBodyHasNoContentOrEmbeds')"
             />
           </v-card-text>
 
@@ -348,7 +332,7 @@
               color="warning"
               variant="tonal"
               density="comfortable"
-              text="Discord webhook detected, but the raw body is not valid JSON yet."
+              :text="$t('macro.final.webhook.discordWebhookDetectedButTheRawBodyIsNotValidJSONYet')"
             />
           </v-card-text>
         </v-card>

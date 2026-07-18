@@ -95,7 +95,7 @@ export default {
   },
 
   methods: {
-    async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+    async requestWebsocket(method: string, params: Record<string, any>, timeout = 30000): Promise<any> {
       const client = getWebsocketClient()
       if (!client) throw new Error('websocket is not connected')
       const response = await client.request(method, params, timeout)
@@ -125,7 +125,7 @@ export default {
       return response
     },
 
-    async requestRotatingSceneEndpoint(method: string, params: Record<string, any> = {}, timeout = 30_000): Promise<any> {
+    async requestRotatingSceneEndpoint(method: string, params: Record<string, any>): Promise<any> {
       const response = await this.requestWebsocket(method, params, timeout)
       const data = this.unwrapResponse(response, method)
       if (data?.error) throw new Error(data.error)

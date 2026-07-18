@@ -3,13 +3,13 @@
     :item="item"
     :index="index"
     icon="mdi-star-plus-outline"
-    title="Add VIP"
+    :title="$t('macro.twitch.vipAdd.title')"
     export-prefix="macro_twitch_vip_add"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-text-field v-model="task.data.user" variant="outlined" label="Twitch user" placeholder="username or {{variable}}" />
+    <v-text-field v-model="task.data.user" variant="outlined" :label="$t('macro.twitch.fields.twitchUser')" :placeholder="$t('macro.twitch.placeholders.usernameOrVariable')" />
   </MacroTaskAccordionTemplate>
 </template>
 

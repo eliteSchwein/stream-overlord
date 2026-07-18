@@ -3,7 +3,9 @@
     :item="item"
     :index="index"
     :icon="task.data.status === 'start' ? 'mdi-play-circle-outline' : 'mdi-stop-circle-outline'"
-    :title="task.data.status === 'start' ? 'Start YoloBox stream' : 'Stop YoloBox stream'"
+    :title="task.data.status === 'start'
+      ? $t('macro.yolobox.liveStatus.startTitle')
+      : $t('macro.yolobox.liveStatus.stopTitle')"
     export-prefix="macro_yolobox_live_status"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -16,7 +18,7 @@
           :items="statusItems"
           item-title="title"
           item-value="value"
-          label="Stream action"
+          :label="$t('macro.yolobox.fields.streamAction')"
           variant="outlined"
         />
       </v-col>
@@ -35,17 +37,15 @@ export default {
     index: { type: Number, required: true },
   },
   emits: ['remove', 'move-up', 'move-down'],
-  data() {
-    return {
-      statusItems: [
-        { title: 'Go live', value: 'start' },
-        { title: 'Stop stream', value: 'stop' },
-      ],
-    }
-  },
   computed: {
     task(): any {
       return (this.item as any).task
+    },
+    statusItems(): Array<{ title: string; value: string }> {
+      return [
+        { title: String(this.$t('macro.yolobox.liveStatus.goLive')), value: 'start' },
+        { title: String(this.$t('macro.yolobox.liveStatus.stopStream')), value: 'stop' },
+      ]
     },
   },
   created() {

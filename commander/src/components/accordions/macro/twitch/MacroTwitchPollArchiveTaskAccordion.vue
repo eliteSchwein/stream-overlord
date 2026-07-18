@@ -3,13 +3,13 @@
     :item="item"
     :index="index"
     icon="mdi-archive-outline"
-    title="Archive poll"
+    :title="$t('macro.twitch.pollArchive.title')"
     export-prefix="macro_twitch_poll_archive"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-text-field v-model="task.data.poll_id" variant="outlined" label="Poll ID" placeholder="${poll.id} or {{variable}}" />
+    <v-text-field v-model="task.data.poll_id" variant="outlined" :label="$t('macro.twitch.fields.pollId')" :placeholder="$t('macro.twitch.placeholders.pollIdOrVariable')" />
   </MacroTaskAccordionTemplate>
 </template>
 

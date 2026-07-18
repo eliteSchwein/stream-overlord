@@ -3,21 +3,21 @@
     :item="item"
     :index="index"
     icon="mdi-content-cut"
-    title="Create clip"
+    :title="$t('macro.twitch.clip.title')"
     export-prefix="macro_twitch_clip"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-switch v-model="task.data.create_after_delay" label="Create after delay" color="primary" hide-details />
+    <v-switch v-model="task.data.create_after_delay" :label="$t('macro.twitch.clip.createAfterDelay')" color="primary" hide-details />
     <v-row>
       <v-col cols="6">
         <v-text-field
           variant="outlined"
           v-model="task.data.variable"
-          label="Result variable"
-          placeholder="clip"
-          hint="The completed clip is available as e.g. ${clip.url}"
+          :label="$t('macro.twitch.fields.resultVariable')"
+          :placeholder="$t('macro.twitch.placeholders.clipVariable')"
+          :hint="$t('macro.twitch.clip.resultHint')"
           persistent-hint
         />
       </v-col>
@@ -27,7 +27,7 @@
           v-model.number="task.data.wait_seconds"
           type="number"
           min="0"
-          label="Wait before fetching clip (seconds)"
+          :label="$t('macro.twitch.clip.waitBeforeFetch')"
         />
       </v-col>
     </v-row>

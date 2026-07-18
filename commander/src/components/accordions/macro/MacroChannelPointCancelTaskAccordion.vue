@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-close-circle-outline"
-    title="Cancel channel point reward"
+    :title="$t('macro.core.channelPointCancel.cancelChannelPointReward')"
     export-prefix="macro_channel_point_cancel"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,7 +14,7 @@
       type="warning"
       variant="tonal"
       density="comfortable"
-      text="Marks the current channel point redemption as canceled."
+      :text="$t('macro.core.channelPointCancel.marksTheCurrentChannelPointRedemptionAsCanceled')"
     />
   </MacroTaskAccordionTemplate>
 </template>

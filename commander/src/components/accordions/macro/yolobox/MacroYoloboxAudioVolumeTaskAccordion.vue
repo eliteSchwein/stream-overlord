@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-volume-high"
-    title="Set YoloBox audio volume"
+    :title="$t('macro.yolobox.audioVolume.title')"
     export-prefix="macro_yolobox_set_audio_volume"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -16,7 +16,7 @@
           :items="audioSources"
           item-title="title"
           item-value="value"
-          label="Audio source"
+          :label="$t('macro.yolobox.fields.audioSource')"
           variant="outlined"
           clearable
         />
@@ -27,7 +27,7 @@
           :min="0"
           :max="1"
           :step="0.05"
-          label="Volume"
+          :label="$t('macro.yolobox.fields.volume')"
           thumb-label="always"
           hide-details
         />

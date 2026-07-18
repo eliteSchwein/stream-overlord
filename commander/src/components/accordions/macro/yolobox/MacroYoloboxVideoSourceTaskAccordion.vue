@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-video-switch"
-    title="Switch YoloBox video source"
+    :title="$t('macro.yolobox.videoSource.title')"
     export-prefix="macro_yolobox_video_source"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -16,7 +16,7 @@
           :items="sources"
           item-title="title"
           item-value="value"
-          label="Video source"
+          :label="$t('macro.yolobox.fields.videoSource')"
           variant="outlined"
           clearable
         />

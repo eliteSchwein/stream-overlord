@@ -12,16 +12,14 @@
   >
     <v-text-field
       v-model="conditionCheck"
-      label="Condition"
+      :label="$t('macro.core.condition.condition')"
       density="comfortable"
       variant="outlined"
       hide-details
       class="mb-3"
     />
 
-    <div class="text-caption text-medium-emphasis mb-2">
-      Then
-    </div>
+    <div class="text-caption text-medium-emphasis mb-2">{{ $t('macro.core.condition.then') }}</div>
 
     <component
       :is="taskListComponent"
@@ -40,7 +38,7 @@
         <v-select
           v-model="branch.task.method"
           :items="['else_if', 'else']"
-          label="Branch"
+          :label="$t('macro.core.condition.branch')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -51,7 +49,7 @@
         <v-text-field
           v-if="branch.task.method === 'else_if'"
           :model-value="getBranchCheck(branch)"
-          label="Condition"
+          :label="$t('macro.core.condition.condition')"
           @update:model-value="setBranchCheck(branch, $event)"
           density="comfortable"
           variant="outlined"
@@ -84,18 +82,14 @@
         prepend-icon="mdi-source-branch-plus"
         variant="tonal"
         @click="addElseIf"
-      >
-        Add else if
-      </v-btn>
+      >{{ $t('macro.core.condition.addElseIf') }}</v-btn>
 
       <v-btn
         size="small"
         prepend-icon="mdi-source-branch"
         variant="tonal"
         @click="addElse"
-      >
-        Add else
-      </v-btn>
+      >{{ $t('macro.core.condition.addElse') }}</v-btn>
     </div>
   </MacroTaskAccordionTemplate>
 </template>

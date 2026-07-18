@@ -4,13 +4,13 @@
     :item="item"
     :index="index"
     icon="mdi-stop-circle-outline"
-    title="Stop auto macro"
+    :title="$t('macro.core.autoMacroStop.stopAutoMacro')"
     export-prefix="macro_auto_macro_stop"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <AutoMacroSelect v-model="data.name" label="Auto macro" />
+    <AutoMacroSelect v-model="data.name" :label="$t('macro.core.autoMacroStop.autoMacro')" />
   </MacroTaskAccordionTemplate>
 </template>
 

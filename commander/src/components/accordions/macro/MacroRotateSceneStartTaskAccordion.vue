@@ -4,13 +4,13 @@
     :item="item"
     :index="index"
     icon="mdi-play-circle-outline"
-    title="Start rotating scene"
+    :title="$t('macro.final.rotateSceneStart.startRotatingScene')"
     export-prefix="macro_rotate_scene_start"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <RotatingSceneSelect v-model="data.name" label="Rotating scene" />
+    <RotatingSceneSelect v-model="data.name" :label="$t('macro.final.rotateSceneStart.rotatingScene')" />
   </MacroTaskAccordionTemplate>
 </template>
 

@@ -15,7 +15,7 @@
       <v-col cols="12" md="6">
         <v-text-field
           v-model="task.data.target"
-          label="Target"
+          :label="$t('macro.final.media.target')"
           prepend-inner-icon="mdi-crosshairs-gps"
           hide-details="auto"
           variant="outlined"
@@ -35,8 +35,8 @@
               v-bind="props"
               v-model="task.data.path"
               :loading="loadingSources"
-              label="Media path / URL / placeholder"
-              placeholder="assets/image.webp, https://example.com/image.png, ${ variables.media_url }"
+              :label="$t('macro.final.media.mediaPathURLPlaceholder')"
+              :placeholder="$t('macro.final.media.assetsImageWebpHttpsExampleComImagePngVariable')"
               prepend-inner-icon="mdi-link-variant"
               append-inner-icon="mdi-menu-down"
               clearable
@@ -52,7 +52,7 @@
           <v-list density="compact">
             <v-list-item
               v-if="!sourceOptions.length"
-              title="No media suggestions found"
+              :title="$t('macro.final.media.noMediaSuggestionsFound')"
               disabled
             />
 
@@ -71,7 +71,7 @@
         <v-select
           v-model="task.data.type"
           :items="typeOptions"
-          label="Type"
+          :label="$t('macro.final.media.type')"
           prepend-inner-icon="mdi-shape-outline"
           clearable
           hide-details="auto"
@@ -83,7 +83,7 @@
       <v-col cols="12" md="6">
         <v-switch
           v-model="task.data.clearOnEmpty"
-          label="Clear when path is empty"
+          :label="$t('macro.final.media.clearWhenPathIsEmpty')"
           color="primary"
           hide-details="auto"
           density="comfortable"
@@ -93,7 +93,7 @@
       <v-col cols="12" md="3">
         <v-switch
           v-model="task.data.autoplay"
-          label="Autoplay"
+          :label="$t('macro.final.media.autoplay')"
           color="primary"
           hide-details="auto"
           density="comfortable"
@@ -103,7 +103,7 @@
       <v-col cols="12" md="3">
         <v-switch
           v-model="task.data.loop"
-          label="Loop"
+          :label="$t('macro.final.media.loop')"
           color="primary"
           hide-details="auto"
           density="comfortable"
@@ -113,7 +113,7 @@
       <v-col cols="12" md="3">
         <v-switch
           v-model="task.data.muted"
-          label="Muted"
+          :label="$t('macro.final.media.muted')"
           color="primary"
           hide-details="auto"
           density="comfortable"
@@ -123,7 +123,7 @@
       <v-col cols="12" md="3">
         <v-switch
           v-model="task.data.controls"
-          label="Controls"
+          :label="$t('macro.final.media.controls')"
           color="primary"
           hide-details="auto"
           density="comfortable"
@@ -170,11 +170,11 @@ export default {
       mediaLoaded: false,
       pathSuggestionsOpen: false,
       typeOptions: [
-        { title: 'Auto detect', value: null },
-        { title: 'Image', value: 'image' },
-        { title: 'Video', value: 'video' },
-        { title: 'Audio', value: 'audio' },
-        { title: 'Iframe', value: 'iframe' },
+        { title: String(this.$t('macro.final.media.autoDetect')), value: null },
+        { title: String(this.$t('macro.final.media.image')), value: 'image' },
+        { title: String(this.$t('macro.final.media.video')), value: 'video' },
+        { title: String(this.$t('macro.final.media.audio')), value: 'audio' },
+        { title: String(this.$t('macro.final.media.iframe')), value: 'iframe' },
       ],
     }
   },

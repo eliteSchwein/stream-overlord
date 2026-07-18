@@ -14,7 +14,7 @@
       <v-col cols="12" md="4">
         <v-text-field
           v-model="task.data.name"
-          label="Timer name"
+          :label="$t('macro.final.timer.timerName')"
           prepend-inner-icon="mdi-timer-outline"
           variant="outlined"
           hide-details="auto"
@@ -24,7 +24,7 @@
       <v-col cols="12" md="4">
         <v-number-input
           v-model="task.data.time"
-          label="Time"
+          :label="$t('macro.final.timer.time')"
           suffix="seconds"
           :min="1"
           :step="1"
@@ -40,7 +40,7 @@
           :items="endActionOptions"
           item-title="title"
           item-value="value"
-          label="End action"
+          :label="$t('macro.final.timer.endAction')"
           prepend-inner-icon="mdi-flag-checkered"
           variant="outlined"
           hide-details="auto"
@@ -51,8 +51,8 @@
         <v-combobox
           v-model="task.data.finished_macro"
           :items="macroOptions"
-          label="Finished macro"
-          hint="Optional macro that runs when the timer reaches 0"
+          :label="$t('macro.final.timer.finishedMacro')"
+          :hint="$t('macro.final.timer.optionalMacroThatRunsWhenTheTimerReaches0')"
           persistent-hint
           clearable
           prepend-inner-icon="mdi-playlist-play"
@@ -87,8 +87,8 @@ export default {
   data() {
     return {
       endActionOptions: [
-        { title: 'Blink', value: 'blink' },
-        { title: 'Fade', value: 'fade' },
+        { title: String(this.$t('macro.final.timer.blink')), value: 'blink' },
+        { title: String(this.$t('macro.final.timer.fade')), value: 'fade' },
       ],
     }
   },

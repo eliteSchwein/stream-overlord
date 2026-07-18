@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-account-clock"
-    title="Timeout user"
+    :title="$t('macro.twitch.timeout.title')"
     export-prefix="macro_twitch_timeout"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,8 +14,8 @@
         <v-text-field
           v-model="task.data.user"
           variant="outlined"
-          label="User"
-          placeholder="username or {{variable}}"
+          :label="$t('macro.twitch.fields.user')"
+          :placeholder="$t('macro.twitch.placeholders.usernameOrVariable')"
         />
       </v-col>
 
@@ -26,8 +26,8 @@
           type="number"
           min="1"
           max="1209600"
-          label="Duration in seconds"
-          hint="Maximum: 1,209,600 seconds (14 days)"
+          :label="$t('macro.twitch.timeout.durationSeconds')"
+          :hint="$t('macro.twitch.timeout.maximumHint')"
           persistent-hint
         />
       </v-col>
@@ -36,8 +36,8 @@
         <v-text-field
           v-model="task.data.reason"
           variant="outlined"
-          label="Reason"
-          placeholder="Optional reason or {{variable}}"
+          :label="$t('macro.twitch.fields.reason')"
+          :placeholder="$t('macro.twitch.placeholders.optionalReasonOrVariable')"
         />
       </v-col>
     </v-row>

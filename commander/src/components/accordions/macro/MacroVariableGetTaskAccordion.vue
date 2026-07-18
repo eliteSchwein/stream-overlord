@@ -13,7 +13,7 @@
     <v-combobox
       v-model="variableData.key"
       :items="variableOptions"
-      label="Variable key"
+      :label="$t('macro.final.variableGet.variableKey')"
       density="comfortable"
       variant="outlined"
       hide-details

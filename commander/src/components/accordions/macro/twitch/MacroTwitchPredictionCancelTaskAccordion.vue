@@ -3,13 +3,13 @@
     :item="item"
     :index="index"
     icon="mdi-cancel"
-    title="Cancel prediction"
+    :title="$t('macro.twitch.predictionCancel.title')"
     export-prefix="macro_twitch_prediction_cancel"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-text-field v-model="task.data.prediction_id" variant="outlined" label="Prediction ID" placeholder="${prediction.id} or {{variable}}" />
+    <v-text-field v-model="task.data.prediction_id" variant="outlined" :label="$t('macro.twitch.fields.predictionId')" :placeholder="$t('macro.twitch.placeholders.predictionIdOrVariable')" />
   </MacroTaskAccordionTemplate>
 </template>
 

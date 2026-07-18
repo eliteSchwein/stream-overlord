@@ -15,7 +15,7 @@
         <v-combobox
           v-model="task.method"
           :items="macroOptions"
-          label="Macro"
+          :label="$t('macro.core.macroTask.macro')"
           density="comfortable"
           variant="outlined"
           hide-details

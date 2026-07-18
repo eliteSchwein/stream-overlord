@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-movie-open-play"
-    title="Random clip"
+    :title="$t('macro.twitch.randomClip.title')"
     export-prefix="macro_twitch_random_clip"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -15,7 +15,7 @@
       density="comfortable"
       class="mb-4"
     >
-      This task uses <strong>streamgood.gg</strong> to load and play Twitch clips.
+      <i18n-t keypath="macro.twitch.randomClip.serviceInfo" tag="span"><template #service><strong>streamgood.gg</strong></template></i18n-t>
     </v-alert>
 
     <v-row>
@@ -23,9 +23,9 @@
         <v-text-field
           v-model="task.data.channel"
           variant="outlined"
-          label="Twitch channel"
-          placeholder="Leave empty for the primary channel"
-          hint="Supports template variables."
+          :label="$t('macro.twitch.fields.twitchChannel')"
+          :placeholder="$t('macro.twitch.randomClip.primaryChannelPlaceholder')"
+          :hint="$t('macro.twitch.randomClip.templateVariablesHint')"
           persistent-hint
         />
       </v-col>
@@ -35,7 +35,7 @@
           v-model="task.data.mode"
           :items="modeItems"
           variant="outlined"
-          label="Mode"
+          :label="$t('macro.twitch.fields.mode')"
         />
       </v-col>
 
@@ -44,7 +44,7 @@
           v-model.number="task.data.recent_clips"
           :items="recentClipItems"
           variant="outlined"
-          label="Recent clips"
+          :label="$t('macro.twitch.randomClip.recentClips')"
         />
       </v-col>
       <v-col cols="12" md="6">
@@ -53,24 +53,24 @@
           min="5"
           max="60"
           step="1"
-          label="Maximum clip length"
+          :label="$t('macro.twitch.randomClip.maximumClipLength')"
           thumb-label="always"
           hide-details
         />
         <div class="text-caption text-medium-emphasis mt-1">
-          {{ task.data.max_length }} seconds
+          {{ $t('macro.twitch.randomClip.seconds', { count: task.data.max_length }) }}
         </div>
       </v-col>
 
       <v-col cols="12" md="6">
         <v-radio-group
           v-model="task.data.filter_long_videos"
-          label="Clips longer than the maximum"
+          :label="$t('macro.twitch.randomClip.longClipBehavior')"
           inline
           hide-details
         >
-          <v-radio :value="true" label="Filter out clips" />
-          <v-radio :value="false" label="Stop clips early" />
+          <v-radio :value="true" :label="$t('macro.twitch.randomClip.filterOutClips')" />
+          <v-radio :value="false" :label="$t('macro.twitch.randomClip.stopClipsEarly')" />
         </v-radio-group>
       </v-col>
 
@@ -79,7 +79,7 @@
         <v-switch
           v-model="task.data.info"
           color="primary"
-          label="Show information overlay"
+          :label="$t('macro.twitch.randomClip.showInformationOverlay')"
           hide-details
         />
       </v-col>
@@ -88,7 +88,7 @@
         <v-switch
           v-model="task.data.show_timer"
           color="primary"
-          label="Show timer"
+          :label="$t('macro.twitch.randomClip.showTimer')"
           hide-details
         />
       </v-col>
@@ -99,7 +99,7 @@
           min="0"
           max="100"
           step="1"
-          label="Volume"
+          :label="$t('macro.twitch.fields.volume')"
           thumb-label="always"
           hide-details
         />
@@ -115,8 +115,8 @@
           type="number"
           min="5"
           max="300"
-          label="Overlay duration (seconds)"
-          hint="How long the clip player remains visible."
+          :label="$t('macro.twitch.randomClip.overlayDurationSeconds')"
+          :hint="$t('macro.twitch.randomClip.overlayDurationHint')"
           persistent-hint
         />
       </v-col>
@@ -125,9 +125,9 @@
         <v-text-field
           v-model="task.data.variable"
           variant="outlined"
-          label="Result variable"
-          placeholder="random_clip"
-          hint="Stores the generated URL, channel and playback duration."
+          :label="$t('macro.twitch.fields.resultVariable')"
+          :placeholder="$t('macro.twitch.placeholders.randomClipVariable')"
+          :hint="$t('macro.twitch.randomClip.resultHint')"
           persistent-hint
         />
       </v-col>
@@ -146,24 +146,24 @@ export default {
     index: { type: Number, required: true },
   },
   emits: ['remove', 'move-up', 'move-down'],
-  data() {
-    return {
-      modeItems: [
-        { title: 'Random', value: 'random' },
-        { title: 'Top', value: 'top' },
-      ],
-      recentClipItems: [
-        { title: 'All time', value: 0 },
-        { title: 'Last 7 days', value: 7 },
-        { title: 'Last 30 days', value: 30 },
-        { title: 'Last 6 months', value: 180 },
-        { title: 'Last year', value: 365 },
-      ],
-    }
-  },
   computed: {
     task(): any {
       return (this.item as any).task
+    },
+    modeItems(): Array<{ title: string; value: string }> {
+      return [
+        { title: String(this.$t('macro.twitch.randomClip.modes.random')), value: 'random' },
+        { title: String(this.$t('macro.twitch.randomClip.modes.top')), value: 'top' },
+      ]
+    },
+    recentClipItems(): Array<{ title: string; value: number }> {
+      return [
+        { title: String(this.$t('macro.twitch.randomClip.periods.allTime')), value: 0 },
+        { title: String(this.$t('macro.twitch.randomClip.periods.last7Days')), value: 7 },
+        { title: String(this.$t('macro.twitch.randomClip.periods.last30Days')), value: 30 },
+        { title: String(this.$t('macro.twitch.randomClip.periods.last6Months')), value: 180 },
+        { title: String(this.$t('macro.twitch.randomClip.periods.lastYear')), value: 365 },
+      ]
     },
   },
   created() {

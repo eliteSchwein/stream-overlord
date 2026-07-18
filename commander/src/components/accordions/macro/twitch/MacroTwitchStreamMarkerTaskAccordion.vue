@@ -3,13 +3,13 @@
     :item="item"
     :index="index"
     icon="mdi-map-marker-plus-outline"
-    title="Create stream marker"
+    :title="$t('macro.twitch.streamMarker.title')"
     export-prefix="macro_twitch_stream_marker"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
     @move-down="$emit('move-down')"
   >
-    <v-text-field v-model="task.data.description" variant="outlined" label="Description" placeholder="Optional marker description" />
+    <v-text-field v-model="task.data.description" variant="outlined" :label="$t('macro.twitch.fields.description')" :placeholder="$t('macro.twitch.placeholders.optionalMarkerDescription')" />
   </MacroTaskAccordionTemplate>
 </template>
 

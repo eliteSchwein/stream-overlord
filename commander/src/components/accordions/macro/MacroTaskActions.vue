@@ -1,12 +1,8 @@
 <template>
   <div class="d-flex justify-end ga-2 mt-2">
-    <v-btn variant="text" prepend-icon="mdi-export" @click="exportTask">
-      Export
-    </v-btn>
+    <v-btn variant="text" prepend-icon="mdi-export" @click="exportTask">{{ $t('macro.final.taskActions.export') }}</v-btn>
 
-    <v-btn variant="text" prepend-icon="mdi-import" @click="openImport">
-      Import
-    </v-btn>
+    <v-btn variant="text" prepend-icon="mdi-import" @click="openImport">{{ $t('macro.final.taskActions.import') }}</v-btn>
 
     <input
       ref="fileInput"

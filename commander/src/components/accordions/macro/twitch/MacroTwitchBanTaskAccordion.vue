@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-account-cancel"
-    title="Ban user"
+    :title="$t('macro.twitch.ban.title')"
     export-prefix="macro_twitch_ban"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,8 +14,8 @@
         <v-text-field
           v-model="task.data.user"
           variant="outlined"
-          label="User"
-          placeholder="username or {{variable}}"
+          :label="$t('macro.twitch.fields.user')"
+          :placeholder="$t('macro.twitch.placeholders.usernameOrVariable')"
         />
       </v-col>
 
@@ -23,8 +23,8 @@
         <v-text-field
           v-model="task.data.reason"
           variant="outlined"
-          label="Reason"
-          placeholder="Optional reason or {{variable}}"
+          :label="$t('macro.twitch.fields.reason')"
+          :placeholder="$t('macro.twitch.placeholders.optionalReasonOrVariable')"
         />
       </v-col>
     </v-row>

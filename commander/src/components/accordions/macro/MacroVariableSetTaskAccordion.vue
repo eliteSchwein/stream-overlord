@@ -15,7 +15,7 @@
         <v-combobox
           v-model="variableData.key"
           :items="variableOptions"
-          label="Variable key"
+          :label="$t('macro.final.variableSet.variableKey')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -26,7 +26,7 @@
       <v-col cols="12">
         <v-textarea
           v-model="variableData.value"
-          label="Value"
+          :label="$t('macro.final.variableSet.value')"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -38,7 +38,7 @@
       <v-col cols="12">
         <v-switch
           v-model="variableData.to_file"
-          label="Save to file"
+          :label="$t('macro.final.variableSet.saveToFile')"
           density="comfortable"
           color="primary"
           hide-details

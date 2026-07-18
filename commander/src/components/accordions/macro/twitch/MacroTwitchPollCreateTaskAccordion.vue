@@ -3,7 +3,7 @@
     :item="item"
     :index="index"
     icon="mdi-poll"
-    title="Create poll"
+    :title="$t('macro.twitch.pollCreate.title')"
     export-prefix="macro_twitch_poll_create"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -11,18 +11,18 @@
   >
     <v-row>
       <v-col cols="12">
-        <v-text-field v-model="task.data.title" variant="outlined" label="Title" />
+        <v-text-field v-model="task.data.title" variant="outlined" :label="$t('macro.twitch.fields.title')" />
       </v-col>
 
       <v-col cols="12">
-        <div class="text-subtitle-2 mb-2">Choices</div>
+        <div class="text-subtitle-2 mb-2">{{ $t('macro.twitch.pollCreate.choices') }}</div>
 
         <v-row v-for="(_, choiceIndex) in choiceFields" :key="choiceIndex" dense>
           <v-col>
             <v-text-field
               v-model="choiceFields[choiceIndex]"
               variant="outlined"
-              :label="`Choice ${choiceIndex + 1}`"
+              :label="$t('macro.twitch.pollCreate.choice', { number: choiceIndex + 1 })"
               hide-details="auto"
             />
           </v-col>
@@ -32,7 +32,7 @@
               variant="text"
               color="error"
               :disabled="choiceFields.length <= 2"
-              :aria-label="`Remove choice ${choiceIndex + 1}`"
+              :aria-label="$t('macro.twitch.pollCreate.removeChoice', { number: choiceIndex + 1 })"
               @click="removeChoice(choiceIndex)"
             />
           </v-col>
@@ -47,11 +47,11 @@
           :disabled="choiceFields.length >= 5"
           @click="addChoice"
         >
-          Add choice
+          {{ $t('macro.twitch.pollCreate.addChoice') }}
         </v-btn>
 
         <div class="text-caption text-medium-emphasis mt-2">
-          A poll requires between 2 and 5 choices.
+          {{ $t('macro.twitch.pollCreate.requirement') }}
         </div>
       </v-col>
 
@@ -62,23 +62,23 @@
           type="number"
           min="15"
           max="1800"
-          label="Duration (seconds)"
+          :label="$t('macro.twitch.fields.durationSeconds')"
         />
       </v-col>
       <v-col cols="12" md="6">
         <v-text-field
           v-model="task.data.variable"
           variant="outlined"
-          label="Result variable"
-          placeholder="poll"
-          hint="The created poll is available as ${poll}"
+          :label="$t('macro.twitch.fields.resultVariable')"
+          :placeholder="$t('macro.twitch.placeholders.pollVariable')"
+          :hint="$t('macro.twitch.pollCreate.resultHint')"
           persistent-hint
         />
       </v-col>
       <v-col cols="12">
         <v-switch
           v-model="task.data.channel_points_voting"
-          label="Allow channel point votes"
+          :label="$t('macro.twitch.pollCreate.allowChannelPointVotes')"
           color="primary"
           hide-details
         />
@@ -89,7 +89,7 @@
           variant="outlined"
           type="number"
           min="1"
-          label="Points per additional vote"
+          :label="$t('macro.twitch.pollCreate.pointsPerAdditionalVote')"
         />
       </v-col>
     </v-row>

@@ -16,7 +16,7 @@
       <v-col cols="12" md="6">
         <v-text-field
           v-model="task.message"
-          label="Message"
+          :label="$t('macro.core.alert.message')"
           density="comfortable"
           variant="outlined"
           hide-details="auto"
@@ -26,7 +26,7 @@
       <v-col cols="12" md="2">
         <v-switch
           v-model="task.speak"
-          label="Speak"
+          :label="$t('macro.core.alert.speak')"
           density="comfortable"
           color="primary"
           hide-details
@@ -36,7 +36,7 @@
       <v-col cols="12" md="4">
         <MacroAssetSelect
           v-model="task.asset"
-          label="Asset"
+          :label="$t('macro.core.alert.asset')"
         />
       </v-col>
     </v-row>

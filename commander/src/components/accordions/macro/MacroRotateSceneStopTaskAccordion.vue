@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-stop-circle-outline"
-    title="Stop rotating scene"
+    :title="$t('macro.final.rotateSceneStop.stopRotatingScene')"
     export-prefix="macro_rotate_scene_stop"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"
@@ -14,7 +14,7 @@
       type="info"
       variant="tonal"
       density="comfortable"
-      text="Stops the currently running rotating scene."
+      :text="$t('macro.final.rotateSceneStop.stopsTheCurrentlyRunningRotatingScene')"
     />
   </MacroTaskAccordionTemplate>
 </template>

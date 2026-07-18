@@ -15,7 +15,7 @@
       variant="tonal"
       density="comfortable"
       class="mb-4"
-      text="Enables, disables, or sets the enabled state of a Twitch channel point reward. If no name is set, a channel point redemption macro can use the current reward."
+      :text="$t('macro.core.channelPointToggle.enablesDisablesOrSetsTheEnabledStateOfATwitchChannelPointRewardIfNoNameIsSetAChannelPointRedemptionMacroCanUseTheCurrentReward')"
     />
 
     <v-row density="comfortable">
@@ -25,7 +25,7 @@
           :items="methodOptions"
           item-title="title"
           item-value="value"
-          label="Enabled action"
+          :label="$t('macro.core.channelPointToggle.enabledAction')"
           prepend-inner-icon="mdi-toggle-switch-outline"
           variant="outlined"
           hide-details="auto"
@@ -36,7 +36,7 @@
         <v-autocomplete
           v-model="task.data.name"
           :items="channelPointOptions"
-          label="Channel point name"
+          :label="$t('macro.core.channelPointToggle.channelPointName')"
           persistent-hint
           prepend-inner-icon="mdi-star-circle"
           variant="outlined"
@@ -53,8 +53,8 @@
           :items="stateOptions"
           item-title="title"
           item-value="value"
-          label="Enabled state"
-          hint="Required for backend method toggle"
+          :label="$t('macro.core.channelPointToggle.enabledState')"
+          :hint="$t('macro.core.channelPointToggle.requiredForBackendMethodToggle')"
           persistent-hint
           prepend-inner-icon="mdi-toggle-switch"
           variant="outlined"
@@ -87,13 +87,13 @@ export default {
     return {
       appStore: useAppStore(),
       methodOptions: [
-        { title: 'Enable reward', value: 'enable' },
-        { title: 'Disable reward', value: 'disable' },
-        { title: 'Set enabled state', value: 'toggle' },
+        { title: String(this.$t('macro.core.channelPointToggle.enableReward')), value: 'enable' },
+        { title: String(this.$t('macro.core.channelPointToggle.disableReward')), value: 'disable' },
+        { title: String(this.$t('macro.core.channelPointToggle.setEnabledState')), value: 'toggle' },
       ],
       stateOptions: [
-        { title: 'Enabled', value: 'enable' },
-        { title: 'Disabled', value: 'disable' },
+        { title: String(this.$t('macro.core.channelPointToggle.enabled')), value: 'enable' },
+        { title: String(this.$t('macro.core.channelPointToggle.disabled')), value: 'disable' },
       ],
     }
   },
