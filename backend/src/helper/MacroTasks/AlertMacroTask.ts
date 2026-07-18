@@ -68,8 +68,14 @@ export default class AlertMacroTask extends BaseMacroTask {
 
         const theme = interpolateObjectTemplate(rawTheme, templateVariables)
 
-        const rawMessage = (options.message === "" ? options.message: theme?.message) ?? ""
-        const message = interpolateTemplate(String(rawMessage), templateVariables)
+        let message = (options.message !== "" ? options.message : theme?.message) ?? "";
+
+        if(options.speak) {
+            message = theme?.message ?? ""
+        }
+
+        message = interpolateTemplate(String(message), templateVariables)
+
         const speakMessage = interpolateTemplate(String(options.message), templateVariables)
 
         const duration =
