@@ -32,6 +32,7 @@ import RotateSceneMacroTask from "./MacroTasks/RotateSceneMacroTask";
 import AutoMacroTask from "./MacroTasks/AutoMacroTask";
 import TwitchMacroTask from "./MacroTasks/TwitchMacroTask";
 import AudioMacroTask from "./MacroTasks/AudioMacroTask";
+import SystemMacroTask from "./MacroTasks/SystemMacroTask";
 
 let macros: any = {};
 
@@ -609,6 +610,7 @@ export default function loadMacros() {
         new RotateSceneMacroTask(),
         new AutoMacroTask(),
         new TwitchMacroTask(),
+        new SystemMacroTask(),
     )
 
     loadMacrosFromFiles();

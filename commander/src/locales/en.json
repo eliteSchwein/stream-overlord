@@ -593,6 +593,231 @@
         "title": "Switch YoloBox video source"
       }
     },
+    "system": {
+      "reboot": {
+        "title": "Reboot system",
+        "info": "Reboots the host system. Use with caution — any running stream will be interrupted."
+      },
+      "shutdown": {
+        "title": "Shutdown system",
+        "info": "Shuts down the host system. Use with caution — any running stream will be interrupted."
+      }
+    },
+    "presets": {
+      "conditions": {
+        "title": "Conditions",
+        "ifCondition": "If condition",
+        "forLoop": "For loop",
+        "loopBreak": "Loop: break",
+        "loopContinue": "Loop: continue"
+      },
+      "macro": {
+        "title": "Macro",
+        "runMacro": "Run Macro",
+        "startAutoMacro": "Start auto macro",
+        "stopAutoMacro": "Stop auto macro",
+        "startSceneRotation": "Start scene rotation",
+        "stopSceneRotation": "Stop scene rotation",
+        "endMacro": "End macro"
+      },
+      "alert": "Alert",
+      "animation": "Animation",
+      "media": "Media",
+      "message": {
+        "title": "Message",
+        "sendDm": "Send DM",
+        "chatMessage": "Chat message",
+        "announce": "Announce"
+      },
+      "time": {
+        "title": "Time",
+        "sleep1s": "Sleep 1s",
+        "sleep1min": "Sleep 1min",
+        "sleep5min": "Sleep 5min",
+        "timer": "Timer"
+      },
+      "random": "Random",
+      "fileReadAssetFolder": "File: read asset folder",
+      "channelPoint": {
+        "title": "Channel point",
+        "acceptReward": "Accept reward",
+        "cancelReward": "Cancel reward",
+        "pauseReward": "Pause reward",
+        "unpauseReward": "Unpause reward",
+        "setPauseState": "Set pause state",
+        "enableReward": "Enable reward",
+        "disableReward": "Disable reward",
+        "setEnabledState": "Set enabled state"
+      },
+      "variables": {
+        "title": "Variables",
+        "setVariable": "Set Variable",
+        "getVariable": "Get Variable"
+      },
+      "audio": {
+        "title": "Audio",
+        "speak": "Speak",
+        "volumeControl": {
+          "title": "Volume control",
+          "setVolume": "Set volume",
+          "adjustVolume": "Adjust volume"
+        },
+        "musicControl": {
+          "title": "Music control",
+          "play": "Play",
+          "pause": "Pause",
+          "togglePlayPause": "Toggle play / pause",
+          "previousSong": "Previous song",
+          "nextSong": "Next song",
+          "stop": "Stop",
+          "shuffle": "Shuffle",
+          "loopPlaylist": "Loop playlist",
+          "loopCurrentSong": "Loop current song",
+          "playSpecificSong": "Play specific song",
+          "reloadPlayer": "Reload player"
+        },
+        "songRequestControl": {
+          "title": "Song Request control",
+          "addSongRequest": "Add song request",
+          "toggleSongRequests": "Toggle song requests"
+        }
+      },
+      "twitch": {
+        "title": "Twitch",
+        "createClip": "Create clip",
+        "shoutout": "Shoutout",
+        "changeCategory": "Change category",
+        "polls": {
+          "title": "Polls",
+          "createPoll": "Create poll",
+          "archivePoll": "Archive poll",
+          "terminatePoll": "Terminate poll"
+        },
+        "predictions": {
+          "title": "Predictions",
+          "createPrediction": "Create prediction",
+          "lockPrediction": "Lock prediction",
+          "resolvePrediction": "Resolve prediction",
+          "cancelPrediction": "Cancel prediction"
+        },
+        "createStreamMarker": "Create stream marker",
+        "vip": {
+          "title": "VIP",
+          "addVip": "Add VIP",
+          "removeVip": "Remove VIP"
+        },
+        "moderation": {
+          "title": "Moderation",
+          "banUser": "Ban user",
+          "timeoutUser": "Timeout user"
+        },
+        "runAd": "Run ad"
+      },
+      "yolobox": {
+        "title": "YoloBox",
+        "switchVideoSource": "Switch video source",
+        "overlays": {
+          "title": "Overlays",
+          "enableOverlay": "Enable overlay",
+          "disableOverlay": "Disable overlay",
+          "disableAllOverlays": "Disable all overlays"
+        },
+        "audioSource": {
+          "title": "Audio source",
+          "setVolume": "Set volume",
+          "mute": "Mute",
+          "unmute": "Unmute",
+          "setDelay": "Set delay",
+          "enableAfv": "Enable AFV",
+          "disableAfv": "Disable AFV"
+        },
+        "streaming": {
+          "title": "Streaming",
+          "goLive": "Go live",
+          "stopStream": "Stop stream"
+        }
+      },
+      "obs": {
+        "title": "OBS",
+        "scenes": {
+          "title": "Scenes",
+          "switchScene": "Switch scene",
+          "switchPreviewScene": "Switch preview scene"
+        },
+        "sceneItems": {
+          "title": "Scene items",
+          "showSceneItem": "Show scene item",
+          "hideSceneItem": "Hide scene item",
+          "lockSceneItem": "Lock scene item",
+          "unlockSceneItem": "Unlock scene item",
+          "transformSceneItem": "Transform scene item"
+        },
+        "audio": {
+          "title": "Audio",
+          "muteInput": "Mute input",
+          "unmuteInput": "Unmute input",
+          "toggleInputMute": "Toggle input mute",
+          "setInputVolume": "Set input volume"
+        },
+        "filters": {
+          "title": "Filters",
+          "enableSourceFilter": "Enable source filter",
+          "disableSourceFilter": "Disable source filter"
+        },
+        "streaming": {
+          "title": "Streaming",
+          "startStream": "Start stream",
+          "stopStream": "Stop stream",
+          "toggleStream": "Toggle stream"
+        },
+        "recording": {
+          "title": "Recording",
+          "startRecording": "Start recording",
+          "stopRecording": "Stop recording",
+          "toggleRecording": "Toggle recording",
+          "pauseRecording": "Pause recording",
+          "resumeRecording": "Resume recording"
+        },
+        "replayBuffer": {
+          "title": "Replay buffer",
+          "startReplayBuffer": "Start replay buffer",
+          "stopReplayBuffer": "Stop replay buffer",
+          "saveReplayBuffer": "Save replay buffer"
+        },
+        "tools": {
+          "title": "Tools",
+          "reloadBrowserSources": "Reload browser sources",
+          "triggerHotkey": "Trigger hotkey",
+          "setProfile": "Set profile",
+          "setSceneCollection": "Set scene collection"
+        }
+      },
+      "lights": {
+        "title": "Lights",
+        "wled": "Wled",
+        "wledOff": "Wled Off"
+      },
+      "system": {
+        "title": "System",
+        "reboot": "Reboot",
+        "shutdown": "Shutdown"
+      },
+      "expert": {
+        "title": "Expert",
+        "webhook": "Webhook",
+        "websocket": "Websocket",
+        "apiRequest": {
+          "title": "API request",
+          "get": "GET request",
+          "post": "POST request",
+          "put": "PUT request",
+          "patch": "PATCH request",
+          "delete": "DELETE request"
+        },
+        "rawTask": "Raw task",
+        "keyboard": "Keyboard"
+      }
+    },
     "core": {
       "autoMacroSelect": {
         "timeout30000Promise": "= {}, timeout = 30_000): Promise",

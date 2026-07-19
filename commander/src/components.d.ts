@@ -140,6 +140,8 @@ declare module 'vue' {
     MacroRotateSceneStartTaskAccordion: typeof import('./components/accordions/macro/MacroRotateSceneStartTaskAccordion.vue')['default']
     MacroRotateSceneStopTaskAccordion: typeof import('./components/accordions/macro/MacroRotateSceneStopTaskAccordion.vue')['default']
     MacroSelect: typeof import('./components/MacroSelect.vue')['default']
+    MacroSystemRebootTaskAccordion: typeof import('./components/accordions/macro/system/MacroSystemRebootTaskAccordion.vue')['default']
+    MacroSystemShutdownTaskAccordion: typeof import('./components/accordions/macro/system/MacroSystemShutdownTaskAccordion.vue')['default']
     MacroTaskAccordion: typeof import('./components/accordions/macro/MacroTaskAccordion.vue')['default']
     MacroTaskAccordionTemplate: typeof import('./components/accordions/macro/MacroTaskAccordionTemplate.vue')['default']
     MacroTaskActions: typeof import('./components/accordions/macro/MacroTaskActions.vue')['default']

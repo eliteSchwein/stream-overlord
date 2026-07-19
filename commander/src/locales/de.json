@@ -593,6 +593,231 @@
         "title": "YoloBox-Videoquelle wechseln"
       }
     },
+    "system": {
+      "reboot": {
+        "title": "System neu starten",
+        "info": "Startet das Hostsystem neu. Mit Vorsicht verwenden – ein laufender Stream wird unterbrochen."
+      },
+      "shutdown": {
+        "title": "System herunterfahren",
+        "info": "Fährt das Hostsystem herunter. Mit Vorsicht verwenden – ein laufender Stream wird unterbrochen."
+      }
+    },
+    "presets": {
+      "conditions": {
+        "title": "Bedingungen",
+        "ifCondition": "Wenn-Bedingung",
+        "forLoop": "For-Schleife",
+        "loopBreak": "Schleife: Abbrechen",
+        "loopContinue": "Schleife: Fortsetzen"
+      },
+      "macro": {
+        "title": "Makro",
+        "runMacro": "Makro ausführen",
+        "startAutoMacro": "Auto-Makro starten",
+        "stopAutoMacro": "Auto-Makro stoppen",
+        "startSceneRotation": "Szenenrotation starten",
+        "stopSceneRotation": "Szenenrotation stoppen",
+        "endMacro": "Makro beenden"
+      },
+      "alert": "Alarm",
+      "animation": "Animation",
+      "media": "Medien",
+      "message": {
+        "title": "Nachricht",
+        "sendDm": "DM senden",
+        "chatMessage": "Chatnachricht",
+        "announce": "Ankündigen"
+      },
+      "time": {
+        "title": "Zeit",
+        "sleep1s": "1s pausieren",
+        "sleep1min": "1min pausieren",
+        "sleep5min": "5min pausieren",
+        "timer": "Timer"
+      },
+      "random": "Zufall",
+      "fileReadAssetFolder": "Datei: Asset-Ordner lesen",
+      "channelPoint": {
+        "title": "Kanalpunkt",
+        "acceptReward": "Belohnung annehmen",
+        "cancelReward": "Belohnung abbrechen",
+        "pauseReward": "Belohnung pausieren",
+        "unpauseReward": "Belohnung fortsetzen",
+        "setPauseState": "Pausenstatus setzen",
+        "enableReward": "Belohnung aktivieren",
+        "disableReward": "Belohnung deaktivieren",
+        "setEnabledState": "Aktivierungsstatus setzen"
+      },
+      "variables": {
+        "title": "Variablen",
+        "setVariable": "Variable setzen",
+        "getVariable": "Variable abrufen"
+      },
+      "audio": {
+        "title": "Audio",
+        "speak": "Sprechen",
+        "volumeControl": {
+          "title": "Lautstärkeregelung",
+          "setVolume": "Lautstärke setzen",
+          "adjustVolume": "Lautstärke anpassen"
+        },
+        "musicControl": {
+          "title": "Musiksteuerung",
+          "play": "Abspielen",
+          "pause": "Pausieren",
+          "togglePlayPause": "Wiedergabe / Pause umschalten",
+          "previousSong": "Vorheriger Song",
+          "nextSong": "Nächster Song",
+          "stop": "Stoppen",
+          "shuffle": "Zufallswiedergabe",
+          "loopPlaylist": "Playlist wiederholen",
+          "loopCurrentSong": "Aktuellen Song wiederholen",
+          "playSpecificSong": "Bestimmten Song abspielen",
+          "reloadPlayer": "Player neu laden"
+        },
+        "songRequestControl": {
+          "title": "Songwunsch-Steuerung",
+          "addSongRequest": "Songwunsch hinzufügen",
+          "toggleSongRequests": "Songwünsche umschalten"
+        }
+      },
+      "twitch": {
+        "title": "Twitch",
+        "createClip": "Clip erstellen",
+        "shoutout": "Shoutout",
+        "changeCategory": "Kategorie ändern",
+        "polls": {
+          "title": "Umfragen",
+          "createPoll": "Umfrage erstellen",
+          "archivePoll": "Umfrage archivieren",
+          "terminatePoll": "Umfrage beenden"
+        },
+        "predictions": {
+          "title": "Vorhersagen",
+          "createPrediction": "Vorhersage erstellen",
+          "lockPrediction": "Vorhersage sperren",
+          "resolvePrediction": "Vorhersage auflösen",
+          "cancelPrediction": "Vorhersage abbrechen"
+        },
+        "createStreamMarker": "Stream-Marker erstellen",
+        "vip": {
+          "title": "VIP",
+          "addVip": "VIP hinzufügen",
+          "removeVip": "VIP entfernen"
+        },
+        "moderation": {
+          "title": "Moderation",
+          "banUser": "Benutzer bannen",
+          "timeoutUser": "Benutzer sperren (Timeout)"
+        },
+        "runAd": "Werbung ausführen"
+      },
+      "yolobox": {
+        "title": "YoloBox",
+        "switchVideoSource": "Videoquelle wechseln",
+        "overlays": {
+          "title": "Overlays",
+          "enableOverlay": "Overlay aktivieren",
+          "disableOverlay": "Overlay deaktivieren",
+          "disableAllOverlays": "Alle Overlays deaktivieren"
+        },
+        "audioSource": {
+          "title": "Audioquelle",
+          "setVolume": "Lautstärke setzen",
+          "mute": "Stummschalten",
+          "unmute": "Stummschaltung aufheben",
+          "setDelay": "Verzögerung setzen",
+          "enableAfv": "AFV aktivieren",
+          "disableAfv": "AFV deaktivieren"
+        },
+        "streaming": {
+          "title": "Streaming",
+          "goLive": "Live gehen",
+          "stopStream": "Stream stoppen"
+        }
+      },
+      "obs": {
+        "title": "OBS",
+        "scenes": {
+          "title": "Szenen",
+          "switchScene": "Szene wechseln",
+          "switchPreviewScene": "Vorschauszene wechseln"
+        },
+        "sceneItems": {
+          "title": "Szenenelemente",
+          "showSceneItem": "Szenenelement anzeigen",
+          "hideSceneItem": "Szenenelement ausblenden",
+          "lockSceneItem": "Szenenelement sperren",
+          "unlockSceneItem": "Szenenelement entsperren",
+          "transformSceneItem": "Szenenelement transformieren"
+        },
+        "audio": {
+          "title": "Audio",
+          "muteInput": "Eingang stummschalten",
+          "unmuteInput": "Stummschaltung des Eingangs aufheben",
+          "toggleInputMute": "Eingangs-Stummschaltung umschalten",
+          "setInputVolume": "Eingangslautstärke setzen"
+        },
+        "filters": {
+          "title": "Filter",
+          "enableSourceFilter": "Quellfilter aktivieren",
+          "disableSourceFilter": "Quellfilter deaktivieren"
+        },
+        "streaming": {
+          "title": "Streaming",
+          "startStream": "Stream starten",
+          "stopStream": "Stream stoppen",
+          "toggleStream": "Stream umschalten"
+        },
+        "recording": {
+          "title": "Aufnahme",
+          "startRecording": "Aufnahme starten",
+          "stopRecording": "Aufnahme stoppen",
+          "toggleRecording": "Aufnahme umschalten",
+          "pauseRecording": "Aufnahme pausieren",
+          "resumeRecording": "Aufnahme fortsetzen"
+        },
+        "replayBuffer": {
+          "title": "Replay-Buffer",
+          "startReplayBuffer": "Replay-Buffer starten",
+          "stopReplayBuffer": "Replay-Buffer stoppen",
+          "saveReplayBuffer": "Replay-Buffer speichern"
+        },
+        "tools": {
+          "title": "Werkzeuge",
+          "reloadBrowserSources": "Browserquellen neu laden",
+          "triggerHotkey": "Hotkey auslösen",
+          "setProfile": "Profil setzen",
+          "setSceneCollection": "Szenensammlung setzen"
+        }
+      },
+      "lights": {
+        "title": "Beleuchtung",
+        "wled": "WLED",
+        "wledOff": "WLED aus"
+      },
+      "system": {
+        "title": "System",
+        "reboot": "Neustart",
+        "shutdown": "Herunterfahren"
+      },
+      "expert": {
+        "title": "Experte",
+        "webhook": "Webhook",
+        "websocket": "Websocket",
+        "apiRequest": {
+          "title": "API-Anfrage",
+          "get": "GET-Anfrage",
+          "post": "POST-Anfrage",
+          "put": "PUT-Anfrage",
+          "patch": "PATCH-Anfrage",
+          "delete": "DELETE-Anfrage"
+        },
+        "rawTask": "Rohe Aufgabe",
+        "keyboard": "Tastatur"
+      }
+    },
     "core": {
       "autoMacroSelect": {
         "timeout30000Promise": "= {}, timeout = 30_000): Promise",

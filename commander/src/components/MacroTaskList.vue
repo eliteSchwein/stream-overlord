@@ -41,33 +41,33 @@
       </template>
 
       <v-list density="comfortable">
-        <template v-for="preset in availablePresets" :key="preset.title">
-          <v-list-group v-if="preset.children?.length" :value="preset.title">
+        <template v-for="preset in availablePresets" :key="preset.titleKey || preset.title">
+          <v-list-group v-if="preset.children?.length" :value="preset.titleKey || preset.title">
             <template #activator="{ props: groupProps }">
               <v-list-item
                 v-bind="groupProps"
                 :prepend-icon="preset.icon"
-                :title="preset.title"
+                :title="presetTitle(preset)"
                 @click.stop
               />
             </template>
 
-            <template v-for="child in preset.children" :key="child.title">
-              <v-list-group v-if="child.children?.length" :value="`${preset.title}:${child.title}`">
+            <template v-for="child in preset.children" :key="child.titleKey || child.title">
+              <v-list-group v-if="child.children?.length" :value="`${preset.titleKey || preset.title}:${child.titleKey || child.title}`">
                 <template #activator="{ props: childGroupProps }">
                   <v-list-item
                     v-bind="childGroupProps"
                     :prepend-icon="child.icon"
-                    :title="child.title"
+                    :title="presetTitle(child)"
                     @click.stop
                   />
                 </template>
 
                 <v-list-item
                   v-for="grandChild in child.children"
-                  :key="grandChild.title"
+                  :key="grandChild.titleKey || grandChild.title"
                   :prepend-icon="grandChild.icon"
-                  :title="grandChild.title"
+                  :title="presetTitle(grandChild)"
                   @click.stop="addTaskAndClose(grandChild.factory())"
                 />
               </v-list-group>
@@ -75,7 +75,7 @@
               <v-list-item
                 v-else
                 :prepend-icon="child.icon"
-                :title="child.title"
+                :title="presetTitle(child)"
                 @click.stop="addTaskAndClose(child.factory())"
               />
             </template>
@@ -84,7 +84,7 @@
           <v-list-item
             v-else
             :prepend-icon="preset.icon"
-            :title="preset.title"
+            :title="presetTitle(preset)"
             @click.stop="addTaskAndClose(preset.factory())"
           />
         </template>
@@ -201,6 +201,9 @@ import MacroYoloboxAudioVolumeTaskAccordion from '@/components/accordions/macro/
 import MacroYoloboxAudioMuteTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxAudioMuteTaskAccordion.vue'
 import MacroYoloboxAudioDelayTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxAudioDelayTaskAccordion.vue'
 import MacroYoloboxAudioAfvTaskAccordion from '@/components/accordions/macro/yolobox/MacroYoloboxAudioAfvTaskAccordion.vue'
+import MacroSystemRebootTaskAccordion from "@/components/accordions/macro/system/MacroSystemRebootTaskAccordion.vue";
+import MacroSystemShutdownTaskAccordion
+  from "@/components/accordions/macro/system/MacroSystemShutdownTaskAccordion.vue";
 
 export default {
   name: 'MacroTaskList',
@@ -315,6 +318,8 @@ export default {
     MacroObsTriggerHotkeyTaskAccordion,
     MacroObsUnlockSceneItemTaskAccordion,
     MacroObsUnmuteInputTaskAccordion,
+    MacroSystemRebootTaskAccordion,
+    MacroSystemShutdownTaskAccordion,
   },
 
   props: {
@@ -369,27 +374,27 @@ export default {
       addTaskMenuOpen: false,
       presets: [
         {
-          title: 'Conditions',
+          titleKey: 'macro.presets.conditions.title',
           icon: 'mdi-source-branch',
           children: [
             {
-              title: 'If condition',
+              titleKey: 'macro.presets.conditions.ifCondition',
               icon: 'mdi-source-branch',
               factory: () => this.createConditionTask(),
             },
             {
-              title: 'For loop',
+              titleKey: 'macro.presets.conditions.forLoop',
               icon: 'mdi-repeat',
               factory: () => this.createLoopTask(),
             },
             {
-              title: 'Loop: break',
+              titleKey: 'macro.presets.conditions.loopBreak',
               icon: 'mdi-stop-circle-outline',
               loopOnly: true,
               factory: () => this.createTask({ channel: 'loop', method: 'break' }),
             },
             {
-              title: 'Loop: continue',
+              titleKey: 'macro.presets.conditions.loopContinue',
               icon: 'mdi-skip-next-outline',
               loopOnly: true,
               factory: () => this.createTask({ channel: 'loop', method: 'continue' }),
@@ -397,53 +402,53 @@ export default {
           ],
         },
         {
-          title: 'Macro',
+          titleKey: 'macro.presets.macro.title',
           icon: 'mdi-star-circle',
           children: [
             {
-              title: 'Run Macro',
+              titleKey: 'macro.presets.macro.runMacro',
               icon: 'mdi-playlist-play',
               factory: () => this.createTask({ channel: 'macro', method: '', data: {} }),
             },
             {
-              title: 'Start auto macro',
+              titleKey: 'macro.presets.macro.startAutoMacro',
               icon: 'mdi-play-circle-outline',
               factory: () => this.createTask({ channel: 'auto_macro', method: 'start', data: { name: '' } }),
             },
             {
-              title: 'Stop auto macro',
+              titleKey: 'macro.presets.macro.stopAutoMacro',
               icon: 'mdi-stop-circle-outline',
               factory: () => this.createTask({ channel: 'auto_macro', method: 'stop', data: { name: '' } }),
             },
             {
-              title: 'Start scene rotation',
+              titleKey: 'macro.presets.macro.startSceneRotation',
               icon: 'mdi-play-circle-outline',
               factory: () => this.createTask({ channel: 'rotate_scene', method: 'start', data: { name: '' } }),
             },
             {
-              title: 'Stop scene rotation',
+              titleKey: 'macro.presets.macro.stopSceneRotation',
               icon: 'mdi-stop-circle-outline',
               factory: () => this.createTask({ channel: 'rotate_scene', method: 'stop', data: { name: '' } }),
             },
             {
-              title: 'End macro',
+              titleKey: 'macro.presets.macro.endMacro',
               icon: 'mdi-stop-circle-outline',
               factory: () => this.createTask({ channel: 'condition', method: 'end_macro' }),
             },
           ],
         },
         {
-          title: 'Alert',
+          titleKey: 'macro.presets.alert',
           icon: 'mdi-bell-ring',
           factory: () => this.createTask({ channel: 'alert', message: '', asset: '' }),
         },
         {
-          title: 'Animation',
+          titleKey: 'macro.presets.animation',
           icon: 'mdi-animation-play',
           factory: () => this.createTask({ channel: 'animation', method: 'play' }),
         },
         {
-          title: 'Media',
+          titleKey: 'macro.presets.media',
           icon: 'mdi-multimedia',
           factory: () => this.createTask({
             channel: 'media',
@@ -462,21 +467,21 @@ export default {
         },
 
         {
-          title: 'Message',
+          titleKey: 'macro.presets.message.title',
           icon: 'mdi-forum-outline',
           children: [
             {
-              title: 'Send DM',
+              titleKey: 'macro.presets.message.sendDm',
               icon: 'mdi-message-lock-outline',
               factory: () => this.createTask({ channel: 'function', method: 'send_dm', data: { user: '', content: '' } }),
             },
             {
-              title: 'Chat message',
+              titleKey: 'macro.presets.message.chatMessage',
               icon: 'mdi-message-text-outline',
               factory: () => this.createTask({ channel: 'function', method: 'send_message', data: { content: '' } }),
             },
             {
-              title: 'Announce',
+              titleKey: 'macro.presets.message.announce',
               icon: 'mdi-bullhorn-outline',
               factory: () => this.createTask({
                 channel: 'function',
@@ -490,82 +495,82 @@ export default {
           ]
         },
         {
-          title: 'Time',
+          titleKey: 'macro.presets.time.title',
           icon: 'mdi-clock-time-eight',
           children: [
             {
-              title: 'Sleep 1s',
+              titleKey: 'macro.presets.time.sleep1s',
               icon: 'mdi-timer-sand',
               factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 1000 } }),
             },
             {
-              title: 'Sleep 1min',
+              titleKey: 'macro.presets.time.sleep1min',
               icon: 'mdi-timer-sand',
               factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 60000 } }),
             },
             {
-              title: 'Sleep 5min',
+              titleKey: 'macro.presets.time.sleep5min',
               icon: 'mdi-timer-sand',
               factory: () => this.createTask({ channel: 'function', method: 'sleep', data: { time: 300000 } }),
             },
             {
-              title: 'Timer',
+              titleKey: 'macro.presets.time.timer',
               icon: 'mdi-timer-play',
               factory: () => this.createTask({ channel: 'timer', method: '', data: { } }),
             },
           ]
         },
         {
-          title: 'Random',
+          titleKey: 'macro.presets.random',
           icon: 'mdi-dice-multiple-outline',
           factory: () => this.createTask({ channel: 'function', method: 'random', data: { key: '', min: 0, max: 100 } }),
         },
         {
-          title: 'File: read asset folder',
+          titleKey: 'macro.presets.fileReadAssetFolder',
           icon: 'mdi-folder-open-outline',
           factory: () => this.createTask({ channel: 'file', method: 'read_folder', data: { path: null, key: 'files', fileExtension: null } }),
         },
         {
-          title: 'Channel point',
+          titleKey: 'macro.presets.channelPoint.title',
           icon: 'mdi-star-circle',
           children: [
             {
-              title: 'Accept reward',
+              titleKey: 'macro.presets.channelPoint.acceptReward',
               icon: 'mdi-check-circle-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'accept' }),
             },
             {
-              title: 'Cancel reward',
+              titleKey: 'macro.presets.channelPoint.cancelReward',
               icon: 'mdi-close-circle-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'cancel' }),
             },
             {
-              title: 'Pause reward',
+              titleKey: 'macro.presets.channelPoint.pauseReward',
               icon: 'mdi-pause-circle-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'pause', data: { name: '' } }),
             },
             {
-              title: 'Unpause reward',
+              titleKey: 'macro.presets.channelPoint.unpauseReward',
               icon: 'mdi-play-circle-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'unpause', data: { name: '' } }),
             },
             {
-              title: 'Set pause state',
+              titleKey: 'macro.presets.channelPoint.setPauseState',
               icon: 'mdi-toggle-switch-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'toggle_pause', data: { name: '', state: 'pause' } }),
             },
             {
-              title: 'Enable reward',
+              titleKey: 'macro.presets.channelPoint.enableReward',
               icon: 'mdi-toggle-switch',
               factory: () => this.createTask({ channel: 'channel_point', method: 'enable', data: { name: '' } }),
             },
             {
-              title: 'Disable reward',
+              titleKey: 'macro.presets.channelPoint.disableReward',
               icon: 'mdi-toggle-switch-off-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'disable', data: { name: '' } }),
             },
             {
-              title: 'Set enabled state',
+              titleKey: 'macro.presets.channelPoint.setEnabledState',
               icon: 'mdi-toggle-switch-outline',
               factory: () => this.createTask({ channel: 'channel_point', method: 'toggle', data: { name: '', state: 'enable' } }),
             },
@@ -573,36 +578,36 @@ export default {
         },
         {
 
-          title: 'Variables',
+          titleKey: 'macro.presets.variables.title',
           icon: 'mdi-variable',
           children: [
             {
-              title: 'Set Variable',
+              titleKey: 'macro.presets.variables.setVariable',
               icon: 'mdi-database-export-outline',
               factory: () => this.createTask({ channel: 'variable', method: 'set', data: { value: null, key: '', to_file: false } }),
             },
             {
-              title: 'Get Variable',
+              titleKey: 'macro.presets.variables.getVariable',
               icon: 'mdi-database-import-outline',
               factory: () => this.createTask({ channel: 'variable', method: 'get', data: { key: '' } }),
             },
           ]
         },
         {
-          title: 'Audio',
+          titleKey: 'macro.presets.audio.title',
           icon: 'mdi-volume-high',
           children: [
             {
-              title: 'Speak',
+              titleKey: 'macro.presets.audio.speak',
               icon: 'mdi-account-voice',
               factory: () => this.createTask({ channel: 'function', method: 'speak', data: { content: '', event_uuid: "${eventUuid}" } }),
             },
             {
-              title: 'Volume control',
+              titleKey: 'macro.presets.audio.volumeControl.title',
               icon: 'mdi-volume-high',
               children: [
                 {
-                  title: 'Set volume',
+                  titleKey: 'macro.presets.audio.volumeControl.setVolume',
                   icon: 'mdi-volume-high',
                   factory: () => this.createTask({
                     channel: 'audio',
@@ -611,7 +616,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Adjust volume',
+                  titleKey: 'macro.presets.audio.volumeControl.adjustVolume',
                   icon: 'mdi-volume-plus',
                   factory: () => this.createTask({
                     channel: 'audio',
@@ -622,84 +627,84 @@ export default {
               ],
             },
             {
-              title: 'Music control',
+              titleKey: 'macro.presets.audio.musicControl.title',
               icon: 'mdi-music',
               children: [
-                { title: 'Play', icon: 'mdi-play', factory: () => this.createTask({ channel: 'music', method: 'play', data: {} }) },
-                { title: 'Pause', icon: 'mdi-pause', factory: () => this.createTask({ channel: 'music', method: 'pause', data: {} }) },
-                { title: 'Toggle play / pause', icon: 'mdi-play-pause', factory: () => this.createTask({ channel: 'music', method: 'toggle_pause', data: {} }) },
-                { title: 'Previous song', icon: 'mdi-skip-previous', factory: () => this.createTask({ channel: 'music', method: 'back', data: {} }) },
-                { title: 'Next song', icon: 'mdi-skip-next', factory: () => this.createTask({ channel: 'music', method: 'next', data: {} }) },
-                { title: 'Stop', icon: 'mdi-stop', factory: () => this.createTask({ channel: 'music', method: 'stop', data: {} }) },
-                { title: 'Shuffle', icon: 'mdi-shuffle-variant', factory: () => this.createTask({ channel: 'music', method: 'shuffle', data: {} }) },
-                { title: 'Loop playlist', icon: 'mdi-repeat', factory: () => this.createTask({ channel: 'music', method: 'loop', data: {} }) },
-                { title: 'Loop current song', icon: 'mdi-repeat-once', factory: () => this.createTask({ channel: 'music', method: 'loop_file', data: {} }) },
-                { title: 'Play specific song', icon: 'mdi-music-note', factory: () => this.createTask({ channel: 'music', method: 'play_song', data: { song: '', continue: true, restart: true, pause: false } }) },
-                { title: 'Reload player', icon: 'mdi-refresh', factory: () => this.createTask({ channel: 'music', method: 'reload', data: { restore_state: false } }) },
+                { titleKey: 'macro.presets.audio.musicControl.play', icon: 'mdi-play', factory: () => this.createTask({ channel: 'music', method: 'play', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.pause', icon: 'mdi-pause', factory: () => this.createTask({ channel: 'music', method: 'pause', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.togglePlayPause', icon: 'mdi-play-pause', factory: () => this.createTask({ channel: 'music', method: 'toggle_pause', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.previousSong', icon: 'mdi-skip-previous', factory: () => this.createTask({ channel: 'music', method: 'back', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.nextSong', icon: 'mdi-skip-next', factory: () => this.createTask({ channel: 'music', method: 'next', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.stop', icon: 'mdi-stop', factory: () => this.createTask({ channel: 'music', method: 'stop', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.shuffle', icon: 'mdi-shuffle-variant', factory: () => this.createTask({ channel: 'music', method: 'shuffle', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.loopPlaylist', icon: 'mdi-repeat', factory: () => this.createTask({ channel: 'music', method: 'loop', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.loopCurrentSong', icon: 'mdi-repeat-once', factory: () => this.createTask({ channel: 'music', method: 'loop_file', data: {} }) },
+                { titleKey: 'macro.presets.audio.musicControl.playSpecificSong', icon: 'mdi-music-note', factory: () => this.createTask({ channel: 'music', method: 'play_song', data: { song: '', continue: true, restart: true, pause: false } }) },
+                { titleKey: 'macro.presets.audio.musicControl.reloadPlayer', icon: 'mdi-refresh', factory: () => this.createTask({ channel: 'music', method: 'reload', data: { restore_state: false } }) },
               ],
             },
             {
-              title: 'Song Request control',
+              titleKey: 'macro.presets.audio.songRequestControl.title',
               icon: 'mdi-music-note-plus',
               children: [
-                { title: 'Add song request', icon: 'mdi-music-note-plus', factory: () => this.createTask({ channel: 'music', method: 'song_request', data: { url: '' } }) },
-                { title: 'Toggle song requests', icon: 'mdi-music-note-off-outline', factory: () => this.createTask({ channel: 'music', method: 'song_request_toggle', data: {} }) },
+                { titleKey: 'macro.presets.audio.songRequestControl.addSongRequest', icon: 'mdi-music-note-plus', factory: () => this.createTask({ channel: 'music', method: 'song_request', data: { url: '' } }) },
+                { titleKey: 'macro.presets.audio.songRequestControl.toggleSongRequests', icon: 'mdi-music-note-off-outline', factory: () => this.createTask({ channel: 'music', method: 'song_request_toggle', data: {} }) },
               ]
             }
           ],
         },
         {
-          title: 'Twitch',
+          titleKey: 'macro.presets.twitch.title',
           icon: 'mdi-twitch',
           children: [
-            { title: 'Create clip', icon: 'mdi-content-cut', factory: () => this.createTask({ channel: 'twitch', method: 'clip', data: { create_after_delay: false, wait_seconds: 35, variable: 'clip' } }) },
-            { title: 'Shoutout', icon: 'mdi-account-voice', factory: () => this.createTask({ channel: 'twitch', method: 'shoutout', data: { user: '', variable: 'shoutout' } }) },
-            { title: 'Change category', icon: 'mdi-gamepad-variant-outline', factory: () => this.createTask({ channel: 'twitch', method: 'set_category', data: { category: '', variable: 'category' } }) },
+            { titleKey: 'macro.presets.twitch.createClip', icon: 'mdi-content-cut', factory: () => this.createTask({ channel: 'twitch', method: 'clip', data: { create_after_delay: false, wait_seconds: 35, variable: 'clip' } }) },
+            { titleKey: 'macro.presets.twitch.shoutout', icon: 'mdi-account-voice', factory: () => this.createTask({ channel: 'twitch', method: 'shoutout', data: { user: '', variable: 'shoutout' } }) },
+            { titleKey: 'macro.presets.twitch.changeCategory', icon: 'mdi-gamepad-variant-outline', factory: () => this.createTask({ channel: 'twitch', method: 'set_category', data: { category: '', variable: 'category' } }) },
             {
-              title: 'Polls',
+              titleKey: 'macro.presets.twitch.polls.title',
               icon: 'mdi-poll',
               children: [
-                { title: 'Create poll', icon: 'mdi-plus-circle-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'create', title: '', choices: '', duration: 60, channel_points_voting: false, points_per_vote: 1, variable: 'poll' } }) },
-                { title: 'Archive poll', icon: 'mdi-archive-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'archive', poll_id: '', variable: 'poll' } }) },
-                { title: 'Terminate poll', icon: 'mdi-close-octagon-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'terminate', poll_id: '', variable: 'poll' } }) },
+                { titleKey: 'macro.presets.twitch.polls.createPoll', icon: 'mdi-plus-circle-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'create', title: '', choices: '', duration: 60, channel_points_voting: false, points_per_vote: 1, variable: 'poll' } }) },
+                { titleKey: 'macro.presets.twitch.polls.archivePoll', icon: 'mdi-archive-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'archive', poll_id: '', variable: 'poll' } }) },
+                { titleKey: 'macro.presets.twitch.polls.terminatePoll', icon: 'mdi-close-octagon-outline', factory: () => this.createTask({ channel: 'twitch', method: 'poll', data: { action: 'terminate', poll_id: '', variable: 'poll' } }) },
               ],
             },
             {
-              title: 'Predictions',
+              titleKey: 'macro.presets.twitch.predictions.title',
               icon: 'mdi-crystal-ball',
               children: [
-                { title: 'Create prediction', icon: 'mdi-plus-circle-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'create', title: '', outcomes: '', duration: 120, variable: 'prediction' } }) },
-                { title: 'Lock prediction', icon: 'mdi-lock-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'lock', prediction_id: '', variable: 'prediction' } }) },
-                { title: 'Resolve prediction', icon: 'mdi-check-decagram-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'resolve', prediction_id: '', winning_outcome_id: '', variable: 'prediction' } }) },
-                { title: 'Cancel prediction', icon: 'mdi-cancel', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'cancel', prediction_id: '', variable: 'prediction' } }) },
+                { titleKey: 'macro.presets.twitch.predictions.createPrediction', icon: 'mdi-plus-circle-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'create', title: '', outcomes: '', duration: 120, variable: 'prediction' } }) },
+                { titleKey: 'macro.presets.twitch.predictions.lockPrediction', icon: 'mdi-lock-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'lock', prediction_id: '', variable: 'prediction' } }) },
+                { titleKey: 'macro.presets.twitch.predictions.resolvePrediction', icon: 'mdi-check-decagram-outline', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'resolve', prediction_id: '', winning_outcome_id: '', variable: 'prediction' } }) },
+                { titleKey: 'macro.presets.twitch.predictions.cancelPrediction', icon: 'mdi-cancel', factory: () => this.createTask({ channel: 'twitch', method: 'prediction', data: { action: 'cancel', prediction_id: '', variable: 'prediction' } }) },
               ],
             },
-            { title: 'Create stream marker', icon: 'mdi-map-marker-plus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'stream_marker', data: { description: '', variable: 'stream_marker' } }) },
+            { titleKey: 'macro.presets.twitch.createStreamMarker', icon: 'mdi-map-marker-plus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'stream_marker', data: { description: '', variable: 'stream_marker' } }) },
             {
-              title: 'VIP',
+              titleKey: 'macro.presets.twitch.vip.title',
               icon: 'mdi-star-outline',
               children: [
-                { title: 'Add VIP', icon: 'mdi-star-plus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'vip', data: { action: 'add', user: '' } }) },
-                { title: 'Remove VIP', icon: 'mdi-star-minus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'vip', data: { action: 'remove', user: '' } }) },
+                { titleKey: 'macro.presets.twitch.vip.addVip', icon: 'mdi-star-plus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'vip', data: { action: 'add', user: '' } }) },
+                { titleKey: 'macro.presets.twitch.vip.removeVip', icon: 'mdi-star-minus-outline', factory: () => this.createTask({ channel: 'twitch', method: 'vip', data: { action: 'remove', user: '' } }) },
               ],
             },
             {
-              title: 'Moderation',
+              titleKey: 'macro.presets.twitch.moderation.title',
               icon: 'mdi-shield-account-outline',
               children: [
-                { title: 'Ban user', icon: 'mdi-account-cancel', factory: () => this.createTask({ channel: 'twitch', method: 'ban', data: { user: '', reason: '' } }) },
-                { title: 'Timeout user', icon: 'mdi-account-clock', factory: () => this.createTask({ channel: 'twitch', method: 'timeout', data: { user: '', duration: 600, reason: '' } }) },
+                { titleKey: 'macro.presets.twitch.moderation.banUser', icon: 'mdi-account-cancel', factory: () => this.createTask({ channel: 'twitch', method: 'ban', data: { user: '', reason: '' } }) },
+                { titleKey: 'macro.presets.twitch.moderation.timeoutUser', icon: 'mdi-account-clock', factory: () => this.createTask({ channel: 'twitch', method: 'timeout', data: { user: '', duration: 600, reason: '' } }) },
               ],
             },
-            { title: 'Run ad', icon: 'mdi-advertisements', factory: () => this.createTask({ channel: 'twitch', method: 'ad', data: { duration: 30, variable: 'ad' } }) },
+            { titleKey: 'macro.presets.twitch.runAd', icon: 'mdi-advertisements', factory: () => this.createTask({ channel: 'twitch', method: 'ad', data: { duration: 30, variable: 'ad' } }) },
           ],
         },
         {
-          title: 'YoloBox',
+          titleKey: 'macro.presets.yolobox.title',
           icon: 'mdi-video-wireless-outline',
           children: [
             {
-              title: 'Switch video source',
+              titleKey: 'macro.presets.yolobox.switchVideoSource',
               icon: 'mdi-video-switch',
               factory: () => this.createTask({
                 channel: 'yolobox',
@@ -708,11 +713,11 @@ export default {
               }),
             },
             {
-              title: 'Overlays',
+              titleKey: 'macro.presets.yolobox.overlays.title',
               icon: 'mdi-layers-outline',
               children: [
                 {
-                  title: 'Enable overlay',
+                  titleKey: 'macro.presets.yolobox.overlays.enableOverlay',
                   icon: 'mdi-eye-outline',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -721,7 +726,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Disable overlay',
+                  titleKey: 'macro.presets.yolobox.overlays.disableOverlay',
                   icon: 'mdi-eye-off-outline',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -730,7 +735,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Disable all overlays',
+                  titleKey: 'macro.presets.yolobox.overlays.disableAllOverlays',
                   icon: 'mdi-layers-off-outline',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -741,11 +746,11 @@ export default {
               ],
             },
             {
-              title: 'Audio source',
+              titleKey: 'macro.presets.yolobox.audioSource.title',
               icon: 'mdi-tune-vertical',
               children: [
                 {
-                  title: 'Set volume',
+                  titleKey: 'macro.presets.yolobox.audioSource.setVolume',
                   icon: 'mdi-volume-high',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -754,7 +759,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Mute',
+                  titleKey: 'macro.presets.yolobox.audioSource.mute',
                   icon: 'mdi-volume-off',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -763,7 +768,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Unmute',
+                  titleKey: 'macro.presets.yolobox.audioSource.unmute',
                   icon: 'mdi-volume-high',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -772,7 +777,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Set delay',
+                  titleKey: 'macro.presets.yolobox.audioSource.setDelay',
                   icon: 'mdi-timer-outline',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -781,7 +786,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Enable AFV',
+                  titleKey: 'macro.presets.yolobox.audioSource.enableAfv',
                   icon: 'mdi-link-variant',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -790,7 +795,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Disable AFV',
+                  titleKey: 'macro.presets.yolobox.audioSource.disableAfv',
                   icon: 'mdi-link-variant-off',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -801,11 +806,11 @@ export default {
               ],
             },
             {
-              title: 'Streaming',
+              titleKey: 'macro.presets.yolobox.streaming.title',
               icon: 'mdi-broadcast',
               children: [
                 {
-                  title: 'Go live',
+                  titleKey: 'macro.presets.yolobox.streaming.goLive',
                   icon: 'mdi-play-circle-outline',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -814,7 +819,7 @@ export default {
                   }),
                 },
                 {
-                  title: 'Stop stream',
+                  titleKey: 'macro.presets.yolobox.streaming.stopStream',
                   icon: 'mdi-stop-circle-outline',
                   factory: () => this.createTask({
                     channel: 'yolobox',
@@ -827,156 +832,172 @@ export default {
           ],
         },
         {
-          title: 'OBS',
+          titleKey: 'macro.presets.obs.title',
           icon: 'mdi-broadcast',
           children: [
             {
-              title: 'Scenes',
+              titleKey: 'macro.presets.obs.scenes.title',
               icon: 'mdi-monitor-screenshot',
               children: [
-                { title: 'Switch scene', icon: 'mdi-monitor-screenshot', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentProgramScene', data: { sceneName: '' } }) },
-                { title: 'Switch preview scene', icon: 'mdi-monitor-eye', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentPreviewScene', data: { sceneName: '' } }) },
+                { titleKey: 'macro.presets.obs.scenes.switchScene', icon: 'mdi-monitor-screenshot', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentProgramScene', data: { sceneName: '' } }) },
+                { titleKey: 'macro.presets.obs.scenes.switchPreviewScene', icon: 'mdi-monitor-eye', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentPreviewScene', data: { sceneName: '' } }) },
               ],
             },
             {
-              title: 'Scene items',
+              titleKey: 'macro.presets.obs.sceneItems.title',
               icon: 'mdi-layers-outline',
               children: [
-                { title: 'Show scene item', icon: 'mdi-eye', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemEnabled', data: { sceneName: '', sceneItemId: null, sceneItemEnabled: true } }) },
-                { title: 'Hide scene item', icon: 'mdi-eye-off', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemEnabled', data: { sceneName: '', sceneItemId: null, sceneItemEnabled: false } }) },
-                { title: 'Lock scene item', icon: 'mdi-lock', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemLocked', data: { sceneName: '', sceneItemId: null, sceneItemLocked: true } }) },
-                { title: 'Unlock scene item', icon: 'mdi-lock-open-variant', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemLocked', data: { sceneName: '', sceneItemId: null, sceneItemLocked: false } }) },
-                { title: 'Transform scene item', icon: 'mdi-vector-square', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemTransform', data: { sceneName: '', sceneItemId: null, sceneItemTransform: { positionX: 0, positionY: 0, scaleX: 1, scaleY: 1, rotation: 0 } } }) },
+                { titleKey: 'macro.presets.obs.sceneItems.showSceneItem', icon: 'mdi-eye', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemEnabled', data: { sceneName: '', sceneItemId: null, sceneItemEnabled: true } }) },
+                { titleKey: 'macro.presets.obs.sceneItems.hideSceneItem', icon: 'mdi-eye-off', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemEnabled', data: { sceneName: '', sceneItemId: null, sceneItemEnabled: false } }) },
+                { titleKey: 'macro.presets.obs.sceneItems.lockSceneItem', icon: 'mdi-lock', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemLocked', data: { sceneName: '', sceneItemId: null, sceneItemLocked: true } }) },
+                { titleKey: 'macro.presets.obs.sceneItems.unlockSceneItem', icon: 'mdi-lock-open-variant', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemLocked', data: { sceneName: '', sceneItemId: null, sceneItemLocked: false } }) },
+                { titleKey: 'macro.presets.obs.sceneItems.transformSceneItem', icon: 'mdi-vector-square', factory: () => this.createTask({ channel: 'obs', method: 'SetSceneItemTransform', data: { sceneName: '', sceneItemId: null, sceneItemTransform: { positionX: 0, positionY: 0, scaleX: 1, scaleY: 1, rotation: 0 } } }) },
               ],
             },
             {
-              title: 'Audio',
+              titleKey: 'macro.presets.obs.audio.title',
               icon: 'mdi-volume-high',
               children: [
-                { title: 'Mute input', icon: 'mdi-volume-off', factory: () => this.createTask({ channel: 'obs', method: 'SetInputMute', data: { inputName: '', inputMuted: true } }) },
-                { title: 'Unmute input', icon: 'mdi-volume-high', factory: () => this.createTask({ channel: 'obs', method: 'SetInputMute', data: { inputName: '', inputMuted: false } }) },
-                { title: 'Toggle input mute', icon: 'mdi-volume-medium', factory: () => this.createTask({ channel: 'obs', method: 'ToggleInputMute', data: { inputName: '' } }) },
-                { title: 'Set input volume', icon: 'mdi-volume-source', factory: () => this.createTask({ channel: 'obs', method: 'SetInputVolume', data: { inputName: '', inputVolumeDb: 0 } }) },
+                { titleKey: 'macro.presets.obs.audio.muteInput', icon: 'mdi-volume-off', factory: () => this.createTask({ channel: 'obs', method: 'SetInputMute', data: { inputName: '', inputMuted: true } }) },
+                { titleKey: 'macro.presets.obs.audio.unmuteInput', icon: 'mdi-volume-high', factory: () => this.createTask({ channel: 'obs', method: 'SetInputMute', data: { inputName: '', inputMuted: false } }) },
+                { titleKey: 'macro.presets.obs.audio.toggleInputMute', icon: 'mdi-volume-medium', factory: () => this.createTask({ channel: 'obs', method: 'ToggleInputMute', data: { inputName: '' } }) },
+                { titleKey: 'macro.presets.obs.audio.setInputVolume', icon: 'mdi-volume-source', factory: () => this.createTask({ channel: 'obs', method: 'SetInputVolume', data: { inputName: '', inputVolumeDb: 0 } }) },
               ],
             },
             {
-              title: 'Filters',
+              titleKey: 'macro.presets.obs.filters.title',
               icon: 'mdi-filter',
               children: [
-                { title: 'Enable source filter', icon: 'mdi-filter-check', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: true } }) },
-                { title: 'Disable source filter', icon: 'mdi-filter-off', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: false } }) },
+                { titleKey: 'macro.presets.obs.filters.enableSourceFilter', icon: 'mdi-filter-check', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: true } }) },
+                { titleKey: 'macro.presets.obs.filters.disableSourceFilter', icon: 'mdi-filter-off', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: false } }) },
               ],
             },
             {
-              title: 'Streaming',
+              titleKey: 'macro.presets.obs.streaming.title',
               icon: 'mdi-broadcast',
               children: [
-                { title: 'Start stream', icon: 'mdi-broadcast', factory: () => this.createTask({ channel: 'obs', method: 'StartStream', data: {} }) },
-                { title: 'Stop stream', icon: 'mdi-broadcast-off', factory: () => this.createTask({ channel: 'obs', method: 'StopStream', data: {} }) },
-                { title: 'Toggle stream', icon: 'mdi-broadcast', factory: () => this.createTask({ channel: 'obs', method: 'ToggleStream', data: {} }) },
+                { titleKey: 'macro.presets.obs.streaming.startStream', icon: 'mdi-broadcast', factory: () => this.createTask({ channel: 'obs', method: 'StartStream', data: {} }) },
+                { titleKey: 'macro.presets.obs.streaming.stopStream', icon: 'mdi-broadcast-off', factory: () => this.createTask({ channel: 'obs', method: 'StopStream', data: {} }) },
+                { titleKey: 'macro.presets.obs.streaming.toggleStream', icon: 'mdi-broadcast', factory: () => this.createTask({ channel: 'obs', method: 'ToggleStream', data: {} }) },
               ],
             },
             {
-              title: 'Recording',
+              titleKey: 'macro.presets.obs.recording.title',
               icon: 'mdi-record-rec',
               children: [
-                { title: 'Start recording', icon: 'mdi-record-rec', factory: () => this.createTask({ channel: 'obs', method: 'StartRecord', data: {} }) },
-                { title: 'Stop recording', icon: 'mdi-stop-circle', factory: () => this.createTask({ channel: 'obs', method: 'StopRecord', data: {} }) },
-                { title: 'Toggle recording', icon: 'mdi-record-circle-outline', factory: () => this.createTask({ channel: 'obs', method: 'ToggleRecord', data: {} }) },
-                { title: 'Pause recording', icon: 'mdi-pause-circle', factory: () => this.createTask({ channel: 'obs', method: 'PauseRecord', data: {} }) },
-                { title: 'Resume recording', icon: 'mdi-play-circle', factory: () => this.createTask({ channel: 'obs', method: 'ResumeRecord', data: {} }) },
+                { titleKey: 'macro.presets.obs.recording.startRecording', icon: 'mdi-record-rec', factory: () => this.createTask({ channel: 'obs', method: 'StartRecord', data: {} }) },
+                { titleKey: 'macro.presets.obs.recording.stopRecording', icon: 'mdi-stop-circle', factory: () => this.createTask({ channel: 'obs', method: 'StopRecord', data: {} }) },
+                { titleKey: 'macro.presets.obs.recording.toggleRecording', icon: 'mdi-record-circle-outline', factory: () => this.createTask({ channel: 'obs', method: 'ToggleRecord', data: {} }) },
+                { titleKey: 'macro.presets.obs.recording.pauseRecording', icon: 'mdi-pause-circle', factory: () => this.createTask({ channel: 'obs', method: 'PauseRecord', data: {} }) },
+                { titleKey: 'macro.presets.obs.recording.resumeRecording', icon: 'mdi-play-circle', factory: () => this.createTask({ channel: 'obs', method: 'ResumeRecord', data: {} }) },
               ],
             },
             {
-              title: 'Replay buffer',
+              titleKey: 'macro.presets.obs.replayBuffer.title',
               icon: 'mdi-history',
               children: [
-                { title: 'Start replay buffer', icon: 'mdi-history', factory: () => this.createTask({ channel: 'obs', method: 'StartReplayBuffer', data: {} }) },
-                { title: 'Stop replay buffer', icon: 'mdi-history', factory: () => this.createTask({ channel: 'obs', method: 'StopReplayBuffer', data: {} }) },
-                { title: 'Save replay buffer', icon: 'mdi-content-save', factory: () => this.createTask({ channel: 'obs', method: 'SaveReplayBuffer', data: {} }) },
+                { titleKey: 'macro.presets.obs.replayBuffer.startReplayBuffer', icon: 'mdi-history', factory: () => this.createTask({ channel: 'obs', method: 'StartReplayBuffer', data: {} }) },
+                { titleKey: 'macro.presets.obs.replayBuffer.stopReplayBuffer', icon: 'mdi-history', factory: () => this.createTask({ channel: 'obs', method: 'StopReplayBuffer', data: {} }) },
+                { titleKey: 'macro.presets.obs.replayBuffer.saveReplayBuffer', icon: 'mdi-content-save', factory: () => this.createTask({ channel: 'obs', method: 'SaveReplayBuffer', data: {} }) },
               ],
             },
             {
-              title: 'Tools',
+              titleKey: 'macro.presets.obs.tools.title',
               icon: 'mdi-tools',
               children: [
-                { title: 'Reload browser sources', icon: 'mdi-refresh', factory: () => this.createTask({ channel: 'obs', method: 'reload_browser_sources', data: {} }) },
-                { title: 'Trigger hotkey', icon: 'mdi-keyboard', factory: () => this.createTask({ channel: 'obs', method: 'TriggerHotkeyByName', data: { hotkeyName: '' } }) },
-                { title: 'Set profile', icon: 'mdi-account-cog', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentProfile', data: { profileName: '' } }) },
-                { title: 'Set scene collection', icon: 'mdi-folder-cog', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentSceneCollection', data: { sceneCollectionName: '' } }) },
+                { titleKey: 'macro.presets.obs.tools.reloadBrowserSources', icon: 'mdi-refresh', factory: () => this.createTask({ channel: 'obs', method: 'reload_browser_sources', data: {} }) },
+                { titleKey: 'macro.presets.obs.tools.triggerHotkey', icon: 'mdi-keyboard', factory: () => this.createTask({ channel: 'obs', method: 'TriggerHotkeyByName', data: { hotkeyName: '' } }) },
+                { titleKey: 'macro.presets.obs.tools.setProfile', icon: 'mdi-account-cog', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentProfile', data: { profileName: '' } }) },
+                { titleKey: 'macro.presets.obs.tools.setSceneCollection', icon: 'mdi-folder-cog', factory: () => this.createTask({ channel: 'obs', method: 'SetCurrentSceneCollection', data: { sceneCollectionName: '' } }) },
               ],
             },
           ],
         },
 
         {
-          title: 'Lights',
+          titleKey: 'macro.presets.lights.title',
           icon: 'mdi-led-on',
           children: [
             {
-              title: 'Wled',
+              titleKey: 'macro.presets.lights.wled',
               icon: 'mdi-led-strip-variant',
               factory: () => this.createTask({ channel: 'wled', method: 'custom', data: { name: '', red: 255, green: 255, blue: 255, white: 0, brightness: 255, effect: 0 } }),
             },
             {
-              title: 'Wled Off',
+              titleKey: 'macro.presets.lights.wledOff',
               icon: 'mdi-led-strip-variant-off',
               factory: () => this.createTask({ channel: 'wled', method: 'off', data: { name: '' } }),
             },
           ]
         },
         {
-          title: 'Expert',
+          titleKey: 'macro.presets.system.title',
+          icon: 'mdi-power-settings',
+          children: [
+            {
+              titleKey: 'macro.presets.system.reboot',
+              icon: 'mdi-restart',
+              factory: () => this.createTask({ channel: 'system', method: 'reboot', data: {} }),
+            },
+            {
+              titleKey: 'macro.presets.system.shutdown',
+              icon: 'mdi-power',
+              factory: () => this.createTask({ channel: 'system', method: 'shutdown', data: {} }),
+            },
+          ],
+        },
+        {
+          titleKey: 'macro.presets.expert.title',
           icon: 'mdi-function',
           children: [
             {
-              title: 'Webhook',
+              titleKey: 'macro.presets.expert.webhook',
               icon: 'mdi-webhook',
               factory: () => this.createTask({ channel: 'webhook', method: 'post', data: {} }),
             },
             {
-              title: 'Websocket',
+              titleKey: 'macro.presets.expert.websocket',
               icon: 'mdi-connection',
               factory: () => this.createTask({ channel: 'websocket', method: '', data: {} }),
             },
             {
-              title: 'API request',
+              titleKey: 'macro.presets.expert.apiRequest.title',
               icon: 'mdi-api',
               children: [
                 {
-                  title: 'GET request',
+                  titleKey: 'macro.presets.expert.apiRequest.get',
                   icon: 'mdi-download',
                   factory: () => this.createApiRequestTask('get'),
                 },
                 {
-                  title: 'POST request',
+                  titleKey: 'macro.presets.expert.apiRequest.post',
                   icon: 'mdi-upload',
                   factory: () => this.createApiRequestTask('post'),
                 },
                 {
-                  title: 'PUT request',
+                  titleKey: 'macro.presets.expert.apiRequest.put',
                   icon: 'mdi-file-replace-outline',
                   factory: () => this.createApiRequestTask('put'),
                 },
                 {
-                  title: 'PATCH request',
+                  titleKey: 'macro.presets.expert.apiRequest.patch',
                   icon: 'mdi-file-edit-outline',
                   factory: () => this.createApiRequestTask('patch'),
                 },
                 {
-                  title: 'DELETE request',
+                  titleKey: 'macro.presets.expert.apiRequest.delete',
                   icon: 'mdi-delete-outline',
                   factory: () => this.createApiRequestTask('delete'),
                 },
               ],
             },
             {
-              title: 'Raw task',
+              titleKey: 'macro.presets.expert.rawTask',
               icon: 'mdi-code-json',
               factory: () => this.createTask({ channel: '', method: '', data: {} }),
             },
             {
-              title: 'Keyboard',
+              titleKey: 'macro.presets.expert.keyboard',
               icon: 'mdi-keyboard-outline',
               factory: () => this.createTask({
                 channel: 'keyboard',
@@ -995,6 +1016,11 @@ export default {
   },
 
   methods: {
+    presetTitle(preset: any): string {
+      if (preset?.titleKey) return this.$t(preset.titleKey)
+      return preset?.title ?? ''
+    },
+
     filterPresets(presets: any[]): any[] {
       return presets
         .map((preset: any) => {
@@ -1057,6 +1083,15 @@ export default {
 
       if (item?.task?.channel === 'keyboard') {
         return 'MacroKeyboardTaskAccordion'
+      }
+
+      if (item?.task?.channel === 'system') {
+        if (['shutdown', 'halt', 'poweroff'].includes(item?.task?.method)) {
+          return 'MacroSystemShutdownTaskAccordion'
+        }
+        if (['reboot', 'restart'].includes(item?.task?.method)) {
+          return 'MacroSystemRebootTaskAccordion'
+        }
       }
 
       if (item?.task?.channel === 'wled' && item?.task?.method === 'custom') {
