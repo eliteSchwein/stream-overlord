@@ -289,6 +289,7 @@ export default {
     name: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
     initialAsset: { type: Object, default: null },
+    autoLoad: { type: Boolean, default: true },
   },
 
   data() {
@@ -379,7 +380,7 @@ export default {
   },
 
   mounted() {
-    this.bootstrap()
+    if (this.autoLoad) this.bootstrap()
   },
 
   beforeUnmount() {

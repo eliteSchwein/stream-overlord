@@ -19,6 +19,8 @@ import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../helper/MessageEventLinkHelper";
 import TwitchClient from "./Client";
 import {getTwitchClient} from "../../App";
+import {getAssetConfig} from "../../helper/AssetHelper";
+import {addAlert} from "../../helper/AlertHelper";
 
 type ConfigParam = {
     name: string;
@@ -511,6 +513,7 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
     const aliases = normalizeArray(option.alias ?? option.aliases ?? []);
     const paramConfig = normalizeArray(option.params ?? []) as ConfigParam[];
     const macro = normalizeString(option.macro);
+    const assetName = normalizeString(option.asset);
 
     const commandOptions: any = {
         aliases,
@@ -595,6 +598,21 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
             };
 
             logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${command} ${rawParam.join(" ")}`);
+
+            if (assetName) {
+                const asset = getAssetConfig(assetName);
+
+                if (!asset) {
+                    logWarn(`command ${command} asset was not found: ${assetName}`);
+                } else {
+                    addAlert({
+                        ...asset,
+                        asset: assetName,
+                        variables: data,
+                        "event-uuid": `alert-${command}_${eventUuid}`,
+                    });
+                }
+            }
 
             if (macro) {
                 void triggerMacro(macro, data);

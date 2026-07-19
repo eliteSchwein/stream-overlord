@@ -6,7 +6,7 @@
       :disabled="disabled"
       @click="exportYaml"
     >
-      Export
+      {{ $t('components.yamlImportExport.export') }}
     </v-btn>
 
     <v-btn
@@ -15,7 +15,7 @@
       :disabled="disabled"
       @click="openImport"
     >
-      Import
+      {{ $t('components.yamlImportExport.import') }}
     </v-btn>
 
     <input

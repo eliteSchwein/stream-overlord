@@ -3,9 +3,13 @@
     <div class="d-flex align-center min-width-0 w-100">
       <v-icon :icon="icon" size="20" class="mr-2" />
 
-      <span class="text-caption mr-2 text-medium-emphasis">{{ $t('macro.final.taskTitle.variable') }}</span>
+      <span class="text-caption mr-2 text-medium-emphasis">
+        #{{ index + 1 }}
+      </span>
 
-      <span class="text-truncate font-weight-medium">{{ $t('macro.final.taskTitle.variable2') }}</span>
+      <span class="text-truncate font-weight-medium">
+        {{ title }}
+      </span>
 
       <v-spacer />
 

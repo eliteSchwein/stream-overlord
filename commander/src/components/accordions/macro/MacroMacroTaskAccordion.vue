@@ -4,7 +4,7 @@
     :item="item"
     :index="index"
     icon="mdi-playlist-play"
-    :title="'Macro: ' + (task.method || 'Select macro')"
+    :title="'Macro: ' + (task.method)"
     export-prefix="macro_macro"
     @remove="$emit('remove')"
     @move-up="$emit('move-up')"

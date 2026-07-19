@@ -134,7 +134,7 @@ export default {
     },
 
     createLabel(): string {
-      return `${this.$t?.('assets.createFile') || 'Add asset'}`
+      return `${this.$t?.('assets.createFile') }`
     },
   },
 

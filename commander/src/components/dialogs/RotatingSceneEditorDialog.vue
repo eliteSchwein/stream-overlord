@@ -18,7 +18,7 @@
           density="comfortable"
           hide-details
           inset
-          label="Code"
+          :label="$t('dialogs.rotatingSceneEditorDialog.code')"
           class="mr-3"
           @update:model-value="toggleRawMode"
         />
@@ -76,7 +76,7 @@
             <v-col cols="12" md="6">
               <v-text-field
                 v-model="visualRotatingScene.name"
-                label="Name"
+                :label="$t('dialogs.rotatingSceneEditorDialog.name')"
                 density="comfortable"
                 variant="outlined"
                 hide-details
@@ -86,7 +86,7 @@
             <v-col cols="12" sm="6" md="3">
               <v-text-field
                 v-model.number="visualRotatingScene.interval"
-                label="Interval"
+                :label="$t('dialogs.rotatingSceneEditorDialog.interval')"
                 type="number"
                 min="1"
                 density="comfortable"
@@ -101,7 +101,7 @@
                 :items="intervalUnits"
                 item-title="title"
                 item-value="value"
-                label="Unit"
+                :label="$t('dialogs.rotatingSceneEditorDialog.unit')"
                 density="comfortable"
                 variant="outlined"
                 hide-details
@@ -114,7 +114,7 @@
                   <div class="d-flex align-center ga-2 min-width-0">
                     <v-icon icon="mdi-format-list-numbered" />
                     <div class="min-width-0">
-                      <div class="text-subtitle-2">Scene order</div>
+                      <div class="text-subtitle-2">{{ $t('dialogs.rotatingSceneEditorDialog.sceneOrder') }}</div>
                       <div class="text-caption text-medium-emphasis">
                         OBS scenes are switched from top to bottom. The saved value is sceneUuid.
                       </div>
@@ -132,7 +132,7 @@
                     :items="sceneOptions"
                     item-title="title"
                     item-value="value"
-                    label="Add OBS scene"
+                    :label="$t('dialogs.rotatingSceneEditorDialog.addOBSScene')"
                     prepend-inner-icon="mdi-view-dashboard"
                     class="flex-grow-1"
                     density="comfortable"
@@ -149,7 +149,7 @@
                   type="info"
                   variant="tonal"
                   density="comfortable"
-                  text="No scenes selected yet. Add at least one OBS scene."
+                  :text="$t('dialogs.rotatingSceneEditorDialog.noScenesSelectedYetAddAtLeastOneOBSScene')"
                 />
 
                 <v-list v-else bg-color="transparent" density="compact" class="pa-0">

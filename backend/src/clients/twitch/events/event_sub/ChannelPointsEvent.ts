@@ -171,29 +171,44 @@ export default class ChannelPointsEvent extends BaseEvent {
         removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
     }
 
-    private async handleConfiguredChannelPoint(configChannelPoint: any, event: EventSubChannelRedemptionAddEvent, eventUuid: string, source: string) {
+    private async handleConfiguredChannelPoint(
+        configChannelPoint: any,
+        event: EventSubChannelRedemptionAddEvent,
+        eventUuid: string,
+        source: string,
+    ) {
         let cooldownAdded = false;
 
         try {
-            if (!configChannelPoint.asset) {
-                await this.denyConfiguredChannelPoint(event, `${source} channel point asset is missing`);
+            if (!configChannelPoint.asset && !configChannelPoint.macro) {
+                await this.denyConfiguredChannelPoint(
+                    event,
+                    `${source} channel point asset and macro are missing`,
+                );
                 return;
             }
 
-            if (!configChannelPoint.macro) {
-                await this.denyConfiguredChannelPoint(event, `${source} channel point macro is missing`);
-                return;
-            }
+            let asset: any = null;
 
-            const asset = getAssetConfig(configChannelPoint.asset);
+            if (configChannelPoint.asset) {
+                asset = getAssetConfig(configChannelPoint.asset);
 
-            if (!asset) {
-                await this.denyConfiguredChannelPoint(event, `${source} channel point asset was not found: ${configChannelPoint.asset}`);
-                return;
+                if (!asset) {
+                    await this.denyConfiguredChannelPoint(
+                        event,
+                        `${source} channel point asset was not found: ${configChannelPoint.asset}`,
+                    );
+                    return;
+                }
             }
 
             if (!configChannelPoint.auto_accept) {
-                addEventToCooldown(eventUuid, this.name, event.broadcasterName);
+                addEventToCooldown(
+                    eventUuid,
+                    this.name,
+                    event.broadcasterName,
+                );
+
                 cooldownAdded = true;
             }
 
@@ -204,28 +219,61 @@ export default class ChannelPointsEvent extends BaseEvent {
                     userName: event.userName,
                     userDisplayName: event.userDisplayName,
                     broadcasterName: event.broadcasterName,
-                    input: configChannelPoint.strip_emotes === true
-                        ? stripEmotes(String(event.input ?? ""), event as any)
-                        : event.input,
+                    input:
+                        configChannelPoint.strip_emotes === true
+                            ? stripEmotes(
+                                String(event.input ?? ""),
+                                event as any,
+                            )
+                            : event.input,
                 },
             });
 
-            if(asset.video || asset.sound || asset.image || asset.message)
+            if (
+                asset &&
+                (
+                    asset.video ||
+                    asset.sound ||
+                    asset.image ||
+                    asset.message
+                )
+            ) {
                 addAlert({
                     ...asset,
                     asset: configChannelPoint.asset,
                     variables: macroVariables,
                     "event-uuid": `alert-${configChannelPoint.label}_${eventUuid}`,
                 });
-
-            const macroTriggered = await triggerMacro(configChannelPoint.macro, macroVariables);
-
-            if (!macroTriggered) {
-                await this.denyConfiguredChannelPoint(event, `${source} channel point macro was not found: ${configChannelPoint.macro}`);
-                return;
             }
 
-            logRegular(`channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`);
+            if (configChannelPoint.macro) {
+                const macroTriggered = await triggerMacro(
+                    configChannelPoint.macro,
+                    macroVariables,
+                );
+
+                if (!macroTriggered) {
+                    if (cooldownAdded) {
+                        removeEventFromCooldown(
+                            eventUuid,
+                            this.name,
+                            event.broadcasterName,
+                        );
+
+                        cooldownAdded = false;
+                    }
+
+                    await this.denyConfiguredChannelPoint(
+                        event,
+                        `${source} channel point macro was not found: ${configChannelPoint.macro}`,
+                    );
+                    return;
+                }
+            }
+
+            logRegular(
+                `channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`,
+            );
 
             if (configChannelPoint.auto_accept) {
                 await event.updateStatus("FULFILLED");
@@ -233,10 +281,21 @@ export default class ChannelPointsEvent extends BaseEvent {
             }
 
             await sleep(this.eventCooldown * 1000);
-            removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
+
+            removeEventFromCooldown(
+                eventUuid,
+                this.name,
+                event.broadcasterName,
+            );
+
+            cooldownAdded = false;
         } catch (error) {
             if (cooldownAdded) {
-                removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
+                removeEventFromCooldown(
+                    eventUuid,
+                    this.name,
+                    event.broadcasterName,
+                );
             }
 
             if (event.broadcasterName !== event.userName) {
@@ -246,8 +305,16 @@ export default class ChannelPointsEvent extends BaseEvent {
                 );
             }
 
-            logError(`channel point denied for ${event.userName} because of a exception:`);
-            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            logError(
+                `channel point denied for ${event.userName} because of a exception:`,
+            );
+            logError(
+                JSON.stringify(
+                    error,
+                    Object.getOwnPropertyNames(error),
+                ),
+            );
+
             await event.updateStatus("CANCELED");
         }
     }

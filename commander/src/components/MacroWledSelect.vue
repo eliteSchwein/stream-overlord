@@ -88,7 +88,7 @@ export default {
     },
 
     createLabel(): string {
-      return `${this.$t?.('integrations.wled.add') || 'Add WLED'}`
+      return `${this.$t?.('integrations.wled.add')}`
     },
   },
 

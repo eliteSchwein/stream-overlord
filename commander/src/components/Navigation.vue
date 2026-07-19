@@ -275,7 +275,7 @@ export default {
         to="/channelPoints"></v-list-item>
       <v-list-item
         prepend-icon="mdi-lightning-bolt"
-        :title="$t('navigation.tabs.events') || 'Events'"
+        :title="$t('navigation.tabs.events')"
         color=""
         to="/events"></v-list-item>
       <v-list-item

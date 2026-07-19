@@ -101,7 +101,7 @@ export default {
           @click.stop="triggerMacro"
           :icon="icon"
           :color="color"
-          :aria-label="$t('macro.trigger') || 'Trigger macro'"
+          :aria-label="$t('macro.trigger')"
           class="macro-panel__trigger"
           size="small"
           density="compact"
@@ -114,7 +114,7 @@ export default {
 
         <div class="macro-panel__meta d-none d-sm-flex">
           <v-chip size="x-small" variant="tonal">
-            {{ taskCount }} tasks
+            {{ $t('components.macro.taskCount', { count: taskCount }) }}
           </v-chip>
         </div>
 
@@ -142,7 +142,7 @@ export default {
             :disabled="disabled"
             @click="$emit('edit', name, macro)"
           >
-            {{ $t('common.edit') || 'Edit' }}
+            {{ $t('common.edit') }}
           </v-btn>
 
           <v-btn
@@ -154,7 +154,7 @@ export default {
             :disabled="disabled"
             @click="$emit('delete', name, macro)"
           >
-            {{ $t('common.delete') || 'Delete' }}
+            {{ $t('common.delete') }}
           </v-btn>
         </div>
       </div>
@@ -163,13 +163,13 @@ export default {
         <thead>
           <tr>
             <th class="text-left" style="width: 180px">
-              {{ $t('macro.table.channel') || 'Channel' }}
+              {{ $t('macro.table.channel') }}
             </th>
             <th class="text-left" style="width: 180px">
-              {{ $t('macro.table.method') || 'Method' }}
+              {{ $t('macro.table.method') }}
             </th>
             <th class="text-left">
-              {{ $t('macro.table.data') || 'Data' }}
+              {{ $t('macro.table.data') }}
             </th>
           </tr>
         </thead>

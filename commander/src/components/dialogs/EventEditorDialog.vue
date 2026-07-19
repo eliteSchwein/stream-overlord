@@ -32,7 +32,7 @@
             <v-expansion-panel-title>
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-palette" />
-                <span class="text-truncate">Asset</span>
+                <span class="text-truncate">{{ $t('dialogs.eventEditorDialog.asset') }}</span>
               </div>
             </v-expansion-panel-title>
 
@@ -50,7 +50,7 @@
             <v-expansion-panel-title :hide-actions="isSystemEvent">
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-code-braces" />
-                <span class="text-truncate">Macro</span>
+                <span class="text-truncate">{{ $t('dialogs.eventEditorDialog.macro') }}</span>
               </div>
             </v-expansion-panel-title>
 
@@ -70,7 +70,7 @@
 
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="$emit('update:modelValue', false)">Cancel</v-btn>
+        <v-btn variant="text" @click="$emit('update:modelValue', false)">{{ $t('dialogs.eventEditorDialog.cancel') }}</v-btn>
         <v-btn color="primary" variant="flat" :loading="loading || savingInternal" :disabled="!canSave" @click="save">
           Save
         </v-btn>

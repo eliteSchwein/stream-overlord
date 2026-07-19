@@ -7,14 +7,14 @@
     <v-card color="grey-darken-4">
       <v-toolbar color="warning" flat density="compact">
         <v-toolbar-title class="d-flex align-center">
-          {{ $t('autoMacro.deleteConfirmTitle') || 'Delete auto macro?' }}
+          {{ $t('autoMacro.deleteConfirmTitle') }}
         </v-toolbar-title>
         <v-btn icon="mdi-close" @click="$emit('update:modelValue', false)" />
       </v-toolbar>
 
       <v-card-text>
         <div class="mb-2">
-          {{ $t('autoMacro.deleteConfirmText') || 'Do you really want to delete this auto macro?' }}
+          {{ $t('autoMacro.deleteConfirmText') }}
         </div>
 
         <v-card color="grey-darken-3" variant="flat" class="pa-3">

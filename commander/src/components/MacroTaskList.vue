@@ -23,7 +23,7 @@
       density="comfortable"
       variant="tonal"
       class="mb-3"
-      text="No tasks yet"
+      :text="$t('components.macroTaskList.noTasksYet')"
     />
 
     <v-menu v-model="addTaskMenuOpen" :close-on-content-click="false">
@@ -36,8 +36,8 @@
           size="small"
           class="mt-3"
         >
-          Add task
-        </v-btn>
+        {{ $t('components.macroTaskList.addTask') }}
+      </v-btn>
       </template>
 
       <v-list density="comfortable">

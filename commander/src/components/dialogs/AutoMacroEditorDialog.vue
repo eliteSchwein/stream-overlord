@@ -18,7 +18,7 @@
           density="comfortable"
           hide-details
           inset
-          label="Code"
+          :label="$t('dialogs.autoMacroEditorDialog.code')"
           class="mr-3"
           @update:model-value="toggleRawMode"
         />
@@ -76,7 +76,7 @@
             <v-col cols="12" md="5">
               <v-text-field
                 v-model="visualAutoMacro.name"
-                label="Name"
+                :label="$t('dialogs.autoMacroEditorDialog.name')"
                 density="comfortable"
                 variant="outlined"
                 hide-details
@@ -86,7 +86,7 @@
             <v-col cols="12" sm="6" md="3">
               <v-text-field
                 v-model.number="visualAutoMacro.interval"
-                label="Interval"
+                :label="$t('dialogs.autoMacroEditorDialog.interval')"
                 type="number"
                 min="1"
                 density="comfortable"
@@ -101,7 +101,7 @@
                 :items="intervalUnits"
                 item-title="title"
                 item-value="value"
-                label="Unit"
+                :label="$t('dialogs.autoMacroEditorDialog.unit')"
                 density="comfortable"
                 variant="outlined"
                 hide-details
@@ -112,7 +112,7 @@
               <v-switch
                 v-model="visualAutoMacro.default_enabled"
                 color="primary"
-                label="Start enabled after restart"
+                :label="$t('dialogs.autoMacroEditorDialog.startEnabledAfterRestart')"
                 hide-details
                 inset
               />
@@ -124,7 +124,7 @@
                   <div class="d-flex align-center ga-2 min-width-0">
                     <v-icon icon="mdi-format-list-numbered" />
                     <div class="min-width-0">
-                      <div class="text-subtitle-2">Macro order</div>
+                      <div class="text-subtitle-2">{{ $t('dialogs.autoMacroEditorDialog.macroOrder') }}</div>
                       <div class="text-caption text-medium-emphasis">
                         Macros are triggered from top to bottom.
                       </div>
@@ -139,7 +139,7 @@
                 <div class="d-flex ga-2 mb-3 auto-macro-editor-dialog__macro-add">
                   <MacroSelect
                     v-model="selectedMacroToAdd"
-                    label="Add macro"
+                    :label="$t('dialogs.autoMacroEditorDialog.addMacro')"
                     class="flex-grow-1"
                     @update:model-value="addSelectedMacro"
                   />
@@ -150,7 +150,7 @@
                   type="info"
                   variant="tonal"
                   density="comfortable"
-                  text="No macros selected yet. Add at least one macro to trigger."
+                  :text="$t('dialogs.autoMacroEditorDialog.noMacrosSelectedYetAddAtLeastOneMacroToTrigger')"
                 />
 
                 <v-list v-else bg-color="transparent" density="compact" class="pa-0">

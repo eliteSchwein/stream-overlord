@@ -24,6 +24,7 @@ declare module 'vue' {
     ChannelPointCreateDialog: typeof import('./components/dialogs/ChannelPointCreateDialog.vue')['default']
     ChannelPointEditorDialog: typeof import('./components/dialogs/ChannelPointEditorDialog.vue')['default']
     ChannelPointMacroAccordion: typeof import('./components/accordions/ChannelPointMacroAccordion.vue')['default']
+    CommandAssetAccordion: typeof import('./components/accordions/CommandAssetAccordion.vue')['default']
     CommandCreateDialog: typeof import('./components/dialogs/CommandCreateDialog.vue')['default']
     CommandEditorDialog: typeof import('./components/dialogs/CommandEditorDialog.vue')['default']
     CommandMacroAccordion: typeof import('./components/accordions/CommandMacroAccordion.vue')['default']

@@ -103,6 +103,7 @@ export default {
     name: { type: String, default: '' },
     initialContent: { type: String, default: '' },
     disableMacroRead: { type: Boolean, default: false },
+    autoLoad: { type: Boolean, default: true },
   },
 
   data() {
@@ -129,7 +130,7 @@ export default {
   },
 
   mounted() {
-    this.loadMacro()
+    if (this.autoLoad) this.loadMacro()
   },
 
   beforeUnmount() {

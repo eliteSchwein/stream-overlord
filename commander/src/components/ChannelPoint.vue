@@ -92,7 +92,7 @@ export default {
             :disabled="disabled"
             @click="$emit('edit', channelPoint)"
           >
-            {{ $t('common.edit') || 'Edit' }}
+            {{ $t('common.edit') }}
           </v-btn>
 
           <v-btn
@@ -104,7 +104,7 @@ export default {
             :disabled="disabled"
             @click="$emit('delete', channelPoint)"
           >
-            {{ $t('common.delete') || 'Delete' }}
+            {{ $t('common.delete') }}
           </v-btn>
         </div>
       </div>

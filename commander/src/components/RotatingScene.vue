@@ -12,7 +12,7 @@
               {{ rotatingSceneName }}
             </div>
             <div class="text-caption text-medium-emphasis">
-              {{ sceneCount }} scenes · every {{ intervalLabel }}
+              {{ $t('components.rotatingScene.summary', { count: sceneCount, interval: intervalLabel }) }}
             </div>
           </div>
         </div>
@@ -24,8 +24,8 @@
             prepend-icon="mdi-pencil"
             @click="$emit('edit', rotatingScene)"
           >
-            Edit
-          </v-btn>
+        {{ $t('components.rotatingScene.edit') }}
+      </v-btn>
 
           <v-btn
             color="error"
@@ -33,8 +33,8 @@
             prepend-icon="mdi-delete"
             @click="$emit('delete', rotatingScene)"
           >
-            Delete
-          </v-btn>
+        {{ $t('components.rotatingScene.delete') }}
+      </v-btn>
         </div>
       </div>
 

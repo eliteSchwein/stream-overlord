@@ -27,7 +27,7 @@
 
         <v-text-field
           :model-value="target"
-          label="Target path"
+          :label="$t('dialogs.fileMoveDialog.targetPath')"
           variant="outlined"
           density="compact"
           readonly

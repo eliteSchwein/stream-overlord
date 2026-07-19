@@ -4,7 +4,7 @@
       <v-toolbar flat density="comfortable">
         <v-toolbar-title class="d-flex align-center min-width-0">
           <v-icon icon="mdi-console-line" class="mr-2" />
-          <span class="text-truncate">{{ $t('commands.create') || 'Add command' }}</span>
+          <span class="text-truncate">{{ $t('commands.create') }}</span>
         </v-toolbar-title>
 
         <YamlImportExportButtons
@@ -24,53 +24,53 @@
 
         <v-row density="comfortable" class="px-3">
           <v-col cols="12" md="6">
-            <v-text-field v-model="form.name" label="Command" prefix="!" variant="outlined" density="comfortable" hide-details @update:model-value="syncMacro" />
+            <v-text-field v-model="form.name" :label="$t('dialogs.commandCreateDialog.command')" prefix="!" variant="outlined" density="comfortable" hide-details @update:model-value="syncMacro" />
           </v-col>
 
           <v-col cols="12" md="6">
-            <v-combobox v-model="form.aliases" label="Aliases" variant="outlined" density="comfortable" multiple chips closable-chips hide-details />
+            <v-combobox v-model="form.aliases" :label="$t('dialogs.commandCreateDialog.aliases')" variant="outlined" density="comfortable" multiple chips closable-chips hide-details />
           </v-col>
         </v-row>
 
         <v-row density="comfortable" class="mt-3 px-3">
           <v-col cols="12" md="6">
-            <v-text-field v-model.number="form.userCooldown" label="User cooldown" type="number" variant="outlined" density="comfortable" hide-details />
+            <v-text-field v-model.number="form.userCooldown" :label="$t('dialogs.commandCreateDialog.userCooldown')" type="number" variant="outlined" density="comfortable" hide-details />
           </v-col>
 
           <v-col cols="12" md="6">
-            <v-text-field v-model.number="form.globalCooldown" label="Global cooldown" type="number" variant="outlined" density="comfortable" hide-details />
+            <v-text-field v-model.number="form.globalCooldown" :label="$t('dialogs.commandCreateDialog.globalCooldown')" type="number" variant="outlined" density="comfortable" hide-details />
           </v-col>
         </v-row>
 
         <div class="d-flex flex-wrap ga-2 my-3 px-3">
-          <v-switch v-model="form.enforce_primary" label="Primary only" color="primary" hide-details density="comfortable" />
-          <v-switch v-model="form.requiresBroadcaster" label="Broadcaster" color="primary" hide-details density="comfortable" />
-          <v-switch v-model="form.requiresMod" label="Mod" color="primary" hide-details density="comfortable" />
-          <v-switch v-model="form.requiresVip" label="VIP" color="primary" density="comfortable" hide-details />
+          <v-switch v-model="form.enforce_primary" :label="$t('dialogs.commandCreateDialog.primaryOnly')" color="primary" hide-details density="comfortable" />
+          <v-switch v-model="form.requiresBroadcaster" :label="$t('dialogs.commandCreateDialog.broadcaster')" color="primary" hide-details density="comfortable" />
+          <v-switch v-model="form.requiresMod" :label="$t('dialogs.commandCreateDialog.mod')" color="primary" hide-details density="comfortable" />
+          <v-switch v-model="form.requiresVip" :label="$t('dialogs.commandCreateDialog.vip')" color="primary" density="comfortable" hide-details />
         </div>
 
         <v-card color="grey-darken-4" variant="flat" class="pa-3 mb-3">
           <div class="d-flex align-center justify-space-between mb-2">
-            <div class="text-subtitle-2">Params</div>
-            <v-btn size="small" prepend-icon="mdi-plus" variant="tonal" @click="addParam">Add param</v-btn>
+            <div class="text-subtitle-2">{{ $t('dialogs.commandCreateDialog.params') }}</div>
+            <v-btn size="small" prepend-icon="mdi-plus" variant="tonal" @click="addParam">{{ $t('dialogs.commandCreateDialog.addParam') }}</v-btn>
           </div>
 
-          <v-alert v-if="safeParams.length === 0" type="info" density="compact" variant="tonal" text="No params configured" />
+          <v-alert v-if="safeParams.length === 0" type="info" density="compact" variant="tonal" :text="$t('dialogs.commandCreateDialog.noParamsConfigured')" />
 
           <v-row v-for="(param, index) in safeParams" :key="index" density="compact" class="align-center mb-1">
             <v-col cols="12" md="3">
-              <v-text-field v-model="param.name" label="Name" variant="outlined" density="compact" hide-details />
+              <v-text-field v-model="param.name" :label="$t('dialogs.commandCreateDialog.name')" variant="outlined" density="compact" hide-details />
             </v-col>
 
             <v-col cols="12" md="3">
-              <v-select v-model="param.type" :items="paramTypes" label="Type" variant="outlined" density="compact" hide-details />
+              <v-select v-model="param.type" :items="paramTypes" :label="$t('dialogs.commandCreateDialog.type')" variant="outlined" density="compact" hide-details />
             </v-col>
 
             <v-col cols="12" md="4">
               <v-combobox
                 v-if="param.type === 'subcommand'"
                 v-model="param.subcommandNames"
-                label="Subcommands"
+                :label="$t('dialogs.commandCreateDialog.subcommands')"
                 variant="outlined"
                 density="compact"
                 multiple
@@ -78,7 +78,7 @@
                 closable-chips
                 hide-details
               />
-              <v-switch v-else v-model="param.required" label="Required" color="primary" density="compact" hide-details />
+              <v-switch v-else v-model="param.required" :label="$t('dialogs.commandCreateDialog.required')" color="primary" density="compact" hide-details />
             </v-col>
 
             <v-col cols="12" md="2" class="text-right">
@@ -87,22 +87,59 @@
           </v-row>
         </v-card>
 
-        <v-card variant="flat" class="px-0" color="grey-darken-3">
-          <v-card-text>
-            <CommandMacroAccordion ref="macroAccordion" :name="generatedMacroName" :initial-content="macroContent" disable-macro-read />
-          </v-card-text>
-        </v-card>
+        <v-expansion-panels v-model="openPanels" variant="accordion">
+          <v-expansion-panel value="asset">
+            <v-expansion-panel-title>
+              <div class="d-flex align-center ga-2 min-width-0">
+                <v-icon icon="mdi-palette" />
+                <span class="text-truncate">
+                  {{ $t('dialogs.commandCreateDialog.asset') }}
+                </span>
+              </div>
+            </v-expansion-panel-title>
 
+            <v-expansion-panel-text eager>
+              <CommandAssetAccordion
+                ref="assetAccordion"
+                :key="`asset_${generatedAssetName}`"
+                :name="generatedAssetName"
+                :auto-load="false"
+                :disabled="loading"
+              />
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <v-expansion-panel value="macro">
+            <v-expansion-panel-title>
+              <div class="d-flex align-center ga-2 min-width-0">
+                <v-icon icon="mdi-code-braces" />
+                <span class="text-truncate">
+                  {{ $t('dialogs.commandCreateDialog.macro') }}
+                </span>
+              </div>
+            </v-expansion-panel-title>
+
+            <v-expansion-panel-text eager>
+              <CommandMacroAccordion
+                ref="macroAccordion"
+                :key="`macro_${generatedMacroName}`"
+                :name="generatedMacroName"
+                :initial-content="macroContent"
+                disable-macro-read
+              />
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
 
       </v-card-text>
 
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="$emit('update:modelValue', false)">
-          {{ $t('common.cancel') || 'Cancel' }}
+          {{ $t('common.cancel') }}
         </v-btn>
         <v-btn color="primary" variant="tonal" :loading="loading" :disabled="!canSave" @click="save">
-          {{ $t('common.save') || 'Save' }}
+          {{ $t('common.save') }}
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -110,13 +147,14 @@
 </template>
 
 <script lang="ts">
+import CommandAssetAccordion from '@/components/accordions/CommandAssetAccordion.vue'
 import CommandMacroAccordion from '@/components/accordions/CommandMacroAccordion.vue'
 import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 
 export default {
   name: 'CommandCreateDialog',
 
-  components: { CommandMacroAccordion, YamlImportExportButtons },
+  components: { CommandAssetAccordion, CommandMacroAccordion, YamlImportExportButtons },
 
   props: {
     modelValue: { type: Boolean, default: false },
@@ -127,7 +165,7 @@ export default {
 
   data() {
     return {
-      openPanels: ['macro'],
+      openPanels: [],
       errorMessage: '',
       paramTypes: ['string', 'number', 'user', 'subcommand', 'all'],
       macroContent: '',
@@ -148,6 +186,10 @@ export default {
       return this.normalizeName((this.form as any).name)
     },
 
+    generatedAssetName(): string {
+      return this.normalizedName ? `command_${this.normalizedName}` : 'command_'
+    },
+
     generatedMacroName(): string {
       return this.normalizedName ? `command_${this.normalizedName}` : 'command_'
     },
@@ -166,10 +208,16 @@ export default {
   },
 
   methods: {
-    open() {
+    async open() {
       this.errorMessage = ''
       this.form = this.defaultForm()
       this.syncMacro()
+
+      await this.$nextTick()
+      ;(this.$refs.assetAccordion as any)?.setAsset?.({
+        channel: 'general',
+        duration: 5,
+      })
     },
 
     defaultForm() {
@@ -267,6 +315,23 @@ export default {
         .filter((param: any) => param?.name)
     },
 
+    async loadAsset(name: string) {
+      await this.$nextTick()
+
+      try {
+        await (this.$refs.assetAccordion as any)?.open?.(name)
+      } catch (_) {
+        ;(this.$refs.assetAccordion as any)?.setAsset?.({
+          channel: 'general',
+          duration: 5,
+        })
+      }
+    },
+
+    getAssetPayload() {
+      return (this.$refs.assetAccordion as any)?.getAssetPayload?.() ?? {}
+    },
+
     getMacroContent() {
       return (
         (this.$refs.macroAccordion as any)?.getContent?.() ||
@@ -281,6 +346,7 @@ export default {
         name: this.normalizedName,
         aliases: this.toArray((this.form as any).aliases),
         params: this.normalizeParams(),
+        asset: this.generatedAssetName,
         macro: this.generatedMacroName,
       }
     },
@@ -292,6 +358,7 @@ export default {
         name: command.name,
         path: command.name ? `command_${command.name}.yaml` : 'command.yaml',
         command,
+        assetPayload: this.getAssetPayload(),
         macroContent: this.getMacroContent(),
       }
     },
@@ -320,6 +387,16 @@ export default {
           macroName,
         )
 
+        this.$nextTick(async () => {
+          const importedAssetPayload = data.assetPayload ?? data.asset?.content
+
+          if (importedAssetPayload && typeof importedAssetPayload === 'object') {
+            ;(this.$refs.assetAccordion as any)?.setAsset?.(importedAssetPayload)
+          } else {
+            await this.loadAsset(command.asset || this.generatedAssetName)
+          }
+        })
+
         this.errorMessage = ''
       } catch (error: any) {
         this.handleImportError(error)
@@ -347,7 +424,7 @@ export default {
     },
 
     handleImportError(error: any) {
-      this.errorMessage = error?.message || 'Import failed'
+      this.errorMessage = error?.message
     },
 
     save() {
@@ -358,6 +435,7 @@ export default {
       this.$emit('save', {
         ...payload.command,
         path: payload.path,
+        assetPayload: payload.assetPayload,
         macroContent: payload.macroContent,
       })
     },

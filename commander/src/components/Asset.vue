@@ -26,15 +26,15 @@ export default {
   computed: {
     setFields(): { key: string; label: string; value: any }[] {
       const fields = [
-        ['message', this.$t('assets.message') || 'Message'],
-        ['sound', this.$t('assets.sound') || 'Sound'],
-        ['icon', this.$t('assets.icon') || 'Icon'],
-        ['color', this.$t('assets.color') || 'Color'],
-        ['channel', this.$t('assets.channel') || 'Channel'],
-        ['duration', this.$t('assets.duration') || 'Duration'],
-        ['volume', this.$t('assets.volume') || 'Volume'],
-        ['image', this.$t('assets.image') || 'Image'],
-        ['video', this.$t('assets.video') || 'Video'],
+        ['message', this.$t('assets.message')],
+        ['sound', this.$t('assets.sound')],
+        ['icon', this.$t('assets.icon')],
+        ['color', this.$t('assets.color')],
+        ['channel', this.$t('assets.channel')],
+        ['duration', this.$t('assets.duration')],
+        ['volume', this.$t('assets.volume')],
+        ['image', this.$t('assets.image')],
+        ['video', this.$t('assets.video')],
       ]
 
       return fields
@@ -44,9 +44,9 @@ export default {
 
     macroFields(): { key: string; label: string; values: string[] }[] {
       return [
-        { key: 'start_macros', label: this.$t('assets.startMacros') || 'Start macros', values: this.asset?.start_macros ?? [] },
-        { key: 'idle_macros', label: this.$t('assets.idleMacros') || 'Idle macros', values: this.asset?.idle_macros ?? [] },
-        { key: 'end_macros', label: this.$t('assets.endMacros') || 'End macros', values: this.asset?.end_macros ?? [] },
+        { key: 'start_macros', label: this.$t('assets.startMacros'), values: this.asset?.start_macros ?? [] },
+        { key: 'idle_macros', label: this.$t('assets.idleMacros'), values: this.asset?.idle_macros ?? [] },
+        { key: 'end_macros', label: this.$t('assets.endMacros'), values: this.asset?.end_macros ?? [] },
       ].filter((entry) => Array.isArray(entry.values) && entry.values.length > 0)
     },
 
@@ -142,7 +142,7 @@ export default {
             :disabled="disabled"
             @click="$emit('edit', name, asset)"
           >
-            {{ $t('common.edit') || 'Edit' }}
+            {{ $t('common.edit') }}
           </v-btn>
 
           <v-btn
@@ -154,13 +154,13 @@ export default {
             :disabled="disabled"
             @click="$emit('delete', name, asset)"
           >
-            {{ $t('common.delete') || 'Delete' }}
+            {{ $t('common.delete') }}
           </v-btn>
         </div>
       </div>
 
       <div v-if="!hasDetails" class="px-4 pb-4 text-caption text-grey-lighten-1">
-        {{ $t('assets.noValuesSet') || 'No values set' }}
+        {{ $t('assets.noValuesSet') }}
       </div>
 
       <v-table v-if="setFields.length" density="compact" class="asset-panel__table">

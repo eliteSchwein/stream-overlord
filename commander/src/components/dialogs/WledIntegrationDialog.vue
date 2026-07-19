@@ -17,8 +17,8 @@
           <v-col cols="12">
             <v-text-field
               v-model="form.name"
-              :label="$t('integrations.wled.name') || 'Name'"
-              placeholder="desk"
+              :label="$t('integrations.wled.name')"
+              :placeholder="$t('dialogs.wledIntegrationDialog.desk')"
               variant="outlined"
               hide-details="auto"
               autofocus
@@ -28,7 +28,7 @@
           <v-col cols="12">
             <v-text-field
               v-model="form.ip"
-              :label="$t('integrations.wled.ip') || 'IP / Host'"
+              :label="$t('integrations.wled.ip')"
               placeholder="192.168.178.50"
               variant="outlined"
               hide-details="auto"

@@ -38,6 +38,8 @@ type IntegrationsFile = {
 };
 
 export default class TwitchAuth {
+    private static integrationsWriteQueue: Promise<void> = Promise.resolve();
+
     protected integrationsPath = path.join(getSystemConfigDirectory(), "integrations.json");
     protected tempTokenData: TwitchTokenData | null = null;
     protected authProvider!: RefreshingAuthProvider;
@@ -136,11 +138,6 @@ export default class TwitchAuth {
             return null;
         }
 
-        if (!required && !this.hasToken(type)) {
-            logWarn(`twitch ${type} auth skipped: token is missing`);
-            return null;
-        }
-
         const tokenData = await this.readToken(clientId, clientSecret, required, type);
         if (!tokenData) return null;
 
@@ -206,7 +203,17 @@ export default class TwitchAuth {
 
     private async writeIntegrations(data: IntegrationsFile) {
         await fs.mkdir(path.dirname(this.integrationsPath), {recursive: true});
-        await fs.writeFile(this.integrationsPath, JSON.stringify(data, null, 4), "utf8");
+
+        const temporaryPath = `${this.integrationsPath}.${process.pid}.${Date.now()}.tmp`;
+        const content = JSON.stringify(data, null, 4);
+
+        try {
+            await fs.writeFile(temporaryPath, content, "utf8");
+            await fs.rename(temporaryPath, this.integrationsPath);
+        } catch (error) {
+            await fs.rm(temporaryPath, {force: true}).catch(() => undefined);
+            throw error;
+        }
     }
 
     private normalizeStoredTokenData(data: any): TwitchTokenData {
@@ -238,18 +245,24 @@ export default class TwitchAuth {
     }
 
     private async writeToken(type: TwitchAuthType, tokenData: TwitchTokenData) {
-        const integrations = await this.readIntegrations();
-        const oldToken = integrations.twitch?.[type];
-        const normalized = this.normalizeStoredTokenData(tokenData);
+        const updateToken = async () => {
+            const integrations = await this.readIntegrations();
+            const oldToken = integrations.twitch?.[type];
+            const normalized = this.normalizeStoredTokenData(tokenData);
 
-        integrations.twitch ??= {};
-        integrations.twitch[type] = {
-            ...normalized,
-            userId: normalized.userId ?? oldToken?.userId,
-            login: normalized.login ?? oldToken?.login,
+            integrations.twitch ??= {};
+            integrations.twitch[type] = {
+                ...normalized,
+                userId: normalized.userId ?? oldToken?.userId,
+                login: normalized.login ?? oldToken?.login,
+            };
+
+            await this.writeIntegrations(integrations);
         };
 
-        await this.writeIntegrations(integrations);
+        const queuedUpdate = TwitchAuth.integrationsWriteQueue.then(updateToken, updateToken);
+        TwitchAuth.integrationsWriteQueue = queuedUpdate.catch(() => undefined);
+        await queuedUpdate;
     }
 
     public getConfiguredClient() {

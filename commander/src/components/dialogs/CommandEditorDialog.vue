@@ -41,7 +41,9 @@ export default {
 
       const command = this.commandEntry?.command ?? {}
       const name = this.commandEntry?.name ?? command.name ?? ''
-      const macroName = command.macro || `command_${String(name).replace(/^command_/, '')}`
+      const generatedName = `command_${String(name).replace(/^command_/, '')}`
+      const assetName = command.asset || generatedName
+      const macroName = command.macro || generatedName
 
       if (!inner) return
 
@@ -57,7 +59,12 @@ export default {
         requiresVip: command.requiresVip === true,
       }
 
-      inner.macroContent = await this.loadMacro(macroName)
+      await Promise.all([
+        inner.loadAsset?.(assetName),
+        this.loadMacro(macroName).then((content: string) => {
+          inner.macroContent = content
+        }),
+      ])
 
       await this.$nextTick()
       ;(inner.$refs.macroAccordion as any)?.setContent?.(inner.macroContent, macroName)

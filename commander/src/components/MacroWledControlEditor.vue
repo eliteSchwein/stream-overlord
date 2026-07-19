@@ -120,7 +120,7 @@
         variant="text"
         @click="$emit('remove')"
       >
-        {{ $t('common.delete') || 'Delete' }}
+        {{ $t('common.delete') }}
       </v-btn>
     </v-card-actions>
   </v-card>
@@ -165,39 +165,39 @@ export default {
     },
 
     presetLabel(): string {
-      return String(this.$t?.('assets.preset') || 'Preset')
+      return String(this.$t?.('assets.preset'))
     },
 
     presetInfoLabel(): string {
-      return String(this.$t?.('assets.wledPresetOverridesColor') || 'Preset selected. Color, effect and brightness values are ignored.')
+      return String(this.$t?.('assets.wledPresetOverridesColor'))
     },
 
     effectLabel(): string {
-      return String(this.$t?.('assets.effect') || 'Effect')
+      return String(this.$t?.('assets.effect'))
     },
 
     brightnessLabel(): string {
-      return String(this.$t?.('assets.brightness') || 'Brightness')
+      return String(this.$t?.('assets.brightness'))
     },
 
     colorLabel(): string {
-      return String(this.$t?.('assets.targetColor') || 'Target color')
+      return String(this.$t?.('assets.targetColor'))
     },
 
     redLabel(): string {
-      return String(this.$t?.('assets.red') || 'Red')
+      return String(this.$t?.('assets.red'))
     },
 
     greenLabel(): string {
-      return String(this.$t?.('assets.green') || 'Green')
+      return String(this.$t?.('assets.green'))
     },
 
     blueLabel(): string {
-      return String(this.$t?.('assets.blue') || 'Blue')
+      return String(this.$t?.('assets.blue'))
     },
 
     whiteLabel(): string {
-      return String(this.$t?.('assets.white') || 'White')
+      return String(this.$t?.('assets.white'))
     },
 
     previewColor(): string {

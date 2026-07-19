@@ -762,10 +762,7 @@
         "export": "Export",
         "import": "Import"
       },
-      "taskTitle": {
-        "variable": "#{{ index + 1 }}",
-        "variable2": "{{ title }}"
-      },
+      "taskTitle": {},
       "timer": {
         "timerName": "Timer name",
         "time": "Time",
@@ -839,6 +836,13 @@
         "timeout30000Promise": "= {}, timeout = 30_000): Promise",
         "timeout30000Promise2": "= {}, timeout = 30_000): Promise"
       }
+    },
+    "configuration": {
+      "channelPointAsset": {},
+      "channelPointMacro": {},
+      "commandMacro": {},
+      "eventAsset": {},
+      "eventMacro": {}
     }
   },
   "giveaway": {
@@ -1196,5 +1200,115 @@
     "cavaTargetName": "Target name",
     "cavaSettingKey": "Option",
     "cavaSettingValue": "Option Value"
+  },
+  "components": {
+    "storageCard": {},
+    "uploadCard": {},
+    "macro": {
+      "taskCount": "{count} tasks"
+    },
+    "macroTaskList": {
+      "noTasksYet": "No tasks yet",
+      "addTask": "Add task"
+    },
+    "rotatingScene": {
+      "summary": "{count} scenes · every {interval}",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "yamlImportExport": {
+      "export": "Export",
+      "import": "Import"
+    }
+  },
+  "dialogs": {
+    "createFileDialog": {},
+    "autoMacroEditorDialog": {
+      "code": "Code",
+      "name": "Name",
+      "interval": "Interval",
+      "unit": "Unit",
+      "startEnabledAfterRestart": "Start enabled after restart",
+      "addMacro": "Add macro",
+      "noMacrosSelectedYetAddAtLeastOneMacroToTrigger": "No macros selected yet. Add at least one macro to trigger.",
+      "macroOrder": "Macro order"
+    },
+    "channelPointEditorDialog": {
+      "name": "Name",
+      "enableDefault": "Enable default",
+      "autoAccept": "Auto accept",
+      "stripEmotes": "Strip emotes",
+      "inputRequired": "Input required",
+      "asset": "Asset",
+      "macro": "Macro",
+      "cancel": "Cancel"
+    },
+    "connectDialog": {},
+    "commandEditorDialog": {},
+    "fileCreateFolderDialog": {},
+    "autoMacroDeleteConfirmDialog": {},
+    "channelPointCreateDialog": {
+      "name": "Name",
+      "enableDefault": "Enable default",
+      "autoAccept": "Auto accept",
+      "stripEmotes": "Strip emotes",
+      "inputRequired": "Input required",
+      "asset": "Asset",
+      "macro": "Macro",
+      "cancel": "Cancel"
+    },
+    "eventEditorDialog": {
+      "asset": "Asset",
+      "macro": "Macro",
+      "cancel": "Cancel"
+    },
+    "commandCreateDialog": {
+      "command": "Command",
+      "aliases": "Aliases",
+      "userCooldown": "User cooldown",
+      "globalCooldown": "Global cooldown",
+      "primaryOnly": "Primary only",
+      "broadcaster": "Broadcaster",
+      "mod": "Mod",
+      "vip": "VIP",
+      "noParamsConfigured": "No params configured",
+      "name": "Name",
+      "type": "Type",
+      "subcommands": "Subcommands",
+      "required": "Required",
+      "params": "Params",
+      "addParam": "Add param",
+      "asset": "Asset",
+      "macro": "Macro"
+    },
+    "fileDeleteConfirmDialog": {},
+    "fileCopyDialog": {},
+    "assetEditorDialog": {},
+    "fileMoveDialog": {
+      "targetPath": "Target path"
+    },
+    "filePreviewDialog": {},
+    "macroDeleteConfirmDialog": {},
+    "macroEditorDialog": {},
+    "overlayEditorDialog": {},
+    "powerDialog": {},
+    "rotatingSceneDeleteConfirmDialog": {},
+    "rotatingSceneEditorDialog": {
+      "code": "Code",
+      "name": "Name",
+      "interval": "Interval",
+      "unit": "Unit",
+      "addOBSScene": "Add OBS scene",
+      "noScenesSelectedYetAddAtLeastOneOBSScene": "No scenes selected yet. Add at least one OBS scene.",
+      "sceneOrder": "Scene order"
+    },
+    "wledIntegrationDialog": {
+      "desk": "desk"
+    }
+  },
+  "fileManager": {
+    "fileCard": {},
+    "fileManagerPage": {},
+    "filePreview": {}
   }
 }

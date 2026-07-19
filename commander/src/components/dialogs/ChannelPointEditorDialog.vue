@@ -17,7 +17,7 @@
         <YamlImportExportButtons
           class="mr-2"
           :filename="exportFilename"
-          :disabled="loading || savingInternal"
+          :disabled="loading || initializingInternal || savingInternal"
           :export-data="exportPayload"
           @import="importChannelPoint"
           @error="handleImportError"
@@ -40,7 +40,7 @@
           <v-col cols="12" md="4">
             <v-text-field
               v-model="form.name"
-              label="Name"
+              :label="$t('dialogs.channelPointEditorDialog.name')"
               density="comfortable"
               variant="outlined"
               hide-details
@@ -50,7 +50,7 @@
           <v-col cols="12" md="2">
             <v-switch
               v-model="form.enable_default"
-              label="Enable default"
+              :label="$t('dialogs.channelPointEditorDialog.enableDefault')"
               color="primary"
               density="comfortable"
               hide-details
@@ -61,7 +61,7 @@
           <v-col cols="12" md="2">
             <v-switch
               v-model="form.auto_accept"
-              label="Auto accept"
+              :label="$t('dialogs.channelPointEditorDialog.autoAccept')"
               color="primary"
               density="comfortable"
               hide-details
@@ -72,7 +72,7 @@
           <v-col cols="12" md="2">
             <v-switch
               v-model="form.strip_emotes"
-              label="Strip emotes"
+              :label="$t('dialogs.channelPointEditorDialog.stripEmotes')"
               color="primary"
               density="comfortable"
               hide-details
@@ -83,7 +83,7 @@
           <v-col cols="12" md="2">
             <v-switch
               v-model="form.input_required"
-              label="Input required"
+              :label="$t('dialogs.channelPointEditorDialog.inputRequired')"
               color="primary"
               density="comfortable"
               hide-details
@@ -97,16 +97,17 @@
             <v-expansion-panel-title>
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-palette" />
-                <span class="text-truncate">Asset</span>
+                <span class="text-truncate">{{ $t('dialogs.channelPointEditorDialog.asset') }}</span>
               </div>
             </v-expansion-panel-title>
 
-            <v-expansion-panel-text>
+            <v-expansion-panel-text eager>
               <ChannelPointAssetAccordion
                 ref="assetAccordion"
                 :key="`asset_${generatedConfigName}`"
                 :name="generatedConfigName"
-                :disabled="loading || savingInternal"
+                :auto-load="false"
+                :disabled="loading || initializingInternal || savingInternal"
               />
             </v-expansion-panel-text>
           </v-expansion-panel>
@@ -115,16 +116,17 @@
             <v-expansion-panel-title>
               <div class="d-flex align-center ga-2 min-width-0">
                 <v-icon icon="mdi-code-braces" />
-                <span class="text-truncate">Macro</span>
+                <span class="text-truncate">{{ $t('dialogs.channelPointEditorDialog.macro') }}</span>
               </div>
             </v-expansion-panel-title>
 
-            <v-expansion-panel-text>
+            <v-expansion-panel-text eager>
               <ChannelPointMacroAccordion
                 ref="macroAccordion"
                 :key="`macro_${generatedConfigName}`"
                 :name="generatedConfigName"
                 :initial-content="macroContent"
+                :auto-load="false"
               />
             </v-expansion-panel-text>
           </v-expansion-panel>
@@ -135,8 +137,8 @@
 
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="$emit('update:modelValue', false)">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" :loading="loading || savingInternal" :disabled="!canSave" @click="save">
+        <v-btn variant="text" @click="$emit('update:modelValue', false)">{{ $t('dialogs.channelPointEditorDialog.cancel') }}</v-btn>
+        <v-btn color="primary" variant="flat" :loading="loading || initializingInternal || savingInternal" :disabled="!canSave" @click="save">
           Save
         </v-btn>
       </v-card-actions>
@@ -184,12 +186,13 @@ export default {
       macroContent: '',
       errorMessage: '',
       savingInternal: false,
+      initializingInternal: false,
     }
   },
 
   computed: {
     title(): string {
-      return this.channelPoint?.label ? `${this.$t('channelPoints.edit') || 'Edit channel point'}: ${this.channelPoint.label}` : (this.$t('channelPoints.edit') || 'Edit channel point')
+      return this.channelPoint?.label ? `${this.$t('channelPoints.edit')}: ${this.channelPoint.label}` : (this.$t('channelPoints.edit'))
     },
 
 
@@ -202,7 +205,7 @@ export default {
     },
 
     canSave(): boolean {
-      return String(this.form.name ?? '').trim().length > 0 && this.normalizedName.length > 0 && !this.loading && !this.savingInternal
+      return String(this.form.name ?? '').trim().length > 0 && this.normalizedName.length > 0 && !this.loading && !this.initializingInternal && !this.savingInternal
     },
 
     exportFilename(): string {
@@ -229,10 +232,16 @@ export default {
 
   methods: {
     async open() {
+      this.initializingInternal = true
       this.errorMessage = ''
-      this.resetForm()
-      await this.$nextTick()
-      await this.loadExistingGeneratedFiles()
+
+      try {
+        this.resetForm()
+        await this.$nextTick()
+        await this.loadExistingGeneratedFiles()
+      } finally {
+        this.initializingInternal = false
+      }
     },
 
     async requestWebsocket(method: string, params: Record<string, any> = {}, timeout = 15_000): Promise<any> {
