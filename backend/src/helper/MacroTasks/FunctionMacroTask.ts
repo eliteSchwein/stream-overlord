@@ -97,8 +97,8 @@ export default class FunctionMacroTask extends BaseMacroTask {
             }
 
             case "send_dm": {
-                if (!data.user && !data.user_id && !data.userId) {
-                    logWarn(`send_dm requires user/user_id`);
+                if (!data.user) {
+                    logWarn(`send_dm requires user`);
                     break;
                 }
 
@@ -115,7 +115,7 @@ export default class FunctionMacroTask extends BaseMacroTask {
                 }
 
                 await twitchClient.sendDm(
-                    data.user_id ?? data.userId ?? data.user,
+                    fillTemplate(String(data.user), variables),
                     fillTemplate(data.content, variables)
                 );
 

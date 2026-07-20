@@ -510,12 +510,42 @@ export default class TwitchClient {
         });
     }
 
-    public async sendDm(userId: string, message: string) {
-        await this.withMessageFallback("send dm", async (bot, authName) => {
-            const senderId = this.getAuthUserId(authName);
-            if (!senderId) throw new Error(`missing ${authName} auth user id`);
+    public async sendDm(user: string, message: string) {
+        const userInput = String(user ?? "").trim().replace(/^@/, "");
 
-            await bot.api.whispers.sendWhisper(senderId, userId, message);
-        });
+        if (!userInput) {
+            logWarn("twitch send dm skipped: user is empty");
+            return;
+        }
+
+        const lookupBot = this.getOutgoingBots()[0]?.bot;
+
+        if (!lookupBot) {
+            logWarn("twitch send dm skipped: twitch is not connected");
+            return;
+        }
+
+        try {
+            const twitchUser = /^\d+$/.test(userInput)
+                ? await lookupBot.api.users.getUserById(userInput)
+                : await lookupBot.api.users.getUserByName(userInput);
+
+            if (!twitchUser) {
+                logWarn(`twitch send dm skipped: user not found (${userInput})`);
+                return;
+            }
+
+            await this.withMessageFallback("send dm", async (bot, authName) => {
+                const senderId = this.getAuthUserId(authName);
+                if (!senderId) throw new Error(`missing ${authName} auth user id`);
+
+                await bot.api.whispers.sendWhisper(senderId, twitchUser.id, message);
+            });
+        } catch (error) {
+            if (!this.warnTwitchNetworkError("twitch send dm user lookup failed", error)) {
+                logWarn(`twitch send dm user lookup failed for ${userInput}`);
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
     }
 }
