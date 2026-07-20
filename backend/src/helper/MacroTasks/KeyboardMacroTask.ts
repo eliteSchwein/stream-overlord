@@ -142,37 +142,37 @@ export default class KeyboardMacroTask extends BaseMacroTask {
                 const keys = this.normalizeKeys(data?.keys ?? data?.key);
 
                 if (keys.length === 0) {
-                    logWarn("keyboard press task has no keys supported by the connected firmware");
+                    logWarn(
+                        "keyboard press task has no keys supported by the connected firmware"
+                    );
                     return;
                 }
 
                 const name = String(data?.name ?? "macro");
 
-                const payload: {
-                    name: string;
-                    keys: string[];
-                    duration?: number;
-                } = {
-                    name,
-                    keys,
-                };
-
-                if (
+                const hasDuration =
                     data?.duration !== undefined &&
                     data?.duration !== null &&
-                    data?.duration !== ""
-                ) {
-                    payload.duration = this.normalizeDuration(data.duration);
-                }
+                    data?.duration !== "";
+
+                /*
+                 * The firmware expects the duration field to be present.
+                 * A value of 0 tells the firmware to use its default duration.
+                 */
+                const duration = hasDuration
+                    ? this.normalizeDuration(data.duration)
+                    : 0;
 
                 logRegular(
-                    `send keyboard press: name=${name}, keys=[${keys.join(", ")}]` +
-                    (payload.duration !== undefined
-                        ? `, duration=${payload.duration}ms`
-                        : ", duration=firmware-default")
+                    `send keyboard press: name=${name}, keys=[${keys.join(", ")}], ` +
+                    `duration=${hasDuration ? `${duration}ms` : "firmware-default"}`
                 );
 
-                this.websocket.send("trigger_keyboard", payload);
+                this.websocket.send("trigger_keyboard", {
+                    name,
+                    keys,
+                    duration,
+                });
 
                 break;
             }
