@@ -108,6 +108,7 @@ export default class TwitchAuth {
         "chat:edit",
         "user:read:chat",
         "user:write:chat",
+        "user:manage:whispers",
     ];
 
     protected getScopes(type: TwitchAuthType) {
