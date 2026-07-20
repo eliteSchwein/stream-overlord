@@ -979,27 +979,36 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
 
 function evaluateCondition(check: any, variables: any) {
-    if (!check || typeof check !== "string") return false;
+    console.log(typeof check)
+    console.log(variables)
+    if (typeof check !== "string" || !check.trim()) {
+        return false;
+    }
 
     const expression = check.replace(/\$\{([^}]+)\}/g, (_, path) => {
         const value = getNestedValue(variables, path.trim());
 
         if (typeof value === "string") {
-            return value.replace(/'/g, "\\'");
+            const normalized = value.trim().toLowerCase();
+
+            if (normalized === "true") return "true";
+            if (normalized === "false") return "false";
         }
 
-        if (value === undefined || value === null) {
-            return "";
+        if (value === undefined) {
+            return "undefined";
         }
 
-        return String(value);
+        return JSON.stringify(value);
     });
 
     try {
-        return Function(`"use strict"; return (${expression});`)() === true;
-    } catch (err) {
-        // @ts-ignore
-        logRegular(`condition error: ${check} -> ${err['message'] ?? 'NA/'}`);
+        const result = Function(
+            `"use strict"; return (${expression});`
+        )();
+
+        return Boolean(result);
+    } catch (error) {
         return false;
     }
 }
