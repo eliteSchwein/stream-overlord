@@ -979,8 +979,9 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
 
 function evaluateCondition(check: any, variables: any) {
-    console.log(typeof check)
-    console.log(variables)
+    if (typeof check === "boolean") {
+        return check
+    }
     if (typeof check !== "string" || !check.trim()) {
         return false;
     }
