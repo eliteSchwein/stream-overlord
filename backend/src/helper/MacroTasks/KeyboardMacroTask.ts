@@ -4,7 +4,6 @@ import {logRegular, logWarn} from "../LogHelper";
 export default class KeyboardMacroTask extends BaseMacroTask {
     channel = "keyboard";
 
-    private static readonly DEFAULT_DURATION_MS = 100;
     private static readonly MIN_DURATION_MS = 10;
 
     private static readonly KEY_ALIASES: Record<string, string> = {
@@ -123,14 +122,10 @@ export default class KeyboardMacroTask extends BaseMacroTask {
     }
 
     private normalizeDuration(value: unknown): number {
-        if (value === null || value === undefined || value === "") {
-            return KeyboardMacroTask.DEFAULT_DURATION_MS;
-        }
-
         const duration = Number(value);
 
         if (!Number.isFinite(duration)) {
-            return KeyboardMacroTask.DEFAULT_DURATION_MS;
+            return KeyboardMacroTask.MIN_DURATION_MS;
         }
 
         return Math.max(
@@ -151,18 +146,33 @@ export default class KeyboardMacroTask extends BaseMacroTask {
                     return;
                 }
 
-                const duration = this.normalizeDuration(data?.duration);
                 const name = String(data?.name ?? "macro");
 
-                logRegular(
-                    `send keyboard press: name=${name}, keys=[${keys.join(", ")}], duration=${duration}ms`
-                );
-
-                this.websocket.send("trigger_keyboard", {
+                const payload: {
+                    name: string;
+                    keys: string[];
+                    duration?: number;
+                } = {
                     name,
                     keys,
-                    duration,
-                });
+                };
+
+                if (
+                    data?.duration !== undefined &&
+                    data?.duration !== null &&
+                    data?.duration !== ""
+                ) {
+                    payload.duration = this.normalizeDuration(data.duration);
+                }
+
+                logRegular(
+                    `send keyboard press: name=${name}, keys=[${keys.join(", ")}]` +
+                    (payload.duration !== undefined
+                        ? `, duration=${payload.duration}ms`
+                        : ", duration=firmware-default")
+                );
+
+                this.websocket.send("trigger_keyboard", payload);
 
                 break;
             }
