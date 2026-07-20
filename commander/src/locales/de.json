@@ -919,7 +919,11 @@
         "stopRecording": "Aufnahme stoppen",
         "variable2": "{{ key.label }}",
         "variable3": "{{ key.label }}",
-        "variable4": "{{ key.label }}"
+        "variable4": "{{ key.label }}",
+        "title": "Tastatur: {keys}",
+        "emptyKeyPress": "Kein Tastendruck",
+        "recordKeyPress": "Tastendruck aufnehmen",
+        "stopRecordingStrong": "Aufnahme stoppen"
       },
       "loopControl": {
         "variable": "{{ description }}"

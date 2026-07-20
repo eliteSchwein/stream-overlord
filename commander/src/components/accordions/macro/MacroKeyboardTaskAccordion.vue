@@ -14,8 +14,8 @@
       <v-col cols="12" md="6">
         <v-text-field
           v-model="keyboardData.name"
-          :label="$t('macro.core.keyboard.name')"
-          :placeholder="$t('macro.core.keyboard.macro')"
+          label="Name"
+          placeholder="macro"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -25,7 +25,7 @@
       <v-col cols="12" md="6">
         <v-number-input
           v-model="keyboardData.duration"
-          :label="$t('macro.core.keyboard.duration')"
+          label="Duration"
           density="comfortable"
           variant="outlined"
           hide-details
@@ -35,7 +35,7 @@
 
       <v-col cols="12">
         <div class="d-flex align-center mb-3 ga-2">
-          <div class="text-subtitle-2">{{ $t('macro.core.keyboard.keyPress') }}</div>
+          <div class="text-subtitle-2">Key press</div>
           <v-spacer />
 
           <v-btn
@@ -44,14 +44,18 @@
             :color="recordingKeys ? 'error' : undefined"
             :prepend-icon="recordingKeys ? 'mdi-stop-circle-outline' : 'mdi-record-circle-outline'"
             @click.prevent.stop="toggleKeyRecording"
-          >{{ $t('macro.core.keyboard.variable') }}</v-btn>
+          >
+            {{ recordingKeys ? $t('macro.core.keyboard.stopRecording') : $t('macro.core.keyboard.recordKeyPress') }}
+          </v-btn>
 
           <v-btn
             size="small"
             variant="text"
             prepend-icon="mdi-close"
             @click="clearKeys"
-          >{{ $t('macro.core.keyboard.clear') }}</v-btn>
+          >
+            Clear
+          </v-btn>
         </div>
 
         <v-alert
@@ -60,7 +64,8 @@
           variant="tonal"
           density="comfortable"
           class="mb-3"
-        >{{ $t('macro.core.keyboard.pressAllKeysYouWantThenClick') }}<strong>{{ $t('macro.core.keyboard.stopRecording') }}</strong>.
+        >
+          {{ $t('macro.core.keyboard.pressAllKeysYouWantThenClick') }} <strong>Stop recording</strong>.
         </v-alert>
 
         <div class="keyboard-shell">
@@ -81,7 +86,9 @@
                     isKeySelected(key.value) ? 'keyboard-key--active' : '',
                   ]"
                   @click="toggleKey(key.value)"
-                >{{ $t('macro.core.keyboard.variable2') }}</button>
+                >
+                  {{ key.label }}
+                </button>
               </div>
             </div>
 
@@ -97,7 +104,9 @@
                     isKeySelected(key.value) ? 'keyboard-key--active' : '',
                   ]"
                   @click="toggleKey(key.value)"
-                >{{ $t('macro.core.keyboard.variable2') }}</button>
+                >
+                  {{ key.label }}
+                </button>
               </div>
 
               <div class="keyboard-arrow-grid">
@@ -167,7 +176,9 @@
                   isKeySelected(key.value) ? 'keyboard-key--active' : '',
                 ]"
                 @click="toggleKey(key.value)"
-              >{{ $t('macro.core.keyboard.variable2') }}</button>
+              >
+                {{ key.label }}
+              </button>
             </div>
           </div>
         </div>

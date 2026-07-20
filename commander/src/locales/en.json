@@ -919,7 +919,11 @@
         "stopRecording": "Stop recording",
         "variable2": "{{ key.label }}",
         "variable3": "{{ key.label }}",
-        "variable4": "{{ key.label }}"
+        "variable4": "{{ key.label }}",
+        "title": "Keyboard: {keys}",
+        "emptyKeyPress": "Empty key press",
+        "recordKeyPress": "Record key press",
+        "stopRecordingStrong": "Stop recording"
       },
       "loopControl": {
         "variable": "{{ description }}"
