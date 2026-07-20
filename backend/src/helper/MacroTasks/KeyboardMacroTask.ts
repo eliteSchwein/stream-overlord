@@ -152,9 +152,14 @@ export default class KeyboardMacroTask extends BaseMacroTask {
                 }
 
                 const duration = this.normalizeDuration(data?.duration);
+                const name = String(data?.name ?? "macro");
+
+                logRegular(
+                    `send keyboard press: name=${name}, keys=[${keys.join(", ")}], duration=${duration}ms`
+                );
 
                 this.websocket.send("trigger_keyboard", {
-                    name: String(data?.name ?? "macro"),
+                    name,
                     keys,
                     duration,
                 });
