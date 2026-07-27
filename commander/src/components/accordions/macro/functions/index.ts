@@ -1,4 +1,5 @@
 export { default as MacroFunctionBaseTaskAccordion } from './MacroFunctionBaseTaskAccordion.vue'
+export { default as MacroFunctionParallelTaskAccordion } from './MacroFunctionParallelTaskAccordion.vue'
 export { default as MacroFunctionRandomTaskAccordion } from './MacroFunctionRandomTaskAccordion.vue'
 export { default as MacroFunctionSendDmTaskAccordion } from './MacroFunctionSendDmTaskAccordion.vue'
 export { default as MacroFunctionSendMessageTaskAccordion } from './MacroFunctionSendMessageTaskAccordion.vue'

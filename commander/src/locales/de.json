@@ -218,6 +218,10 @@
           "minutes": "{count} Minuten",
           "hours": "{count} Stunden"
         }
+      },
+      "parallel": {
+        "title": "Parallele Tasks",
+        "info": "Alle verschachtelten Tasks starten gleichzeitig. Das Makro wird fortgesetzt, sobald alle Tasks abgeschlossen sind."
       }
     },
     "music": {
@@ -826,7 +830,8 @@
         },
         "rawTask": "Rohe Aufgabe",
         "keyboard": "Tastatur"
-      }
+      },
+      "parallel": "Parallele Tasks"
     },
     "core": {
       "autoMacroSelect": {

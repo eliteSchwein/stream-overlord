@@ -682,6 +682,47 @@ export function interpolateTemplate(input: string, variables: any): string {
         });
 }
 
+
+function interpolateMacroTask(preTask: any, variables: any) {
+    const taskString = JSON.stringify(preTask);
+    const interpolated = interpolateTemplate(taskString, variables);
+    return JSON.parse(interpolated);
+}
+
+async function executeMacroTask(task: any, variables: any) {
+    if (task.channel === "function" && task.method === "parallel") {
+        const parallelTasks = Array.isArray(task.data?.tasks) ? task.data.tasks : [];
+
+        logRegular(`trigger function: parallel (${parallelTasks.length} tasks)`);
+
+        await Promise.all(parallelTasks.map(async (parallelTask: any) => {
+            if (isMacroEventCancelled(variables)) {
+                return;
+            }
+
+            const interpolatedTask = interpolateMacroTask(parallelTask, variables);
+            await executeMacroTask(interpolatedTask, variables);
+        }));
+
+        return;
+    }
+
+    const macroTask = macroTasks[task.channel];
+
+    if (!macroTask) {
+        logWarn(`Task for the Channel ${task.channel} is invalid!`);
+        return;
+    }
+
+    const taskData = task.data ?? task;
+
+    if (task.endpoint !== undefined && taskData && typeof taskData === "object") {
+        taskData.endpoint = task.endpoint;
+    }
+
+    await macroTask.run(task.channel, task.method, taskData, variables);
+}
+
 function shouldExecute(controlStack: any[]): boolean {
     return controlStack.every(block => block.active);
 }
@@ -796,9 +837,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
         }
 
         try {
-            const taskString = JSON.stringify(preTask);
-            const interpolated = interpolateTemplate(taskString, variables);
-            const task = JSON.parse(interpolated);
+            const task = interpolateMacroTask(preTask, variables);
 
             if (task.channel === "condition") {
                 logRegular(`test condition: ${task.method} ${task.check ?? ''}`);
@@ -954,20 +993,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
                 continue;
             }
 
-            const macroTask = macroTasks[task.channel];
-
-            if (!macroTask) {
-                logWarn(`Task for the Channel ${task.channel} is invalid!`)
-                continue;
-            }
-
-            const taskData = task.data ?? task;
-
-            if (task.endpoint !== undefined && taskData && typeof taskData === "object") {
-                taskData.endpoint = task.endpoint;
-            }
-
-            await macroTask.run(task.channel, task.method, taskData, variables)
+            await executeMacroTask(task, variables)
         } catch (error) {
             logWarn(`task failed:`);
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));

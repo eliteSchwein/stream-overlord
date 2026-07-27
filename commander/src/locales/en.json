@@ -218,6 +218,10 @@
           "minutes": "{count} minutes",
           "hours": "{count} hours"
         }
+      },
+      "parallel": {
+        "title": "Parallel tasks",
+        "info": "All nested tasks start at the same time. The macro continues after every nested task has finished."
       }
     },
     "music": {
@@ -826,7 +830,8 @@
         },
         "rawTask": "Raw task",
         "keyboard": "Keyboard"
-      }
+      },
+      "parallel": "Parallel tasks"
     },
     "core": {
       "autoMacroSelect": {

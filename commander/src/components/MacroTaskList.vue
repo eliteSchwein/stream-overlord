@@ -151,6 +151,7 @@ import {
   MacroObsUnlockSceneItemTaskAccordion,
   MacroObsUnmuteInputTaskAccordion
 } from '@/components/accordions/macro/obs'
+import MacroFunctionParallelTaskAccordion from '@/components/accordions/macro/functions/MacroFunctionParallelTaskAccordion.vue'
 import MacroTimerTaskAccordion from "@/components/accordions/macro/MacroTimerTaskAccordion.vue";
 import MacroWledCustomTaskAccordion from '@/components/accordions/macro/MacroWledCustomTaskAccordion.vue'
 import MacroWledOffTaskAccordion from '@/components/accordions/macro/MacroWledOffTaskAccordion.vue'
@@ -216,6 +217,7 @@ export default {
   },
 
   components: {
+    MacroFunctionParallelTaskAccordion,
     MacroYoloboxVideoSourceTaskAccordion,
     MacroYoloboxOverlayTaskAccordion,
     MacroYoloboxLiveStatusTaskAccordion,
@@ -526,6 +528,11 @@ export default {
           titleKey: 'macro.presets.random',
           icon: 'mdi-dice-multiple-outline',
           factory: () => this.createTask({ channel: 'function', method: 'random', data: { key: '', min: 0, max: 100 } }),
+        },
+        {
+          titleKey: 'macro.presets.parallel',
+          icon: 'mdi-call-split',
+          factory: () => this.createTask({ channel: 'function', method: 'parallel', data: { tasks: [] } }),
         },
         {
           titleKey: 'macro.presets.fileReadAssetFolder',
@@ -1047,6 +1054,10 @@ export default {
       if (item?.type === 'loop' || (item?.task?.channel === 'loop' && item?.task?.method === 'for')) return 'MacroLoopTaskAccordion'
       if (item?.task?.channel === 'loop' && ['break', 'continue', 'end_for'].includes(item?.task?.method)) return 'MacroLoopControlTaskAccordion'
       if (item?.task?.channel === 'condition' && item?.task?.method === 'end_macro') return 'MacroEndMacroTaskAccordion'
+
+      if (item?.task?.channel === 'function' && item?.task?.method === 'parallel') {
+        return 'MacroFunctionParallelTaskAccordion'
+      }
 
       if (item?.task?.channel === 'timer') {
         return 'MacroTimerTaskAccordion'
