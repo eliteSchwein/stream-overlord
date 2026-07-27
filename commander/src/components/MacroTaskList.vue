@@ -36,8 +36,8 @@
           size="small"
           class="mt-3"
         >
-        {{ $t('components.macroTaskList.addTask') }}
-      </v-btn>
+          {{ $t('components.macroTaskList.addTask') }}
+        </v-btn>
       </template>
 
       <v-list density="comfortable">
@@ -122,6 +122,7 @@ import {
 import {
   MacroObsDisableSourceFilterTaskAccordion,
   MacroObsEnableSourceFilterTaskAccordion,
+  MacroObsTransitionSourceFilterTaskAccordion,
   MacroObsHideSceneItemTaskAccordion,
   MacroObsLockSceneItemTaskAccordion,
   MacroObsMuteInputTaskAccordion,
@@ -291,6 +292,7 @@ export default {
     MacroApiDeleteTaskAccordion,
     MacroObsDisableSourceFilterTaskAccordion,
     MacroObsEnableSourceFilterTaskAccordion,
+    MacroObsTransitionSourceFilterTaskAccordion,
     MacroObsHideSceneItemTaskAccordion,
     MacroObsLockSceneItemTaskAccordion,
     MacroObsMuteInputTaskAccordion,
@@ -870,6 +872,7 @@ export default {
               children: [
                 { titleKey: 'macro.presets.obs.filters.enableSourceFilter', icon: 'mdi-filter-check', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: true } }) },
                 { titleKey: 'macro.presets.obs.filters.disableSourceFilter', icon: 'mdi-filter-off', factory: () => this.createTask({ channel: 'obs', method: 'SetSourceFilterEnabled', data: { sourceName: '', filterName: '', filterEnabled: false } }) },
+                { titleKey: 'macro.presets.obs.filters.transitionSourceFilter', icon: 'mdi-transition', factory: () => this.createTask({ channel: 'obs', method: 'transition_source_filter', data: { sourceName: '', filterName: '', duration: 1, start: {}, end: {} } }) },
               ],
             },
             {
@@ -1169,6 +1172,8 @@ export default {
         if (item?.task?.method === 'ToggleInputMute') return 'MacroObsToggleInputMuteTaskAccordion'
         if (item?.task?.method === 'SetInputVolume') return 'MacroObsSetInputVolumeTaskAccordion'
 
+        if (item?.task?.method === 'transition_source_filter') return 'MacroObsTransitionSourceFilterTaskAccordion'
+
         if (item?.task?.method === 'SetSourceFilterEnabled') {
           if (data.filterEnabled === false) return 'MacroObsDisableSourceFilterTaskAccordion'
           return 'MacroObsEnableSourceFilterTaskAccordion'
@@ -1210,7 +1215,8 @@ export default {
           previous: 'MacroMusicPreviousTaskAccordion',
           prev: 'MacroMusicPreviousTaskAccordion',
           next: 'MacroMusicNextTaskAccordion',
-          stop: 'MacroMusicStopTaskAccordion',          shuffle: 'MacroMusicShuffleTaskAccordion',
+          stop: 'MacroMusicStopTaskAccordion',
+          shuffle: 'MacroMusicShuffleTaskAccordion',
           loop: 'MacroMusicLoopTaskAccordion',
           loop_playlist: 'MacroMusicLoopTaskAccordion',
           loop_file: 'MacroMusicLoopFileTaskAccordion',

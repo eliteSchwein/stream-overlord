@@ -418,6 +418,15 @@
       },
       "unlockSceneItem": {
         "title": "Unlock scene item"
+      },
+      "transitionSourceFilter": {
+        "title": "Smooth filter transition",
+        "duration": "Transition time",
+        "start": "Start",
+        "end": "End",
+        "settings": "Filter settings",
+        "noSettings": "The selected filter has no settings in the current OBS data.",
+        "inputHint": "To make a filter input appear here, change that input once in OBS."
       }
     },
     "twitch": {
@@ -762,7 +771,8 @@
         "filters": {
           "title": "Filters",
           "enableSourceFilter": "Enable source filter",
-          "disableSourceFilter": "Disable source filter"
+          "disableSourceFilter": "Disable source filter",
+          "transitionSourceFilter": "Smooth filter transition"
         },
         "streaming": {
           "title": "Streaming",

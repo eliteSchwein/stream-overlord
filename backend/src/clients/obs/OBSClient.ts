@@ -237,6 +237,11 @@ export class OBSClient {
             "SceneItemRemoved",
             "SceneItemListReindexed",
             "InputNameChanged",
+            "SourceFilterCreated",
+            "SourceFilterRemoved",
+            "SourceFilterNameChanged",
+            "SourceFilterEnableStateChanged",
+            "SourceFilterListReindexed",
             "CurrentProgramSceneChanged",
             "CurrentProgramSceneChangedCanvas",
             "CanvasCreated",
@@ -438,6 +443,41 @@ export class OBSClient {
         return sceneItems ?? []
     }
 
+    private async getSourceFilterList(connection: OBSConnection, sourceName: string) {
+        if(!connection.obsWebsocket || !sourceName) return []
+
+        try {
+            const {filters} = await connection.obsWebsocket.call('GetSourceFilterList', {sourceName})
+            return filters ?? []
+        } catch (error) {
+            logDebug(`failed to get obs source filters (${connection.name}/${sourceName}):`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            return []
+        }
+    }
+
+    private async getSourceFilterDefaultSettings(
+        connection: OBSConnection,
+        filterKind: string,
+    ): Promise<Record<string, any>> {
+        if(!connection.obsWebsocket || !filterKind) return {}
+
+        try {
+            const response = await connection.obsWebsocket.call(
+                'GetSourceFilterDefaultSettings',
+                {filterKind},
+            )
+
+            return (response.defaultFilterSettings ?? {}) as Record<string, any>
+        } catch (error) {
+            logDebug(
+                `failed to get obs source filter defaults (${connection.name}/${filterKind}):`,
+            )
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            return {}
+        }
+    }
+
     public async fetchItems(connectionName = 'default') {
         const connection = this.getConnection(connectionName)
 
@@ -453,6 +493,28 @@ export class OBSClient {
 
         const canvasList = await this.getCanvasList(connection)
         const sceneData: any[] = []
+        const filterDefaultSettingsCache = new Map<string, Record<string, any>>()
+
+        const getCachedFilterDefaultSettings = async (
+            filterKind: string,
+        ): Promise<Record<string, any>> => {
+            if(!filterKind) return {}
+
+            const cachedSettings = filterDefaultSettingsCache.get(filterKind)
+
+            if(cachedSettings) {
+                return cachedSettings
+            }
+
+            const defaultSettings = await this.getSourceFilterDefaultSettings(
+                connection,
+                filterKind,
+            )
+
+            filterDefaultSettingsCache.set(filterKind, defaultSettings)
+
+            return defaultSettings
+        }
 
         for(const canvas of canvasList) {
             const canvasUuid = String(canvas.canvasUuid ?? '')
@@ -487,6 +549,38 @@ export class OBSClient {
                 }
 
                 for(const sceneItem of sceneItems) {
+                    const sourceFilters = await this.getSourceFilterList(
+                        connection,
+                        sceneItem.sourceName,
+                    )
+
+                    const filters = await Promise.all(
+                        sourceFilters.map(async (filter: any) => {
+                            const filterKind = String(filter.filterKind ?? '')
+                            const defaultSettings =
+                                await getCachedFilterDefaultSettings(filterKind)
+                            const currentSettings =
+                                (filter.filterSettings ?? {}) as Record<string, any>
+                            const settings = {
+                                ...defaultSettings,
+                                ...currentSettings,
+                            }
+
+                            return {
+                                name: filter.filterName,
+                                filterName: filter.filterName,
+                                kind: filterKind,
+                                filterKind,
+                                enabled: filter.filterEnabled,
+                                filterEnabled: filter.filterEnabled,
+                                settings,
+                                filterSettings: settings,
+                                defaultSettings,
+                                currentSettings,
+                            }
+                        }),
+                    )
+
                     if(fullObsLog) {
                         logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
                     }
@@ -495,7 +589,8 @@ export class OBSClient {
                         id: sceneItem.sceneItemId,
                         uuid: sceneItem.sourceUuid,
                         name: sceneItem.sourceName,
-                        transform: sceneItem.sceneItemTransform
+                        transform: sceneItem.sceneItemTransform,
+                        filters,
                     })
                 }
 

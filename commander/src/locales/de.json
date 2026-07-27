@@ -418,6 +418,15 @@
       },
       "unlockSceneItem": {
         "title": "Szenenelement entsperren"
+      },
+      "transitionSourceFilter": {
+        "title": "Sanfter Filterübergang",
+        "duration": "Übergangszeit",
+        "start": "Start",
+        "end": "Ende",
+        "settings": "Filtereinstellungen",
+        "noSettings": "Der ausgewählte Filter enthält in den aktuellen OBS-Daten keine Einstellungen.",
+        "inputHint": "Damit eine Filtereingabe hier erscheint, ändere sie einmal in OBS."
       }
     },
     "twitch": {
@@ -762,7 +771,8 @@
         "filters": {
           "title": "Filter",
           "enableSourceFilter": "Quellfilter aktivieren",
-          "disableSourceFilter": "Quellfilter deaktivieren"
+          "disableSourceFilter": "Quellfilter deaktivieren",
+          "transitionSourceFilter": "Sanfter Filterübergang"
         },
         "streaming": {
           "title": "Streaming",

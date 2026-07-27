@@ -1,5 +1,6 @@
 export { default as MacroObsDisableSourceFilterTaskAccordion } from './MacroObsDisableSourceFilterTaskAccordion.vue'
 export { default as MacroObsEnableSourceFilterTaskAccordion } from './MacroObsEnableSourceFilterTaskAccordion.vue'
+export { default as MacroObsTransitionSourceFilterTaskAccordion } from './MacroObsTransitionSourceFilterTaskAccordion.vue'
 export { default as MacroObsHideSceneItemTaskAccordion } from './MacroObsHideSceneItemTaskAccordion.vue'
 export { default as MacroObsLockSceneItemTaskAccordion } from './MacroObsLockSceneItemTaskAccordion.vue'
 export { default as MacroObsMuteInputTaskAccordion } from './MacroObsMuteInputTaskAccordion.vue'

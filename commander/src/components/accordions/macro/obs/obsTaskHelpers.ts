@@ -1,5 +1,16 @@
 import { useAppStore } from '@/stores/app'
 
+
+export function cloneObsValue<T>(value: T): T {
+  if (value === undefined || value === null) return value
+
+  try {
+    return JSON.parse(JSON.stringify(value)) as T
+  } catch (_) {
+    return value
+  }
+}
+
 export function getObsBooleanItems(t: (key: string) => unknown) {
   return [
     { title: String(t('common.yes')), value: true },
@@ -85,16 +96,13 @@ export function getSceneOptions(obsSceneData: any): any[] {
       const title = getSceneName(scene)
       const uuid = getSceneUuid(scene)
       const canvasName = getCanvasName(scene?.canvas) || scene?.canvasName
-      const canvasUuid = getCanvasUuid(scene?.canvas) || scene?.canvasUuid
 
       if (!title || !uuid) return null
 
       return {
         title: canvasName ? `${canvasName} / ${title}` : title,
         value: uuid,
-        props: {
-          //subtitle: canvasUuid || undefined,
-        },
+        props: {},
       }
     })
     .filter(Boolean)
@@ -172,6 +180,73 @@ export function getInputNames(obsSceneData: any, obsAudioData: any = null): stri
   return uniqSorted(names)
 }
 
+export function getSourceFilters(item: any): any[] {
+  if (!item || typeof item !== 'object') return []
+
+  const candidates = [
+    item.filters,
+    item.sourceFilters,
+    item.source_filters,
+    item.filterList,
+    item.filter_list,
+  ]
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate
+  }
+
+  return []
+}
+
+export function getSourceFilter(
+  obsSceneData: any,
+  sourceName: string,
+  filterName: string,
+): any | null {
+  if (!sourceName || !filterName) return null
+
+  const matchesFilter = (filter: any): boolean => {
+    const name = filter?.filterName ?? filter?.name ?? filter?.sourceName
+    return String(name ?? '') === filterName
+  }
+
+  const inspect = (item: any): any | null => {
+    if (getSourceName(item) !== sourceName) return null
+    return getSourceFilters(item).find(matchesFilter) ?? null
+  }
+
+  for (const scene of getScenesFromObsSceneData(obsSceneData)) {
+    const sceneFilter = inspect(scene)
+    if (sceneFilter) return sceneFilter
+
+    for (const item of getSceneItems(scene)) {
+      const filter = inspect(item)
+      if (filter) return filter
+    }
+  }
+
+  return null
+}
+
+export function getFilterSettings(
+  obsSceneData: any,
+  sourceName: string,
+  filterName: string,
+): Record<string, any> {
+  const filter = getSourceFilter(obsSceneData, sourceName, filterName)
+  const settings =
+    filter?.filterSettings
+    ?? filter?.settings
+    ?? filter?.filter_settings
+    ?? {}
+
+  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
+    return {}
+  }
+
+  return cloneObsValue(settings)
+}
+
 export function getFilterNames(obsSceneData: any, sourceName: string): string[] {
   const filters: string[] = []
 
@@ -181,19 +256,9 @@ export function getFilterNames(obsSceneData: any, sourceName: string): string[] 
     const itemName = getSourceName(item)
     if (sourceName && itemName && itemName !== sourceName) return
 
-    const candidates = [
-      item.filters,
-      item.sourceFilters,
-      item.source_filters,
-      item.filterList,
-      item.filter_list,
-    ]
-
-    for (const list of candidates) {
-      for (const filter of asArray(list)) {
-        const name = filter?.filterName ?? filter?.name ?? filter?.sourceName
-        if (name) filters.push(String(name))
-      }
+    for (const filter of getSourceFilters(item)) {
+      const name = filter?.filterName ?? filter?.name ?? filter?.sourceName
+      if (name) filters.push(String(name))
     }
   }
 

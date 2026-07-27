@@ -133,6 +133,7 @@ declare module 'vue' {
     MacroObsToggleSceneItemTaskAccordion: typeof import('./components/accordions/macro/obs/MacroObsToggleSceneItemTaskAccordion.vue')['default']
     MacroObsToggleStreamTaskAccordion: typeof import('./components/accordions/macro/obs/MacroObsToggleStreamTaskAccordion.vue')['default']
     MacroObsTransformSceneItemTaskAccordion: typeof import('./components/accordions/macro/obs/MacroObsTransformSceneItemTaskAccordion.vue')['default']
+    MacroObsTransitionSourceFilterTaskAccordion: typeof import('./components/accordions/macro/obs/MacroObsTransitionSourceFilterTaskAccordion.vue')['default']
     MacroObsTriggerHotkeyTaskAccordion: typeof import('./components/accordions/macro/obs/MacroObsTriggerHotkeyTaskAccordion.vue')['default']
     MacroObsUnlockSceneItemTaskAccordion: typeof import('./components/accordions/macro/obs/MacroObsUnlockSceneItemTaskAccordion.vue')['default']
     MacroObsUnmuteInputTaskAccordion: typeof import('./components/accordions/macro/obs/MacroObsUnmuteInputTaskAccordion.vue')['default']

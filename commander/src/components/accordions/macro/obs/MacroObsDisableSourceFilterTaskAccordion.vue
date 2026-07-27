@@ -13,7 +13,7 @@
     <v-row density="comfortable">
       <v-col cols="12" md="6">
         <v-autocomplete
-          v-model="task.data.sourceName"
+          :model-value="task.data.sourceName"
           :items="sourceOptions"
           :label="$t('macro.obs.fields.source')"
           prepend-inner-icon="mdi-import"
@@ -21,12 +21,13 @@
           hide-details="auto"
           clearable
           auto-select-first
+          @update:model-value="selectSource"
         />
       </v-col>
 
       <v-col cols="12" md="6">
         <v-autocomplete
-          v-model="task.data.filterName"
+          :model-value="task.data.filterName"
           :items="filterOptions"
           :label="$t('macro.obs.fields.filterName')"
           prepend-inner-icon="mdi-filter"
@@ -34,6 +35,8 @@
           hide-details="auto"
           clearable
           auto-select-first
+          :disabled="!task.data.sourceName"
+          @update:model-value="selectFilter"
         />
       </v-col>
     </v-row>
@@ -92,6 +95,21 @@ export default {
 
   created() {
     this.task
+  },
+
+  methods: {
+    selectSource(sourceName: string | null) {
+      const nextSourceName = sourceName ?? ''
+
+      if (nextSourceName === this.task.data.sourceName) return
+
+      this.task.data.sourceName = nextSourceName
+      this.task.data.filterName = ''
+    },
+
+    selectFilter(filterName: string | null) {
+      this.task.data.filterName = filterName ?? ''
+    },
   },
 }
 </script>
