@@ -1,4 +1,3 @@
-apis: []
 tasks:
   - channel: dummy_alert
     message: ${channelPoint.userName} sagt ${channelPoint.input}

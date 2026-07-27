@@ -1,4 +1,3 @@
-apis: []
 tasks:
   - channel: function
     method: song_request_toggle

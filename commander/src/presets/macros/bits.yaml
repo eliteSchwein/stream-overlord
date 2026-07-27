@@ -1,5 +1,0 @@
-apis: []
-tasks:
-  - channel: alert
-    message: ${event.userDisplayName} haut ${event.bits} Bits raus
-    asset: bits

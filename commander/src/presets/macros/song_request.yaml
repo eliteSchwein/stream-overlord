@@ -1,4 +1,3 @@
-apis: []
 tasks:
   - channel: condition
     method: if

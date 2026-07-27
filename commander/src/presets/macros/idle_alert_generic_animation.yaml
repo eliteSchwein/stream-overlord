@@ -1,4 +1,3 @@
-apis: []
 tasks:
   - channel: animation
     method: play
