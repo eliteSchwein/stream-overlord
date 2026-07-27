@@ -48,7 +48,8 @@
           variant="outlined"
           hide-details="auto"
           :min="0"
-          :step="0.1"
+          :step="0.000001"
+          :precision="6"
           suffix="s"
         />
       </v-col>
@@ -107,7 +108,8 @@
                 :label="setting.label"
                 variant="outlined"
                 hide-details="auto"
-                :step="numberStep(setting.value)"
+                :step="0.000001"
+                :precision="6"
               />
 
               <v-textarea
@@ -163,7 +165,8 @@
                 :label="setting.label"
                 variant="outlined"
                 hide-details="auto"
-                :step="numberStep(setting.value)"
+                :step="0.000001"
+                :precision="6"
               />
 
               <v-textarea
@@ -400,10 +403,6 @@ export default {
         const settingKey = draftKey.substring(draftKey.indexOf(':') + 1)
         if (!availableKeys.has(settingKey)) delete this.complexDrafts[draftKey]
       }
-    },
-
-    numberStep(value: number): number {
-      return Number.isInteger(value) ? 1 : 0.01
     },
 
     complexDraftKey(side: TransitionSide, key: string): string {
