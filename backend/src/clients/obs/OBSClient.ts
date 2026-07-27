@@ -26,7 +26,6 @@ type OBSConnection = {
 
 export class OBSClient {
     obsWebsocket: OBSWebSocket
-    mixerObsWebsocket: OBSWebSocket
     connected = false
     sceneData: []
     eventFetching = false
@@ -310,8 +309,6 @@ export class OBSClient {
         // Keep old public fields working for existing code.
         // @ts-ignore
         this.obsWebsocket = connection?.obsWebsocket
-        // @ts-ignore
-        this.mixerObsWebsocket = connection?.obsWebsocket
         this.connected = connection?.connected ?? false
         // @ts-ignore
         this.sceneData = connection?.sceneData ?? []
@@ -328,10 +325,6 @@ export class OBSClient {
     }
 
     public getOBSWebSocket(connectionName = 'default') {
-        return this.getConnection(connectionName)?.obsWebsocket
-    }
-
-    public getMixerObsWebSocket(connectionName = 'default') {
         return this.getConnection(connectionName)?.obsWebsocket
     }
 
@@ -638,9 +631,23 @@ export class OBSClient {
                 const muted = await connection.obsWebsocket.call("GetInputMute", {inputUuid: input.inputUuid})
                 const {inputAudioBalance} = await connection.obsWebsocket.call("GetInputAudioBalance", {inputUuid: input.inputUuid})
 
+                let active = false
+
+                try {
+                    const sourceActive = await connection.obsWebsocket.call("GetSourceActive", {
+                        sourceUuid: input.inputUuid,
+                    })
+
+                    active = Boolean(sourceActive.videoActive || sourceActive.videoShowing)
+                } catch (error) {
+                    logDebug(`failed to get obs source active state (${connectionName}/${input.inputName}):`)
+                    logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                }
+
                 input.volume = volume
                 input.muted = muted.inputMuted
                 input.balance = inputAudioBalance
+                input.active = active
             } catch (error) {
                 continue
             }

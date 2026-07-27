@@ -1155,7 +1155,15 @@
       "id": "ID",
       "activeScene": "Aktive Szene",
       "empty": "Keine Szenen erkannt",
-      "addSource": "Quelle zur Website hinzufügen"
+      "addSource": "Quelle zur Website hinzufügen",
+      "mainCanvas": "Haupt-Canvas",
+      "switchTo": "Wechseln zu",
+      "filters": "Filter",
+      "enable": "Aktivieren",
+      "disable": "Deaktivieren",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "canvas": "Canvas"
     },
     "audioMixer": {
       "title": "OBS-Audiomixer",
@@ -1163,10 +1171,10 @@
       "search": "Audiospur suchen",
       "volumeControl": "Lautstärke",
       "name": "Name",
-      "empty": "Keine Audiospuren erkannt"
+      "empty": "Keine Audiospuren erkannt",
+      "showAll": "Alle anzeigen"
     },
-    "instance": "OBS-Instanz",
-    "disclaimer": "Die OBS-Admin-Panel-Integration ist super experimentell und rudimentär. Sie ist derzeit speziell dafür ausgelegt, dass ich die Quellen-Sachen einfacher in meine Remote-API integrieren kann."
+    "instance": "OBS-Instanz"
   },
   "power": {
     "dialog": {

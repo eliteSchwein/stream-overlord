@@ -9,42 +9,35 @@
     />
 
     <v-card
-      v-for="canvas in canvases"
-      v-else
-      :key="getCanvasKey(canvas)"
+      v-else-if="selectedCanvas"
       color="grey-darken-4"
       class="pt-2 obs-page-panel"
       elevation="0"
       rounded="0"
     >
-      <v-card-title class="d-flex align-center justify-space-between py-5">
-        <span class="mr-2 text-truncate">{{ $t('obs.settings.title') }} {{ getCanvasName(canvas) }}</span>
-        <v-chip size="small" variant="tonal">
-          {{ getCanvasScenes(canvas).length }}
-        </v-chip>
-        <v-spacer></v-spacer>
+      <v-card-title class="pb-5">
+        <div class="d-flex align-center ga-3 w-100">
+          <v-select
+            v-model="selectedCanvasKey"
+            :items="canvasOptions"
+            item-title="title"
+            item-value="value"
+            :label="$t('obs.settings.canvas')"
+            density="compact"
+            variant="outlined"
+            hide-details
+            class="flex-grow-1"
+          />
+
+          <v-chip size="small" variant="tonal">
+            {{ getCanvasScenes(selectedCanvas).length }}
+          </v-chip>
+        </div>
       </v-card-title>
 
       <v-card-text>
-        <v-table density="compact" class="wrap-anywhere obs-source-table mb-3">
-          <tbody>
-          <tr>
-            <td>{{ $t('obs.settings.name') }}</td>
-            <td>{{ getCanvasName(canvas) }} <CopyButton :content="getCanvasName(canvas)" /></td>
-          </tr>
-          <tr v-if="getCanvasUuid(canvas)">
-            <td>{{ $t('obs.settings.uuid') }}</td>
-            <td>{{ getCanvasUuid(canvas) }} <CopyButton :content="getCanvasUuid(canvas)" /></td>
-          </tr>
-          <tr v-if="canvas.index !== undefined">
-            <td>{{ $t('obs.settings.index') }}</td>
-            <td>{{ canvas.index }} <CopyButton :content="canvas.index" /></td>
-          </tr>
-          </tbody>
-        </v-table>
-
         <v-alert
-          v-if="getCanvasScenes(canvas).length === 0"
+          v-if="getCanvasScenes(selectedCanvas).length === 0"
           type="info"
           variant="tonal"
           density="compact"
@@ -58,15 +51,16 @@
           color="grey-darken-3"
         >
           <v-expansion-panel
-            v-for="obsScene in getCanvasScenes(canvas)"
-            :key="getSceneKey(obsScene, canvas)"
-            :value="getSceneKey(obsScene, canvas)"
+            v-for="obsScene in getCanvasScenes(selectedCanvas)"
+            :key="getSceneKey(obsScene, selectedCanvas)"
+            :value="getSceneKey(obsScene, selectedCanvas)"
             :color="isActiveScene(obsScene) ? 'primary' : undefined"
             :class="{ 'obs-active-scene': isActiveScene(obsScene) }"
           >
             <v-expansion-panel-title>
               <div class="d-flex align-center justify-space-between w-100 pr-3 ga-3">
                 <span class="text-truncate">{{ obsScene.name }}</span>
+
                 <div class="d-flex align-center ga-2">
                   <v-chip
                     v-if="isActiveScene(obsScene)"
@@ -76,32 +70,28 @@
                   >
                     {{ $t('obs.settings.activeScene') }}
                   </v-chip>
-                  <v-chip size="x-small" variant="tonal">{{ getItems(obsScene).length }}</v-chip>
+
+                  <v-chip size="x-small" variant="tonal">
+                    {{ getItems(obsScene).length }}
+                  </v-chip>
                 </div>
               </div>
             </v-expansion-panel-title>
 
             <v-expansion-panel-text class="pa-0">
-              <v-table density="compact" class="wrap-anywhere obs-source-table">
-                <tbody>
-                <tr>
-                  <td>{{ $t('obs.settings.name') }}</td>
-                  <td>{{ obsScene.name }} <CopyButton :content="obsScene.name" /></td>
-                </tr>
-                <tr>
-                  <td>{{ $t('obs.settings.uuid') }}</td>
-                  <td>{{ obsScene.uuid }} <CopyButton :content="obsScene.uuid" /></td>
-                </tr>
-                <tr>
-                  <td>{{ $t('obs.settings.index') }}</td>
-                  <td>{{ obsScene.index }} <CopyButton :content="obsScene.index" /></td>
-                </tr>
-                <tr>
-                  <td>Canvas</td>
-                  <td>{{ getCanvasName(canvas) }} <CopyButton :content="getCanvasUuid(canvas)" /></td>
-                </tr>
-                </tbody>
-              </v-table>
+              <div
+                v-if="selectedCanvasIndex === 0"
+                class="d-flex justify-end pa-3 pb-1"
+              >
+                <v-btn
+                  variant="text"
+                  :disabled="isActiveScene(obsScene)"
+                  prepend-icon="mdi-video-switch"
+                  @click="switchToScene(obsScene, selectedCanvas)"
+                >
+                  {{ $t('obs.settings.switchTo') }}
+                </v-btn>
+              </div>
 
               <v-expansion-panels
                 v-if="getItems(obsScene).length > 0"
@@ -111,61 +101,100 @@
               >
                 <v-expansion-panel
                   v-for="obsItem in getItems(obsScene)"
-                  :key="getSourceKey(obsItem, obsScene, canvas)"
-                  :value="getSourceKey(obsItem, obsScene, canvas)"
+                  :key="getSourceKey(obsItem, obsScene, selectedCanvas)"
+                  :value="getSourceKey(obsItem, obsScene, selectedCanvas)"
                   color="grey-darken-4"
-                  :class="{ 'obs-active-source': isActiveSource(obsItem) }"
                 >
                   <v-expansion-panel-title>
                     <div class="d-flex align-center justify-space-between w-100 pr-3 ga-3">
                       <span class="text-truncate">{{ obsItem.name }}</span>
+
                       <v-chip
-                        v-if="isActiveSource(obsItem)"
                         size="x-small"
-                        color="primary"
-                        variant="flat"
+                        :color="isSourceEnabled(obsItem) ? 'primary' : undefined"
+                        :variant="isSourceEnabled(obsItem) ? 'flat' : 'tonal'"
                       >
-                        {{ $t('obs.settings.active') }}
+                        {{ isSourceEnabled(obsItem) ? $t('obs.settings.enabled') : $t('obs.settings.disabled') }}
                       </v-chip>
                     </div>
                   </v-expansion-panel-title>
 
                   <v-expansion-panel-text class="pa-0">
-                    <v-table density="compact" class="wrap-anywhere obs-source-table">
-                      <tbody>
-                      <tr>
-                        <td>{{ $t('obs.settings.name') }}</td>
-                        <td>{{ obsItem.name }} <CopyButton :content="obsItem.name" /></td>
-                      </tr>
-                      <tr>
-                        <td>{{ $t('obs.settings.uuid') }}</td>
-                        <td>{{ obsItem.uuid }} <CopyButton :content="obsItem.uuid" /></td>
-                      </tr>
-                      <tr>
-                        <td>{{ $t('obs.settings.id') }}</td>
-                        <td>{{ obsItem.id }} <CopyButton :content="obsItem.id" /></td>
-                      </tr>
-                      <tr>
-                        <td>{{ $t('obs.instance') }}</td>
-                        <td>{{ connection }}</td>
-                      </tr>
-                      <tr v-if="hasApiWebsite">
-                        <td colspan="2">
-                          <v-btn
-                            block
-                            density="comfortable"
-                            elevation="0"
-                            color="primary"
-                            prepend-icon="mdi-plus"
-                            :loading="isAdding(obsItem)"
-                            @click="addSource(obsItem)"
-                          >
-                            {{ $t('obs.settings.addSource') }}
-                          </v-btn>
-                        </td>
-                      </tr>
-                      </tbody>
-                    </v-table>
+                    <div class="d-flex align-center justify-space-between flex-wrap ga-2 pa-3">
+                      <v-btn
+                        v-if="hasApiWebsite"
+                        prepend-icon="mdi-plus"
+                        :loading="isAdding(obsItem, obsScene, selectedCanvas)"
+                        color="primary"
+                        @click="addSource(obsItem, obsScene, selectedCanvas)"
+                      >
+                        {{ $t('obs.settings.addSource') }}
+                      </v-btn>
+
+                      <div v-else />
+
+                      <v-btn
+                        :prepend-icon="isSourceEnabled(obsItem) ? 'mdi-eye-off' : 'mdi-eye'"
+                        variant="text"
+                        :color="isSourceEnabled(obsItem) ? 'error' : 'primary'"
+                        @click="setSourceEnabled(
+                          obsItem,
+                          obsScene,
+                          selectedCanvas,
+                          !isSourceEnabled(obsItem),
+                        )"
+                      >
+                        {{ isSourceEnabled(obsItem) ? $t('obs.settings.disable') : $t('obs.settings.enable') }}
+                      </v-btn>
+                    </div>
+
+                    <v-expansion-panels
+                      v-if="getFilters(obsItem).length > 0"
+                      v-model="expandedFilters"
+                      multiple
+                      class="px-3 pb-3"
+                    >
+                      <v-expansion-panel
+                        :value="getFiltersPanelKey(obsItem, obsScene, selectedCanvas)"
+                        color="grey-darken-3"
+                      >
+                        <v-expansion-panel-title>
+                          <div class="d-flex align-center justify-space-between w-100 pr-3 ga-3">
+                            <span>{{ $t('obs.settings.filters') }}</span>
+
+                            <v-chip size="x-small" variant="tonal">
+                              {{ getFilters(obsItem).length }}
+                            </v-chip>
+                          </div>
+                        </v-expansion-panel-title>
+
+                        <v-expansion-panel-text class="pa-0">
+                          <v-list bg-color="transparent" lines="one">
+                            <v-list-item
+                              v-for="filter in getFilters(obsItem)"
+                              :key="getFilterKey(filter, obsItem)"
+                              :title="getFilterName(filter)"
+                            >
+                              <template #append>
+                                <v-btn
+                                  size="small"
+                                  :prepend-icon="isFilterEnabled(filter) ? 'mdi-filter-off-outline' : 'mdi-filter-outline'"
+                                  variant="text"
+                                  :color="isFilterEnabled(filter) ? 'error' : 'primary'"
+                                  @click.stop="setFilterEnabled(
+                                    obsItem,
+                                    filter,
+                                    !isFilterEnabled(filter),
+                                  )"
+                                >
+                                  {{ isFilterEnabled(filter) ? $t('obs.settings.disable') : $t('obs.settings.enable') }}
+                                </v-btn>
+                              </template>
+                            </v-list-item>
+                          </v-list>
+                        </v-expansion-panel-text>
+                      </v-expansion-panel>
+                    </v-expansion-panels>
                   </v-expansion-panel-text>
                 </v-expansion-panel>
               </v-expansion-panels>
@@ -176,7 +205,6 @@
     </v-card>
   </div>
 </template>
-
 <script lang="ts">
 import { getWebsocketClient } from '@/plugins/websocketInstance'
 import { useAppStore } from '@/stores/app'
@@ -210,6 +238,9 @@ export default {
       addingSources: {} as Record<string, boolean>,
       expandedScenes: [] as string[],
       expandedSources: [] as string[],
+      expandedFilters: [] as string[],
+      defaultExpandedSceneKey: null as string | null,
+      selectedCanvasKey: '' as string,
     }
   },
 
@@ -225,49 +256,94 @@ export default {
     canvases(): any[] {
       const rawScenes = Array.isArray(this.scenes) ? this.scenes as any[] : []
 
-      if (rawScenes.some(entry => this.getCanvasScenes(entry).length > 0)) {
+      if(rawScenes.some(entry => this.getCanvasScenes(entry).length > 0)) {
         return rawScenes
       }
 
-      return [
-        {
-          name: this.$t ? this.$t('obs.settings.title') : 'Default',
-          uuid: 'default',
-          scenes: rawScenes,
-        },
-      ]
+      return [{
+        name: this.$t ? this.$t('obs.settings.mainCanvas') : 'Main',
+        uuid: 'default',
+        scenes: rawScenes,
+      }]
     },
 
     sceneCount(): number {
-      return this.canvases.reduce((count: number, canvas: any) => count + this.getCanvasScenes(canvas).length, 0)
+      return this.canvases.reduce(
+        (count: number, canvas: any) => count + this.getCanvasScenes(canvas).length,
+        0,
+      )
+    },
+
+
+    canvasOptions(): Array<{ title: string, value: string }> {
+      return this.canvases.map((canvas: any) => ({
+        title: this.getCanvasName(canvas),
+        value: this.getCanvasKey(canvas),
+      }))
+    },
+
+    selectedCanvas(): any | null {
+      return this.canvases.find(
+        (canvas: any) => this.getCanvasKey(canvas) === this.selectedCanvasKey,
+      ) ?? this.canvases[0] ?? null
+    },
+
+    selectedCanvasIndex(): number {
+      if(!this.selectedCanvas) return -1
+      return this.canvases.findIndex(
+        (canvas: any) => this.getCanvasKey(canvas) === this.getCanvasKey(this.selectedCanvas),
+      )
     },
   },
 
   watch: {
     scenes: {
       handler() {
-        this.expandOnlyActivePanels()
+        this.ensureSelectedCanvas()
+        this.expandActiveSceneByDefault()
       },
       deep: true,
       immediate: true,
     },
 
     currentSceneUuid() {
-      this.expandOnlyActivePanels()
+      this.expandActiveSceneByDefault()
     },
 
     currentSceneName() {
-      this.expandOnlyActivePanels()
+      this.expandActiveSceneByDefault()
+    },
+
+
+    selectedCanvasKey() {
+      this.defaultExpandedSceneKey = null
+      this.expandedSources = []
+      this.expandedFilters = []
+      this.expandActiveSceneByDefault()
     },
   },
 
   methods: {
+    ensureSelectedCanvas() {
+      const selectedExists = this.canvases.some(
+        (canvas: any) => this.getCanvasKey(canvas) === this.selectedCanvasKey,
+      )
+
+      if(selectedExists) return
+
+      const activeCanvas = this.canvases.find((canvas: any) =>
+        this.getCanvasScenes(canvas).some(scene => this.isActiveScene(scene)),
+      )
+
+      this.selectedCanvasKey = this.getCanvasKey(activeCanvas ?? this.canvases[0] ?? {})
+    },
+
     getCanvasScenes(canvas: any): any[] {
       return Array.isArray(canvas?.scenes) ? canvas.scenes : []
     },
 
     getCanvasName(canvas: any): string {
-      return String(canvas?.name ?? canvas?.canvasName ?? 'Default')
+      return String(canvas?.name ?? canvas?.canvasName ?? 'Main')
     },
 
     getCanvasUuid(canvas: any): string {
@@ -282,8 +358,30 @@ export default {
       return Array.isArray(scene?.items) ? scene.items : []
     },
 
+    getFilters(source: any): any[] {
+      if(Array.isArray(source?.filters)) return source.filters
+      if(Array.isArray(source?.sourceFilters)) return source.sourceFilters
+      return []
+    },
+
     getSceneKey(scene: any, canvas: any = null): string {
       return `${this.getCanvasKey(canvas)}:${String(scene?.uuid ?? scene?.name ?? scene?.index ?? '')}`
+    },
+
+    getSourceKey(source: any, scene: any = null, canvas: any = null): string {
+      return `${this.getSceneKey(scene, canvas)}:${String(source?.uuid ?? source?.id ?? source?.name ?? '')}`
+    },
+
+    getFiltersPanelKey(source: any, scene: any, canvas: any): string {
+      return `${this.getSourceKey(source, scene, canvas)}:filters`
+    },
+
+    getFilterName(filter: any): string {
+      return String(filter?.filterName ?? filter?.name ?? '')
+    },
+
+    getFilterKey(filter: any, source: any): string {
+      return `${String(source?.uuid ?? source?.name ?? '')}:${this.getFilterName(filter)}`
     },
 
     getActiveSceneUuid(): string {
@@ -291,7 +389,7 @@ export default {
         this.currentSceneUuid
         || (this.currentScene as any)?.uuid
         || (this.currentScene as any)?.sceneUuid
-        || ''
+        || '',
       )
     },
 
@@ -300,7 +398,7 @@ export default {
         this.currentSceneName
         || (this.currentScene as any)?.name
         || (this.currentScene as any)?.sceneName
-        || ''
+        || '',
       )
     },
 
@@ -310,63 +408,120 @@ export default {
       }
 
       const activeUuid = this.getActiveSceneUuid()
-      if(activeUuid && String(scene?.uuid ?? '') === activeUuid) {
-        return true
-      }
+      if(activeUuid && String(scene?.uuid ?? '') === activeUuid) return true
 
       const activeName = this.getActiveSceneName()
       return Boolean(activeName && String(scene?.name ?? '') === activeName)
     },
 
-    isActiveSource(source: any): boolean {
-      return Boolean(
-        source?.active
-        || source?.current
-        || source?.selected
-        || source?.isActive
-        || source?.isSelected
-        || source?.isCurrent
-      )
+    isSourceEnabled(source: any): boolean {
+      return Boolean(source?.sceneItemEnabled ?? source?.enabled ?? false)
     },
 
-    expandOnlyActivePanels() {
-      const activeSceneKeys: string[] = []
-      const activeSourceKeys: string[] = []
+    isFilterEnabled(filter: any): boolean {
+      return Boolean(filter?.filterEnabled ?? filter?.enabled ?? false)
+    },
 
-      for (const canvas of this.canvases) {
-        for (const scene of this.getCanvasScenes(canvas)) {
-          if (this.isActiveScene(scene)) {
-            activeSceneKeys.push(this.getSceneKey(scene, canvas))
-          }
+    findActiveSceneKey(): string | null {
+      if(!this.selectedCanvas) return null
 
-          for (const source of this.getItems(scene)) {
-            if (this.isActiveSource(source)) {
-              activeSceneKeys.push(this.getSceneKey(scene, canvas))
-              activeSourceKeys.push(this.getSourceKey(source, scene, canvas))
-            }
-          }
-        }
+      const activeScene = this.getCanvasScenes(this.selectedCanvas)
+        .find(scene => this.isActiveScene(scene))
+
+      return activeScene
+        ? this.getSceneKey(activeScene, this.selectedCanvas)
+        : null
+    },
+
+    expandActiveSceneByDefault() {
+      const activeSceneKey = this.findActiveSceneKey()
+
+      if(this.defaultExpandedSceneKey === activeSceneKey) return
+
+      this.defaultExpandedSceneKey = activeSceneKey
+      this.expandedScenes = activeSceneKey ? [activeSceneKey] : []
+      this.expandedSources = []
+      this.expandedFilters = []
+    },
+
+    sendObsCommand(method: string, data: Record<string, any>) {
+      getWebsocketClient()?.send('obs_trigger_command', {
+        connection: this.connection,
+        obs_id: this.connection,
+        method,
+        data,
+      })
+    },
+
+    switchToScene(scene: any, canvas: any) {
+      const data: Record<string, any> = {}
+      const sceneUuid = String(scene?.uuid ?? scene?.sceneUuid ?? '')
+      const sceneName = String(scene?.name ?? scene?.sceneName ?? '')
+      const canvasUuid = this.getCanvasUuid(canvas)
+
+      if(sceneUuid) data.sceneUuid = sceneUuid
+      else if(sceneName) data.sceneName = sceneName
+
+      if(canvasUuid && canvasUuid !== 'default') {
+        data.canvasUuid = canvasUuid
       }
 
-      this.expandedScenes = [...new Set(activeSceneKeys.filter(Boolean))]
-      this.expandedSources = [...new Set(activeSourceKeys.filter(Boolean))]
+      this.sendObsCommand('SetCurrentProgramScene', data)
     },
 
-    getSourceKey(source: any, scene: any = null, canvas: any = null): string {
-      return `${this.getSceneKey(scene, canvas)}:${String(source?.uuid ?? source?.id ?? source?.name ?? '')}`
+    setSourceEnabled(source: any, scene: any, canvas: any, enabled: boolean) {
+      const sceneUuid = String(scene?.uuid ?? scene?.sceneUuid ?? '')
+      const sceneName = String(scene?.name ?? scene?.sceneName ?? '')
+      const canvasUuid = this.getCanvasUuid(canvas)
+      const sceneItemId = Number(source?.id ?? source?.sceneItemId)
+
+      if(!Number.isFinite(sceneItemId)) return
+
+      const data: Record<string, any> = {
+        sceneItemId,
+        sceneItemEnabled: enabled,
+      }
+
+      if(sceneUuid) data.sceneUuid = sceneUuid
+      else if(sceneName) data.sceneName = sceneName
+
+      if(canvasUuid && canvasUuid !== 'default') {
+        data.canvasUuid = canvasUuid
+      }
+
+      source.sceneItemEnabled = enabled
+      source.enabled = enabled
+
+      this.sendObsCommand('SetSceneItemEnabled', data)
     },
 
-    isAdding(source: any): boolean {
-      return Boolean(this.addingSources[this.getSourceKey(source)])
+    setFilterEnabled(source: any, filter: any, enabled: boolean) {
+      const sourceName = String(source?.name ?? source?.sourceName ?? '')
+      const filterName = this.getFilterName(filter)
+
+      if(!sourceName || !filterName) return
+
+      filter.filterEnabled = enabled
+      filter.enabled = enabled
+
+      this.sendObsCommand('SetSourceFilterEnabled', {
+        sourceName,
+        filterName,
+        filterEnabled: enabled,
+      })
     },
 
-    async addSource(source: any) {
+    isAdding(source: any, scene: any = null, canvas: any = null): boolean {
+      return Boolean(this.addingSources[this.getSourceKey(source, scene, canvas)])
+    },
+
+    async addSource(source: any, scene: any = null, canvas: any = null) {
       const uuid = String(source?.uuid ?? '')
       const name = String(source?.name ?? '')
 
       if(!uuid || !name) return
 
-      const key = this.getSourceKey(source)
+      const key = this.getSourceKey(source, scene, canvas)
       this.addingSources[key] = true
 
       try {
@@ -375,7 +530,7 @@ export default {
           uuid,
           obs_id: this.connection,
         })
-      } catch (error) {
+      } catch(error) {
         console.warn(error)
       } finally {
         this.addingSources[key] = false
@@ -386,24 +541,15 @@ export default {
 </script>
 
 <style scoped>
-.obs-source-table :deep(td:first-child) {
-  width: 120px;
-  color: rgba(var(--v-theme-on-surface), 0.68);
-  font-weight: 700;
-}
-
 .obs-active-scene :deep(.v-expansion-panel-title) {
   color: rgb(var(--v-theme-on-primary));
 }
 
-.obs-active-source :deep(.v-expansion-panel-title) {
-  color: rgb(var(--v-theme-primary));
-}
-
 .obs-browser-content {
-  max-height: calc(100vh - 130px);
+  max-height: calc(100vh - 55px);
   overflow-y: auto;
 }
+
 .obs-page-panel {
   border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
 }

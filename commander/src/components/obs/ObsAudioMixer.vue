@@ -1,22 +1,41 @@
 <template>
   <v-card color="grey-darken-4 pt-2" elevation="0" rounded="0">
-    <v-card-title class="d-flex align-center justify-space-between ga-3">
-      <span>{{ $t('obs.audioMixer.title') }}</span>
-      <v-chip size="small" variant="tonal">
-        {{ filteredAudioList.length }} / {{ audioList.length }}
-      </v-chip>
-      <v-spacer></v-spacer>
-      <v-text-field
-        v-if="audioList.length > 0"
-        v-model="search"
-        class="mb-3"
-        density="compact"
-        hide-details
-        clearable
-        prepend-inner-icon="mdi-magnify"
-        variant="outlined"
-        :label="$t('obs.audioMixer.search')"
-      />
+    <v-card-title>
+      <v-row align="center" density="comfortable">
+        <v-col cols="auto">
+          <span>{{ $t('obs.audioMixer.title') }}</span>
+        </v-col>
+
+        <v-col cols="auto">
+          <v-chip size="small" variant="tonal">
+            {{ filteredAudioList.length }} / {{ audioList.length }}
+          </v-chip>
+        </v-col>
+
+        <v-spacer />
+
+        <v-col v-if="audioList.length > 0" cols="auto">
+          <v-switch
+            v-model="showAll"
+            density="compact"
+            hide-details
+            color="primary"
+            :label="$t('obs.audioMixer.showAll')"
+          />
+        </v-col>
+
+        <v-col v-if="audioList.length > 0" cols="12" xl="5">
+          <v-text-field
+            v-model="search"
+            density="compact"
+            hide-details
+            clearable
+            prepend-inner-icon="mdi-magnify"
+            variant="outlined"
+            :label="$t('obs.audioMixer.search')"
+          />
+        </v-col>
+      </v-row>
     </v-card-title>
 
     <v-card-text class="obs-audio-content">
@@ -28,27 +47,25 @@
         :text="$t('obs.audioMixer.empty')"
       />
 
-      <div v-else class="obs-audio-table-wrap">
-        <v-table density="compact" class="obs-audio-table" hover>
-          <thead>
-          <tr>
-            <th class="text-left obs-audio-name-column">{{ $t('obs.audioMixer.name') }}</th>
-            <th class="text-left obs-audio-control-column">{{ $t('obs.audioMixer.volumeControl') }}</th>
-          </tr>
-          </thead>
-
-          <tbody>
-          <tr v-for="device in filteredAudioList" :key="device.inputUuid">
-            <td class="obs-audio-name-column">
-              <div class="font-weight-medium text-truncate">{{ device.inputName }}</div>
+      <v-row v-else no-gutters>
+        <v-col
+          v-for="(device, index) in filteredAudioList"
+          :key="device.inputUuid"
+          cols="12"
+        >
+          <v-row align="center" class="obs-audio-device" density="comfortable">
+            <v-col cols="12" xl="4">
+              <div class="font-weight-medium text-truncate">
+                {{ device.inputName }}
+              </div>
               <div class="text-caption text-medium-emphasis text-truncate">
                 {{ device.inputKind || device.inputUuid }}
               </div>
-            </td>
+            </v-col>
 
-            <td class="obs-audio-control-column">
-              <div class="obs-audio-control-stack">
-                <div class="obs-audio-control-row">
+            <v-col cols="12" xl="8">
+              <v-row align="center" density="comfortable">
+                <v-col cols="auto">
                   <v-btn
                     density="compact"
                     elevation="0"
@@ -57,7 +74,9 @@
                     :icon="device.muted ? 'mdi-volume-variant-off' : 'mdi-volume-source'"
                     @click="toggleInputMute(device.inputUuid)"
                   />
+                </v-col>
 
+                <v-col cols="auto">
                   <v-btn
                     density="compact"
                     elevation="0"
@@ -66,9 +85,10 @@
                     :disabled="device.muted"
                     @click="stepInputVolume(device, -1)"
                   />
+                </v-col>
 
+                <v-col>
                   <v-slider
-                    class="obs-audio-slider"
                     hide-details
                     :max="0"
                     :min="-100"
@@ -79,7 +99,9 @@
                     @update:modelValue="queueInputVolume(device.inputUuid, Number($event))"
                     @end="flushInputVolume(device.inputUuid)"
                   />
+                </v-col>
 
+                <v-col cols="auto">
                   <v-btn
                     density="compact"
                     elevation="0"
@@ -88,18 +110,20 @@
                     :disabled="device.muted"
                     @click="stepInputVolume(device, 1)"
                   />
+                </v-col>
 
-                  <div class="text-caption text-medium-emphasis obs-audio-percent">
-                    {{ getVolumePercent(device) }}%
-                  </div>
-                </div>
+                <v-col cols="auto" class="text-caption text-medium-emphasis obs-audio-percent">
+                  {{ getVolumePercent(device) }}%
+                </v-col>
+              </v-row>
 
-                <div class="obs-audio-balance-row">
-                  <div class="text-caption text-medium-emphasis obs-audio-balance-label">
-                    {{ $t('obs.audioMixer.balance') }}
-                  </div>
+              <v-row align="center" density="comfortable">
+                <v-col cols="auto" class="text-caption text-medium-emphasis obs-audio-balance-label">
+                  {{ $t('obs.audioMixer.balance') }}
+                </v-col>
+
+                <v-col>
                   <v-slider
-                    class="obs-audio-slider"
                     hide-details
                     :max="1"
                     :min="0"
@@ -109,16 +133,20 @@
                     @update:modelValue="queueAudioBalance(device.inputUuid, Number($event))"
                     @end="flushAudioBalance(device.inputUuid)"
                   />
-                  <div class="text-caption text-medium-emphasis obs-audio-percent">
-                    {{ Math.round(getBalanceValue(device) * 100) }}%
-                  </div>
-                </div>
-              </div>
-            </td>
-          </tr>
-          </tbody>
-        </v-table>
-      </div>
+                </v-col>
+
+                <v-col cols="auto" class="text-caption text-medium-emphasis obs-audio-percent">
+                  {{ Math.round(getBalanceValue(device) * 100) }}%
+                </v-col>
+              </v-row>
+            </v-col>
+          </v-row>
+          <v-divider
+            v-if="index < filteredAudioList.length - 1"
+            class="mt-2"
+          />
+        </v-col>
+      </v-row>
     </v-card-text>
   </v-card>
 </template>
@@ -145,6 +173,7 @@ export default {
       balanceDebounceTimers: {} as Record<string, ReturnType<typeof setTimeout>>,
       balanceDrafts: {} as Record<string, number>,
       search: '',
+      showAll: false,
     }
   },
 
@@ -157,12 +186,15 @@ export default {
 
     filteredAudioList(): any[] {
       const query = String(this.search ?? '').trim().toLowerCase()
+      const visibleAudio = this.showAll
+        ? this.audioList
+        : this.audioList.filter((device: any) => device.active === true)
 
       if(!query) {
-        return this.audioList
+        return visibleAudio
       }
 
-      return this.audioList.filter((device: any) => {
+      return visibleAudio.filter((device: any) => {
         return [device.inputName, device.inputKind, device.inputUuid]
           .some(value => String(value ?? '').toLowerCase().includes(query))
       })
@@ -291,70 +323,22 @@ export default {
 </script>
 
 <style scoped>
-.obs-audio-table-wrap {
-  max-width: 100%;
-  overflow-x: auto;
+.obs-audio-content {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
-.obs-audio-table {
-  min-width: 720px;
-  background: transparent;
-}
-
-.obs-audio-table :deep(table) {
-  background: transparent;
-}
-
-.obs-audio-table :deep(th) {
-  color: rgba(var(--v-theme-on-surface), 0.68);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.obs-audio-name-column {
-  min-width: 260px;
-  width: 320px;
-}
-
-.obs-audio-control-column {
-  min-width: 420px;
-}
-
-.obs-audio-control-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 6px 0;
-}
-
-.obs-audio-control-row,
-.obs-audio-balance-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.obs-audio-balance-row {
-  padding-left: 96px;
-}
-
-.obs-audio-balance-label {
-  min-width: 56px;
-}
-
-.obs-audio-slider {
-  flex: 1;
+.obs-audio-device {
+  padding: 10px 0;
 }
 
 .obs-audio-percent {
-  min-width: 44px;
+  min-width: 52px;
   text-align: right;
 }
 
-.obs-audio-content {
-  max-height: calc(100vh - 130px);
-  overflow-y: auto;
+.obs-audio-balance-label {
+  min-width: 72px;
 }
+
 </style>

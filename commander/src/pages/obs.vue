@@ -1,20 +1,18 @@
 <template>
   <v-row class="obs-page-layout ma-0 pa-0" density="comfortable" no-gutters>
 
-    <v-col cols="12" xxl="6" class="obs-page-panel">
+    <v-col cols="12" lg="6" class="obs-page-panel">
       <ObsAudioMixer
         :connection="selectedConnection"
         :audio-data="selectedAudioData"
       />
     </v-col>
 
-    <v-col cols="12" xxl="6" class="obs-page-panel obs-page-panel--right">
-      <v-alert
-        :text="$t('obs.disclaimer')"
-        type="warning"
-        icon="mdi-alert-circle"
-      ></v-alert>
-      <ObsSceneBrowser :scenes="selectedSceneData" />
+    <v-col cols="12" lg="6" class="obs-page-panel obs-page-panel--right">
+      <ObsSceneBrowser
+        :connection="selectedConnection"
+        :scenes="selectedSceneData"
+      />
     </v-col>
   </v-row>
 </template>
@@ -99,7 +97,7 @@ export default {
   max-width: 280px;
 }
 
-@media (min-width: 2560px) {
+@media (min-width: 1280px) {
   .obs-page-panel--right {
     border-top: 0;
     border-left: thin solid rgba(var(--v-border-color), var(--v-border-opacity));

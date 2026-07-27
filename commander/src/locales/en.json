@@ -1155,7 +1155,15 @@
       "id": "ID",
       "activeScene": "Active Scene",
       "empty": "No Scenes detected",
-      "addSource": "Add Source to Website"
+      "addSource": "Add Source to Website",
+      "mainCanvas": "Main Canvas",
+      "switchTo": "Switch to",
+      "filters": "Filters",
+      "enable": "Enable",
+      "disable": "Disable",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "canvas": "Canvas"
     },
     "audioMixer": {
       "title": "OBS Audio Mixer",
@@ -1163,10 +1171,10 @@
       "search": "Search Audio Track",
       "volumeControl": "Volume",
       "name": "Name",
-      "empty": "No Audio Tracks detected"
+      "empty": "No Audio Tracks detected",
+      "showAll": "Show all"
     },
-    "instance": "OBS Instance",
-    "disclaimer": "The OBS Admin Panel Integration is super experimental and bare metal. Its specific designed for now that i can easier integrate the source stuff to my remote api."
+    "instance": "OBS Instance"
   },
   "power": {
     "dialog": {
