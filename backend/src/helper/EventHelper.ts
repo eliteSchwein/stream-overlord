@@ -1,5 +1,7 @@
-import {isAssetConfigPresent} from "./AssetHelper";
-import {isMacroPresent} from "./MacroHelper";
+import {randomUUID} from "crypto";
+import {getAssetConfig, isAssetConfigPresent} from "./AssetHelper";
+import {addAlert} from "./AlertHelper";
+import {isMacroPresent, triggerMacro} from "./MacroHelper";
 
 export type EventEntry = {
     name: string;
@@ -19,6 +21,24 @@ const eventEntries: EventIndex = {
         createEventEntry("event_system_poweron"),
         createEventEntry("event_system_poweroff"),
         createEventEntry("event_system_configreload"),
+    ],
+    music: [
+        createEventEntry("event_music_start"),
+        createEventEntry("event_music_end"),
+        createEventEntry("event_music_next"),
+        createEventEntry("event_music_prev"),
+    ],
+    giveaway: [
+        createEventEntry("event_giveaway_start"),
+        createEventEntry("event_giveaway_end"),
+    ],
+    audio: [
+        createEventEntry("event_audio_volume"),
+        createEventEntry("event_audio_mute"),
+        createEventEntry("event_audio_unmute"),
+        createEventEntry("event_audio_output_volume"),
+        createEventEntry("event_audio_output_link"),
+        createEventEntry("event_audio_output_unlink"),
     ],
 };
 
@@ -115,4 +135,42 @@ export function getConfiguredEventIndex(): EventIndex {
     }
 
     return configuredEventIndex;
+}
+
+
+export async function triggerConfiguredEvent(
+    configName: string,
+    variables: Record<string, any> = {},
+): Promise<void> {
+    const normalizedConfigName = normalizeEventConfigName(configName);
+
+    if (!normalizedConfigName) return;
+
+    const eventUuid = String(variables.eventUuid ?? `${normalizedConfigName}_${randomUUID()}`);
+    const eventVariables = {
+        ...variables,
+        eventUuid,
+    };
+
+    if (isMacroPresent(normalizedConfigName)) {
+        void triggerMacro(normalizedConfigName, eventVariables);
+    }
+
+    if (isAssetConfigPresent(normalizedConfigName)) {
+        const asset = getAssetConfig(normalizedConfigName);
+
+        addAlert({
+            sound: asset.sound,
+            duration: asset.duration,
+            color: asset.color,
+            icon: asset.icon,
+            message: asset.message,
+            "event-uuid": eventUuid,
+            video: asset.video,
+            lamp_color: asset.lamp_color,
+            volume: asset.volume,
+            image: asset.image,
+            channel: asset.channel,
+        });
+    }
 }

@@ -4,7 +4,7 @@
       <div class="d-flex align-center ga-2 min-width-0">
         <v-icon icon="mdi-lightning-bolt" />
         <div class="min-width-0">
-          <div class="text-truncate">{{ $t('events.title') || 'Events' }}</div>
+          <div class="text-truncate">{{ $t('events.title') }}</div>
         </div>
       </div>
 
@@ -21,7 +21,7 @@
     <v-card-text>
       <v-text-field
         v-model="searchQuery"
-        :label="$t('events.search') || 'Search events'"
+        :label="$t('events.search')"
         prepend-inner-icon="mdi-magnify"
         clearable
         variant="outlined"
@@ -31,7 +31,7 @@
       />
 
       <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
-      <v-alert v-if="totalEvents === 0" type="info" color="warning" :text="$t('events.none') || 'No events found'" />
+      <v-alert v-if="totalEvents === 0" type="error" color="red-darken-3" :text="$t('events.none')" />
 
       <v-expansion-panels v-else variant="accordion" multiple class="event-channel-list">
         <v-expansion-panel
@@ -415,6 +415,9 @@ export default {
     channelIcon(channel: string) {
       if (channel === 'twitch') return 'mdi-twitch'
       if (channel === 'system') return 'mdi-power'
+      if (channel === 'music') return 'mdi-music'
+      if (channel === 'giveaway') return 'mdi-gift'
+      if (channel === 'audio') return 'mdi-volume-high'
       return 'mdi-lightning-bolt'
     },
   },

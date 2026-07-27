@@ -7,6 +7,7 @@ import {execute} from "./CommandHelper";
 import {logRegular, logWarn} from "./LogHelper";
 import {updateMusicVolumeFromAudio} from "./MusicHelper";
 import {sleep} from "../../../helper/GeneralHelper";
+import {triggerConfiguredEvent} from "./EventHelper";
 
 const audioVolumeSavePath = path.join(getSystemConfigDirectory(), "streambot-audio.json");
 
@@ -131,6 +132,17 @@ async function initializePipewireAudioSink(
     applyAudioVolumeState(key, sinkVolume ?? volume);
 }
 
+async function triggerAudioEvent(
+    configName: string,
+    payload: Record<string, any>,
+): Promise<void> {
+    await triggerConfiguredEvent(configName, {
+        ...payload,
+        audio: audioData,
+        audio_outputs: audioOutputs,
+    });
+}
+
 export async function setVolume(
     audioInterface: string,
     volume: number,
@@ -141,6 +153,8 @@ export async function setVolume(
 
     if (!currentAudioData) return;
 
+    const previousVolume = Number(currentAudioData.current_volume ?? 0);
+    const previousMuted = currentAudioData.muted === true;
     const safeVolume = normalizeVolume(volume);
 
     if (isEnabled(currentAudioData.pipewire_sink)) {
@@ -168,6 +182,27 @@ export async function setVolume(
     if (!sendUpdate) return;
 
     await sendAudioUpdate();
+
+    const nextAudioData = audioData[audioInterface];
+    const nextVolume = Number(nextAudioData?.current_volume ?? safeVolume);
+    const nextMuted = nextAudioData?.muted === true;
+    const eventPayload = {
+        audio_interface: audioInterface,
+        interface: audioInterface,
+        previous_volume: previousVolume,
+        volume: nextVolume,
+        previous_muted: previousMuted,
+        muted: nextMuted,
+        audio_interface_data: nextAudioData,
+    };
+
+    await triggerAudioEvent("event_audio_volume", eventPayload);
+
+    if (!previousMuted && nextMuted) {
+        await triggerAudioEvent("event_audio_mute", eventPayload);
+    } else if (previousMuted && !nextMuted) {
+        await triggerAudioEvent("event_audio_unmute", eventPayload);
+    }
 }
 
 export async function linkPipewireSinkToAudioOutput(
@@ -205,6 +240,14 @@ export async function linkPipewireSinkToAudioOutput(
 
     saveAudioVolumes();
     await sendAudioUpdate(true);
+
+    await triggerAudioEvent("event_audio_output_link", {
+        audio_interface: audioInterface,
+        interface: audioInterface,
+        output: output.name,
+        outputs: linkedOutputs,
+        audio_interface_data: audioData[audioInterface],
+    });
 
     return {
         linked: true,
@@ -246,6 +289,14 @@ export async function unlinkPipewireSinkFromAudioOutput(
     saveAudioVolumes();
     await sendAudioUpdate(true);
 
+    await triggerAudioEvent("event_audio_output_unlink", {
+        audio_interface: audioInterface,
+        interface: audioInterface,
+        output: outputName,
+        outputs: linkedOutputs,
+        audio_interface_data: audioData[audioInterface],
+    });
+
     return {
         unlinked: true,
         interface: audioInterface,
@@ -282,6 +333,14 @@ export async function setAudioOutputVolume(
 
     await refreshAudioOutputs(true);
     getWebsocketServer().send("notify_audio_outputs_update", audioOutputs);
+
+    const updatedOutput = audioOutputs.find(item => item.name === output.name) ?? output;
+
+    await triggerAudioEvent("event_audio_output_volume", {
+        output: output.name,
+        output_data: updatedOutput,
+        volume: safeVolume,
+    });
 
     return {
         output: output.name,

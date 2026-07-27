@@ -1,6 +1,7 @@
 import {HelixUser} from "@twurple/api";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {logRegular} from "./LogHelper";
+import {triggerConfiguredEvent} from "./EventHelper";
 
 const giveaway = {
     winner: undefined,
@@ -26,7 +27,7 @@ export function addGiveawayUser(User: HelixUser) {
 }
 
 export async function startGiveaway(content: string, duration: number) {
-    await stopGiveaway()
+    await stopGiveaway('restarted')
 
     giveaway.interval = duration * 60
     giveaway.currentInterval = duration * 60
@@ -39,13 +40,31 @@ export async function startGiveaway(content: string, duration: number) {
     )
 
     getWebsocketServer().send('notify_giveaway_update', getGiveaway())
+
+    void triggerConfiguredEvent('event_giveaway_start', {
+        giveaway: getGiveaway(),
+    })
 }
 
-export async function stopGiveaway() {
-    if(giveaway.active) {
+export async function stopGiveaway(reason: 'cancelled' | 'restarted' | 'cleanup' = 'cancelled', triggerEvent = true) {
+    const wasActive = giveaway.active
+    const giveawayState = getGiveaway()
+
+    if(wasActive) {
         logRegular(`giveaway stopped`)
-        await getTwitchClient().announce(`Die Verlosung wurde abgebrochen!`, 'orange')
+
+        if(reason !== 'cleanup') {
+            await getTwitchClient().announce(`Die Verlosung wurde abgebrochen!`, 'orange')
+        }
+
+        if(triggerEvent) {
+            void triggerConfiguredEvent('event_giveaway_end', {
+                giveaway: giveawayState,
+                reason,
+            })
+        }
     }
+
     giveaway.currentInterval = 0
     giveaway.interval = 0
     giveaway.users = []
@@ -78,8 +97,13 @@ export async function updateGiveaway() {
             )
         }
 
+        void triggerConfiguredEvent('event_giveaway_end', {
+            giveaway: getGiveaway(),
+            reason: 'finished',
+        })
+
         setTimeout(async () => {
-            await stopGiveaway()
+            await stopGiveaway('cleanup', false)
         }, 300_000)
     }
 

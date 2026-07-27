@@ -22,6 +22,7 @@ import {
     setPipewireSinkOutputVolume,
 } from './AudioHelper'
 import {logDebug, logError, logRegular, logSuccess, logWarn} from './LogHelper'
+import {triggerConfiguredEvent} from './EventHelper'
 import https from 'https'
 
 const songRequestPath = '/tmp/songrequests'
@@ -487,7 +488,6 @@ export async function sync() {
 export async function show() {
     getWebsocketServer().send('notify_music_show', getStatus())
 
-    const { triggerMacro } = await import('./MacroHelper')
     const overlayAlreadyActive = musicOverlayTimeout !== null
 
     if (musicOverlayTimeout) {
@@ -495,7 +495,7 @@ export async function show() {
     }
 
     if (!overlayAlreadyActive) {
-        void triggerMacro('music_start', {
+        void triggerConfiguredEvent('event_music_start', {
             music: getStatus(),
         })
     }
@@ -503,7 +503,7 @@ export async function show() {
     musicOverlayTimeout = setTimeout(() => {
         musicOverlayTimeout = null
 
-        void triggerMacro('music_end', {
+        void triggerConfiguredEvent('event_music_end', {
             music: getStatus(),
         })
     }, overlayDuration)
@@ -1170,10 +1170,9 @@ async function handlePlaylistPosChanged(value: any) {
     await sync()
     void show()
 
-    const { triggerMacro } = await import('./MacroHelper')
-    const macroName = direction === 'next' ? 'music_next' : 'music_prev'
+    const eventName = direction === 'next' ? 'event_music_next' : 'event_music_prev'
 
-    void triggerMacro(macroName, {
+    void triggerConfiguredEvent(eventName, {
         music: getStatus(),
         direction,
         previous_index: previous,
