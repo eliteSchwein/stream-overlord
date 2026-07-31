@@ -528,9 +528,7 @@
         "stopClipsEarly": "Stop clips early",
         "showInformationOverlay": "Show information overlay",
         "showTimer": "Show timer",
-        "overlayDurationSeconds": "Overlay duration (seconds)",
-        "overlayDurationHint": "How long the clip player remains visible.",
-        "resultHint": "Stores the generated URL, channel and playback duration.",
+        "resultHint": "Stores the generated URL and channel.",
         "modes": {
           "random": "Random",
           "top": "Top"
@@ -541,7 +539,10 @@
           "last30Days": "Last 30 days",
           "last6Months": "Last 6 months",
           "lastYear": "Last year"
-        }
+        },
+        "enableTitle": "Enable random clips",
+        "disableTitle": "Disable random clips",
+        "disableInfo": "Stops the currently active random clip player."
       },
       "streamMarker": {
         "title": "Create stream marker"
@@ -724,7 +725,12 @@
           "banUser": "Ban user",
           "timeoutUser": "Timeout user"
         },
-        "runAd": "Run ad"
+        "runAd": "Run ad",
+        "randomClips": {
+          "title": "Random clips",
+          "enable": "Enable random clips",
+          "disable": "Disable random clips"
+        }
       },
       "yolobox": {
         "title": "YoloBox",

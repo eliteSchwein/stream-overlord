@@ -528,9 +528,7 @@
         "stopClipsEarly": "Clips frühzeitig beenden",
         "showInformationOverlay": "Informations-Overlay anzeigen",
         "showTimer": "Timer anzeigen",
-        "overlayDurationSeconds": "Overlay-Dauer (Sekunden)",
-        "overlayDurationHint": "Wie lange der Clip-Player sichtbar bleibt.",
-        "resultHint": "Speichert die generierte URL, den Kanal und die Wiedergabedauer.",
+        "resultHint": "Speichert die generierte URL und den Kanal.",
         "modes": {
           "random": "Zufällig",
           "top": "Top"
@@ -541,7 +539,10 @@
           "last30Days": "Letzte 30 Tage",
           "last6Months": "Letzte 6 Monate",
           "lastYear": "Letztes Jahr"
-        }
+        },
+        "enableTitle": "Zufällige Clips aktivieren",
+        "disableTitle": "Zufällige Clips deaktivieren",
+        "disableInfo": "Stoppt den aktuell aktiven Zufallsclip-Player."
       },
       "streamMarker": {
         "title": "Stream-Marker erstellen"
@@ -724,7 +725,12 @@
           "banUser": "Benutzer bannen",
           "timeoutUser": "Benutzer sperren (Timeout)"
         },
-        "runAd": "Werbung ausführen"
+        "runAd": "Werbung ausführen",
+        "randomClips": {
+          "title": "Zufällige Clips",
+          "enable": "Zufällige Clips aktivieren",
+          "disable": "Zufällige Clips deaktivieren"
+        }
       },
       "yolobox": {
         "title": "YoloBox",

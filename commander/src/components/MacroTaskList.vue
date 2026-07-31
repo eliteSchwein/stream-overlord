@@ -175,6 +175,8 @@ import MacroTwitchVipRemoveTaskAccordion from '@/components/accordions/macro/twi
 import MacroTwitchAdTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchAdTaskAccordion.vue'
 import MacroTwitchBanTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchBanTaskAccordion.vue'
 import MacroTwitchTimeoutTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchTimeoutTaskAccordion.vue'
+import MacroTwitchEnableRandomClipTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchEnableRandomClipTaskAccordion.vue'
+import MacroTwitchDisableRandomClipTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchDisableRandomClipTaskAccordion.vue'
 import MacroMusicPlayTaskAccordion from '@/components/accordions/macro/music/MacroMusicPlayTaskAccordion.vue'
 import MacroMusicPauseTaskAccordion from '@/components/accordions/macro/music/MacroMusicPauseTaskAccordion.vue'
 import MacroMusicTogglePauseTaskAccordion from '@/components/accordions/macro/music/MacroMusicTogglePauseTaskAccordion.vue'
@@ -272,6 +274,8 @@ export default {
     MacroTwitchAdTaskAccordion,
     MacroTwitchBanTaskAccordion,
     MacroTwitchTimeoutTaskAccordion,
+    MacroTwitchEnableRandomClipTaskAccordion,
+    MacroTwitchDisableRandomClipTaskAccordion,
     MacroMusicPlayTaskAccordion,
     MacroMusicPauseTaskAccordion,
     MacroMusicTogglePauseTaskAccordion,
@@ -667,6 +671,14 @@ export default {
           icon: 'mdi-twitch',
           children: [
             { titleKey: 'macro.presets.twitch.createClip', icon: 'mdi-content-cut', factory: () => this.createTask({ channel: 'twitch', method: 'clip', data: { create_after_delay: false, wait_seconds: 35, variable: 'clip' } }) },
+            {
+              titleKey: 'macro.presets.twitch.randomClips.title',
+              icon: 'mdi-movie-open',
+              children: [
+                { titleKey: 'macro.presets.twitch.randomClips.enable', icon: 'mdi-movie-open-play', factory: () => this.createTask({ channel: 'twitch', method: 'enable_random_clip', data: { channel: '', mode: 'random', recent_clips: 0, max_length: 60, filter_long_videos: false, info: false, show_timer: false, volume: 50, variable: 'random_clip' } }) },
+                { titleKey: 'macro.presets.twitch.randomClips.disable', icon: 'mdi-movie-open-off', factory: () => this.createTask({ channel: 'twitch', method: 'disable_random_clip', data: {} }) },
+              ],
+            },
             { titleKey: 'macro.presets.twitch.shoutout', icon: 'mdi-account-voice', factory: () => this.createTask({ channel: 'twitch', method: 'shoutout', data: { user: '', variable: 'shoutout' } }) },
             { titleKey: 'macro.presets.twitch.changeCategory', icon: 'mdi-gamepad-variant-outline', factory: () => this.createTask({ channel: 'twitch', method: 'set_category', data: { category: '', variable: 'category' } }) },
             {
@@ -1127,6 +1139,8 @@ export default {
       }
 
       if (item?.task?.channel === 'twitch') {
+        if (item?.task?.method === 'enable_random_clip') return 'MacroTwitchEnableRandomClipTaskAccordion'
+        if (item?.task?.method === 'disable_random_clip') return 'MacroTwitchDisableRandomClipTaskAccordion'
         if (item?.task?.method === 'clip') return 'MacroTwitchClipTaskAccordion'
         if (item?.task?.method === 'shoutout') return 'MacroTwitchShoutoutTaskAccordion'
         if (item?.task?.method === 'set_category') return 'MacroTwitchCategoryTaskAccordion'

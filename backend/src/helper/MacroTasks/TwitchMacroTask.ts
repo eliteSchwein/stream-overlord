@@ -88,12 +88,12 @@ export default class TwitchMacroTask extends BaseMacroTask {
         try {
             switch (method) {
 
-                case "random_clip": {
+                case "enable_random_clip": {
                     const channel = text(data.channel)
                         || String(primaryChannel.name ?? primaryChannel.displayName ?? primaryChannel.login ?? "");
 
                     if (!channel) {
-                        logWarn("twitch random_clip requires a channel");
+                        logWarn("twitch enable_random_clip requires a channel");
                         return;
                     }
 
@@ -109,22 +109,24 @@ export default class TwitchMacroTask extends BaseMacroTask {
                     });
 
                     const url = `https://streamgood.gg/clips/player?${params.toString()}`;
-                    const playbackSeconds = Math.min(
-                        300,
-                        Math.max(5, number(data.playback_seconds, data.max_length ?? 60) ?? 60),
-                    );
 
-                    this.websocket.send("notify_shoutout_clip", {
+                    this.websocket.send("notify_random_clips", {
+                        action: "enable",
                         channel,
                         name: channel,
                         url,
-                        playback_seconds: playbackSeconds,
                     });
 
                     storeResult({
                         url,
                         channel,
-                        playback_seconds: playbackSeconds,
+                    });
+                    break;
+                }
+
+                case "disable_random_clip": {
+                    this.websocket.send("notify_random_clips", {
+                        action: "disable",
                     });
                     break;
                 }

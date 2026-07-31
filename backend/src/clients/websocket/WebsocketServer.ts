@@ -33,7 +33,7 @@ export default class WebsocketServer {
         'notify_ads',
         'notify_effect',
         'notify_toggle_element',
-        'notify_shoutout_clip',
+        'notify_random_clips',
         'notify_source_update',
         'notify_system_info',
         'notify_audio_update',
