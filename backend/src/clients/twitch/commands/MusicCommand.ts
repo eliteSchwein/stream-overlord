@@ -1,6 +1,5 @@
 import BaseCommand from './BaseCommand'
 import {hasModerator} from '../helper/PermissionHelper'
-import {getConfig} from '../../../helper/ConfigHelper'
 import {back, getSongCmd, next, pause, play, setVolume, show, sync,} from '../../../helper/MusicHelper'
 
 export default class MusicCommand extends BaseCommand {
@@ -26,14 +25,6 @@ export default class MusicCommand extends BaseCommand {
             required: false,
         },
     ]
-
-    preRegister() {
-        const config = getConfig(/^music$/g)[0]
-
-        if (config) return
-
-        this.registerCommand = false
-    }
 
     async handle(params: any, context: any, rawParams: string[]) {
         if (!params.control) {
