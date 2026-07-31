@@ -8,10 +8,10 @@
 
 .random_clips iframe {
     position: absolute;
-    top: -7.5px;
-    left: -7.5px;
-    width: calc(100% + 15px);
-    height: calc(100% + 15px);
+    top: -8px;
+    left: -8px;
+    width: calc(100% + 16px);
+    height: calc(100% + 16px);
     display: block;
     border: 0;
     margin: 0;
