@@ -112,8 +112,6 @@ export default class TwitchMacroTask extends BaseMacroTask {
 
                     this.websocket.send("notify_random_clips", {
                         action: "enable",
-                        channel,
-                        name: channel,
                         url,
                     });
 
