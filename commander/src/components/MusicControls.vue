@@ -131,9 +131,6 @@ export default defineComponent({
   data() {
     return {
       playlistItemRefs: {} as Record<string, any>,
-      playlistResponse: null as any,
-      playlistLoading: false,
-      lastPlaylistTrackKey: '',
       cavaBuffer: '',
       expectedCavaBarCount: 0,
       cavaValues: [] as number[],
@@ -188,13 +185,13 @@ export default defineComponent({
     playlist(): any[] {
       if (this.isSongRequestEnabled) return this.songRequestFiles
 
-      return this.playlistResponse?.files ?? []
+      return this.appStore.getMusicPlaylist?.files ?? []
     },
 
     playlistLength(): number {
       if (this.isSongRequestEnabled) return this.songRequestFiles.length
 
-      return this.playlistResponse?.playlist_length ?? this.music.playlist_length ?? this.playlist.length
+      return this.appStore.getMusicPlaylist?.playlist_length ?? this.playlist.length
     },
 
     isPlaying(): boolean {
@@ -222,14 +219,6 @@ export default defineComponent({
   },
 
   watch: {
-    getWebsocket: {
-      immediate: true,
-      handler(value: string) {
-        if (!value) return
-        void this.fetchFiles()
-      },
-    },
-
     cavaRaw: {
       immediate: true,
       handler(raw: string) {
@@ -241,7 +230,7 @@ export default defineComponent({
     currentTrackKey: {
       immediate: true,
       handler() {
-        this.refreshPlaylistAfterTrackChange()
+        void nextTick(() => this.scrollToCurrentSong())
       },
     },
 
@@ -253,11 +242,7 @@ export default defineComponent({
     },
 
     isSongRequestEnabled() {
-      if (!this.isSongRequestEnabled) {
-        void this.fetchFiles()
-      } else {
-        void nextTick(() => this.scrollToCurrentSong())
-      }
+      void nextTick(() => this.scrollToCurrentSong())
     },
 
     songRequestFiles: {
@@ -270,59 +255,10 @@ export default defineComponent({
   },
 
   mounted() {
-    void nextTick(async () => {
-      await this.fetchFiles()
-      this.refreshPlaylistAfterTrackChange()
-      this.scrollToCurrentSong()
-    })
+    void nextTick(() => this.scrollToCurrentSong())
   },
 
   methods: {
-    refreshPlaylistAfterTrackChange() {
-      if (this.isSongRequestEnabled) {
-        void nextTick(() => this.scrollToCurrentSong())
-        return
-      }
-
-      const key = this.currentTrackKey
-
-      if (!key.replace(/\|/g, '')) {
-        void nextTick(() => this.scrollToCurrentSong())
-        return
-      }
-
-      if (key === this.lastPlaylistTrackKey) {
-        void nextTick(() => this.scrollToCurrentSong())
-        return
-      }
-
-      this.lastPlaylistTrackKey = key
-      void this.fetchFiles()
-    },
-
-    async fetchFiles() {
-      if (this.isSongRequestEnabled) {
-        await nextTick()
-        this.scrollToCurrentSong()
-        return
-      }
-
-      if (!this.getWebsocket || this.playlistLoading) return
-
-      this.playlistLoading = true
-
-      try {
-        this.playlistResponse = (await getWebsocketClient()?.request('music_playlist'))?.params
-
-        await nextTick()
-        this.scrollToCurrentSong()
-      } catch (error) {
-        console.warn(this.$t('music.playlistWebsocketFailed'), error)
-      } finally {
-        this.playlistLoading = false
-      }
-    },
-
     sendMusicWebsocket(method: string, params: Record<string, any> = {}) {
       void getWebsocketClient()?.send(method, params)
     },
@@ -492,14 +428,12 @@ export default defineComponent({
       const filename = this.getFilename(item)
 
       this.sendMusicWebsocket('music_delete', { filename })
-      await this.fetchFiles()
     },
 
     async toggleSongRequest() {
       if (!this.getWebsocket) return
 
       this.sendMusicWebsocket('music_songrequest_toggle')
-      await this.fetchFiles()
     },
 
     resetCava() {

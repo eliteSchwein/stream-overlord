@@ -57,6 +57,8 @@ let lastObservedPlaylistLength: number | null = null
 let suppressPlaylistNavigationMacro = true
 let mprisEnabled = true
 let mprisScriptPath = ''
+let playlistStatus: any = { files: [], playlist_length: 0 }
+let playlistStatusSignature = ''
 
 type MusicCrashState = {
     path: string | null
@@ -213,6 +215,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
     if (files.length === 0) {
         logWarn('music player not started: no music files found')
         suppressMusicStateWrite = false
+        await syncPlaylist(true)
         await sync()
         return
     }
@@ -284,6 +287,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         startCavaFeed()
     }
 
+    await syncPlaylist(true)
     await sync()
 
     logSuccess('music player is ready')
@@ -472,9 +476,36 @@ export async function addSongRequest(url: string): Promise<boolean> {
         }
     }
 
+    await syncPlaylist()
     await sync()
 
     return true
+}
+
+export function getPlaylistStatus() {
+    return playlistStatus
+}
+
+export async function syncPlaylist(force = false) {
+    let files = await getPlaylist()
+
+    if (!files.length && !songRequestEnabled) {
+        files = getRegularMusicFiles()
+    }
+
+    const nextStatus = {
+        files,
+        playlist_length: files.length,
+        songrequest_enabled: songRequestEnabled,
+    }
+    const nextSignature = JSON.stringify(nextStatus)
+
+    playlistStatus = nextStatus
+
+    if (!force && nextSignature === playlistStatusSignature) return
+
+    playlistStatusSignature = nextSignature
+    getWebsocketServer().send('notify_playlist_update', playlistStatus)
 }
 
 export async function sync() {
@@ -563,6 +594,7 @@ export async function setMusicShuffle(enabled: any) {
 
     if (musicShuffleEnabled) {
         await mpvCommand(['playlist-shuffle'])
+        await syncPlaylist()
         await sync()
         return
     }
@@ -732,6 +764,7 @@ export async function deleteSong(filename: string) {
     }
 
     await sleep(150)
+    await syncPlaylist()
     await sync()
 
     return {
@@ -743,16 +776,11 @@ export async function deleteSong(filename: string) {
 
 async function getMusicUpdate() {
     const current = await getCurrentMusic()
-    let playlist = await getPlaylist()
     const volume = await getPipewireSinkOutputVolumePercent(streambotMusicConfigName)
     const thumbnail = await getMusicThumbnailUpdate(current.path)
     const shuffle = musicShuffleEnabled
     const loopPlaylist = await mpvGetProperty('loop-playlist')
     const loopFile = await mpvGetProperty('loop-file')
-
-    if (!playlist.length && !songRequestEnabled) {
-        playlist = getRegularMusicFiles()
-    }
 
     return {
         status: current.pause ? 'paused' : 'playing',
@@ -772,8 +800,7 @@ async function getMusicUpdate() {
         album: current.album,
         thumbnail,
         track: current,
-        playlist,
-        playlist_length: Array.isArray(playlist) ? playlist.length : 0,
+        playlist_length: playlistStatus.playlist_length ?? 0,
         songrequest: getSongRequestState(),
     }
 }
@@ -1730,6 +1757,7 @@ export async function deleteRegularMusicFile(filename: string) {
     rmSync(targetFile, { force: true })
 
     await sleep(150)
+    await syncPlaylist()
     await sync()
 
     return {
@@ -1762,6 +1790,7 @@ export async function addRegularMusicFileFromUpload(file: any) {
     await mpvCommand(['loadfile', targetFile, 'append-play'])
 
     await sleep(150)
+    await syncPlaylist()
     await sync()
 
     return {

@@ -28,6 +28,7 @@ import NotifyStorageUpdateMessage from "@/plugins/websocketEvents/websocketMessa
 import NotifyIntegrationsUpdateMessage
   from "@/plugins/websocketEvents/websocketMessage/NotifyIntegrationsUpdateMessage.ts";
 import NotifySettingsUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifySettingsUpdateMessage.ts";
+import NotifyPlaylistUpdateMessage from "@/plugins/websocketEvents/websocketMessage/NotifyPlaylistUpdateMessage.ts";
 
 export default class MessageEvent extends BaseEvent {
   name = 'message'
@@ -68,5 +69,6 @@ export default class MessageEvent extends BaseEvent {
     await new NotifyStorageUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifyIntegrationsUpdateMessage(this.webSocketClient).handleMessage(data)
     await new NotifySettingsUpdateMessage(this.webSocketClient).handleMessage(data)
+    await new NotifyPlaylistUpdateMessage(this.webSocketClient).handleMessage(data)
   }
 }

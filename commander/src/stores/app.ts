@@ -50,6 +50,7 @@ export const useAppStore = defineStore('app', {
     yoloboxData: {},
     obsAudioData: {},
     musicData: {},
+    musicPlaylist: { files: [], playlist_length: 0 },
     musicCavaData: {},
     storage: {},
     integrations: {},
@@ -92,6 +93,7 @@ export const useAppStore = defineStore('app', {
     getWledConfigs: (state) => state.wledConfigs,
     getStatus: (state) => state.status,
     getMusicData: (state) => state.musicData,
+    getMusicPlaylist: (state) => state.musicPlaylist,
     getMusicCavaData: (state) => state.musicCavaData,
     getAudioOutput: (state) => state.audioOutputs,
     getAudioOutputs: (state) => state.audioOutputs,
@@ -279,6 +281,10 @@ export const useAppStore = defineStore('app', {
     setMusicData(musicData: any) {
       this.musicData = musicData
       this.$patch(state => state.musicData = musicData)
+    },
+    setMusicPlaylist(musicPlaylist: any) {
+      this.musicPlaylist = musicPlaylist
+      this.$patch(state => state.musicPlaylist = musicPlaylist)
     },
     setMusicCavaData(musicCavaData: any) {
       this.musicCavaData = musicCavaData
