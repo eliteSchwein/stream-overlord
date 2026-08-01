@@ -161,6 +161,10 @@ export default defineComponent({
       return this.appStore.getWebsocket ?? ''
     },
 
+    playlistResponse(): any {
+      return this.appStore.getMusicPlaylist ?? {}
+    },
+
     isSongRequestEnabled(): boolean {
       return this.music?.songrequest?.enabled === true
     },
@@ -183,15 +187,11 @@ export default defineComponent({
     },
 
     playlist(): any[] {
-      if (this.isSongRequestEnabled) return this.songRequestFiles
-
-      return this.appStore.getMusicPlaylist?.files ?? []
+      return this.playlistResponse?.files ?? []
     },
 
     playlistLength(): number {
-      if (this.isSongRequestEnabled) return this.songRequestFiles.length
-
-      return this.appStore.getMusicPlaylist?.playlist_length ?? this.playlist.length
+      return this.playlistResponse?.playlist_length ?? this.music.playlist_length ?? this.playlist.length
     },
 
     isPlaying(): boolean {

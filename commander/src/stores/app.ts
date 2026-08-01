@@ -50,8 +50,14 @@ export const useAppStore = defineStore('app', {
     yoloboxData: {},
     obsAudioData: {},
     musicData: {},
-    musicPlaylist: { files: [], playlist_length: 0 },
     musicCavaData: {},
+    musicPlaylist: {
+      files: [],
+      playlist_length: 0,
+      current_index: -1,
+      window_start: 0,
+      window_end: -1,
+    },
     storage: {},
     integrations: {},
     settings: {},
@@ -93,8 +99,8 @@ export const useAppStore = defineStore('app', {
     getWledConfigs: (state) => state.wledConfigs,
     getStatus: (state) => state.status,
     getMusicData: (state) => state.musicData,
-    getMusicPlaylist: (state) => state.musicPlaylist,
     getMusicCavaData: (state) => state.musicCavaData,
+    getMusicPlaylist: (state) => state.musicPlaylist,
     getAudioOutput: (state) => state.audioOutputs,
     getAudioOutputs: (state) => state.audioOutputs,
     getStorage: (state) => state.storage,
@@ -282,13 +288,19 @@ export const useAppStore = defineStore('app', {
       this.musicData = musicData
       this.$patch(state => state.musicData = musicData)
     },
-    setMusicPlaylist(musicPlaylist: any) {
-      this.musicPlaylist = musicPlaylist
-      this.$patch(state => state.musicPlaylist = musicPlaylist)
-    },
     setMusicCavaData(musicCavaData: any) {
       this.musicCavaData = musicCavaData
       this.$patch(state => state.musicCavaData = musicCavaData)
+    },
+    setMusicPlaylist(musicPlaylist: any) {
+      this.musicPlaylist = musicPlaylist ?? {
+        files: [],
+        playlist_length: 0,
+        current_index: -1,
+        window_start: 0,
+        window_end: -1,
+      }
+      this.$patch(state => state.musicPlaylist = this.musicPlaylist)
     },
     setAudioOutput(audioOutputs: any) {
       this.audioOutputs = audioOutputs

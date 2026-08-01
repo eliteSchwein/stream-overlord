@@ -17,7 +17,7 @@ import {getAutoMacros} from "../../helper/AutoMacroHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
 import BaseApi from "../../abstracts/BaseApi";
 import {getParsedAssetFiles} from "../../helper/AssetHelper";
-import {getPlaylistStatus, getStatus} from "../../helper/MusicHelper";
+import {getPlaylistUpdatePayload, getStatus} from "../../helper/MusicHelper";
 import {getManagedConnections, setConnectionUpdateNotifier} from "../../helper/ConnectionHelper";
 import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 import {emitVariablesUpdate} from "../../helper/VariableHelper";
@@ -197,7 +197,7 @@ export default class WebsocketServer {
                 this.send("notify_system_info", getSystemInfo(), client)
                 this.send("notify_source_update", getSourceFilters(), client)
                 this.send("notify_music_update", getStatus(), client)
-                this.send("notify_playlist_update", getPlaylistStatus(), client)
+                this.send("notify_playlist_update", getPlaylistUpdatePayload(), client)
                 this.send("notify_connection", this.getConnections(), client)
                 this.send("notify_connection_update", getManagedConnections(), client)
                 const obsClient = getOBSClient()

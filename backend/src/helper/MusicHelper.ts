@@ -57,8 +57,13 @@ let lastObservedPlaylistLength: number | null = null
 let suppressPlaylistNavigationMacro = true
 let mprisEnabled = true
 let mprisScriptPath = ''
-let playlistStatus: any = { files: [], playlist_length: 0 }
-let playlistStatusSignature = ''
+let playlistUpdatePayload: any = {
+    files: [],
+    playlist_length: 0,
+    current_index: -1,
+    window_start: 0,
+    window_end: -1,
+}
 
 type MusicCrashState = {
     path: string | null
@@ -215,7 +220,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
     if (files.length === 0) {
         logWarn('music player not started: no music files found')
         suppressMusicStateWrite = false
-        await syncPlaylist(true)
+        await notifyPlaylistUpdate()
         await sync()
         return
     }
@@ -287,7 +292,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         startCavaFeed()
     }
 
-    await syncPlaylist(true)
+    await notifyPlaylistUpdate()
     await sync()
 
     logSuccess('music player is ready')
@@ -476,36 +481,40 @@ export async function addSongRequest(url: string): Promise<boolean> {
         }
     }
 
-    await syncPlaylist()
+    await notifyPlaylistUpdate()
     await sync()
 
     return true
 }
 
-export function getPlaylistStatus() {
-    return playlistStatus
+export function getPlaylistUpdatePayload() {
+    return playlistUpdatePayload
 }
 
-export async function syncPlaylist(force = false) {
-    let files = await getPlaylist()
+export async function notifyPlaylistUpdate() {
+    const playlist = await getPlaylist()
+    const playlistLength = playlist.length
+    const rawCurrentIndex = await getCurrentPlaylistPos()
+    const currentIndex = rawCurrentIndex === null
+        ? -1
+        : Math.max(0, Math.min(playlistLength - 1, rawCurrentIndex))
 
-    if (!files.length && !songRequestEnabled) {
-        files = getRegularMusicFiles()
+    const windowStart = currentIndex >= 0
+        ? Math.max(0, currentIndex - 10)
+        : 0
+    const windowEnd = currentIndex >= 0
+        ? Math.min(playlistLength, currentIndex + 11)
+        : Math.min(playlistLength, 21)
+
+    playlistUpdatePayload = {
+        files: playlist.slice(windowStart, windowEnd),
+        playlist_length: playlistLength,
+        current_index: currentIndex,
+        window_start: windowStart,
+        window_end: Math.max(windowStart - 1, windowEnd - 1),
     }
 
-    const nextStatus = {
-        files,
-        playlist_length: files.length,
-        songrequest_enabled: songRequestEnabled,
-    }
-    const nextSignature = JSON.stringify(nextStatus)
-
-    playlistStatus = nextStatus
-
-    if (!force && nextSignature === playlistStatusSignature) return
-
-    playlistStatusSignature = nextSignature
-    getWebsocketServer().send('notify_playlist_update', playlistStatus)
+    getWebsocketServer().send('notify_playlist_update', playlistUpdatePayload)
 }
 
 export async function sync() {
@@ -594,7 +603,7 @@ export async function setMusicShuffle(enabled: any) {
 
     if (musicShuffleEnabled) {
         await mpvCommand(['playlist-shuffle'])
-        await syncPlaylist()
+        await notifyPlaylistUpdate()
         await sync()
         return
     }
@@ -764,7 +773,7 @@ export async function deleteSong(filename: string) {
     }
 
     await sleep(150)
-    await syncPlaylist()
+    await notifyPlaylistUpdate()
     await sync()
 
     return {
@@ -781,6 +790,7 @@ async function getMusicUpdate() {
     const shuffle = musicShuffleEnabled
     const loopPlaylist = await mpvGetProperty('loop-playlist')
     const loopFile = await mpvGetProperty('loop-file')
+
 
     return {
         status: current.pause ? 'paused' : 'playing',
@@ -800,14 +810,14 @@ async function getMusicUpdate() {
         album: current.album,
         thumbnail,
         track: current,
-        playlist_length: playlistStatus.playlist_length ?? 0,
+        playlist_length: songRequestEnabled
+            ? getSongRequestFiles().filter(file => isMusicFile(file)).length
+            : getRegularMusicFiles().length,
         songrequest: getSongRequestState(),
     }
 }
 
 export function getSongRequestState() {
-    const files = getSongRequestFiles().filter(file => isMusicFile(file))
-
     return {
         enabled: songRequestEnabled,
         busy: songRequestBusy,
@@ -817,7 +827,6 @@ export function getSongRequestState() {
         queue_position: currentRequestIndex,
         current_url: songRequestQueue[currentRequestIndex] ?? null,
         next_url: songRequestQueue[currentRequestIndex + 1] ?? null,
-        files,
         title_map: songRequestTitleMap,
         blocklist: songRequestBlocklist,
     }
@@ -1195,6 +1204,7 @@ async function handlePlaylistPosChanged(value: any) {
 
     await sleep(100)
     await sync()
+    await notifyPlaylistUpdate()
     void show()
 
     const eventName = direction === 'next' ? 'event_music_next' : 'event_music_prev'
@@ -1757,7 +1767,7 @@ export async function deleteRegularMusicFile(filename: string) {
     rmSync(targetFile, { force: true })
 
     await sleep(150)
-    await syncPlaylist()
+    await notifyPlaylistUpdate()
     await sync()
 
     return {
@@ -1790,7 +1800,7 @@ export async function addRegularMusicFileFromUpload(file: any) {
     await mpvCommand(['loadfile', targetFile, 'append-play'])
 
     await sleep(150)
-    await syncPlaylist()
+    await notifyPlaylistUpdate()
     await sync()
 
     return {
