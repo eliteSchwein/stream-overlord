@@ -106,6 +106,66 @@ export const useAppStore = defineStore('app', {
     getStorage: (state) => state.storage,
     getIntegrations: (state) => state.integrations,
     getSettings: (state) => state.settings,
+
+    hasObsEnabled: (state) => {
+      const integrations: any = state.integrations ?? {}
+      const obsIntegrations = integrations.obs
+
+      if (obsIntegrations?.enabled === false) return false
+      if (obsIntegrations?.enabled === true) return true
+
+      if (
+        obsIntegrations &&
+        typeof obsIntegrations === 'object' &&
+        Object.keys(obsIntegrations).length > 0
+      ) {
+        return true
+      }
+
+      const config: any = state.parsedBackendConfig ?? {}
+
+      return Object.entries(config).some(([key, value]: [string, any]) => {
+        if (!/^obs/i.test(key)) return false
+
+        if (Array.isArray(value)) {
+          return value.some((entry) => Boolean(entry?.ip))
+        }
+
+        if (value && typeof value === 'object') {
+          return Boolean(value.ip) ||
+            Object.values(value).some((entry: any) => Boolean(entry?.ip))
+        }
+
+        return false
+      })
+    },
+
+    hasYoloboxEnabled: (state) => {
+      return Boolean((state.integrations as any)?.yolobox?.enabled)
+    },
+
+    hasTwitchEnabled: (state) => {
+      const twitch: any = (state.integrations as any)?.twitch
+
+      if (!twitch || typeof twitch !== 'object') return false
+
+      return twitch.control === true || twitch.message === true
+    },
+
+    hasWledEnabled: (state) => {
+      const wled: any = (state.integrations as any)?.wled
+
+      if (wled && typeof wled === 'object' && Object.keys(wled).length > 0) {
+        return true
+      }
+
+      if (Object.keys(state.wledConfigs ?? {}).length > 0) {
+        return true
+      }
+
+      return Array.isArray(state.assets?.wleds) && state.assets.wleds.length > 0
+    },
+
     hasApiWebsite: (state) => {
       const parsedConfig: any = state.parsedBackendConfig ?? {}
       const rawConfig = String(state.backendConfig ?? '')

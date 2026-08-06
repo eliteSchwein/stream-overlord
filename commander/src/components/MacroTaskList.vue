@@ -358,26 +358,20 @@ export default {
   },
 
   computed: {
-    ...mapState(useAppStore, ['getIntegrations']),
+    ...mapState(useAppStore, [
+      'hasObsEnabled',
+      'hasYoloboxEnabled',
+      'hasTwitchEnabled',
+      'hasWledEnabled',
+      'hasApiWebsite',
+    ]),
 
     currentTaskListComponent(): any {
       return this.taskListComponent || this.$options
     },
 
-    hasYoloboxEnabled(): boolean {
-      const integrations = this.getIntegrations || {}
-
-      return Boolean(integrations.yolobox?.enabled)
-    },
-
     availablePresets(): any[] {
-      const presets = this.filterPresets(this.presets)
-
-      if (this.hasYoloboxEnabled) {
-        return presets
-      }
-
-      return presets.filter((preset: any) => preset.title !== 'YoloBox')
+      return this.filterPresets(this.presets)
     },
   },
 
@@ -673,11 +667,13 @@ export default {
         {
           titleKey: 'macro.presets.twitch.title',
           icon: 'mdi-twitch',
+          requires: 'twitch',
           children: [
             { titleKey: 'macro.presets.twitch.createClip', icon: 'mdi-content-cut', factory: () => this.createTask({ channel: 'twitch', method: 'clip', data: { create_after_delay: false, wait_seconds: 35, variable: 'clip' } }) },
             {
               titleKey: 'macro.presets.twitch.randomClips.title',
               icon: 'mdi-movie-open',
+              requires: 'api_website',
               children: [
                 { titleKey: 'macro.presets.twitch.randomClips.enable', icon: 'mdi-movie-open-play', factory: () => this.createTask({ channel: 'twitch', method: 'enable_random_clip', data: { channel: '', mode: 'random', recent_clips: 0, max_length: 60, filter_long_videos: false, info: false, show_timer: false, volume: 50, variable: 'random_clip' } }) },
                 { titleKey: 'macro.presets.twitch.randomClips.disable', icon: 'mdi-movie-open-off', factory: () => this.createTask({ channel: 'twitch', method: 'disable_random_clip', data: {} }) },
@@ -727,6 +723,7 @@ export default {
         {
           titleKey: 'macro.presets.yolobox.title',
           icon: 'mdi-video-wireless-outline',
+          requires: 'yolobox',
           children: [
             {
               titleKey: 'macro.presets.yolobox.switchVideoSource',
@@ -859,6 +856,7 @@ export default {
         {
           titleKey: 'macro.presets.obs.title',
           icon: 'mdi-broadcast',
+          requires: 'obs',
           children: [
             {
               titleKey: 'macro.presets.obs.scenes.title',
@@ -943,6 +941,7 @@ export default {
         {
           titleKey: 'macro.presets.lights.title',
           icon: 'mdi-led-on',
+          requires: 'wled',
           children: [
             {
               titleKey: 'macro.presets.lights.wled',
@@ -1071,9 +1070,27 @@ export default {
       return preset?.title ?? ''
     },
 
+    isPresetAvailable(preset: any): boolean {
+      switch (preset?.requires) {
+        case 'obs':
+          return this.hasObsEnabled
+        case 'yolobox':
+          return this.hasYoloboxEnabled
+        case 'twitch':
+          return this.hasTwitchEnabled
+        case 'wled':
+          return this.hasWledEnabled
+        case 'api_website':
+          return this.hasApiWebsite
+        default:
+          return true
+      }
+    },
+
     filterPresets(presets: any[]): any[] {
       return presets
         .map((preset: any) => {
+          if (!this.isPresetAvailable(preset)) return null
           if (preset.loopOnly === true && !this.insideLoop) return null
 
           if (!preset.children?.length) return preset

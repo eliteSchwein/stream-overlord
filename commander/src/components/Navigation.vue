@@ -22,7 +22,8 @@ export default {
       'getCurrentGame',
       'getParsedBackendConfig',
       'getObsAudioData',
-      'getIntegrations'
+      'hasObsEnabled',
+      'hasYoloboxEnabled'
     ]),
     currentRouteTitle() {
       const path = this.$route.path || '/';
@@ -56,35 +57,6 @@ export default {
         ? this.$t(translationKey)
         : this.$t('navigation.tabs.dashboard');
     },
-    hasObsConfig() {
-      const integrations = this.getIntegrations || {}
-      const obsIntegrations = integrations.obs || {}
-
-      if(obsIntegrations && typeof obsIntegrations === 'object' && Object.keys(obsIntegrations).length > 0) {
-        return true
-      }
-
-      const config = this.getParsedBackendConfig || {}
-
-      return Object.entries(config).some(([key, value]) => {
-        if(!/^obs/i.test(key)) return false
-
-        if(Array.isArray(value)) {
-          return value.some((entry) => !!entry?.ip)
-        }
-
-        if(value && typeof value === 'object') {
-          return !!value.ip || Object.values(value).some((entry) => !!entry?.ip)
-        }
-
-        return false
-      })
-    },
-    hasYoloboxEnabled() {
-      const integrations = this.getIntegrations || {}
-
-      return Boolean(integrations.yolobox?.enabled)
-    }
   },
   methods: {
     async restartService() {
@@ -335,7 +307,7 @@ export default {
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.streamingServices') }}</v-list-subheader>
       <v-list-item
-        v-if="hasObsConfig"
+        v-if="hasObsEnabled"
         prepend-icon="mdi-video-box"
         :title="$t('navigation.tabs.obs')"
         color=""
