@@ -159,6 +159,8 @@ import MacroAutoMacroStartTaskAccordion from '@/components/accordions/macro/Macr
 import MacroAutoMacroStopTaskAccordion from '@/components/accordions/macro/MacroAutoMacroStopTaskAccordion.vue'
 import MacroRotateSceneStartTaskAccordion from '@/components/accordions/macro/MacroRotateSceneStartTaskAccordion.vue'
 import MacroRotateSceneStopTaskAccordion from '@/components/accordions/macro/MacroRotateSceneStopTaskAccordion.vue'
+import MacroThemeSetColorTaskAccordion from '@/components/accordions/macro/theme/MacroThemeSetColorTaskAccordion.vue'
+import MacroThemeRestoreColorTaskAccordion from '@/components/accordions/macro/theme/MacroThemeRestoreColorTaskAccordion.vue'
 import MacroTwitchClipTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchClipTaskAccordion.vue'
 import MacroTwitchShoutoutTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchShoutoutTaskAccordion.vue'
 import MacroTwitchCategoryTaskAccordion from '@/components/accordions/macro/twitch/MacroTwitchCategoryTaskAccordion.vue'
@@ -258,6 +260,8 @@ export default {
     MacroAutoMacroStopTaskAccordion,
     MacroRotateSceneStartTaskAccordion,
     MacroRotateSceneStopTaskAccordion,
+    MacroThemeSetColorTaskAccordion,
+    MacroThemeRestoreColorTaskAccordion,
     MacroTwitchClipTaskAccordion,
     MacroTwitchShoutoutTaskAccordion,
     MacroTwitchCategoryTaskAccordion,
@@ -973,6 +977,30 @@ export default {
           icon: 'mdi-function',
           children: [
             {
+              titleKey: 'macro.presets.theme.title',
+              icon: 'mdi-palette',
+              children: [
+                {
+                  titleKey: 'macro.presets.theme.setColor',
+                  icon: 'mdi-palette',
+                  factory: () => this.createTask({
+                    channel: 'theme',
+                    method: 'set_color',
+                    data: { color: 'ff9800' },
+                  }),
+                },
+                {
+                  titleKey: 'macro.presets.theme.restoreColor',
+                  icon: 'mdi-palette-outline',
+                  factory: () => this.createTask({
+                    channel: 'theme',
+                    method: 'restore_color',
+                    data: {},
+                  }),
+                },
+              ],
+            },
+            {
               titleKey: 'macro.presets.expert.webhook',
               icon: 'mdi-webhook',
               factory: () => this.createTask({ channel: 'webhook', method: 'post', data: {} }),
@@ -1118,6 +1146,14 @@ export default {
         if (['reboot', 'restart'].includes(item?.task?.method)) {
           return 'MacroSystemRebootTaskAccordion'
         }
+      }
+
+      if (item?.task?.channel === 'theme') {
+        if (item?.task?.method === 'restore_color') {
+          return 'MacroThemeRestoreColorTaskAccordion'
+        }
+
+        return 'MacroThemeSetColorTaskAccordion'
       }
 
       if (item?.task?.channel === 'wled' && item?.task?.method === 'custom') {

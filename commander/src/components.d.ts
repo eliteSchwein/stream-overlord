@@ -149,6 +149,8 @@ declare module 'vue' {
     MacroTaskActions: typeof import('./components/accordions/macro/MacroTaskActions.vue')['default']
     MacroTaskList: typeof import('./components/MacroTaskList.vue')['default']
     MacroTaskTitle: typeof import('./components/accordions/macro/MacroTaskTitle.vue')['default']
+    MacroThemeRestoreColorTaskAccordion: typeof import('./components/accordions/macro/theme/MacroThemeRestoreColorTaskAccordion.vue')['default']
+    MacroThemeSetColorTaskAccordion: typeof import('./components/accordions/macro/theme/MacroThemeSetColorTaskAccordion.vue')['default']
     MacroTimerTaskAccordion: typeof import('./components/accordions/macro/MacroTimerTaskAccordion.vue')['default']
     MacroTwitchAdTaskAccordion: typeof import('./components/accordions/macro/twitch/MacroTwitchAdTaskAccordion.vue')['default']
     MacroTwitchBanTaskAccordion: typeof import('./components/accordions/macro/twitch/MacroTwitchBanTaskAccordion.vue')['default']

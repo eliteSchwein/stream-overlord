@@ -837,7 +837,12 @@
         "rawTask": "Raw task",
         "keyboard": "Keyboard"
       },
-      "parallel": "Parallel tasks"
+      "parallel": "Parallel tasks",
+      "theme": {
+        "title": "Theme",
+        "setColor": "Set theme color",
+        "restoreColor": "Restore theme color"
+      }
     },
     "core": {
       "autoMacroSelect": {
@@ -1093,6 +1098,20 @@
       "commandMacro": {},
       "eventAsset": {},
       "eventMacro": {}
+    },
+    "theme": {
+      "fields": {
+        "color": "Theme color"
+      },
+      "setColor": {
+        "title": "Set theme color",
+        "hint": "Six-digit hex color without #, for example ff9800. Template variables are supported.",
+        "openPicker": "Open color picker"
+      },
+      "restoreColor": {
+        "title": "Restore theme color",
+        "info": "Removes the manual theme color and uses the current game or default color again. The LED color is not changed."
+      }
     }
   },
   "giveaway": {
@@ -1437,7 +1456,7 @@
     "language": "Language",
     "theme": "Theme",
     "themeDefaultPrimaryColor": "Default primary color",
-    "themeDefaultPrimaryColorHint": "Used as primary color for the whole bot system and for the overlay via --theme-color.",
+    "themeDefaultPrimaryColorHint": "Used as CSS variable var(--theme-color) for the overlays, example: background: var(--theme-color).",
     "themeHexColor": "Hex color",
     "tts": "Text to Speech",
     "ttsWarning": "Avoid too high quality voice models on small systems. Medium models are usually the best balance for stream alerts.",

@@ -837,7 +837,12 @@
         "rawTask": "Rohe Aufgabe",
         "keyboard": "Tastatur"
       },
-      "parallel": "Parallele Tasks"
+      "parallel": "Parallele Tasks",
+      "theme": {
+        "title": "Theme",
+        "setColor": "Theme-Farbe setzen",
+        "restoreColor": "Theme-Farbe wiederherstellen"
+      }
     },
     "core": {
       "autoMacroSelect": {
@@ -1093,6 +1098,20 @@
       "commandMacro": {},
       "eventAsset": {},
       "eventMacro": {}
+    },
+    "theme": {
+      "fields": {
+        "color": "Theme-Farbe"
+      },
+      "setColor": {
+        "title": "Theme-Farbe setzen",
+        "hint": "Sechsstellige Hex-Farbe ohne #, zum Beispiel ff9800. Template-Variablen werden unterstützt.",
+        "openPicker": "Farbauswahl öffnen"
+      },
+      "restoreColor": {
+        "title": "Theme-Farbe wiederherstellen",
+        "info": "Entfernt die manuelle Theme-Farbe und verwendet wieder die aktuelle Spiel- oder Standardfarbe. Die LED-Farbe wird nicht geändert."
+      }
     }
   },
   "giveaway": {
@@ -1437,7 +1456,7 @@
     "language": "Sprache",
     "theme": "Design",
     "themeDefaultPrimaryColor": "Standard-Primärfarbe",
-    "themeDefaultPrimaryColorHint": "Wird als Primärfarbe für das gesamte Bot-System und für das Overlay über --theme-color verwendet.",
+    "themeDefaultPrimaryColorHint": "Wird als CSS-Variable var(--theme-color) für die Overlays verwendet, z. B. background: var(--theme-color).",
     "themeHexColor": "Hex-Farbe",
     "tts": "Text zu Sprache",
     "ttsWarning": "Vermeide zu hochwertige Sprachmodelle auf kleinen Systemen. Mittlere Modelle bieten meist die beste Balance für Stream-Alarme.",

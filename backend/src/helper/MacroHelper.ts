@@ -33,6 +33,7 @@ import AutoMacroTask from "./MacroTasks/AutoMacroTask";
 import TwitchMacroTask from "./MacroTasks/TwitchMacroTask";
 import AudioMacroTask from "./MacroTasks/AudioMacroTask";
 import SystemMacroTask from "./MacroTasks/SystemMacroTask";
+import ThemeTask from "./MacroTasks/ThemeTask";
 
 let macros: any = {};
 
@@ -611,6 +612,7 @@ export default function loadMacros() {
         new AutoMacroTask(),
         new TwitchMacroTask(),
         new SystemMacroTask(),
+        new ThemeTask()
     )
 
     loadMacrosFromFiles();
