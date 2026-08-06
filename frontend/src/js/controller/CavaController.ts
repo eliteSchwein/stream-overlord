@@ -4,7 +4,7 @@ import { Websocket } from "websocket-ts";
 type CavaBar = HTMLDivElement | SVGRectElement
 
 export default class CavaController extends BaseController {
-    websocketEndpoints = ['notify_music_cava', 'notify_music_update']
+    websocketEndpoints = ['notify_music_cava']
 
     protected bars: CavaBar[] = []
     protected values: number[] = []
@@ -20,6 +20,9 @@ export default class CavaController extends BaseController {
     protected isSvgMode = false
     protected invertBars = false
     protected svgRectData = new Map<SVGRectElement, { y: number, height: number }>()
+
+    protected barCountMismatchFrames = 0
+    protected pendingBarCount = 0
 
     async connect() {
         super.connect?.()
@@ -46,7 +49,9 @@ export default class CavaController extends BaseController {
         for (const rawValues of frames) {
             if (!rawValues.length) continue
 
+            // Required because the final value is CAVA metadata/control data.
             const values = rawValues.slice(0, -1)
+
             if (!values.length) continue
 
             if (!this.expectedBarCount) {
@@ -55,6 +60,9 @@ export default class CavaController extends BaseController {
             }
 
             if (values.length !== this.expectedBarCount) {
+                console.warn(
+                    `[cava] ignoring frame with ${values.length} bars, expected ${this.expectedBarCount}`
+                )
                 continue
             }
 
