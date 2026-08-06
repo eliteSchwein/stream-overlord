@@ -15,6 +15,7 @@
         <v-combobox
           v-model="fileData.path"
           :items="assetFolderOptions"
+          :loading="loadingMediaFolders"
           :label="$t('macro.core.file.assetFolderPath')"
           density="comfortable"
           variant="outlined"
@@ -49,7 +50,7 @@
 </template>
 
 <script lang="ts">
-import { useAppStore } from '@/stores/app'
+import { getWebsocketClient } from '@/plugins/websocketInstance'
 import MacroTaskAccordionTemplate from './MacroTaskAccordionTemplate.vue'
 
 export default {
@@ -68,6 +69,8 @@ export default {
 
   data() {
     return {
+      mediaFolders: [] as string[],
+      loadingMediaFolders: false,
       extensionOptions: [
         'webm', 'mp4', 'mov', 'mkv',
         'webp', 'png', 'jpg', 'jpeg', 'gif',
@@ -76,6 +79,10 @@ export default {
         'txt', 'csv', 'html', 'css', 'js',
       ],
     }
+  },
+
+  mounted() {
+    void this.fetchMediaFolders()
   },
 
   computed: {
@@ -95,55 +102,8 @@ export default {
     },
 
     assetFolderOptions(): string[] {
-      const appStore = useAppStore()
-      const assets = Array.isArray(appStore.getAssets) ? appStore.getAssets : []
-
-      const folders = new Set<string>([''])
-
-      for (const entry of assets) {
-        if (typeof entry === 'string') {
-          const path = this.normalizePath(entry)
-
-          if (path && !this.hasExtension(path)) {
-            folders.add(path)
-          }
-
-          this.addParents(folders, path)
-          continue
-        }
-
-        if (!entry || typeof entry !== 'object') continue
-
-        const original = this.normalizePath((entry as any).original)
-        const compressed = this.normalizePath((entry as any).compressed)
-
-        this.addParents(folders, original)
-        this.addParents(folders, compressed)
-      }
-
-      const foundFolders = [...folders]
-
-      for (const folder of foundFolders) {
-        if (!folder || folder === 'compressed' || folder.startsWith('compressed/')) {
-          continue
-        }
-
-        folders.add(`compressed/${folder}`)
-      }
-
-      const sortedFolders = [...folders].filter(Boolean)
-
-      const compressedFolders = sortedFolders
-        .filter(folder => folder === 'compressed' || folder.startsWith('compressed/'))
-        .sort((a, b) => a.localeCompare(b))
-
-      const normalFolders = sortedFolders
-        .filter(folder => folder !== 'compressed' && !folder.startsWith('compressed/'))
-        .sort((a, b) => a.localeCompare(b))
-
       return [
-        ...compressedFolders,
-        ...normalFolders,
+        ...this.mediaFolders,
         '',
       ]
     },
@@ -156,21 +116,47 @@ export default {
         : ''
     },
 
-    hasExtension(value: string): boolean {
-      return /\.[a-z0-9]+$/i.test(value)
+    async requestMediaList(path = ''): Promise<any[]> {
+      const client = getWebsocketClient()
+
+      if (!client) {
+        return []
+      }
+
+      const response = await client.request('media_list', { path }, 15_000)
+      const data = response?.params ?? response?.data ?? response
+      return Array.isArray(data?.files) ? data.files : []
     },
 
-    addParents(folders: Set<string>, value: string) {
-      let current = this.normalizePath(value)
+    async fetchMediaFolders() {
+      if (this.loadingMediaFolders) return
 
-      while (current.includes('/')) {
-        current = current.split('/').slice(0, -1).join('/')
+      this.loadingMediaFolders = true
 
-        if (current) {
-          folders.add(current)
-        }
+      try {
+        const folders = new Set<string>()
+        await this.collectMediaFolders('', folders)
+        this.mediaFolders = [...folders].sort((a, b) => a.localeCompare(b))
+      } catch {
+        this.mediaFolders = []
+      } finally {
+        this.loadingMediaFolders = false
       }
     },
-  },
+
+    async collectMediaFolders(path: string, folders: Set<string>) {
+      const entries = await this.requestMediaList(path)
+
+      for (const entry of entries) {
+        if (entry?.type !== 'folder') continue
+
+        const folderPath = this.normalizePath(entry?.path)
+        if (!folderPath || folders.has(folderPath)) continue
+
+        folders.add(folderPath)
+        await this.collectMediaFolders(folderPath, folders)
+      }
+    },
+  }
 }
 </script>

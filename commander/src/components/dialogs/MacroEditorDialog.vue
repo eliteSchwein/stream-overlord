@@ -101,7 +101,7 @@ import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 
 type VisualTask = {
   id: string
-  type: 'task' | 'condition'
+  type: 'task' | 'condition' | 'loop'
   task: any
   children?: VisualTask[]
   branches?: VisualBranch[]
@@ -262,7 +262,10 @@ export default {
 
       while (index < tasks.length) {
         const task = this.cloneTask(tasks[index])
-        const method = task?.channel === 'condition' ? task.method : ''
+        const method =
+          task?.channel === 'condition' || task?.channel === 'loop'
+            ? task.method
+            : ''
 
         if (stopMethods.includes(method)) {
           stopMethod = method
@@ -297,6 +300,24 @@ export default {
             task,
             children: childResult.items,
             branches,
+          })
+
+          continue
+        }
+
+        if (task?.channel === 'loop' && task.method === 'for') {
+          const childResult = this.parseTaskRange(tasks, index + 1, ['end_for'])
+          index = childResult.index
+
+          if (tasks[index]?.channel === 'loop' && tasks[index].method === 'end_for') {
+            index++
+          }
+
+          items.push({
+            id: this.uid(),
+            type: 'loop',
+            task,
+            children: childResult.items,
           })
 
           continue
@@ -360,6 +381,16 @@ export default {
           }
 
           tasks.push({ channel: 'condition', method: 'end_if' })
+          continue
+        }
+
+        if (
+          item.type === 'loop' ||
+          (item.task?.channel === 'loop' && item.task?.method === 'for')
+        ) {
+          tasks.push(this.cloneTask(item.task))
+          tasks.push(...this.flattenVisualTasks(item.children ?? []))
+          tasks.push({ channel: 'loop', method: 'end_for' })
           continue
         }
 

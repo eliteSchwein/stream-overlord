@@ -842,6 +842,11 @@
         "title": "Theme",
         "setColor": "Theme-Farbe setzen",
         "restoreColor": "Theme-Farbe wiederherstellen"
+      },
+      "mediaGroup": {
+        "title": "Medien",
+        "show": "Medium anzeigen",
+        "clear": "Medien leeren"
       }
     },
     "core": {
@@ -959,8 +964,16 @@
         "from": "Von",
         "to": "Bis",
         "step": "Schritt",
-        "dataVariablePath": "Daten- / Variablenpfad",
-        "loopTasks": "Schleifenaufgaben"
+        "dataVariablePath": "Pfad zur Array-Variable",
+        "loopTasks": "Schleifenaufgaben",
+        "values": "Array-Werte",
+        "valuesHint": "Wert eingeben und mit Enter hinzufügen.",
+        "mode": "Schleifenquelle",
+        "modes": {
+          "numbers": "Zahlen",
+          "array": "Array"
+        },
+        "dataVariablePathHint": "Optionale Alternative zu festen Werten, zum Beispiel files oder event.items."
       },
       "macroTask": {
         "macro": "Makro"
@@ -986,7 +999,10 @@
         "image": "Bild",
         "video": "Video",
         "audio": "Audio",
-        "iframe": "Iframe"
+        "iframe": "Iframe",
+        "clearTitle": "Medien leeren",
+        "clearInfo": "Entfernt das aktuell angezeigte Medium für das ausgewählte Ziel.",
+        "clearTargetHint": "Das zu leerende Medienziel. Standard ist default."
       },
       "musicTask": {},
       "neopixel": {},

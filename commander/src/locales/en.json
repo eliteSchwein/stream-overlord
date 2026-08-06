@@ -842,6 +842,11 @@
         "title": "Theme",
         "setColor": "Set theme color",
         "restoreColor": "Restore theme color"
+      },
+      "mediaGroup": {
+        "title": "Media",
+        "show": "Show media",
+        "clear": "Clear media"
       }
     },
     "core": {
@@ -959,8 +964,16 @@
         "from": "From",
         "to": "To",
         "step": "Step",
-        "dataVariablePath": "Data / variable path",
-        "loopTasks": "Loop tasks"
+        "dataVariablePath": "Array variable path",
+        "loopTasks": "Loop tasks",
+        "values": "Array values",
+        "valuesHint": "Enter a value and press Enter to add it.",
+        "mode": "Loop source",
+        "modes": {
+          "numbers": "Numbers",
+          "array": "Array"
+        },
+        "dataVariablePathHint": "Optional alternative to explicit values, for example files or event.items."
       },
       "macroTask": {
         "macro": "Macro"
@@ -986,7 +999,10 @@
         "image": "Image",
         "video": "Video",
         "audio": "Audio",
-        "iframe": "Iframe"
+        "iframe": "Iframe",
+        "clearTitle": "Clear media",
+        "clearInfo": "Clears the currently displayed media for the selected target.",
+        "clearTargetHint": "The media target to clear. Defaults to default."
       },
       "musicTask": {},
       "neopixel": {},

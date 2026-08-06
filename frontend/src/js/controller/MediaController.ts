@@ -5,6 +5,12 @@ type MediaElement = HTMLImageElement | HTMLVideoElement | HTMLAudioElement | HTM
 
 type MediaType = 'image' | 'video' | 'audio' | 'iframe' | 'unknown'
 
+type OriginalMediaState = {
+    className: string
+    innerHTML?: string
+    attributes?: Array<[string, string]>
+}
+
 export default class MediaController extends BaseController {
     websocketEndpoints = ['notify_media_update']
 
@@ -15,6 +21,7 @@ export default class MediaController extends BaseController {
     protected loop = false
     protected muted = false
     protected controls = false
+    protected originalState?: OriginalMediaState
 
     async connect() {
         super.connect?.()
@@ -27,16 +34,8 @@ export default class MediaController extends BaseController {
         this.controls = this.element.getAttribute('data-media-controls') === 'true'
 
         this.element.classList.add('media-controller')
-
-        if (this.isMediaElement(this.element)) {
-            this.mediaElement = this.element
-        } else {
-            const child = this.element.querySelector('img, video, audio, iframe')
-
-            if (child && this.isMediaElement(child)) {
-                this.mediaElement = child
-            }
-        }
+        this.captureOriginalState()
+        this.findMediaElement()
     }
 
     async handleMessage(websocket: Websocket, method: string, data: any) {
@@ -46,14 +45,95 @@ export default class MediaController extends BaseController {
 
         if (frameTarget !== this.target) return
 
+        if (data?.media === 'clear_media') {
+            this.restoreOriginalState()
+            return
+        }
+
         const path = String(data?.path ?? data?.src ?? '').trim()
 
         if (!path) {
-            if (this.clearOnEmpty) this.clearMedia()
+            if (this.clearOnEmpty) this.restoreOriginalState()
             return
         }
 
         this.showMedia(path, data)
+    }
+
+    protected captureOriginalState() {
+        if (this.isMediaElement(this.element)) {
+            this.originalState = {
+                className: this.element.className,
+                attributes: Array.from(this.element.attributes)
+                    .map(attribute => [attribute.name, attribute.value]),
+            }
+            return
+        }
+
+        this.originalState = {
+            className: this.element.className,
+            innerHTML: this.element.innerHTML,
+        }
+    }
+
+    protected restoreOriginalState() {
+        if (!this.originalState) return
+
+        this.stopCurrentMedia()
+
+        if (this.isMediaElement(this.element)) {
+            for (const attribute of Array.from(this.element.attributes)) {
+                this.element.removeAttribute(attribute.name)
+            }
+
+            for (const [name, value] of this.originalState.attributes ?? []) {
+                this.element.setAttribute(name, value)
+            }
+
+            this.element.className = this.originalState.className
+            this.mediaElement = this.element
+            this.reloadRestoredMedia(this.mediaElement)
+            return
+        }
+
+        this.element.innerHTML = this.originalState.innerHTML ?? ''
+        this.element.className = this.originalState.className
+        this.findMediaElement()
+
+        if (this.mediaElement) {
+            this.reloadRestoredMedia(this.mediaElement)
+        }
+    }
+
+    protected stopCurrentMedia() {
+        if (this.mediaElement instanceof HTMLVideoElement || this.mediaElement instanceof HTMLAudioElement) {
+            this.mediaElement.pause()
+        }
+    }
+
+    protected reloadRestoredMedia(element: MediaElement) {
+        if (!(element instanceof HTMLVideoElement) && !(element instanceof HTMLAudioElement)) return
+
+        element.load()
+
+        if (element.autoplay && element.hasAttribute('src')) {
+            element.play().catch(() => undefined)
+        }
+    }
+
+    protected findMediaElement() {
+        this.mediaElement = undefined
+
+        if (this.isMediaElement(this.element)) {
+            this.mediaElement = this.element
+            return
+        }
+
+        const child = this.element.querySelector('img, video, audio, iframe')
+
+        if (child && this.isMediaElement(child)) {
+            this.mediaElement = child
+        }
     }
 
     protected showMedia(src: string, data: any = {}) {
@@ -86,21 +166,6 @@ export default class MediaController extends BaseController {
                 element.play().catch(() => undefined)
             }
         }
-    }
-
-    protected clearMedia() {
-        if (!this.mediaElement) return
-
-        if (this.mediaElement instanceof HTMLVideoElement || this.mediaElement instanceof HTMLAudioElement) {
-            this.mediaElement.pause()
-            this.mediaElement.removeAttribute('src')
-            this.mediaElement.load()
-        } else {
-            this.mediaElement.removeAttribute('src')
-        }
-
-        this.element.classList.remove('media-active', 'media-image', 'media-video', 'media-audio', 'media-iframe', 'media-unknown')
-        this.element.classList.add('media-empty')
     }
 
     protected ensureMediaElement(type: MediaType): MediaElement | undefined {

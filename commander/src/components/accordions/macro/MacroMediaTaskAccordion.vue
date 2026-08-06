@@ -36,7 +36,7 @@
               v-model="task.data.path"
               :loading="loadingSources"
               :label="$t('macro.final.media.mediaPathURLPlaceholder')"
-              :placeholder="$t('macro.final.media.assetsImageWebpHttpsExampleComImagePngVariable')"
+              :placeholder="mediaPathPlaceholder"
               prepend-inner-icon="mdi-link-variant"
               append-inner-icon="mdi-menu-down"
               clearable
@@ -186,6 +186,10 @@ export default {
 
     title(): string {
       return `Media: ${this.task.data?.target || this.task.data?.path || 'empty'}`
+    },
+
+    mediaPathPlaceholder(): string {
+      return 'assets/image.webp, https://example.com/image.png, ${variables.media_url}'
     },
 
     sourceOptions(): string[] {

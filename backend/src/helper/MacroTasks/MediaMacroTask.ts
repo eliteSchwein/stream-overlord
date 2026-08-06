@@ -34,6 +34,15 @@ export default class MediaMacroTask extends BaseMacroTask {
                 break;
             }
 
+            case "clear_media": {
+                this.websocket.send("notify_media_update", {
+                    media: method,
+                    target: data.target ?? "default",
+                });
+
+                break;
+            }
+
             default: {
                 logWarn(`invalid media method: ${method}`);
                 break;
