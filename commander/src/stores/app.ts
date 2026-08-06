@@ -165,42 +165,6 @@ export const useAppStore = defineStore('app', {
 
       return Array.isArray(state.assets?.wleds) && state.assets.wleds.length > 0
     },
-
-    hasApiWebsite: (state) => {
-      const parsedConfig: any = state.parsedBackendConfig ?? {}
-      const rawConfig = String(state.backendConfig ?? '')
-
-      if (parsedConfig?.api?.website) return true
-      if (parsedConfig?.['api website']) return true
-      if (parsedConfig?.api_website) return true
-      if (parsedConfig?.website?.api) return true
-
-      const hasRecursiveApiWebsite = (value: any): boolean => {
-        if (!value || typeof value !== 'object') return false
-
-        for (const key in value) {
-          const normalizedKey = String(key).toLowerCase().replace(/[_.-]+/g, ' ').trim()
-
-          if (normalizedKey === 'api website' && Boolean(value[key])) {
-            return true
-          }
-
-          if (normalizedKey === 'api') {
-            const apiValue = value[key]
-            if (apiValue?.website) return true
-            if (apiValue?.['website']) return true
-          }
-
-          if (hasRecursiveApiWebsite(value[key])) {
-            return true
-          }
-        }
-
-        return false
-      }
-
-      return hasRecursiveApiWebsite(parsedConfig) || /(^|\n)\s*\[?api\s+website\]?/i.test(rawConfig)
-    },
   },
   actions: {
     async fetchConfig() {

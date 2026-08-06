@@ -363,7 +363,6 @@ export default {
       'hasYoloboxEnabled',
       'hasTwitchEnabled',
       'hasWledEnabled',
-      'hasApiWebsite',
     ]),
 
     currentTaskListComponent(): any {
@@ -673,7 +672,6 @@ export default {
             {
               titleKey: 'macro.presets.twitch.randomClips.title',
               icon: 'mdi-movie-open',
-              requires: 'api_website',
               children: [
                 { titleKey: 'macro.presets.twitch.randomClips.enable', icon: 'mdi-movie-open-play', factory: () => this.createTask({ channel: 'twitch', method: 'enable_random_clip', data: { channel: '', mode: 'random', recent_clips: 0, max_length: 60, filter_long_videos: false, info: false, show_timer: false, volume: 50, variable: 'random_clip' } }) },
                 { titleKey: 'macro.presets.twitch.randomClips.disable', icon: 'mdi-movie-open-off', factory: () => this.createTask({ channel: 'twitch', method: 'disable_random_clip', data: {} }) },
@@ -1080,8 +1078,6 @@ export default {
           return this.hasTwitchEnabled
         case 'wled':
           return this.hasWledEnabled
-        case 'api_website':
-          return this.hasApiWebsite
         default:
           return true
       }
