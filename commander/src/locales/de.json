@@ -1455,6 +1455,57 @@
       "add": "WLED hinzufügen",
       "name": "Name",
       "ip": "IP-Adresse"
+    },
+    "ui": {
+      "title": "Integrationen",
+      "status": {
+        "loggedIn": "Angemeldet",
+        "missing": "Fehlt",
+        "optional": "Optional",
+        "disabled": "Deaktiviert",
+        "connected": "Verbunden",
+        "offline": "Offline",
+        "none": "keiner"
+      },
+      "fields": {
+        "name": "Name",
+        "ipHost": "IP / Host",
+        "gpio": "GPIO",
+        "amount": "Anzahl",
+        "heartbeatIndex": "Heartbeat-Index",
+        "port": "Port",
+        "password": "Passwort"
+      },
+      "twitch": {
+        "controlAuth": "Control-Auth",
+        "controlDescription": "Vollzugriffs-Authentifizierung für EventSub, Kanalpunkte, Moderation und API-Aktionen.",
+        "authControl": "Control authentifizieren",
+        "messageAuth": "Message-Auth",
+        "messageDescription": "Optionale Authentifizierung für Chatnachrichten, Antworten, Whispers und Ankündigungen.",
+        "authMessage": "Message authentifizieren"
+      },
+      "wled": {
+        "noneConfigured": "Noch keine WLED-Integrationen konfiguriert."
+      },
+      "yolobox": {
+        "autoDiscovery": "Automatische Erkennung",
+        "discoveryDescription": "Aktiviert die YoloBox-Erkennung und Verbindungsverwaltung im Backend."
+      },
+      "neopixel": {
+        "noneConfigured": "Noch keine Neopixel-Streifen konfiguriert. Speichern ohne Änderung des Namens erstellt tablet_leds.",
+        "summary": "GPIO {gpio} · {amount} LEDs · Heartbeat {heartbeat}"
+      },
+      "obs": {
+        "noneConfigured": "Noch keine OBS-Integrationen konfiguriert."
+      },
+      "errors": {
+        "websocketDisconnected": "WebSocket ist nicht verbunden",
+        "requestFailed": "Anfrage fehlgeschlagen",
+        "nameIpRequired": "Name und IP sind erforderlich",
+        "nameIpPortRequired": "Name, IP und Port sind erforderlich",
+        "nameGpioAmountRequired": "Name, GPIO und Anzahl sind erforderlich",
+        "heartbeatOutOfRange": "Der Heartbeat-Index muss innerhalb der LED-Anzahl liegen"
+      }
     }
   },
   "autoMacro": {

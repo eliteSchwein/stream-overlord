@@ -571,6 +571,7 @@ export default {
       autoSaveTimer: undefined as ReturnType<typeof setTimeout> | undefined,
       syncingFromStore: false,
       waitingForReload: false,
+      lastSavedSnapshot: '',
       form: defaultForm(),
       voiceSearch: '',
       showVoicePicker: false,
@@ -693,12 +694,18 @@ export default {
       handler() {
         if (this.syncingFromStore || this.settingsLocked) return
 
+        const snapshot = this.getFormSnapshot()
+        if (snapshot === this.lastSavedSnapshot) return
+
         if (this.autoSaveTimer) {
           clearTimeout(this.autoSaveTimer)
         }
 
         this.autoSaveTimer = setTimeout(() => {
           this.autoSaveTimer = undefined
+
+          if (this.getFormSnapshot() === this.lastSavedSnapshot) return
+
           void this.saveSettings()
         }, 500)
       },
@@ -776,10 +783,15 @@ export default {
       this.ensureCavaTargetSettingDrafts()
 
       this.$nextTick(() => {
+        this.lastSavedSnapshot = this.getFormSnapshot()
         this.syncingFromStore = false
       })
     },
 
+
+    getFormSnapshot(): string {
+      return JSON.stringify(this.normalizeForm())
+    },
 
     normalizeCavaValue(value: any) {
       if (typeof value === 'boolean' || typeof value === 'number') return value
@@ -996,7 +1008,7 @@ export default {
           throw new Error(savedSettings.error)
         }
 
-        useAppStore().$patch({ systemConfig: savedSettings })
+        this.lastSavedSnapshot = this.getFormSnapshot()
       } catch (error: any) {
         this.waitingForReload = false
         this.errorMessage = error?.message || 'Failed to save settings'

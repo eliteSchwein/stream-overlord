@@ -3,7 +3,7 @@
     <v-card-title class="d-flex align-center justify-space-between px-3 pt-3">
       <div class="d-flex align-center ga-2">
         <v-icon icon="mdi-connection" />
-        <span>Integrations</span>
+        <span>{{ $t('integrations.ui.title') }}</span>
       </div>
     </v-card-title>
 
@@ -21,18 +21,18 @@
                 <v-col cols="12" md="6">
                   <v-card variant="tonal">
                     <v-card-title class="d-flex align-center justify-space-between text-subtitle-1">
-                      <span>Control Auth</span>
+                      <span>{{ $t('integrations.ui.twitch.controlAuth') }}</span>
                       <v-chip
                         size="x-small"
                         :color="twitchStatus.control ? 'success' : 'warning'"
                         variant="tonal"
                       >
-                        {{ twitchStatus.control ? 'Logged in' : 'Missing' }}
+                        {{ twitchStatus.control ? $t('integrations.ui.status.loggedIn') : $t('integrations.ui.status.missing') }}
                       </v-chip>
                     </v-card-title>
 
                     <v-card-text>
-                      Full access auth for EventSub, channel points, moderation and API actions.
+                      {{ $t('integrations.ui.twitch.controlDescription') }}
                     </v-card-text>
 
                     <v-card-actions>
@@ -41,8 +41,9 @@
                         variant="flat"
                         prepend-icon="mdi-login"
                         @click="openTwitchAuth('control')"
+                        :disabled="reloadInProgress"
                       >
-                        Auth control
+                        {{ $t('integrations.ui.twitch.authControl') }}
                       </v-btn>
                     </v-card-actions>
                   </v-card>
@@ -51,18 +52,18 @@
                 <v-col cols="12" md="6">
                   <v-card variant="tonal">
                     <v-card-title class="d-flex align-center justify-space-between text-subtitle-1">
-                      <span>Message Auth</span>
+                      <span>{{ $t('integrations.ui.twitch.messageAuth') }}</span>
                       <v-chip
                         size="x-small"
                         :color="twitchStatus.message ? 'success' : 'grey'"
                         variant="tonal"
                       >
-                        {{ twitchStatus.message ? 'Logged in' : 'Optional' }}
+                        {{ twitchStatus.message ? $t('integrations.ui.status.loggedIn') : $t('integrations.ui.status.optional') }}
                       </v-chip>
                     </v-card-title>
 
                     <v-card-text>
-                      Optional auth for chat messages, replies, whispers and announcements.
+                      {{ $t('integrations.ui.twitch.messageDescription') }}
                     </v-card-text>
 
                     <v-card-actions>
@@ -71,8 +72,9 @@
                         variant="flat"
                         prepend-icon="mdi-message-text-outline"
                         @click="openTwitchAuth('message')"
+                        :disabled="reloadInProgress"
                       >
-                        Auth message
+                        {{ $t('integrations.ui.twitch.authMessage') }}
                       </v-btn>
                     </v-card-actions>
                   </v-card>
@@ -96,23 +98,25 @@
                 <v-col cols="12" sm="6" md="5">
                   <v-text-field
                     v-model="wledForm.name"
-                    label="Name"
+                    :label="$t('integrations.ui.fields.name')"
                     placeholder="desk"
                     density="compact"
                     variant="outlined"
                     hide-details
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="5">
                   <v-text-field
                     v-model="wledForm.ip"
-                    label="IP / Host"
+                    :label="$t('integrations.ui.fields.ipHost')"
                     placeholder="192.168.178.50"
                     density="compact"
                     variant="outlined"
                     hide-details
                     @keydown.enter="addWled"
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
@@ -124,10 +128,10 @@
                     variant="flat"
                     prepend-icon="mdi-plus"
                     :loading="loading.wledAdd"
-                    :disabled="!canAddWled"
+                    :disabled="reloadInProgress || (!canAddWled)"
                     @click="addWled"
                   >
-                    Add
+                    {{ $t('common.add') }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -140,7 +144,7 @@
                 variant="tonal"
                 density="compact"
               >
-                No WLED integrations configured yet.
+                {{ $t('integrations.ui.wled.noneConfigured') }}
               </v-alert>
 
               <v-list v-else bg-color="transparent" density="compact">
@@ -171,6 +175,7 @@
                       variant="text"
                       :loading="loading.wledRemove === entry.name"
                       @click="removeWled(entry.name)"
+                      :disabled="reloadInProgress"
                     />
                   </template>
                 </v-list-item>
@@ -191,7 +196,7 @@
             <v-card-text class="pt-2">
               <v-card variant="tonal" class="integration-inner-card">
                 <v-card-title class="d-flex align-center justify-space-between text-subtitle-1">
-                  <span>Auto discovery</span>
+                  <span>{{ $t('integrations.ui.yolobox.autoDiscovery') }}</span>
                   <v-switch
                     :model-value="yoloboxStatus.enabled"
                     color="primary"
@@ -199,12 +204,13 @@
                     hide-details
                     :loading="loading.yoloboxToggle"
                     @update:model-value="toggleYolobox"
+                    :disabled="reloadInProgress"
                   />
                 </v-card-title>
 
                 <v-card-text>
                   <div class="mb-2">
-                    Enables Yolobox discovery and connection handling on the backend.
+                    {{ $t('integrations.ui.yolobox.discoveryDescription') }}
                   </div>
 
                   <div class="d-flex ga-2 flex-wrap">
@@ -213,7 +219,7 @@
                       :color="yoloboxStatus.enabled ? 'success' : 'grey'"
                       variant="tonal"
                     >
-                      {{ yoloboxStatus.enabled ? 'Enabled' : 'Disabled' }}
+                      {{ yoloboxStatus.enabled ? $t('common.enabled') : $t('integrations.ui.status.disabled') }}
                     </v-chip>
 
                     <v-chip
@@ -221,7 +227,7 @@
                       :color="yoloboxStatus.connected ? 'success' : 'grey'"
                       variant="tonal"
                     >
-                      {{ yoloboxStatus.connected ? 'Connected' : 'Offline' }}
+                      {{ yoloboxStatus.connected ? $t('integrations.ui.status.connected') : $t('integrations.ui.status.offline') }}
                     </v-chip>
                   </div>
                 </v-card-text>
@@ -245,45 +251,49 @@
                 <v-col cols="12" sm="6" md="3">
                   <v-text-field
                     v-model="neopixelForm.name"
-                    label="Name"
+                    :label="$t('integrations.ui.fields.name')"
                     placeholder="tablet_leds"
                     density="compact"
                     variant="outlined"
                     hide-details
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="2">
                   <v-text-field
                     v-model.number="neopixelForm.gpio"
-                    label="GPIO"
+                    :label="$t('integrations.ui.fields.gpio')"
                     type="number"
                     density="compact"
                     variant="outlined"
                     hide-details
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="2">
                   <v-text-field
                     v-model.number="neopixelForm.amount"
-                    label="Amount"
+                    :label="$t('integrations.ui.fields.amount')"
                     type="number"
                     density="compact"
                     variant="outlined"
                     hide-details
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="3">
                   <v-text-field
                     v-model.number="neopixelForm.heartbeat_index"
-                    label="Heartbeat index"
+                    :label="$t('integrations.ui.fields.heartbeatIndex')"
                     type="number"
                     density="compact"
                     variant="outlined"
                     hide-details
                     @keydown.enter="saveNeopixel"
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
@@ -295,10 +305,10 @@
                     variant="flat"
                     prepend-icon="mdi-content-save-outline"
                     :loading="loading.neopixelSave"
-                    :disabled="!canSaveNeopixel"
+                    :disabled="reloadInProgress || (!canSaveNeopixel)"
                     @click="saveNeopixel"
                   >
-                    Save
+                    {{ $t('common.save') }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -311,7 +321,7 @@
                 variant="tonal"
                 density="compact"
               >
-                No Neopixel strips configured yet. Saving without changing the name creates tablet_leds.
+                {{ $t('integrations.ui.neopixel.noneConfigured') }}
               </v-alert>
 
               <v-list v-else bg-color="transparent" density="compact">
@@ -332,23 +342,18 @@
                   </v-list-item-title>
 
                   <v-list-item-subtitle>
-                    GPIO {{ entry.gpio }} · {{ entry.amount }} LEDs · heartbeat {{ entry.heartbeat_index ?? 'none' }}
+                    {{ $t('integrations.ui.neopixel.summary', { gpio: entry.gpio, amount: entry.amount, heartbeat: entry.heartbeat_index ?? $t('integrations.ui.status.none') }) }}
                   </v-list-item-subtitle>
 
                   <template #append>
                     <div class="d-flex align-center ga-2">
-                      <v-btn
-                        icon="mdi-pencil-outline"
-                        variant="text"
-                        @click="editNeopixel(entry)"
-                      />
-
                       <v-btn
                         icon="mdi-delete-outline"
                         color="error"
                         variant="text"
                         :loading="loading.neopixelRemove === entry.name"
                         @click="removeNeopixel(entry.name)"
+                        :disabled="reloadInProgress"
                       />
                     </div>
                   </template>
@@ -372,45 +377,49 @@
                 <v-col cols="12" sm="6" md="3">
                   <v-text-field
                     v-model="obsForm.name"
-                    label="Name"
+                    :label="$t('integrations.ui.fields.name')"
                     placeholder="default"
                     density="compact"
                     variant="outlined"
                     hide-details
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="3">
                   <v-text-field
                     v-model="obsForm.ip"
-                    label="IP / Host"
+                    :label="$t('integrations.ui.fields.ipHost')"
                     placeholder="127.0.0.1"
                     density="compact"
                     variant="outlined"
                     hide-details
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="2">
                   <v-text-field
                     v-model.number="obsForm.port"
-                    label="Port"
+                    :label="$t('integrations.ui.fields.port')"
                     type="number"
                     density="compact"
                     variant="outlined"
                     hide-details
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
                 <v-col cols="12" sm="6" md="2">
                   <v-text-field
                     v-model="obsForm.password"
-                    label="Password"
+                    :label="$t('integrations.ui.fields.password')"
                     type="password"
                     density="compact"
                     variant="outlined"
                     hide-details
                     @keydown.enter="addObs"
+                    :disabled="reloadInProgress"
                   />
                 </v-col>
 
@@ -422,10 +431,10 @@
                     variant="flat"
                     prepend-icon="mdi-plus"
                     :loading="loading.obsAdd"
-                    :disabled="!canAddObs"
+                    :disabled="reloadInProgress || (!canAddObs)"
                     @click="addObs"
                   >
-                    Add
+                    {{ $t('common.add') }}
                   </v-btn>
                 </v-col>
               </v-row>
@@ -438,7 +447,7 @@
                 variant="tonal"
                 density="compact"
               >
-                No OBS integrations configured yet.
+                {{ $t('integrations.ui.obs.noneConfigured') }}
               </v-alert>
 
               <v-list v-else bg-color="transparent" density="compact">
@@ -469,7 +478,7 @@
                         :color="entry.connected ? 'success' : 'grey'"
                         variant="tonal"
                       >
-                        {{ entry.connected ? 'Connected' : 'Offline' }}
+                        {{ entry.connected ? $t('integrations.ui.status.connected') : $t('integrations.ui.status.offline') }}
                       </v-chip>
 
                       <v-btn
@@ -478,6 +487,7 @@
                         variant="text"
                         :loading="loading.obsRemove === entry.name"
                         @click="removeObs(entry.name)"
+                        :disabled="reloadInProgress"
                       />
                     </div>
                   </template>
@@ -491,14 +501,6 @@
 
       </v-row>
     </v-card-text>
-
-    <v-snackbar
-      v-model="snackbar.show"
-      :color="snackbar.color"
-      timeout="2500"
-    >
-      {{ snackbar.text }}
-    </v-snackbar>
   </v-card>
 </template>
 
@@ -558,11 +560,6 @@ export default {
         neopixelRemove: '',
       },
 
-      snackbar: {
-        show: false,
-        text: '',
-        color: 'success',
-      },
     }
   },
 
@@ -570,6 +567,11 @@ export default {
     integrations(): any {
       return this.appStore.getIntegrations ?? {}
     },
+
+    reloadInProgress(): boolean {
+      return this.appStore.getReloadUpdate?.finished !== true
+    },
+
 
     wledIntegrations(): Record<string, any> {
       return this.integrations?.wled ?? {}
@@ -658,7 +660,7 @@ export default {
       const websocketClient = getWebsocketClient()
 
       if (!websocketClient) {
-        this.showError('WebSocket is not connected')
+        this.showError(String(this.$t('integrations.ui.errors.websocketDisconnected')))
         return false
       }
 
@@ -666,7 +668,7 @@ export default {
         const response = await websocketClient.request(method, params)
 
         if (response?.error) {
-          this.showError(response.error?.message ?? response.error ?? 'Request failed')
+          this.showError(response.error?.message ?? response.error ?? String(this.$t('integrations.ui.errors.requestFailed')))
           return false
         }
 
@@ -682,7 +684,7 @@ export default {
       const ip = this.wledForm.ip.trim()
 
       if (!name || !ip) {
-        this.showError('Name and IP are required')
+        this.showError(String(this.$t('integrations.ui.errors.nameIpRequired')))
         return
       }
 
@@ -699,7 +701,7 @@ export default {
 
       this.wledForm.name = ''
       this.wledForm.ip = ''
-      this.showSuccess('WLED saved')
+
     },
 
     async removeWled(name: string) {
@@ -715,7 +717,6 @@ export default {
 
       if (!sent) return
 
-      this.showSuccess('WLED removed')
     },
 
     async addObs() {
@@ -725,7 +726,7 @@ export default {
       const password = this.obsForm.password.trim()
 
       if (!name || !ip || !port) {
-        this.showError('Name, IP and port are required')
+        this.showError(String(this.$t('integrations.ui.errors.nameIpPortRequired')))
         return
       }
 
@@ -743,7 +744,7 @@ export default {
       if (!sent) return
 
       this.obsForm.password = ''
-      this.showSuccess('OBS saved')
+
     },
 
     async removeObs(name: string) {
@@ -759,7 +760,6 @@ export default {
 
       if (!sent) return
 
-      this.showSuccess('OBS removed')
     },
 
     async toggleYolobox(enabled: boolean | null) {
@@ -775,16 +775,6 @@ export default {
 
       if (!sent) return
 
-      this.showSuccess(nextEnabled ? 'Yolobox enabled' : 'Yolobox disabled')
-    },
-
-    editNeopixel(entry: NeopixelEntry) {
-      this.neopixelForm = {
-        name: entry.name,
-        gpio: entry.gpio,
-        amount: entry.amount,
-        heartbeat_index: entry.heartbeat_index ?? null,
-      }
     },
 
     async saveNeopixel() {
@@ -796,12 +786,12 @@ export default {
         : Number(this.neopixelForm.heartbeat_index)
 
       if (!name || !Number.isInteger(gpio) || gpio < 0 || !Number.isInteger(amount) || amount <= 0) {
-        this.showError('Name, GPIO and amount are required')
+        this.showError(String(this.$t('integrations.ui.errors.nameGpioAmountRequired')))
         return
       }
 
       if (heartbeatIndex !== undefined && (!Number.isInteger(heartbeatIndex) || heartbeatIndex < 0 || heartbeatIndex >= amount)) {
-        this.showError('Heartbeat index must be inside the LED amount')
+        this.showError(String(this.$t('integrations.ui.errors.heartbeatOutOfRange')))
         return
       }
 
@@ -818,7 +808,6 @@ export default {
 
       if (!sent) return
 
-      this.showSuccess('Neopixel saved')
     },
 
     async removeNeopixel(name: string) {
@@ -843,7 +832,6 @@ export default {
         }
       }
 
-      this.showSuccess('Neopixel removed')
     },
 
     openTwitchAuth(type: TwitchAuthType) {
@@ -852,20 +840,8 @@ export default {
       window.location.href = `${this.appStore.getRestApi}/api/auth/twitch?type=${type}&returnTo=${returnTo}`
     },
 
-    showSuccess(text: string) {
-      this.snackbar = {
-        show: true,
-        text,
-        color: 'success',
-      }
-    },
-
     showError(text: string) {
-      this.snackbar = {
-        show: true,
-        text,
-        color: 'error',
-      }
+      console.error(text)
     },
   },
 }

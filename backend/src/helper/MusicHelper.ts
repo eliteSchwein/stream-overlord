@@ -1555,6 +1555,11 @@ function getCavaTargetConfigs(): CavaTargetConfig[] {
             bars: systemCavaConfig.bars,
             enabled: true,
         }],
+        ['music_preview', {
+            bars: 5,
+            framerate: 30,
+            enabled: true,
+        }],
         ...Object.entries(systemCavaConfig.targets ?? {}),
     ]
 

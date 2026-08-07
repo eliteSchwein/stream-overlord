@@ -353,8 +353,8 @@ export const useAppStore = defineStore('app', {
       this.$patch(state => state.musicData = musicData)
     },
     setMusicCavaData(musicCavaData: any) {
+      if (this.musicCavaData?.raw === musicCavaData?.raw) return
       this.musicCavaData = musicCavaData
-      this.$patch(state => state.musicCavaData = musicCavaData)
     },
     setMusicPlaylist(musicPlaylist: any) {
       this.musicPlaylist = musicPlaylist ?? {

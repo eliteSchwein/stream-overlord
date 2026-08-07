@@ -354,11 +354,13 @@ export default {
         :title="$t('navigation.tabs.connections')"
         color=""
         to="/connections"></v-list-item>
+      <!--
       <v-list-item
         prepend-icon="mdi-heart-cog"
         :title="$t('navigation.tabs.recovery')"
         color=""
         to="/recovery"></v-list-item>
+      -->
       <v-divider></v-divider>
       <v-list-subheader>{{ $t('navigation.sections.schw31nZone') }}</v-list-subheader>
       <v-list-item

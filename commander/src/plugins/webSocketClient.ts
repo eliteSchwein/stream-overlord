@@ -9,6 +9,7 @@ export default class WebsocketClient {
   websocket: Websocket|undefined = undefined
   store: useAppStore
   pendingRequests: Record<number, { resolve: (value: any) => void, reject: (error: any) => void, timeout: number }> = {}
+  messageListeners: Record<string, Set<(data: any) => void>> = {}
 
   public constructor(
     url: string,
@@ -53,6 +54,34 @@ export default class WebsocketClient {
     void new ConnectEvent(this).register()
     void new DisconnectEvent(this).register()
     void new MessageEvent(this).register()
+  }
+
+  public onMessage(method: string, listener: (data: any) => void) {
+    if (!this.messageListeners[method]) {
+      this.messageListeners[method] = new Set()
+    }
+
+    this.messageListeners[method].add(listener)
+  }
+
+  public offMessage(method: string, listener: (data: any) => void) {
+    const listeners = this.messageListeners[method]
+    if (!listeners) return
+
+    listeners.delete(listener)
+
+    if (listeners.size === 0) {
+      delete this.messageListeners[method]
+    }
+  }
+
+  public emitMessage(method: string, data: any) {
+    const listeners = this.messageListeners[method]
+    if (!listeners) return
+
+    for (const listener of listeners) {
+      listener(data)
+    }
   }
 
   public send(method: string, data: any = {}) {

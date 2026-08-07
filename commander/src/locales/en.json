@@ -1455,6 +1455,57 @@
       "add": "Add WLED",
       "name": "Name",
       "ip": "IP Address"
+    },
+    "ui": {
+      "title": "Integrations",
+      "status": {
+        "loggedIn": "Logged in",
+        "missing": "Missing",
+        "optional": "Optional",
+        "disabled": "Disabled",
+        "connected": "Connected",
+        "offline": "Offline",
+        "none": "none"
+      },
+      "fields": {
+        "name": "Name",
+        "ipHost": "IP / Host",
+        "gpio": "GPIO",
+        "amount": "Amount",
+        "heartbeatIndex": "Heartbeat index",
+        "port": "Port",
+        "password": "Password"
+      },
+      "twitch": {
+        "controlAuth": "Control Auth",
+        "controlDescription": "Full access auth for EventSub, channel points, moderation and API actions.",
+        "authControl": "Auth control",
+        "messageAuth": "Message Auth",
+        "messageDescription": "Optional auth for chat messages, replies, whispers and announcements.",
+        "authMessage": "Auth message"
+      },
+      "wled": {
+        "noneConfigured": "No WLED integrations configured yet."
+      },
+      "yolobox": {
+        "autoDiscovery": "Auto discovery",
+        "discoveryDescription": "Enables Yolobox discovery and connection handling on the backend."
+      },
+      "neopixel": {
+        "noneConfigured": "No Neopixel strips configured yet. Saving without changing the name creates tablet_leds.",
+        "summary": "GPIO {gpio} · {amount} LEDs · heartbeat {heartbeat}"
+      },
+      "obs": {
+        "noneConfigured": "No OBS integrations configured yet."
+      },
+      "errors": {
+        "websocketDisconnected": "WebSocket is not connected",
+        "requestFailed": "Request failed",
+        "nameIpRequired": "Name and IP are required",
+        "nameIpPortRequired": "Name, IP and port are required",
+        "nameGpioAmountRequired": "Name, GPIO and amount are required",
+        "heartbeatOutOfRange": "Heartbeat index must be inside the LED amount"
+      }
     }
   },
   "autoMacro": {
