@@ -43,7 +43,6 @@ export default {
         assets: 'assets',
         media: 'media',
         yolobox: 'yolobox',
-        editConfig: 'config',
         connections: 'connections',
         recovery: 'recovery',
         gameScene: 'gameScene',

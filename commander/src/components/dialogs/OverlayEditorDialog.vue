@@ -12,6 +12,16 @@
           <span class="text-truncate">{{ entry?.path || displayTitle }}</span>
         </v-toolbar-title>
 
+        <v-switch
+          class="overlay-editor-dialog__test-mode mr-2"
+          density="compact"
+          color="primary"
+          hide-details
+          :label="$t('overlay.testMode')"
+          :model-value="getTestMode"
+          @update:model-value="setTestMode"
+        />
+
         <v-btn
           icon="mdi-refresh"
           variant="text"
@@ -259,7 +269,7 @@ export default {
   },
 
   computed: {
-    ...mapState(useAppStore, ['getRestApi']),
+    ...mapState(useAppStore, ['getRestApi', 'getTestMode']),
 
     displayTitle(): string {
       return this.title || this.$t('overlay.editor')
@@ -417,6 +427,15 @@ export default {
   },
 
   methods: {
+    setTestMode(active: boolean | null) {
+      const client = getWebsocketClient()
+      if (!client) return
+
+      client.send('toggle_test_mode', {
+        active: active === true,
+      })
+    },
+
     async open() {
       await this.loadFile()
     },
@@ -813,5 +832,9 @@ export default {
   .overlay-editor-dialog__pane {
     min-height: 520px;
   }
+}
+
+.overlay-editor-dialog__test-mode {
+  flex: 0 0 auto;
 }
 </style>

@@ -76,13 +76,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
-    '/editConfig': RouteRecordInfo<
-      '/editConfig',
-      '/editConfig',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
     '/events': RouteRecordInfo<
       '/events',
       '/events',
@@ -233,12 +226,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/connections.vue': {
       routes:
         | '/connections'
-      views:
-        | never
-    }
-    'src/pages/editConfig.vue': {
-      routes:
-        | '/editConfig'
       views:
         | never
     }

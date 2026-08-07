@@ -51,7 +51,6 @@
       "overlay": "Overlay",
       "music": "Musik",
       "yolobox": "YoloBox",
-      "editConfig": "Config",
       "connections": "Verbindungen",
       "recovery": "Wiederherstellung",
       "gameScene": "Spielszene",
@@ -1241,18 +1240,6 @@
     "defaultSink": "Standard-Sink",
     "active": "Aktiv"
   },
-  "editConfig": {
-    "title": "Bot-Konfiguration",
-    "save": "Speichern",
-    "cursor": "Cursor",
-    "selection": "Auswahl",
-    "systemFunctions": "Systemfunktionen",
-    "testMode": "Testmodus",
-    "defaultMacros": "Standard-Makros",
-    "pause250ms": "250ms Pause",
-    "pause1s": "1s Pause",
-    "availableVoices": "Verfügbare Stimmen"
-  },
   "gameScene": {
     "saveScene": "Szene speichern",
     "reloadScene": "Szene neu laden"
@@ -1357,7 +1344,8 @@
     "previewModes": {
       "rendered": "Gerenderte gespeicherte Datei",
       "raw": "Rohes ungespeichertes HTML"
-    }
+    },
+    "testMode": "Testmodus"
   },
   "media": {
     "title": "Medien",
