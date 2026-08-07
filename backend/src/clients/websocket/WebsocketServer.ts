@@ -8,7 +8,7 @@ import {getChannelPointUpdatePayload} from "../../helper/ChannelPointHelper";
 import {getAudioData, getAudioOutputs} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
-import {getOBSClient, getYoloboxClient} from "../../App";
+import {getOBSClient, getReloadUpdate, getYoloboxClient} from "../../App";
 import getGameInfo from "../../helper/GameHelper";
 import {getAllVisibleElements, isTestModeActive, toggleElementVisiblity} from "../../helper/VisibleHelper";
 import {getVoices} from "../../helper/TTShelper";
@@ -70,6 +70,7 @@ export default class WebsocketServer {
         'notify_integrations_update',
         'notify_settings_update',
         'notify_playlist_update',
+        'notify_reload_update',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -228,6 +229,7 @@ export default class WebsocketServer {
                 this.send("notify_storage_update", getSystemStorageInfo(), client)
                 this.send("notify_integrations_update", getIntegrationsSafe(), client)
                 this.send("notify_settings_update", getSettings(), client)
+                this.send("notify_reload_update", getReloadUpdate(), client)
 
                 void emitVariablesUpdate(client)
 

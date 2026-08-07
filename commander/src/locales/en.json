@@ -2,7 +2,8 @@
   "navigation": {
     "status": {
       "throttled": "Throttled",
-      "shield": "Shield"
+      "shield": "Shield",
+      "savingPleaseWait": "Saving, please wait..."
     },
     "actions": {
       "reloadPage": "Reload page",
@@ -1492,7 +1493,8 @@
     "cavaTargetsHint": "Add optional extra CAVA outputs like jukebox. These are not created by default.",
     "cavaTargetName": "Target name",
     "cavaSettingKey": "Option",
-    "cavaSettingValue": "Option Value"
+    "cavaSettingValue": "Option Value",
+    "autoCompressUpload": "Auto compress on upload"
   },
   "components": {
     "storageCard": {},

@@ -6,7 +6,7 @@ import {join} from "node:path";
 import {spawnSync} from "node:child_process";
 import {compressAssets, getAssetFile} from "./AssetTuneHelper";
 import getWebsocketServer from "../App";
-import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
+import {getAssetTuneSettings, getConfig, getSystemConfigDirectory} from "./ConfigHelper";
 import * as yaml from "js-yaml";
 import {emitAssetUpdate} from "./AssetManagementHelper";
 import {redis} from "../clients/redis/Redis";
@@ -835,7 +835,9 @@ export function initAssetWatcher() {
 
         if(!existsSync(`${assetPath}/${filename}`)) return
 
-        await compressAssets(false, `${assetPath}/${filename}`)
+        if (getAssetTuneSettings().auto_compress_upload) {
+            await compressAssets(false, `${assetPath}/${filename}`)
+        }
 
         readAssetFolder()
 

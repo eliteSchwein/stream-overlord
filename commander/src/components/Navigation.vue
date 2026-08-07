@@ -23,7 +23,8 @@ export default {
       'getParsedBackendConfig',
       'getObsAudioData',
       'hasObsEnabled',
-      'hasYoloboxEnabled'
+      'hasYoloboxEnabled',
+      'getReloadUpdate'
     ]),
     currentRouteTitle() {
       const path = this.$route.path || '/';
@@ -117,6 +118,24 @@ export default {
     <v-app-bar-title>{{ currentRouteTitle }}</v-app-bar-title>
 
     <v-spacer></v-spacer>
+
+    <v-btn
+      v-if="getReloadUpdate?.finished === false"
+      class="mr-1"
+      color="grey-darken-4"
+      variant="flat"
+      style="min-width: 150px;"
+    >
+      <v-progress-circular
+        indeterminate
+        color="primary"
+        size="18"
+        width="2"
+      />
+      <p class="text-primary ml-2 ubuntu-mono">
+        {{ $t('navigation.status.savingPleaseWait') }}
+      </p>
+    </v-btn>
 
     <v-btn
       class="mr-1"
@@ -368,5 +387,15 @@ export default {
     margin-top: 2px;
     font-size: 15px;
   }
+}
+
+.reload-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 36px;
+  border-radius: 4px;
+  background: rgb(var(--v-theme-grey-darken-4));
 }
 </style>

@@ -4,30 +4,13 @@
       <div class="d-flex align-center ga-2 min-width-0">
         <v-icon icon="mdi-cog" />
         <div class="min-width-0">
-          <div class="text-truncate">{{ $t('settings.title') || 'Settings' }}</div>
+          <div class="text-truncate">{{ $t('settings.title') }}</div>
         </div>
       </div>
 
-      <v-btn
-        prepend-icon="mdi-content-save"
-        color="primary"
-        variant="tonal"
-        :loading="saving"
-        :disabled="saving"
-        @click="saveSettings"
-      >
-        {{ $t('common.save') || 'Save' }}
-      </v-btn>
     </v-card-title>
 
     <v-card-text>
-      <v-alert
-        v-if="successMessage"
-        type="success"
-        color="green-darken-3"
-        class="mb-4"
-        :text="successMessage"
-      />
 
       <v-alert
         v-if="errorMessage"
@@ -42,16 +25,17 @@
           <v-card color="grey-darken-4" elevation="0" class="mb-2">
             <v-card-title class="d-flex align-center ga-2">
               <v-icon icon="mdi-translate" />
-              <span>{{ $t('settings.language') || 'Language' }}</span>
+              <span>{{ $t('settings.language') }}</span>
             </v-card-title>
 
             <v-card-text>
               <v-select
+                :disabled="settingsLocked"
                 v-model="form.language"
                 :items="languageItems"
                 item-title="title"
                 item-value="value"
-                :label="$t('settings.language') || 'Language'"
+                :label="$t('settings.language')"
                 variant="outlined"
                 density="comfortable"
                 hide-details
@@ -62,13 +46,13 @@
           <v-card color="grey-darken-4" elevation="0" class="mb-2">
             <v-card-title class="d-flex align-center ga-2">
               <v-icon icon="mdi-palette" />
-              <span>{{ $t('settings.theme') || 'Theme' }}</span>
+              <span>{{ $t('settings.theme') }}</span>
             </v-card-title>
 
             <v-card-text>
               <v-sheet color="grey-darken-3" rounded class="pa-3 mb-3">
                 <div class="text-caption text-grey-lighten-1 mb-1">
-                  {{ $t('settings.themeDefaultPrimaryColor') || 'Default primary color' }}
+                  {{ $t('settings.themeDefaultPrimaryColor') }}
                 </div>
 
                 <div class="d-flex align-center ga-3 min-width-0">
@@ -80,21 +64,23 @@
                   <div class="min-width-0">
                     <div class="text-body-2 text-truncate">{{ normalizedDefaultColorPreview }}</div>
                     <div class="text-caption text-grey-lighten-1">
-                      {{ $t('settings.themeDefaultPrimaryColorHint') || 'Used as primary color for the whole bot system.' }}
+                      {{ $t('settings.themeDefaultPrimaryColorHint') }}
                     </div>
                   </div>
                 </div>
               </v-sheet>
 
               <v-menu
+                :disabled="settingsLocked"
                 v-model="showThemeColorPicker"
                 :close-on-content-click="false"
                 location="bottom"
               >
                 <template #activator="{ props }">
                   <v-text-field
+                :disabled="settingsLocked"
                     v-model="form.theme.default_color"
-                    :label="$t('settings.themeHexColor') || 'Hex color'"
+                    :label="$t('settings.themeHexColor')"
                     variant="outlined"
                     density="comfortable"
                     hide-details="auto"
@@ -114,6 +100,7 @@
 
                 <v-card color="grey-darken-3">
                   <v-color-picker
+                :disabled="settingsLocked"
                     v-model="defaultColorPickerValue"
                     hide-inputs
                     mode="hex"
@@ -126,7 +113,7 @@
           <v-card color="grey-darken-4" elevation="0">
             <v-card-title class="d-flex align-center ga-2">
               <v-icon icon="mdi-account-voice" />
-              <span>{{ $t('settings.tts') || 'Text to Speech' }}</span>
+              <span>{{ $t('settings.tts') }}</span>
             </v-card-title>
 
             <v-card-text>
@@ -135,11 +122,11 @@
                 variant="tonal"
                 density="comfortable"
                 class="mb-4"
-                :text="$t('settings.ttsWarning') || 'Avoid too high quality voice models on small systems. Medium models are usually the best balance for stream alerts.'"
+                :text="$t('settings.ttsWarning')"
               />
 
               <v-sheet color="grey-darken-3" rounded class="pa-3 mb-3">
-                <div class="text-caption text-grey-lighten-1 mb-1">{{ $t('settings.selectedVoiceModel') || 'Selected voice model' }}</div>
+                <div class="text-caption text-grey-lighten-1 mb-1">{{ $t('settings.selectedVoiceModel') }}</div>
                 <div class="d-flex align-center ga-2 min-width-0">
                   <v-icon icon="mdi-check-circle" color="success" size="small" />
                   <span class="text-body-2 text-truncate">{{ form.tts.model || 'de_DE-thorsten-medium' }}</span>
@@ -147,8 +134,9 @@
               </v-sheet>
 
               <v-text-field
+                :disabled="settingsLocked"
                 v-model="voiceSearch"
-                :label="$t('settings.searchVoiceModel') || 'Search / change voice model'"
+                :label="$t('settings.searchVoiceModel')"
                 prepend-inner-icon="mdi-magnify"
                 :append-inner-icon="showVoicePicker ? 'mdi-chevron-up' : 'mdi-chevron-down'"
                 variant="outlined"
@@ -165,12 +153,13 @@
                 <div v-show="showVoicePicker">
                   <div class="d-flex justify-end mb-2">
                     <v-btn
+                :disabled="settingsLocked"
                       size="small"
                       variant="text"
                       prepend-icon="mdi-chevron-up"
                       @click="showVoicePicker = false"
                     >
-                      {{ $t('settings.hideVoices') || 'Hide voices' }}
+                      {{ $t('settings.hideVoices') }}
                     </v-btn>
                   </div>
 
@@ -180,6 +169,7 @@
                     color="grey-darken-3"
                   >
                     <v-expansion-panel
+                :disabled="settingsLocked"
                       v-for="language in filteredVoiceLanguages"
                       :key="language"
                     >
@@ -195,6 +185,7 @@
                       <v-expansion-panel-text class="pa-0">
                         <v-list bg-color="grey-darken-4" density="compact" class="py-0">
                           <v-list-item
+                :disabled="settingsLocked"
                             v-for="voice in filteredVoicesByLanguage[language]"
                             :key="voice"
                             :active="form.tts.model === voice"
@@ -222,7 +213,7 @@
                     type="info"
                     variant="tonal"
                     density="comfortable"
-                    :text="$t('settings.noVoiceModelsFound') || 'No voice models found. The current/default voice will still be saved.'"
+                    :text="$t('settings.noVoiceModelsFound')"
                   />
                 </div>
               </v-expand-transition>
@@ -234,16 +225,17 @@
           <v-card color="grey-darken-4" elevation="0">
             <v-card-title class="d-flex align-center ga-2">
               <v-icon icon="mdi-tune" />
-              <span>{{ $t('settings.assetTune') || 'Asset Tune' }}</span>
+              <span>{{ $t('settings.assetTune') }}</span>
             </v-card-title>
 
             <v-card-text>
               <v-row density="compact">
                 <v-col cols="12" md="6">
                   <v-select
+                :disabled="settingsLocked"
                     v-model="form.asset_tune.codec"
                     :items="codecItems"
-                    :label="$t('settings.videoCodec') || 'Video codec'"
+                    :label="$t('settings.videoCodec')"
                     variant="outlined"
                     density="comfortable"
                     hide-details
@@ -252,8 +244,9 @@
 
                 <v-col cols="12" md="6">
                   <v-text-field
+                :disabled="settingsLocked"
                     v-model.number="form.asset_tune.image_compress_level"
-                    :label="$t('settings.imageCompressionLevel') || 'Image compression level'"
+                    :label="$t('settings.imageCompressionLevel')"
                     type="number"
                     min="0"
                     max="6"
@@ -266,14 +259,24 @@
 
                 <v-col cols="12" md="6">
                   <v-text-field
+                :disabled="settingsLocked"
                     v-model.number="form.asset_tune.image_compress_percent"
-                    :label="$t('settings.imageQualityPercent') || 'Image quality percent'"
+                    :label="$t('settings.imageQualityPercent')"
                     type="number"
                     min="1"
                     max="100"
                     step="1"
                     variant="outlined"
                     density="comfortable"
+                    hide-details
+                  />
+                </v-col>
+                <v-col cols="12" md="6">
+                  <v-switch
+                :disabled="settingsLocked"
+                    v-model="form.asset_tune.auto_compress_upload"
+                    :label="$t('settings.autoCompressUpload')"
+                    color="primary"
                     hide-details
                   />
                 </v-col>
@@ -284,15 +287,16 @@
           <v-card color="grey-darken-4" elevation="0" class="mt-2">
             <v-card-title class="d-flex align-center ga-2">
               <v-icon icon="mdi-chart-bar" />
-              <span>{{ $t('settings.cava') || 'CAVA' }}</span>
+              <span>{{ $t('settings.cava') }}</span>
             </v-card-title>
 
             <v-card-text>
               <v-row density="compact">
                 <v-col cols="12" md="6">
                   <v-text-field
+                :disabled="settingsLocked"
                     v-model.number="form.cava.bars"
-                    :label="$t('settings.cavaBars') || 'Default bars'"
+                    :label="$t('settings.cavaBars')"
                     type="number"
                     min="1"
                     max="512"
@@ -308,9 +312,9 @@
 
               <div class="d-flex align-center justify-space-between ga-2 mb-3">
                 <div>
-                  <div class="text-subtitle-2">{{ $t('settings.cavaTargets') || 'CAVA targets' }}</div>
+                  <div class="text-subtitle-2">{{ $t('settings.cavaTargets') }}</div>
                   <div class="text-caption text-grey-lighten-1">
-                    {{ $t('settings.cavaTargetsHint') || 'Add optional extra CAVA outputs like jukebox. These are not created by default.' }}
+                    {{ $t('settings.cavaTargetsHint') }}
                   </div>
                 </div>
               </div>
@@ -319,8 +323,9 @@
                 <v-row density="compact" align="center">
                   <v-col cols="12" md="5">
                     <v-text-field
+                :disabled="settingsLocked"
                       v-model="newCavaTargetName"
-                      :label="$t('settings.cavaTargetName') || 'Target name'"
+                      :label="$t('settings.cavaTargetName')"
                       placeholder="jukebox"
                       variant="outlined"
                       density="comfortable"
@@ -330,8 +335,9 @@
 
                   <v-col cols="12" md="4">
                     <v-text-field
+                :disabled="settingsLocked"
                       v-model.number="newCavaTargetBars"
-                      :label="$t('settings.cavaBars') || 'Bars'"
+                      :label="$t('settings.cavaBars')"
                       type="number"
                       min="1"
                       max="512"
@@ -344,13 +350,14 @@
 
                   <v-col cols="12" md="3">
                     <v-btn
+                :disabled="settingsLocked"
                       block
                       prepend-icon="mdi-plus"
                       color="primary"
                       variant="tonal"
                       @click="addCavaTarget"
                     >
-                      {{ $t('common.add') || 'Add' }}
+                      {{ $t('common.add') }}
                     </v-btn>
                   </v-col>
                 </v-row>
@@ -362,6 +369,7 @@
                 class="mb-3"
               >
                 <v-expansion-panel
+                :disabled="settingsLocked"
                   v-for="targetName in cavaTargetNames"
                   :key="targetName"
                   color="grey-darken-3"
@@ -381,8 +389,9 @@
                     <v-row density="compact">
                       <v-col cols="12" md="6">
                         <v-text-field
+                :disabled="settingsLocked"
                           v-model.number="form.cava.targets[targetName].bars"
-                          :label="$t('settings.cavaBars') || 'Bars'"
+                          :label="$t('settings.cavaBars')"
                           type="number"
                           min="1"
                           max="512"
@@ -395,8 +404,9 @@
 
                       <v-col cols="12" md="6">
                         <v-switch
+                :disabled="settingsLocked"
                           v-model="form.cava.targets[targetName].enabled"
-                          :label="$t('common.enabled') || 'Enabled'"
+                          :label="$t('common.enabled')"
                           color="primary"
                           inset
                           hide-details
@@ -413,6 +423,7 @@
                         <td class="text-caption text-grey-lighten-1" style="width: 38%">{{ settingKey }}</td>
                         <td>
                           <v-text-field
+                :disabled="settingsLocked"
                             v-model="form.cava.targets[targetName][settingKey]"
                             variant="outlined"
                             density="compact"
@@ -421,6 +432,7 @@
                         </td>
                         <td class="text-right" style="width: 48px">
                           <v-btn
+                :disabled="settingsLocked"
                             icon="mdi-delete"
                             size="small"
                             variant="text"
@@ -435,6 +447,7 @@
                     <v-row density="compact" align="center" class="mt-2">
                       <v-col cols="12" md="5">
                         <v-text-field
+                :disabled="settingsLocked"
                           v-model="newCavaTargetSettings[targetName].key"
                           :label="$t('settings.cavaSettingKey')"
                           placeholder="framerate"
@@ -446,6 +459,7 @@
 
                       <v-col cols="12" md="5">
                         <v-text-field
+                :disabled="settingsLocked"
                           v-model="newCavaTargetSettings[targetName].value"
                           :label="$t('settings.cavaSettingValue')"
                           placeholder="60"
@@ -457,18 +471,20 @@
 
                       <v-col cols="12" md="2">
                         <v-btn
+                :disabled="settingsLocked"
                           block
                           prepend-icon="mdi-plus"
                           variant="tonal"
                           @click="addCavaTargetSetting(targetName)"
                         >
-                          {{ $t('common.add') || 'Add' }}
+                          {{ $t('common.add') }}
                         </v-btn>
                       </v-col>
                     </v-row>
 
                     <div class="d-flex justify-end mt-3">
                       <v-btn
+                :disabled="settingsLocked"
                         prepend-icon="mdi-delete"
                         color="red-lighten-2"
                         variant="text"
@@ -489,7 +505,7 @@
 </template>
 
 <script lang="ts">
-import { mapActions, mapState } from 'pinia'
+import { mapState } from 'pinia'
 import { useAppStore } from '@/stores/app'
 import { getWebsocketClient } from '@/plugins/websocketInstance'
 
@@ -497,6 +513,7 @@ type SettingsForm = {
   language: string
   asset_tune: {
     codec: string
+    auto_compress_upload: boolean
     image_compress_level: number
     image_compress_percent: number
   }
@@ -522,6 +539,7 @@ const defaultForm = (): SettingsForm => ({
   language: 'en',
   asset_tune: {
     codec: 'vp9',
+    auto_compress_upload: false,
     image_compress_level: 6,
     image_compress_percent: 80,
   },
@@ -550,7 +568,9 @@ export default {
     return {
       saving: false,
       errorMessage: '',
-      successMessage: '',
+      autoSaveTimer: undefined as ReturnType<typeof setTimeout> | undefined,
+      syncingFromStore: false,
+      waitingForReload: false,
       form: defaultForm(),
       voiceSearch: '',
       showVoicePicker: false,
@@ -570,7 +590,19 @@ export default {
   },
 
   computed: {
-    ...mapState(useAppStore, ['systemConfig', 'getVoices']),
+    ...mapState(useAppStore, ['systemConfig', 'getVoices', 'getReloadUpdate']),
+
+    reloadFinished(): boolean {
+      return (this as any).getReloadUpdate?.finished === true
+    },
+
+    settingsLocked(): boolean {
+      return Boolean(
+        (this as any).saving ||
+        (this as any).waitingForReload ||
+        !(this as any).reloadFinished
+      )
+    },
 
     defaultColorPickerValue: {
       get(): string {
@@ -655,18 +687,48 @@ export default {
         this.syncFromStore()
       },
     },
+
+    form: {
+      deep: true,
+      handler() {
+        if (this.syncingFromStore || this.settingsLocked) return
+
+        if (this.autoSaveTimer) {
+          clearTimeout(this.autoSaveTimer)
+        }
+
+        this.autoSaveTimer = setTimeout(() => {
+          this.autoSaveTimer = undefined
+          void this.saveSettings()
+        }, 500)
+      },
+    },
+
+    reloadFinished(finished: boolean) {
+      if (finished && this.waitingForReload) {
+        this.waitingForReload = false
+      }
+    },
+  },
+
+  beforeUnmount() {
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer)
+    }
   },
 
   methods: {
-    ...mapActions(useAppStore, ['setSystemConfig']),
 
     selectVoice(voice: string) {
+      if (this.settingsLocked) return
       this.form.tts.model = voice
       this.voiceSearch = ''
       this.showVoicePicker = false
     },
 
     syncFromStore() {
+      this.syncingFromStore = true
+
       const defaults = defaultForm()
       const settings: any = this.systemConfig || {}
       const assetTune = settings.asset_tune || {}
@@ -712,6 +774,10 @@ export default {
       }
 
       this.ensureCavaTargetSettingDrafts()
+
+      this.$nextTick(() => {
+        this.syncingFromStore = false
+      })
     },
 
 
@@ -745,6 +811,7 @@ export default {
     },
 
     addCavaTarget() {
+      if (this.settingsLocked) return
       const targetName = this.normalizeCavaTargetName(this.newCavaTargetName)
 
       if (!targetName || targetName === 'default') return
@@ -764,6 +831,7 @@ export default {
     },
 
     removeCavaTarget(targetName: string) {
+      if (this.settingsLocked) return
       const targets = { ...(this.form.cava.targets || {}) }
       delete targets[targetName]
       this.form.cava.targets = targets
@@ -777,6 +845,7 @@ export default {
     },
 
     addCavaTargetSetting(targetName: string) {
+      if (this.settingsLocked) return
       const draft = this.newCavaTargetSettings[targetName] || { key: '', value: '' }
       const key = String(draft.key || '').trim()
 
@@ -791,6 +860,7 @@ export default {
     },
 
     removeCavaTargetSetting(targetName: string, settingKey: string) {
+      if (this.settingsLocked) return
       const target = { ...(this.form.cava.targets?.[targetName] || {}) }
       delete target[settingKey]
       this.form.cava.targets[targetName] = target
@@ -873,6 +943,7 @@ export default {
         language: String(this.form.language || defaults.language).trim().toLowerCase(),
         asset_tune: {
           codec: String(this.form.asset_tune.codec || defaults.asset_tune.codec).trim().toLowerCase(),
+          auto_compress_upload: Boolean(this.form.asset_tune.auto_compress_upload),
           image_compress_level: Number(this.form.asset_tune.image_compress_level),
           image_compress_percent: Number(this.form.asset_tune.image_compress_percent),
         },
@@ -912,8 +983,9 @@ export default {
 
     async saveSettings() {
       this.saving = true
+      this.waitingForReload = true
+      this.showThemeColorPicker = false
       this.errorMessage = ''
-      this.successMessage = ''
 
       try {
         const settings = this.normalizeForm()
@@ -924,9 +996,9 @@ export default {
           throw new Error(savedSettings.error)
         }
 
-        this.setSystemConfig(savedSettings)
-        this.successMessage = this.$t('settings.saved') || 'Settings saved'
+        useAppStore().$patch({ systemConfig: savedSettings })
       } catch (error: any) {
+        this.waitingForReload = false
         this.errorMessage = error?.message || 'Failed to save settings'
       } finally {
         this.saving = false

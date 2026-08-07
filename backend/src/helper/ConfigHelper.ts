@@ -17,6 +17,7 @@ export type AssetTuneSettings = {
     ffmpeg_bin: string;
     ffprobe_bin: string;
     codec: AssetTuneCodec;
+    auto_compress_upload: boolean;
     image_compress_level: number;
     image_compress_percent: number;
     audio_bitrate: string;
@@ -59,6 +60,7 @@ const defaultAssetTuneSettings: AssetTuneSettings = {
     ffmpeg_bin: "ffmpeg",
     ffprobe_bin: "ffprobe",
     codec: "vp9",
+    auto_compress_upload: false,
     image_compress_level: 6,
     image_compress_percent: 80,
     audio_bitrate: "128k",
@@ -162,6 +164,7 @@ function normalizeAssetTuneSettings(rawAssetTuneSettings: Partial<AssetTuneSetti
         ffmpeg_bin: stringSetting(rawAssetTuneSettings.ffmpeg_bin, defaultAssetTuneSettings.ffmpeg_bin),
         ffprobe_bin: stringSetting(rawAssetTuneSettings.ffprobe_bin, defaultAssetTuneSettings.ffprobe_bin),
         codec: codec === "av1" ? "av1" : "vp9",
+        auto_compress_upload: booleanSetting(rawAssetTuneSettings.auto_compress_upload, defaultAssetTuneSettings.auto_compress_upload),
         image_compress_level: numberSetting(rawAssetTuneSettings.image_compress_level, defaultAssetTuneSettings.image_compress_level),
         image_compress_percent: numberSetting(rawAssetTuneSettings.image_compress_percent, defaultAssetTuneSettings.image_compress_percent),
         audio_bitrate: stringSetting(rawAssetTuneSettings.audio_bitrate, defaultAssetTuneSettings.audio_bitrate),

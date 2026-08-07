@@ -40,6 +40,7 @@ let yoloboxClient: YoloboxClient
 let ready = false
 let stage = 'Unknown'
 let unreadyMessage = 'backend loading'
+let reloadFinished = true
 
 void init()
 
@@ -201,6 +202,9 @@ export async function registerApiEndpoints() {
 }
 
 export async function reload() {
+    reloadFinished = false
+    getWebsocketServer()?.send("notify_reload_update", {finished: false})
+
     try {
         logNotice('init reload')
         readConfig()
@@ -249,6 +253,15 @@ export async function reload() {
     } catch (error) {
         logWarn(`reload failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    } finally {
+        reloadFinished = true
+        getWebsocketServer()?.send("notify_reload_update", {finished: true})
+    }
+}
+
+export function getReloadUpdate() {
+    return {
+        finished: reloadFinished,
     }
 }
 

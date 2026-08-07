@@ -61,6 +61,9 @@ export const useAppStore = defineStore('app', {
     storage: {},
     integrations: {},
     settings: {},
+    reloadUpdate: {
+      finished: true,
+    },
   }),
   getters: {
     getConfig: (state) => state.config,
@@ -106,6 +109,7 @@ export const useAppStore = defineStore('app', {
     getStorage: (state) => state.storage,
     getIntegrations: (state) => state.integrations,
     getSettings: (state) => state.settings,
+    getReloadUpdate: (state) => state.reloadUpdate,
 
     hasObsEnabled: (state) => {
       const integrations: any = state.integrations ?? {}
@@ -381,6 +385,13 @@ export const useAppStore = defineStore('app', {
     setSettings(settings: any) {
       this.settings = settings
       this.$patch(state => state.settings = settings)
+    },
+
+    setReloadUpdate(reloadUpdate: any) {
+      this.reloadUpdate = {
+        finished: reloadUpdate?.finished === true,
+      }
+      this.$patch(state => state.reloadUpdate = this.reloadUpdate)
     },
     async fetchStatus(): Promise<any> {
       let status = 'Unknown'
