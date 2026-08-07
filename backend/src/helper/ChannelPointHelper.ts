@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as yaml from "js-yaml";
 import {getPrimaryChannel, getSystemConfigDirectory} from "./ConfigHelper";
-import getWebsocketServer, {getTwitchClient} from "../App";
+import getWebsocketServer, {getTwitchClient, setReloadUpdate} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
 import {logError, logRegular, logWarn} from "./LogHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
@@ -441,65 +441,77 @@ export async function editChannelPointFile(inputPathOrName: string, content: str
 
     fs.writeFileSync(filePath, normalizeChannelPointConfigContentForWrite(filePath, content ?? "", patch), "utf8");
 
-    loadChannelPointConfigs();
-    await updateChannelPoints();
+    setReloadUpdate(false);
 
-    return {
-        path: relativeChannelPointConfigPath(filePath),
-    };
+    try {
+        loadChannelPointConfigs();
+        await updateChannelPoints();
+
+        return {
+            path: relativeChannelPointConfigPath(filePath),
+        };
+    } finally {
+        setReloadUpdate(true);
+    }
 }
 
 export async function deleteChannelPointFile(inputPathOrName: string) {
-    let filePath = "";
+    setReloadUpdate(false);
 
     try {
-        filePath = resolveExistingChannelPointConfigFile(inputPathOrName);
-    } catch (error) {
-        logWarn(`channel point config file not found: ${inputPathOrName}`);
-    }
+        let filePath = "";
 
-    let config: any = {};
-
-    try {
-        config = readChannelPointConfigFile(filePath);
-    } catch (error) {
-        logWarn(`failed to read channel point config before delete ${filePath}`);
-    }
-
-    const label = config?.label ?? config?.name ?? inputPathOrName.replace(".yaml", "");
-    const twitchChannelPoint = findTwitchChannelPointForConfig({
-        label,
-        name: label,
-    })
-
-    if (twitchChannelPoint) {
         try {
-            logRegular(`delete twitch channel point ${twitchChannelPoint.title}`);
-
-            const bot = getTwitchClient().getBot();
-            const primaryChannel = getPrimaryChannel();
-
-            await bot.api.channelPoints.deleteCustomReward(primaryChannel, twitchChannelPoint.id);
+            filePath = resolveExistingChannelPointConfigFile(inputPathOrName);
         } catch (error) {
-            logWarn(`delete twitch channel point ${twitchChannelPoint.title} failed:`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            logWarn(`channel point config file not found: ${inputPathOrName}`);
         }
+
+        let config: any = {};
+
+        try {
+            config = readChannelPointConfigFile(filePath);
+        } catch (error) {
+            logWarn(`failed to read channel point config before delete ${filePath}`);
+        }
+
+        const label = config?.label ?? config?.name ?? inputPathOrName.replace(".yaml", "");
+        const twitchChannelPoint = findTwitchChannelPointForConfig({
+            label,
+            name: label,
+        });
+
+        if (twitchChannelPoint) {
+            try {
+                logRegular(`delete twitch channel point ${twitchChannelPoint.title}`);
+
+                const bot = getTwitchClient().getBot();
+                const primaryChannel = getPrimaryChannel();
+
+                await bot.api.channelPoints.deleteCustomReward(primaryChannel, twitchChannelPoint.id);
+            } catch (error) {
+                logWarn(`delete twitch channel point ${twitchChannelPoint.title} failed:`);
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
+
+        try {
+            fs.unlinkSync(filePath);
+        } catch (error) {
+            logWarn(`failed to delete channel point config file ${filePath}`);
+        }
+
+        loadChannelPointConfigs();
+        await updateChannelPoints();
+
+        return {
+            path: relativeChannelPointConfigPath(filePath),
+            deleted: true,
+            deleted_from_twitch: !!twitchChannelPoint,
+        };
+    } finally {
+        setReloadUpdate(true);
     }
-
-    try {
-        fs.unlinkSync(filePath);
-    } catch (error) {
-        logWarn(`failed to delete channel point config file ${filePath}`);
-    }
-
-    loadChannelPointConfigs();
-    await updateChannelPoints();
-
-    return {
-        path: relativeChannelPointConfigPath(filePath),
-        deleted: true,
-        deleted_from_twitch: !!twitchChannelPoint,
-    };
 }
 
 export function moveChannelPointFile(source: string, target: string) {
@@ -552,10 +564,16 @@ export async function addChannelPointFilesFromUpload(files: any[]) {
         added.push(relativeChannelPointConfigPath(target));
     }
 
-    loadChannelPointConfigs();
-    await updateChannelPoints();
+    setReloadUpdate(false);
 
-    return added;
+    try {
+        loadChannelPointConfigs();
+        await updateChannelPoints();
+
+        return added;
+    } finally {
+        setReloadUpdate(true);
+    }
 }
 
 export async function fetchChannelPointData() {

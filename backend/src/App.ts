@@ -202,8 +202,7 @@ export async function registerApiEndpoints() {
 }
 
 export async function reload() {
-    reloadFinished = false
-    getWebsocketServer()?.send("notify_reload_update", {finished: false})
+    setReloadUpdate(false)
 
     try {
         logNotice('init reload')
@@ -254,9 +253,13 @@ export async function reload() {
         logWarn(`reload failed:`)
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     } finally {
-        reloadFinished = true
-        getWebsocketServer()?.send("notify_reload_update", {finished: true})
+        setReloadUpdate(true)
     }
+}
+
+export function setReloadUpdate(finished: boolean) {
+    reloadFinished = finished
+    getWebsocketServer()?.send("notify_reload_update", {finished})
 }
 
 export function getReloadUpdate() {

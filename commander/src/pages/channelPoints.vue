@@ -9,7 +9,7 @@
       </div>
 
       <div class="d-flex align-center ga-2">
-        <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="openCreateDialog">
+        <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" :disabled="reloadInProgress" @click="openCreateDialog">
           {{ $t('channelPoints.add') }}
         </v-btn>
       </div>
@@ -32,7 +32,7 @@
             icon="mdi-upload"
             accept=".yaml,.yml,.json"
             :loading="uploading"
-            :disabled="workingAction !== null"
+            :disabled="reloadInProgress || workingAction !== null"
             @upload="uploadFiles"
           />
         </v-col>
@@ -47,6 +47,7 @@
         density="comfortable"
         hide-details
         class="mb-3"
+        :disabled="reloadInProgress"
       />
 
       <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
@@ -57,7 +58,7 @@
           v-for="channelPoint in filteredChannelPoints"
           :key="channelPoint.name"
           :channel-point="channelPoint"
-          :disabled="workingAction !== null"
+          :disabled="reloadInProgress || workingAction !== null"
           :deleting="workingName === channelPoint.name && workingAction === 'delete'"
           :toggling="workingName === channelPoint.name && workingAction === 'toggle'"
           @edit="openEditDialog"
@@ -70,7 +71,7 @@
     <ChannelPointCreateDialog
       ref="createDialog"
       v-model="createDialog"
-      :loading="workingAction === 'save'"
+      :loading="workingAction === 'save' || reloadInProgress"
       :error="editorError"
       @save="saveChannelPoint"
     />
@@ -79,7 +80,7 @@
       ref="editorDialog"
       v-model="editorDialog"
       :channel-point="selectedChannelPoint"
-      :loading="workingAction === 'save'"
+      :loading="workingAction === 'save' || reloadInProgress"
       :error="editorError"
       @save="saveChannelPoint"
     />
@@ -141,7 +142,11 @@ export default {
   },
 
   computed: {
-    ...mapState(useAppStore, ['getChannelPoints']),
+    ...mapState(useAppStore, ['getChannelPoints', 'getReloadUpdate']),
+
+    reloadInProgress(): boolean {
+      return this.getReloadUpdate?.finished !== true
+    },
 
     channelPointList(): ChannelPointEntry[] {
       const byKey = new Map<string, ChannelPointEntry>()
@@ -328,6 +333,7 @@ export default {
     },
 
     async uploadFiles(files: File[] | FileList) {
+      if (this.reloadInProgress) return
       const fileList = Array.from(files as any) as File[]
       if (!fileList.length || this.uploading) return
 
@@ -357,6 +363,7 @@ export default {
     },
 
     async openCreateDialog() {
+      if (this.reloadInProgress) return
       this.editorError = ''
       this.createDialog = true
       await this.$nextTick()
@@ -364,6 +371,7 @@ export default {
     },
 
     async openEditDialog(channelPoint: ChannelPointEntry) {
+      if (this.reloadInProgress) return
       this.selectedChannelPoint = channelPoint
       this.editorError = ''
       this.editorDialog = true
@@ -372,6 +380,7 @@ export default {
     },
 
     async saveChannelPoint(payload: any) {
+      if (this.reloadInProgress) return
       const name = this.normalizeChannelPointName(payload?.name)
       if (!name || this.workingAction) return
 
@@ -456,6 +465,7 @@ export default {
     },
 
     async deleteChannelPoint(channelPoint: ChannelPointEntry) {
+      if (this.reloadInProgress) return
       if (!channelPoint?.name || this.workingAction) return
 
       this.workingName = channelPoint.name
@@ -479,6 +489,7 @@ export default {
     },
 
     async toggleChannelPoint(channelPoint: ChannelPointEntry) {
+      if (this.reloadInProgress) return
       if (!channelPoint?.id || this.workingAction) return
 
       this.workingName = channelPoint.name

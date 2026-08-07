@@ -13,11 +13,12 @@
           prepend-icon="mdi-refresh"
           variant="tonal"
           :loading="loading"
+          :disabled="reloadInProgress"
           @click="refreshCommands"
         >
           {{ $t('common.refresh') }}
         </v-btn>
-        <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" @click="openCreateDialog">
+        <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" :disabled="reloadInProgress" @click="openCreateDialog">
           {{ $t('commands.create') }}
         </v-btn>
       </div>
@@ -36,6 +37,7 @@
             icon="mdi-upload"
             accept=".yaml,.yml,.json"
             :loading="uploading"
+            :disabled="reloadInProgress"
             @upload="uploadFiles"
           />
         </v-col>
@@ -50,6 +52,7 @@
         density="comfortable"
         hide-details
         class="mb-3"
+        :disabled="reloadInProgress"
       />
 
       <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
@@ -81,8 +84,8 @@
 
           <template #append>
             <div class="d-flex align-center ga-1">
-              <v-btn icon="mdi-pencil" variant="text" :disabled="workingAction !== null" @click="openEditor(item)" />
-              <v-btn icon="mdi-delete" variant="text" color="error" :loading="workingName === item.name && workingAction === 'delete'" :disabled="workingAction !== null && workingName !== item.name" @click="openDeleteDialog(item)" />
+              <v-btn icon="mdi-pencil" variant="text" :disabled="reloadInProgress || workingAction !== null" @click="openEditor(item)" />
+              <v-btn icon="mdi-delete" variant="text" color="error" :loading="workingName === item.name && workingAction === 'delete'" :disabled="reloadInProgress || (workingAction !== null && workingName !== item.name)" @click="openDeleteDialog(item)" />
             </div>
           </template>
         </v-list-item>
@@ -93,6 +96,7 @@
       ref="createDialogRef"
       v-model="createDialog"
       :loading="workingAction === 'create'"
+      :disabled="reloadInProgress"
       @save="createCommand"
     />
 
@@ -101,6 +105,7 @@
       v-model="editorDialog"
       :command-entry="selectedCommand"
       :loading="workingAction === 'save' || workingAction === 'read'"
+      :disabled="reloadInProgress"
       @save="saveCommand"
     />
 
@@ -113,8 +118,8 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="deleteDialog = false">{{ $t('common.cancel') || 'Cancel' }}</v-btn>
-          <v-btn color="error" variant="tonal" :loading="workingAction === 'delete'" @click="confirmDeleteCommand">
+          <v-btn variant="text" :disabled="reloadInProgress" @click="deleteDialog = false">{{ $t('common.cancel') || 'Cancel' }}</v-btn>
+          <v-btn color="error" variant="tonal" :loading="workingAction === 'delete'" :disabled="reloadInProgress" @click="confirmDeleteCommand">
             {{ $t('common.delete') || 'Delete' }}
           </v-btn>
         </v-card-actions>
@@ -162,7 +167,11 @@ export default {
   },
 
   computed: {
-    ...mapState(useAppStore, ['getRestApi']),
+    ...mapState(useAppStore, ['getRestApi', 'getReloadUpdate']),
+
+    reloadInProgress(): boolean {
+      return this.getReloadUpdate?.finished !== true
+    },
 
     commandList(): CommandEntry[] {
       return Object.entries(this.commands ?? {})
@@ -228,6 +237,7 @@ export default {
     },
 
     async refreshCommands() {
+      if (this.reloadInProgress) return
       this.loading = true
       this.errorMessage = ''
 
@@ -252,11 +262,13 @@ export default {
     },
 
     openCreateDialog() {
+      if (this.reloadInProgress) return
       this.createDialog = true
       this.$nextTick(() => (this.$refs.createDialogRef as any)?.open?.())
     },
 
     async openEditor(item: CommandEntry) {
+      if (this.reloadInProgress) return
       this.workingName = item.name
       this.workingAction = 'read'
       this.errorMessage = ''
@@ -291,11 +303,13 @@ export default {
     },
 
     openDeleteDialog(item: CommandEntry) {
+      if (this.reloadInProgress) return
       this.selectedCommand = item
       this.deleteDialog = true
     },
 
     async uploadFiles(files: File[] | FileList) {
+      if (this.reloadInProgress) return
       const fileList = Array.from(files as any)
       if (fileList.length === 0) return
 
@@ -322,6 +336,7 @@ export default {
     },
 
     async createCommand(payload: any) {
+      if (this.reloadInProgress) return
       this.workingName = payload?.name ?? null
       this.workingAction = 'create'
       this.errorMessage = ''
@@ -340,6 +355,7 @@ export default {
     },
 
     async saveCommand(payload: any) {
+      if (this.reloadInProgress) return
       this.workingName = payload?.name ?? null
       this.workingAction = 'save'
       this.errorMessage = ''
@@ -387,6 +403,7 @@ export default {
     },
 
     async confirmDeleteCommand() {
+      if (this.reloadInProgress) return
       if (!this.selectedCommand) return
 
       this.workingName = this.selectedCommand.name

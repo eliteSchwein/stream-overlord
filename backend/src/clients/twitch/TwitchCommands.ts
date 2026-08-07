@@ -18,7 +18,7 @@ import isShieldActive from "../../helper/ShieldHelper";
 import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../helper/MessageEventLinkHelper";
 import TwitchClient from "./Client";
-import {getTwitchClient} from "../../App";
+import {getTwitchClient, setReloadUpdate} from "../../App";
 import {getAssetConfig} from "../../helper/AssetHelper";
 import {addAlert} from "../../helper/AlertHelper";
 
@@ -372,10 +372,16 @@ export function editCommandFile(inputPathOrName: string, content: string) {
 
     const twitchClient = getTwitchClient();
     if (twitchClient) {
-        void twitchClient.reloadCommands().catch((error) => {
-            logWarn("failed to reload Twitch commands after saving command file");
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        });
+        setReloadUpdate(false);
+
+        void twitchClient.reloadCommands()
+            .catch((error) => {
+                logWarn("failed to reload Twitch commands after saving command file");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            })
+            .finally(() => {
+                setReloadUpdate(true);
+            });
     }
 
     return {
