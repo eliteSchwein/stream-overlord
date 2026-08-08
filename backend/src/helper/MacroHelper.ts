@@ -841,6 +841,11 @@ export async function triggerMacro(name: string, variables: any = {}) {
         try {
             const task = interpolateMacroTask(preTask, variables);
 
+            const activeSwitch = [...controlStack].reverse().find(item => item.type === "switch" && item.active);
+            if (activeSwitch && task.channel !== "switch") {
+                activeSwitch.caseBodyStarted = true;
+            }
+
             if (task.channel === "condition") {
                 logRegular(`test condition: ${task.method} ${task.check ?? ''}`);
 
@@ -898,6 +903,137 @@ export async function triggerMacro(name: string, variables: any = {}) {
                     case "end_macro": {
                         if (shouldExecute(controlStack)) {
                             return true;
+                        }
+
+                        continue;
+                    }
+                }
+            }
+
+            if (task.channel === "switch") {
+                const parentSwitch = [...controlStack].reverse().find(item => item.type === "switch" && item.active);
+                if (parentSwitch && task.method === "switch") {
+                    parentSwitch.caseBodyStarted = true;
+                }
+
+                logRegular(`switch: ${task.method}`);
+
+                switch (task.method) {
+                    case "switch": {
+                        const parentActive = shouldExecute(controlStack);
+                        const data = task.data ?? {};
+                        const input = data.input ?? task.input;
+
+                        controlStack.push({
+                            type: "switch",
+                            active: false,
+                            parentActive,
+                            input,
+                            matched: false,
+                            finished: false,
+                            caseBodyStarted: false,
+                        });
+
+                        continue;
+                    }
+
+                    case "case": {
+                        const block = controlStack[controlStack.length - 1];
+
+                        if (!block || block.type !== "switch") {
+                            continue;
+                        }
+
+                        if (!block.parentActive || block.finished) {
+                            block.active = false;
+                            block.caseBodyStarted = false;
+                            continue;
+                        }
+
+                        // Automatic break: once a matched case has an actual body,
+                        // reaching the next case ends the switch. Empty consecutive
+                        // cases intentionally fall through and share the next body.
+                        if (block.active && block.caseBodyStarted) {
+                            block.active = false;
+                            block.finished = true;
+                            block.caseBodyStarted = false;
+                            continue;
+                        }
+
+                        if (block.active && !block.caseBodyStarted) {
+                            // A previous empty case matched, so keep falling through.
+                            block.caseBodyStarted = false;
+                            continue;
+                        }
+
+                        if (block.matched) {
+                            block.active = false;
+                            block.caseBodyStarted = false;
+                            continue;
+                        }
+
+                        const data = task.data ?? {};
+                        const caseInput = data.input ?? task.input;
+                        const active = block.input === caseInput;
+
+                        block.active = active;
+                        block.matched = active;
+                        block.caseBodyStarted = false;
+                        continue;
+                    }
+
+                    case "default": {
+                        const block = controlStack[controlStack.length - 1];
+
+                        if (!block || block.type !== "switch") {
+                            continue;
+                        }
+
+                        if (!block.parentActive || block.finished) {
+                            block.active = false;
+                            block.caseBodyStarted = false;
+                            continue;
+                        }
+
+                        if (block.active && block.caseBodyStarted) {
+                            block.active = false;
+                            block.finished = true;
+                            block.caseBodyStarted = false;
+                            continue;
+                        }
+
+                        if (block.active && !block.caseBodyStarted) {
+                            // Empty matching case falls through into default.
+                            block.caseBodyStarted = false;
+                            continue;
+                        }
+
+                        block.active = !block.matched;
+                        block.matched = block.matched || block.active;
+                        block.caseBodyStarted = false;
+                        continue;
+                    }
+
+                    case "break": {
+                        if (!shouldExecute(controlStack)) {
+                            continue;
+                        }
+
+                        const block = [...controlStack].reverse().find(item => item.type === "switch");
+
+                        if (block) {
+                            block.active = false;
+                            block.finished = true;
+                        }
+
+                        continue;
+                    }
+
+                    case "end_switch": {
+                        const block = controlStack[controlStack.length - 1];
+
+                        if (block?.type === "switch") {
+                            controlStack.pop();
                         }
 
                         continue;

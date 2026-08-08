@@ -623,7 +623,9 @@
         "ifCondition": "If condition",
         "forLoop": "For loop",
         "loopBreak": "Loop: break",
-        "loopContinue": "Loop: continue"
+        "loopContinue": "Loop: continue",
+        "switchCase": "Switch / case",
+        "switchBreak": "Switch: break"
       },
       "macro": {
         "title": "Macro",
@@ -977,6 +979,22 @@
       },
       "macroTask": {
         "macro": "Macro"
+      },
+      "switch": {
+        "title": "Switch",
+        "input": "Switch input",
+        "inputHint": "Supports template variables. The resolved value is compared with each case input.",
+        "cases": "Cases",
+        "addCase": "Add case",
+        "caseInput": "Case input",
+        "default": "Default",
+        "addDefault": "Add default",
+        "removeDefault": "Remove default",
+        "breakTitle": "Break switch",
+        "breakInfo": "Stops the nearest active switch immediately. A break is added automatically at the end of every non-empty case body.",
+        "caseTasks": "Case tasks",
+        "addCaseInput": "Add case input",
+        "removeCaseInput": "Remove case input"
       }
     },
     "final": {

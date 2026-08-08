@@ -623,7 +623,9 @@
         "ifCondition": "Wenn-Bedingung",
         "forLoop": "For-Schleife",
         "loopBreak": "Schleife: Abbrechen",
-        "loopContinue": "Schleife: Fortsetzen"
+        "loopContinue": "Schleife: Fortsetzen",
+        "switchCase": "Switch / Case",
+        "switchBreak": "Switch: Abbrechen"
       },
       "macro": {
         "title": "Makro",
@@ -977,6 +979,22 @@
       },
       "macroTask": {
         "macro": "Makro"
+      },
+      "switch": {
+        "title": "Switch",
+        "input": "Switch-Eingabe",
+        "inputHint": "Unterstützt Template-Variablen. Der aufgelöste Wert wird mit jeder Case-Eingabe verglichen.",
+        "cases": "Cases",
+        "addCase": "Case hinzufügen",
+        "caseInput": "Case-Eingabe",
+        "default": "Default",
+        "addDefault": "Default hinzufügen",
+        "removeDefault": "Default entfernen",
+        "breakTitle": "Switch abbrechen",
+        "breakInfo": "Beendet den nächsten aktiven Switch sofort. Am Ende jedes nicht-leeren Case-Blocks wird automatisch ein Break ausgeführt.",
+        "caseTasks": "Case-Tasks",
+        "addCaseInput": "Case-Eingabe hinzufügen",
+        "removeCaseInput": "Case-Eingabe entfernen"
       }
     },
     "final": {

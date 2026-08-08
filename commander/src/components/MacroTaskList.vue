@@ -10,6 +10,7 @@
         :depth="depth"
         :task-list-component="currentTaskListComponent"
         :inside-loop="isItemInsideLoop(item)"
+        :inside-switch="isItemInsideSwitch(item)"
         @remove="removeItem(index)"
         @move-up="moveItem(index, -1)"
         @move-down="moveItem(index, 1)"
@@ -153,6 +154,8 @@ import {
   MacroObsUnmuteInputTaskAccordion
 } from '@/components/accordions/macro/obs'
 import MacroFunctionParallelTaskAccordion from '@/components/accordions/macro/functions/MacroFunctionParallelTaskAccordion.vue'
+import MacroSwitchTaskAccordion from '@/components/accordions/macro/MacroSwitchTaskAccordion.vue'
+import MacroSwitchBreakTaskAccordion from '@/components/accordions/macro/MacroSwitchBreakTaskAccordion.vue'
 import MacroTimerTaskAccordion from "@/components/accordions/macro/MacroTimerTaskAccordion.vue";
 import MacroWledCustomTaskAccordion from '@/components/accordions/macro/MacroWledCustomTaskAccordion.vue'
 import MacroWledOffTaskAccordion from '@/components/accordions/macro/MacroWledOffTaskAccordion.vue'
@@ -222,6 +225,8 @@ export default {
   },
 
   components: {
+    MacroSwitchTaskAccordion,
+    MacroSwitchBreakTaskAccordion,
     MacroFunctionParallelTaskAccordion,
     MacroYoloboxVideoSourceTaskAccordion,
     MacroYoloboxOverlayTaskAccordion,
@@ -357,6 +362,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    insideSwitch: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   computed: {
@@ -405,6 +414,17 @@ export default {
               icon: 'mdi-skip-next-outline',
               loopOnly: true,
               factory: () => this.createTask({ channel: 'loop', method: 'continue' }),
+            },
+            {
+              titleKey: 'macro.presets.conditions.switchCase',
+              icon: 'mdi-call-split',
+              factory: () => this.createSwitchTask(),
+            },
+            {
+              titleKey: 'macro.presets.conditions.switchBreak',
+              icon: 'mdi-stop-circle-outline',
+              switchOnly: true,
+              factory: () => this.createTask({ channel: 'switch', method: 'break' }),
             },
           ],
         },
@@ -1107,6 +1127,7 @@ export default {
         .map((preset: any) => {
           if (!this.isPresetAvailable(preset)) return null
           if (preset.loopOnly === true && !this.insideLoop) return null
+          if (preset.switchOnly === true && !this.insideSwitch) return null
 
           if (!preset.children?.length) return preset
 
@@ -1123,6 +1144,8 @@ export default {
 
     componentFor(item: any) {
       if (item?.type === 'condition') return 'MacroConditionTaskAccordion'
+      if (item?.type === 'switch' || (item?.task?.channel === 'switch' && item?.task?.method === 'switch')) return 'MacroSwitchTaskAccordion'
+      if (item?.task?.channel === 'switch' && item?.task?.method === 'break') return 'MacroSwitchBreakTaskAccordion'
       if (item?.type === 'loop' || (item?.task?.channel === 'loop' && item?.task?.method === 'for')) return 'MacroLoopTaskAccordion'
       if (item?.task?.channel === 'loop' && ['break', 'continue', 'end_for'].includes(item?.task?.method)) return 'MacroLoopControlTaskAccordion'
       if (item?.task?.channel === 'condition' && item?.task?.method === 'end_macro') return 'MacroEndMacroTaskAccordion'
@@ -1413,8 +1436,33 @@ export default {
       }
     },
 
+    createSwitchTask() {
+      return {
+        id: this.uid(),
+        type: 'switch',
+        task: {
+          channel: 'switch',
+          method: 'switch',
+          data: { input: '' },
+        },
+        cases: [
+          {
+            id: this.uid(),
+            task: { channel: 'switch', method: 'case', data: { input: '' } },
+            inputs: [''],
+            children: [],
+          },
+        ],
+        defaultBranch: undefined,
+      }
+    },
+
     isItemInsideLoop(item: any) {
       return this.insideLoop || item?.type === 'loop' || (item?.task?.channel === 'loop' && item?.task?.method === 'for')
+    },
+
+    isItemInsideSwitch(item: any) {
+      return this.insideSwitch || item?.type === 'switch' || (item?.task?.channel === 'switch' && item?.task?.method === 'switch')
     },
 
     addTask(item: any) {

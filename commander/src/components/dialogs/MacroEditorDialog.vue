@@ -101,16 +101,19 @@ import YamlImportExportButtons from '@/components/YamlImportExportButtons.vue'
 
 type VisualTask = {
   id: string
-  type: 'task' | 'condition' | 'loop'
+  type: 'task' | 'condition' | 'loop' | 'switch'
   task: any
   children?: VisualTask[]
   branches?: VisualBranch[]
+  cases?: VisualBranch[]
+  defaultBranch?: VisualBranch
 }
 
 type VisualBranch = {
   id: string
   task: any
   children: VisualTask[]
+  inputs?: string[]
 }
 
 export default {
@@ -263,7 +266,7 @@ export default {
       while (index < tasks.length) {
         const task = this.cloneTask(tasks[index])
         const method =
-          task?.channel === 'condition' || task?.channel === 'loop'
+          task?.channel === 'condition' || task?.channel === 'loop' || task?.channel === 'switch'
             ? task.method
             : ''
 
@@ -318,6 +321,92 @@ export default {
             type: 'loop',
             task,
             children: childResult.items,
+          })
+
+          continue
+        }
+
+        if (task?.channel === 'switch' && task.method === 'switch') {
+          const cases: VisualBranch[] = []
+          let defaultBranch: VisualBranch | undefined
+          index++
+
+          while (index < tasks.length) {
+            const marker = tasks[index]
+
+            if (marker?.channel === 'switch' && marker.method === 'end_switch') {
+              index++
+              break
+            }
+
+            if (marker?.channel === 'switch' && marker.method === 'case') {
+              const caseInputs: string[] = []
+              let firstCaseTask: any = null
+              let caseChildren: VisualTask[] = []
+
+              while (index < tasks.length && tasks[index]?.channel === 'switch' && tasks[index]?.method === 'case') {
+                const currentCaseTask = this.cloneTask(tasks[index])
+                if (!firstCaseTask) firstCaseTask = currentCaseTask
+
+                caseInputs.push(String(currentCaseTask?.data?.input ?? ''))
+
+                const caseResult = this.parseTaskRange(tasks, index + 1, ['case', 'default', 'end_switch'])
+                caseChildren = caseResult.items
+                index = caseResult.index
+
+                // A case with tasks owns the shared body. Empty cases fall through
+                // visually into the next case and are grouped into one branch.
+                if (caseChildren.length > 0) break
+
+                if (!(tasks[index]?.channel === 'switch' && tasks[index]?.method === 'case')) {
+                  break
+                }
+              }
+
+              firstCaseTask.data ??= {}
+              firstCaseTask.data.input = caseInputs[0] ?? ''
+
+              cases.push({
+                id: this.uid(),
+                task: firstCaseTask,
+                inputs: caseInputs.length > 0 ? caseInputs : [''],
+                children: caseChildren,
+              })
+
+              continue
+            }
+
+            if (marker?.channel === 'switch' && marker.method === 'default') {
+              const defaultTask = this.cloneTask(marker)
+              const defaultResult = this.parseTaskRange(tasks, index + 1, ['end_switch'])
+
+              defaultBranch = {
+                id: this.uid(),
+                task: defaultTask,
+                children: defaultResult.items,
+              }
+
+              index = defaultResult.index
+              continue
+            }
+
+            // Invalid loose content inside a switch: preserve it as a case body
+            // instead of dropping it from the visual editor.
+            const looseResult = this.parseTaskRange(tasks, index, ['case', 'default', 'end_switch'])
+            cases.push({
+              id: this.uid(),
+              task: { channel: 'switch', method: 'case', data: { input: '' } },
+              children: looseResult.items,
+            })
+            index = looseResult.index
+          }
+
+          items.push({
+            id: this.uid(),
+            type: 'switch',
+            task,
+            cases,
+            defaultBranch,
           })
 
           continue
@@ -391,6 +480,38 @@ export default {
           tasks.push(this.cloneTask(item.task))
           tasks.push(...this.flattenVisualTasks(item.children ?? []))
           tasks.push({ channel: 'loop', method: 'end_for' })
+          continue
+        }
+
+        if (
+          item.type === 'switch' ||
+          (item.task?.channel === 'switch' && item.task?.method === 'switch')
+        ) {
+          tasks.push(this.cloneTask(item.task))
+
+          for (const caseItem of item.cases ?? []) {
+            const inputs = Array.isArray(caseItem.inputs) && caseItem.inputs.length > 0
+              ? caseItem.inputs
+              : [caseItem.task?.data?.input ?? '']
+
+            for (const input of inputs) {
+              const caseTask = this.cloneTask(caseItem.task)
+              caseTask.channel = 'switch'
+              caseTask.method = 'case'
+              caseTask.data ??= {}
+              caseTask.data.input = input
+              tasks.push(caseTask)
+            }
+
+            tasks.push(...this.flattenVisualTasks(caseItem.children ?? []))
+          }
+
+          if (item.defaultBranch) {
+            tasks.push(this.cloneTask(item.defaultBranch.task))
+            tasks.push(...this.flattenVisualTasks(item.defaultBranch.children ?? []))
+          }
+
+          tasks.push({ channel: 'switch', method: 'end_switch' })
           continue
         }
 
