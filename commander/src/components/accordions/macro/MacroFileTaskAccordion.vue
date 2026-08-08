@@ -102,8 +102,27 @@ export default {
     },
 
     assetFolderOptions(): string[] {
+      const folders = new Set<string>(this.mediaFolders)
+
+      for (const folder of this.mediaFolders) {
+        if (!folder || folder === 'compressed' || folder.startsWith('compressed/')) {
+          continue
+        }
+
+        folders.add(`compressed/${folder}`)
+      }
+
+      const sortedFolders = [...folders]
+      const compressedFolders = sortedFolders
+        .filter(folder => folder === 'compressed' || folder.startsWith('compressed/'))
+        .sort((a, b) => a.localeCompare(b))
+      const normalFolders = sortedFolders
+        .filter(folder => folder !== 'compressed' && !folder.startsWith('compressed/'))
+        .sort((a, b) => a.localeCompare(b))
+
       return [
-        ...this.mediaFolders,
+        ...compressedFolders,
+        ...normalFolders,
         '',
       ]
     },
