@@ -16,6 +16,7 @@
       <v-btn
         size="small"
         variant="text"
+        :disabled="!canMoveUp"
         @click.stop="$emit('move-up')"
       >
         <v-icon icon="mdi-arrow-up" size="16" />
@@ -25,6 +26,7 @@
         class="mr-4"
         size="small"
         variant="text"
+        :disabled="!canMoveDown"
         @click.stop="$emit('move-down')"
       >
         <v-icon icon="mdi-arrow-down" size="16" />
@@ -41,6 +43,8 @@ export default {
     icon: { type: String, required: true },
     index: { type: Number, required: true },
     title: { type: String, required: true },
+    canMoveUp: { type: Boolean, default: true },
+    canMoveDown: { type: Boolean, default: true },
   },
 
   emits: ['move-up', 'move-down'],

@@ -1,9 +1,11 @@
 <template>
-  <v-expansion-panel>
+  <v-expansion-panel :value="panelValue">
     <MacroTaskTitle
       :icon="icon"
       :index="index"
       :title="title"
+      :can-move-up="canMoveUp"
+      :can-move-down="canMoveDown"
       @move-up="$emit('move-up')"
       @move-down="$emit('move-down')"
     />
@@ -39,6 +41,9 @@ export default {
     icon: { type: String, required: true },
     title: { type: String, required: true },
     exportPrefix: { type: String, default: 'macro_task' },
+    panelValue: { type: [String, Number], default: undefined },
+    canMoveUp: { type: Boolean, default: true },
+    canMoveDown: { type: Boolean, default: true },
   },
 
   emits: ['remove', 'move-up', 'move-down'],

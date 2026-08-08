@@ -1,12 +1,20 @@
 <template>
   <div class="macro-task-list" :class="{ 'macro-task-list--nested': nested }">
-    <v-expansion-panels v-if="items.length" variant="accordion" multiple>
+    <v-expansion-panels
+      v-if="items.length"
+      v-model="expandedPanels"
+      variant="accordion"
+      multiple
+    >
       <component
         :is="componentFor(item)"
         v-for="(item, index) in items"
         :key="item.id"
         :item="item"
         :index="index"
+        :panel-value="item.id"
+        :can-move-up="index > 0"
+        :can-move-down="index < items.length - 1"
         :depth="depth"
         :task-list-component="currentTaskListComponent"
         :inside-loop="isItemInsideLoop(item)"
@@ -388,6 +396,7 @@ export default {
   data() {
     return {
       addTaskMenuOpen: false,
+      expandedPanels: [] as string[],
       presets: [
         {
           titleKey: 'macro.presets.conditions.title',
@@ -1466,7 +1475,17 @@ export default {
     },
 
     addTask(item: any) {
-      ;(this.items as any[]).push(item)
+      const items = this.items as any[]
+
+      if (!item.id) {
+        item.id = this.uid()
+      }
+
+      items.push(item)
+
+      if (!this.expandedPanels.includes(item.id)) {
+        this.expandedPanels.push(item.id)
+      }
     },
 
     addTaskAndClose(item: any) {
@@ -1475,7 +1494,13 @@ export default {
     },
 
     removeItem(index: number) {
-      ;(this.items as any[]).splice(index, 1)
+      const items = this.items as any[]
+      const item = items[index]
+
+      if (!item) return
+
+      this.expandedPanels = this.expandedPanels.filter((id: string) => id !== item.id)
+      items.splice(index, 1)
     },
 
     moveItem(index: number, direction: number) {
