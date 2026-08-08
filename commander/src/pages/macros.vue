@@ -68,10 +68,9 @@
         :text="$t('macro.noMacrosFound') || 'No macros found'"
       />
 
-      <v-expansion-panels
+      <div
         v-else
         class="macro-list"
-        variant="accordion"
       >
         <Macro
           v-for="item in filteredMacros"
@@ -83,7 +82,7 @@
           @edit="openEditor"
           @delete="openDeleteDialog"
         />
-      </v-expansion-panels>
+      </div>
     </v-card-text>
 
     <MacroEditorDialog
@@ -343,18 +342,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-
-:deep(.macro-list .v-expansion-panel-title) {
-  min-height: 56px;
-  padding: 0 18px;
-}
-
-:deep(.macro-list .v-expansion-panel-title__overlay) {
-  display: none;
-}
-
-:deep(.macro-list .v-expansion-panel:not(:first-child)::after) {
-  border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+.macro-list {
+  overflow: hidden;
+  border-radius: 4px;
 }
 
 .min-width-0 {

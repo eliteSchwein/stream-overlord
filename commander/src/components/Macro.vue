@@ -38,27 +38,12 @@ export default {
   computed: {
     ...mapState(useAppStore, ['getRestApi']),
 
-    tasks(): any[] {
-      return Array.isArray(this.macro?.tasks) ? this.macro.tasks : []
-    },
-
     taskCount(): number {
-      return this.tasks.length
+      return Array.isArray(this.macro?.tasks) ? this.macro.tasks.length : 0
     },
   },
 
   methods: {
-    stringify(value: any): string {
-      if (value === undefined || value === null) return ''
-      if (typeof value === 'string') return value
-
-      try {
-        return JSON.stringify(value)
-      } catch (error) {
-        return String(value)
-      }
-    },
-
     async triggerMacro() {
       if (this.loading || this.color !== '' || this.disabled) return
 
@@ -92,139 +77,95 @@ export default {
 </script>
 
 <template>
-  <v-expansion-panel class="macro-panel" bg-color="grey-darken-4">
-    <template #title>
-      <div class="macro-panel__title">
-        <v-btn
-          :loading="loading"
-          :disabled="disabled"
-          @click.stop="triggerMacro"
-          :icon="icon"
-          :color="color"
-          :aria-label="$t('macro.trigger')"
-          class="macro-panel__trigger"
-          size="small"
-          density="compact"
-          variant="plain"
-        />
+  <div class="macro-row">
+    <div class="macro-row__content">
+      <div class="macro-row__name text-truncate" :title="name">
+        {{ name }}
+      </div>
 
-        <span class="macro-panel__name text-truncate" :title="name">
-          {{ name }}
+      <v-chip
+        size="x-small"
+        variant="tonal"
+        class="macro-row__count"
+      >
+        {{ $t('components.macro.taskCount', { count: taskCount }) }}
+      </v-chip>
+    </div>
+
+    <div class="macro-row__actions">
+      <v-btn
+        :loading="loading"
+        :disabled="disabled"
+        :color="color || 'success'"
+        size="small"
+        variant="tonal"
+        @click="triggerMacro"
+      >
+        <v-icon :icon="icon" />
+        <span class="d-none d-sm-inline ml-1">
+          {{ $t('macro.run') }}
         </span>
+      </v-btn>
 
-        <div class="macro-panel__meta d-none d-sm-flex">
-          <v-chip size="x-small" variant="tonal">
-            {{ $t('components.macro.taskCount', { count: taskCount }) }}
-          </v-chip>
-        </div>
+      <v-btn
+        size="small"
+        variant="tonal"
+        color="primary"
+        :disabled="disabled"
+        @click="$emit('edit', name, macro)"
+      >
+        <v-icon icon="mdi-pencil" />
+        <span class="d-none d-sm-inline ml-1">
+          {{ $t('common.edit') }}
+        </span>
+      </v-btn>
 
-        <v-spacer />
-      </div>
-    </template>
-
-    <v-expansion-panel-text class="macro-panel__content pa-0">
-      <div class="macro-panel__details px-4 pt-3 pb-3">
-        <div class="macro-panel__details-text min-width-0">
-          <div class="text-subtitle-2 text-truncate" :title="name">
-            {{ name }}
-          </div>
-          <div class="text-caption text-grey-lighten-1">
-            {{ taskCount }} tasks
-          </div>
-        </div>
-
-        <div class="macro-panel__actions">
-          <v-btn
-            prepend-icon="mdi-pencil"
-            size="small"
-            variant="tonal"
-            color="primary"
-            :disabled="disabled"
-            @click="$emit('edit', name, macro)"
-          >
-            {{ $t('common.edit') }}
-          </v-btn>
-
-          <v-btn
-            prepend-icon="mdi-delete"
-            size="small"
-            variant="tonal"
-            color="red"
-            :loading="deleting"
-            :disabled="disabled"
-            @click="$emit('delete', name, macro)"
-          >
-            {{ $t('common.delete') }}
-          </v-btn>
-        </div>
-      </div>
-
-      <v-table density="compact" class="macro-panel__table">
-        <thead>
-          <tr>
-            <th class="text-left" style="width: 180px">
-              {{ $t('macro.table.channel') }}
-            </th>
-            <th class="text-left" style="width: 180px">
-              {{ $t('macro.table.method') }}
-            </th>
-            <th class="text-left">
-              {{ $t('macro.table.data') }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(task, index) in tasks" :key="index">
-            <td>{{ task.channel }}</td>
-            <td>{{ task.method ?? task.message ?? '' }}</td>
-            <td class="macro-panel__data">
-              {{ stringify(task.data ?? task.check ?? task.endpoint ?? task.asset ?? '') }}
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+      <v-btn
+        size="small"
+        variant="tonal"
+        color="red"
+        :loading="deleting"
+        :disabled="disabled"
+        @click="$emit('delete', name, macro)"
+      >
+        <v-icon icon="mdi-delete" />
+        <span class="d-none d-sm-inline ml-1">
+          {{ $t('common.delete') }}
+        </span>
+      </v-btn>
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.macro-panel {
+.macro-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px;
+  background: rgb(var(--v-theme-grey-darken-4));
   border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
-.macro-panel__title {
+.macro-row__content {
   display: flex;
   align-items: center;
-  min-width: 0;
-  width: 100%;
   gap: 10px;
-}
-
-.macro-panel__trigger {
-  flex: 0 0 auto;
-}
-
-.macro-panel__name {
-  min-width: 120px;
-}
-
-.macro-panel__meta {
-  align-items: center;
-  gap: 6px;
-}
-
-.macro-panel__details {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.macro-panel__details-text {
+  min-width: 0;
   flex: 1 1 auto;
 }
 
-.macro-panel__actions {
+.macro-row__name {
+  min-width: 0;
+  font-weight: 500;
+}
+
+.macro-row__count {
+  flex: 0 0 auto;
+}
+
+.macro-row__actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -232,23 +173,21 @@ export default {
 }
 
 @media (max-width: 600px) {
-  .macro-panel__details {
-    align-items: stretch;
-    flex-direction: column;
+  .macro-row {
+    padding-inline: 10px;
   }
 
-  .macro-panel__actions {
-    justify-content: flex-end;
+  .macro-row__content {
+    gap: 6px;
   }
-}
 
-.macro-panel__table {
-  background: transparent;
-}
+  .macro-row__actions {
+    gap: 4px;
+  }
 
-.macro-panel__data {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.78rem;
-  word-break: break-word;
+  .macro-row__actions .v-btn {
+    min-width: 36px;
+    padding-inline: 8px;
+  }
 }
 </style>

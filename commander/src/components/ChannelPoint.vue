@@ -28,13 +28,6 @@ export default {
       return String(this.channelPoint?.label ?? this.channelPoint?.name ?? '')
     },
 
-    subtitle(): string {
-      return [
-        this.channelPoint?.asset,
-        this.channelPoint?.macro,
-      ].filter(Boolean).join(' · ')
-    },
-
     isActive(): boolean {
       return this.channelPoint?.active !== false
     },
@@ -48,137 +41,151 @@ export default {
 </script>
 
 <template>
-  <v-expansion-panel class="channel-point-panel">
-    <template #title>
-      <div class="channel-point-panel__title">
-        <v-avatar size="40" :color="color" rounded="lg" class="pa-1">
-          <v-img v-if="channelPoint.image" :src="channelPoint.image" cover />
-          <v-icon v-else icon="mdi-star-circle" size="20" />
-        </v-avatar>
-
-        <div class="min-width-0">
-          <div class="text-truncate" :title="title">{{ title }}</div>
-        </div>
-
-        <v-spacer />
-
-        <v-switch
-          v-if="channelPoint.id"
-          :model-value="isActive"
-          :loading="toggling"
-          :disabled="disabled"
-          density="compact"
-          hide-details
-          inset
-          class="channel-point-panel__toggle"
-          @click.stop
-          color="primary"
-          @update:model-value="$emit('toggle', channelPoint)"
+  <div class="channel-point-row">
+    <div class="channel-point-row__content">
+      <v-avatar
+        size="40"
+        :color="color"
+        rounded="lg"
+        class="channel-point-row__avatar pa-1"
+      >
+        <v-img
+          v-if="channelPoint.image"
+          :src="channelPoint.image"
+          cover
         />
-      </div>
-    </template>
+        <v-icon
+          v-else
+          icon="mdi-star-circle"
+          size="20"
+        />
+      </v-avatar>
 
-    <v-expansion-panel-text class="pa-0">
-      <div class="channel-point-panel__content px-4 pt-3 pb-3">
-        <div class="min-width-0">
+      <div class="channel-point-row__text min-width-0">
+        <div
+          class="channel-point-row__name text-truncate"
+          :title="title"
+        >
+          {{ title }}
         </div>
 
-        <div class="channel-point-panel__actions">
-          <v-btn
-            prepend-icon="mdi-pencil"
-            size="small"
-            variant="tonal"
-            color="primary"
-            :disabled="disabled"
-            @click="$emit('edit', channelPoint)"
-          >
-            {{ $t('common.edit') }}
-          </v-btn>
-
-          <v-btn
-            prepend-icon="mdi-delete"
-            size="small"
-            variant="tonal"
-            color="red"
-            :loading="deleting"
-            :disabled="disabled"
-            @click="$emit('delete', channelPoint)"
-          >
-            {{ $t('common.delete') }}
-          </v-btn>
+        <div
+          v-if="channelPoint.name && channelPoint.name !== title"
+          class="channel-point-row__internal-name text-caption text-medium-emphasis text-truncate"
+          :title="channelPoint.name"
+        >
+          {{ channelPoint.name }}
         </div>
       </div>
+    </div>
 
-      <v-table density="compact" class="channel-point-panel__table">
-        <tbody>
-        <tr>
-          <td class="channel-point-panel__field-label">Name</td>
-          <td>{{ channelPoint.name }}</td>
-        </tr>
-        <tr>
-          <td class="channel-point-panel__field-label">Label</td>
-          <td>{{ channelPoint.label }}</td>
-        </tr>
-        <tr>
-          <td class="channel-point-panel__field-label">Asset</td>
-          <td>{{ channelPoint.asset }}</td>
-        </tr>
-        <tr>
-          <td class="channel-point-panel__field-label">Macro</td>
-          <td>{{ channelPoint.macro }}</td>
-        </tr>
-        <tr>
-          <td class="channel-point-panel__field-label">Enable default</td>
-          <td>{{ channelPoint.enable_default === true ? 'yes' : 'no' }}</td>
-        </tr>
-        <tr>
-          <td class="channel-point-panel__field-label">Auto accept</td>
-          <td>{{ channelPoint.auto_accept === true ? 'yes' : 'no' }}</td>
-        </tr>
-        <tr>
-          <td class="channel-point-panel__field-label">Strip emotes</td>
-          <td>{{ channelPoint.strip_emotes === true ? 'yes' : 'no' }}</td>
-        </tr>
-        </tbody>
-      </v-table>
-    </v-expansion-panel-text>
-  </v-expansion-panel>
+    <div class="channel-point-row__actions">
+      <v-switch
+        v-if="channelPoint.id"
+        :model-value="isActive"
+        :loading="toggling"
+        :disabled="disabled"
+        density="compact"
+        hide-details
+        inset
+        color="primary"
+        class="channel-point-row__toggle"
+        @update:model-value="$emit('toggle', channelPoint)"
+      />
+
+      <v-btn
+        size="small"
+        variant="tonal"
+        color="primary"
+        :disabled="disabled"
+        @click="$emit('edit', channelPoint)"
+      >
+        <v-icon icon="mdi-pencil" />
+        <span class="d-none d-sm-inline ml-1">
+          {{ $t('common.edit') }}
+        </span>
+      </v-btn>
+
+      <v-btn
+        size="small"
+        variant="tonal"
+        color="red"
+        :loading="deleting"
+        :disabled="disabled"
+        @click="$emit('delete', channelPoint)"
+      >
+        <v-icon icon="mdi-delete" />
+        <span class="d-none d-sm-inline ml-1">
+          {{ $t('common.delete') }}
+        </span>
+      </v-btn>
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.channel-point-panel {
-  &__title,
-  &__content,
-  &__actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
+.channel-point-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px;
+  background: rgb(var(--v-theme-grey-darken-4));
+  border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.channel-point-row__content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.channel-point-row__avatar {
+  flex: 0 0 auto;
+}
+
+.channel-point-row__text {
+  flex: 1 1 auto;
+}
+
+.channel-point-row__name {
+  font-weight: 500;
+}
+
+.channel-point-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.channel-point-row__toggle {
+  flex: 0 0 auto;
+  margin-right: 2px;
+}
+
+.min-width-0 {
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .channel-point-row {
+    padding-inline: 10px;
   }
 
-  &__title {
-    flex: 1 1 auto;
-    width: 100%;
+  .channel-point-row__internal-name {
+    display: none;
   }
 
-  &__toggle {
-    margin-left: auto;
-    margin-right: 12px;
+  .channel-point-row__actions {
+    gap: 4px;
   }
 
-  &__content {
-    justify-content: space-between;
-  }
-
-  &__actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  &__field-label {
-    width: 180px;
-    color: rgba(var(--v-theme-on-surface), .65);
-    white-space: nowrap;
+  .channel-point-row__actions .v-btn {
+    min-width: 36px;
+    padding-inline: 8px;
   }
 }
 </style>

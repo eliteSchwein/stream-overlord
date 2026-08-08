@@ -53,7 +53,7 @@
       <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
       <v-alert v-if="filteredChannelPoints.length === 0" type="info" color="warning" :text="$t('channelPoints.none') || 'No channel points found'" />
 
-      <v-expansion-panels v-else variant="accordion" class="channel-point-list">
+      <div v-else class="channel-point-list">
         <ChannelPoint
           v-for="channelPoint in filteredChannelPoints"
           :key="channelPoint.name"
@@ -62,10 +62,10 @@
           :deleting="workingName === channelPoint.name && workingAction === 'delete'"
           :toggling="workingName === channelPoint.name && workingAction === 'toggle'"
           @edit="openEditDialog"
-          @delete="deleteChannelPoint"
+          @delete="openDeleteDialog"
           @toggle="toggleChannelPoint"
         />
-      </v-expansion-panels>
+      </div>
     </v-card-text>
 
     <ChannelPointCreateDialog
@@ -84,6 +84,13 @@
       :error="editorError"
       @save="saveChannelPoint"
     />
+
+    <ChannelPointDeleteConfirmDialog
+      v-model="deleteDialog"
+      :channel-point="selectedDeleteChannelPoint"
+      :loading="workingAction === 'delete'"
+      @confirm="confirmDeleteChannelPoint"
+    />
   </v-card>
 </template>
 
@@ -96,6 +103,7 @@ import UploadCard from '@/components/cards/UploadCard.vue'
 import ChannelPoint from '@/components/ChannelPoint.vue'
 import ChannelPointCreateDialog from '@/components/dialogs/ChannelPointCreateDialog.vue'
 import ChannelPointEditorDialog from '@/components/dialogs/ChannelPointEditorDialog.vue'
+import ChannelPointDeleteConfirmDialog from '@/components/dialogs/ChannelPointDeleteConfirmDialog.vue'
 
 type ChannelPointEntry = {
   name: string
@@ -123,6 +131,7 @@ export default {
     ChannelPoint,
     ChannelPointCreateDialog,
     ChannelPointEditorDialog,
+    ChannelPointDeleteConfirmDialog,
   },
 
   data() {
@@ -134,7 +143,9 @@ export default {
       searchQuery: '',
       createDialog: false,
       editorDialog: false,
+      deleteDialog: false,
       selectedChannelPoint: null as ChannelPointEntry | null,
+      selectedDeleteChannelPoint: null as ChannelPointEntry | null,
       localChannelPoints: [] as ChannelPointEntry[],
       workingName: null as string | null,
       workingAction: null as null | 'save' | 'delete' | 'toggle',
@@ -464,7 +475,17 @@ export default {
       return JSON.stringify(stringValue)
     },
 
-    async deleteChannelPoint(channelPoint: ChannelPointEntry) {
+    openDeleteDialog(channelPoint: ChannelPointEntry) {
+      if (this.reloadInProgress || this.workingAction) return
+      if (!channelPoint?.name) return
+
+      this.selectedDeleteChannelPoint = channelPoint
+      this.deleteDialog = true
+    },
+
+    async confirmDeleteChannelPoint() {
+      const channelPoint = this.selectedDeleteChannelPoint
+
       if (this.reloadInProgress) return
       if (!channelPoint?.name || this.workingAction) return
 
@@ -479,9 +500,12 @@ export default {
         })
         if (data?.error) throw new Error(data.error)
 
+        this.deleteDialog = false
+        this.selectedDeleteChannelPoint = null
+
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
-        this.errorMessage = error?.message ?? 'delete channel point failed'
+        this.errorMessage = error?.message ?? this.$t('channelPoints.errors.deleteFailed')
       } finally {
         this.workingName = null
         this.workingAction = null
@@ -515,3 +539,14 @@ export default {
   },
 }
 </script>
+
+<style scoped lang="scss">
+.channel-point-list {
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.min-width-0 {
+  min-width: 0;
+}
+</style>

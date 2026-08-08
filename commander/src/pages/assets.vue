@@ -48,7 +48,7 @@
       <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
       <v-alert v-if="filteredAssets.length === 0" type="info" color="grey-darken-3" :text="$t('assets.noAssetsFound') || 'No assets found'" />
 
-      <v-expansion-panels v-else class="asset-list" variant="accordion">
+      <div v-else class="asset-list">
         <Asset
           v-for="item in filteredAssets"
           :key="item.name"
@@ -59,7 +59,7 @@
           @edit="openEditor"
           @delete="openDeleteDialog"
         />
-      </v-expansion-panels>
+      </div>
     </v-card-text>
 
     <AssetEditorDialog
@@ -373,17 +373,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
-:deep(.asset-list .v-expansion-panel-title) {
-  min-height: 56px;
-  padding: 0 18px;
-}
-
-:deep(.asset-list .v-expansion-panel-title__overlay) {
-  display: none;
-}
-
-:deep(.asset-list .v-expansion-panel:not(:first-child)::after) {
-  border-top: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+.asset-list {
+  overflow: hidden;
+  border-radius: 4px;
 }
 
 .min-width-0 {

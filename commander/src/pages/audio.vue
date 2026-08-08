@@ -1,7 +1,7 @@
 <template>
   <v-row class="audio-page-layout ma-0 pa-0" density="comfortable" no-gutters>
     <v-col cols="12" :lg="yoloboxAudioEnabled ? 8 : 12" class="bot-audio-panel">
-      <v-card color="grey-darken-4" elevation="0" rounded="0">
+      <v-card color="transparent" elevation="0" rounded="0">
         <v-card-title class="d-flex align-center justify-space-between">
           <span>{{ $t('audio.title') }}</span>
         </v-card-title>

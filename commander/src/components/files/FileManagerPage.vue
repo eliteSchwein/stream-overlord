@@ -1,5 +1,5 @@
 <template>
-  <v-card color="grey-darken-4">
+  <v-card color="transparent">
     <v-card-title class="d-flex align-center justify-space-between">
       <div class="d-flex align-center ga-2">
         <v-btn

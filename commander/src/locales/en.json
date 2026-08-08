@@ -1146,7 +1146,8 @@
         "title": "Restore theme color",
         "info": "Removes the manual theme color and uses the current game or default color again. The LED color is not changed."
       }
-    }
+    },
+    "run": "Run"
   },
   "giveaway": {
     "title": "Giveaway",
@@ -1431,7 +1432,11 @@
     "timing": "Timing",
     "theme": "Theme",
     "macros": "Macros",
-    "importFailed": "Asset import failed"
+    "importFailed": "Asset import failed",
+    "list": {
+      "listEdit": "Edit",
+      "listDelete": "Delete"
+    }
   },
   "channelPoints": {
     "add": "Add channel point",
@@ -1440,7 +1445,12 @@
     "upload": "Upload channel point",
     "edit": "Edit channel point",
     "create": "Create channel point",
-    "none": "No channel points found"
+    "none": "No channel points found",
+    "deleteConfirmTitle": "Delete channel point?",
+    "deleteConfirmText": "Do you really want to delete this channel point?",
+    "errors": {
+      "deleteFailed": "Failed to delete channel point"
+    }
   },
   "events": {
     "title": "Events",

@@ -1146,7 +1146,8 @@
         "title": "Theme-Farbe wiederherstellen",
         "info": "Entfernt die manuelle Theme-Farbe und verwendet wieder die aktuelle Spiel- oder Standardfarbe. Die LED-Farbe wird nicht geändert."
       }
-    }
+    },
+    "run": "Ausführen"
   },
   "giveaway": {
     "title": "Giveaway",
@@ -1431,7 +1432,11 @@
     "timing": "Timing",
     "theme": "Design",
     "macros": "Makros",
-    "importFailed": "Asset-Import fehlgeschlagen"
+    "importFailed": "Asset-Import fehlgeschlagen",
+    "list": {
+      "listEdit": "Bearbeiten",
+      "listDelete": "Löschen"
+    }
   },
   "channelPoints": {
     "add": "Kanalpunkt hinzufügen",
@@ -1440,7 +1445,12 @@
     "upload": "Kanalpunkt hochladen",
     "edit": "Kanalpunkt bearbeiten",
     "create": "Kanalpunkt erstellen",
-    "none": "Keine Kanalpunkte gefunden"
+    "none": "Keine Kanalpunkte gefunden",
+    "deleteConfirmTitle": "Kanalpunkt löschen?",
+    "deleteConfirmText": "Möchtest du diesen Kanalpunkt wirklich löschen?",
+    "errors": {
+      "deleteFailed": "Kanalpunkt konnte nicht gelöscht werden"
+    }
   },
   "events": {
     "title": "Ereignisse",
