@@ -7,7 +7,7 @@
     },
     "actions": {
       "reloadPage": "Seite neu laden",
-      "restartBot": "Bot neu starten",
+      "restartBot": "Bot neustarten",
       "reloadBrowserSources": "Browserquellen neu laden",
       "updateBot": "Bot aktualisieren",
       "shutdownSystem": "System herunterfahren"
