@@ -30,44 +30,66 @@
     <v-card-actions class="file-card__actions pt-0">
       <v-btn
         v-if="entry.type === 'file'"
-        icon="mdi-content-copy"
+        prepend-icon="mdi-content-copy"
         size="small"
         variant="text"
         color="primary"
         :disabled="disabled"
         @click.stop="$emit('copy', entry)"
-      />
-
-      <v-btn
-        v-if="canCompressEntry"
-        icon="mdi-archive-arrow-down-outline"
-        size="small"
-        variant="text"
-        color="primary"
-        :loading="working && workingAction === 'compress'"
-        :disabled="disabled"
-        @click.stop="$emit('compress', entry)"
-      />
+      >
+        {{ copyLabel }}
+      </v-btn>
 
       <v-spacer />
 
-      <v-btn
-        icon="mdi-folder-move"
-        size="small"
-        variant="text"
-        :disabled="disabled"
-        @click.stop="$emit('move', entry)"
-      />
+      <v-menu location="bottom end">
+        <template #activator="{ props: menuProps }">
+          <v-btn
+            v-bind="menuProps"
+            icon="mdi-dots-vertical"
+            size="small"
+            variant="text"
+            :disabled="disabled"
+            @click.stop
+          />
+        </template>
 
-      <v-btn
-        icon="mdi-delete"
-        size="small"
-        variant="text"
-        color="red"
-        :loading="working && workingAction === 'delete'"
-        :disabled="disabled"
-        @click.stop="$emit('delete', entry)"
-      />
+        <v-list density="compact" min-width="220">
+          <v-list-item
+            v-if="canCompressEntry"
+            prepend-icon="mdi-archive-arrow-down-outline"
+            :title="compressLabel"
+            :disabled="disabled"
+            @click="$emit('compress', entry)"
+          />
+
+          <v-list-item
+            prepend-icon="mdi-folder-move"
+            :title="moveLabel"
+            :disabled="disabled"
+            @click="$emit('move', entry)"
+          />
+
+          <v-divider class="my-1" />
+
+          <v-list-item
+            v-if="entry.type === 'file' && hasCompressed"
+            prepend-icon="mdi-archive-remove-outline"
+            base-color="warning"
+            :title="deleteCompressedLabel"
+            :disabled="disabled"
+            @click="$emit('delete-compressed', entry)"
+          />
+
+          <v-list-item
+            prepend-icon="mdi-delete"
+            :title="deleteLabel"
+            base-color="error"
+            :disabled="disabled"
+            @click="$emit('delete', entry)"
+          />
+        </v-list>
+      </v-menu>
     </v-card-actions>
   </v-card>
 </template>
@@ -122,6 +144,26 @@ export default {
       type: String,
       default: '',
     },
+    copyLabel: {
+      type: String,
+      default: 'Copy URL',
+    },
+    compressLabel: {
+      type: String,
+      default: 'Compress',
+    },
+    moveLabel: {
+      type: String,
+      default: 'Move',
+    },
+    deleteCompressedLabel: {
+      type: String,
+      default: 'Delete compressed',
+    },
+    deleteLabel: {
+      type: String,
+      default: 'Delete',
+    },
   },
 
   emits: [
@@ -130,6 +172,7 @@ export default {
     'copy',
     'compress',
     'move',
+    'delete-compressed',
     'delete',
   ],
 
@@ -139,6 +182,10 @@ export default {
       if (/\.svg$/i.test(this.entry.path)) return false
 
       return /\.(jpe?g|png|webp|gif|mp4|webm|mov|mkv|mp3|flac|wav|ogg|m4a|opus)$/i.test(this.entry.path)
+    },
+
+    hasCompressed(): boolean {
+      return Boolean(this.getCompressedPath(this.entry))
     },
 
     subtitle(): string {

@@ -16,23 +16,13 @@
         <input type="hidden" :value="source" name="source" />
 
         <v-text-field
-          :model-value="targetName"
+          :model-value="target"
           :label="targetLabel"
           variant="outlined"
           hide-details
-          class="mb-2"
-          @update:model-value="updateTargetName"
-          @keyup.enter="$emit('move')"
-        />
-
-        <v-text-field
-          :model-value="target"
-          :label="$t('dialogs.fileMoveDialog.targetPath')"
-          variant="outlined"
-          density="compact"
-          readonly
-          hide-details
           class="mb-4"
+          @update:model-value="updateTargetPath"
+          @keyup.enter="$emit('move')"
         />
 
         <v-card color="grey-darken-3" variant="flat" class="file-folder-explorer">
@@ -216,7 +206,7 @@ export default {
     },
     targetLabel: {
       type: String,
-      default: 'Target name',
+      default: 'Target path',
     },
     targetFolderLabel: {
       type: String,
@@ -287,10 +277,6 @@ export default {
       return parts.pop() ?? ''
     },
 
-    targetName(): string {
-      const parts = this.normalizePath(this.target || this.source).split('/').filter(Boolean)
-      return parts.pop() ?? this.sourceName
-    },
   },
 
   watch: {
@@ -373,22 +359,35 @@ export default {
       }
     },
 
-    updateTargetName(value: string) {
-      this.$emit('update:target', this.joinPath(this.explorerPath, value || this.sourceName))
+    updateTargetPath(value: string) {
+      const normalized = this.normalizePath(value)
+      this.$emit('update:target', normalized)
+
+      const parent = this.getParentPath(normalized || this.source)
+      if (parent !== this.explorerPath) {
+        this.explorerPath = parent
+      }
     },
 
     selectCurrentFolder() {
-      this.$emit('update:target', this.joinPath(this.explorerPath, this.targetName || this.sourceName))
+      const fileName = this.getFileName(this.target || this.source) || this.sourceName
+      this.$emit('update:target', this.joinPath(this.explorerPath, fileName))
     },
 
     openFolder(path: string) {
+      const fileName = this.getFileName(this.target || this.source) || this.sourceName
       this.explorerPath = this.normalizePath(path)
-      this.$emit('update:target', this.joinPath(this.explorerPath, this.targetName || this.sourceName))
+      this.$emit('update:target', this.joinPath(this.explorerPath, fileName))
       this.fetchFolders(this.explorerPath)
     },
 
     openParentFolder() {
       this.openFolder(this.parentFolderPath)
+    },
+
+    getFileName(value: string): string {
+      const parts = this.normalizePath(value).split('/').filter(Boolean)
+      return parts.pop() ?? ''
     },
 
     getParentPath(value: string): string {

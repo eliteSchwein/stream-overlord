@@ -78,6 +78,18 @@
         </v-btn>
 
         <v-btn
+          v-if="compressedUrl"
+          color="warning"
+          variant="tonal"
+          prepend-icon="mdi-archive-remove-outline"
+          :loading="deletingCompressed"
+          :disabled="disabled"
+          @click="$emit('delete-compressed', entry)"
+        >
+          {{ deleteCompressedLabel }}
+        </v-btn>
+
+        <v-btn
           color="red"
           variant="tonal"
           prepend-icon="mdi-delete"
@@ -156,6 +168,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    deletingCompressed: {
+      type: Boolean,
+      default: false,
+    },
     title: {
       type: String,
       default: 'Preview',
@@ -176,6 +192,10 @@ export default {
       type: String,
       default: 'Move',
     },
+    deleteCompressedLabel: {
+      type: String,
+      default: 'Delete compressed',
+    },
     deleteLabel: {
       type: String,
       default: 'Delete',
@@ -190,10 +210,15 @@ export default {
     'update:modelValue',
     'compress',
     'move',
+    'delete-compressed',
     'delete',
   ],
 
   computed: {
+    isAudio(): boolean {
+      return /\.(mp3|wav|flac|ogg|m4a|aac|opus)$/i.test(this.entry?.path ?? '')
+    },
+
     previewUrl(): string {
       if (!this.entry?.path) return ''
 
@@ -272,3 +297,21 @@ export default {
   },
 }
 </script>
+
+<style scoped lang="scss">
+
+.file-preview-dialog__preview--audio {
+  min-height: 0;
+  height: auto;
+  padding-block: 16px;
+}
+
+.file-preview-dialog__preview--audio :deep(.file-preview__audio) {
+  width: 100%;
+  max-width: 640px;
+  min-height: 0;
+  height: 54px;
+  margin: 0 auto;
+}
+
+</style>

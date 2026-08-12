@@ -28,12 +28,19 @@
     />
 
     <audio
-      v-else-if="isAudio"
+      v-else-if="isAudio && variant === 'dialog'"
       class="file-preview__audio"
       :src="previewUrl"
       :controls="controls"
       :autoplay="autoplay"
     />
+
+    <div v-else-if="isAudio" class="file-preview__placeholder">
+      <v-icon icon="mdi-volume-high" :size="variant === 'dialog' ? 72 : 64" />
+      <div v-if="showLabel" class="text-caption mt-2 text-truncate">
+        {{ entry?.name || entry?.path }}
+      </div>
+    </div>
 
     <iframe
       v-else-if="isHtml && variant === 'dialog'"
@@ -136,6 +143,7 @@ export default {
 
     entryIcon(): string {
       if (this.entry?.type === 'folder') return 'mdi-folder'
+      if (this.isAudio) return 'mdi-volume-high'
       if (this.isHtml) return 'mdi-language-html5'
       if (/\.css$/i.test(this.path)) return 'mdi-language-css3'
       if (/\.(js|ts|mjs|cjs)$/i.test(this.path)) return 'mdi-language-javascript'

@@ -48,7 +48,8 @@
         <v-col cols="12" md="6">
           <StorageCard
             ref="storageCard"
-            :hide-assets-used="hideAssetsUsed"
+            :hide-media-used="routeBase === 'assets' ? true : hideAssetsUsed"
+            :hide-asset-config-used="routeBase !== 'assets'"
             :hide-overlay-used="hideOverlayUsed"
             :hide-music-used="hideMusicUsed"
           />
@@ -114,11 +115,17 @@
             :disabled="isWorking(item.path)"
             :working="workingPath === item.path"
             :working-action="workingAction || ''"
+            :copy-label="copyLabel"
+            :compress-label="compressLabel"
+            :move-label="moveLabel"
+            :delete-compressed-label="deleteCompressedLabel"
+            :delete-label="deleteLabel"
             @open-folder="openFolder"
             @preview="openPreviewDialog"
             @copy="openCopyDialog"
             @compress="compressEntry"
             @move="openMoveDialog"
+            @delete-compressed="openDeleteCompressedDialog"
             @delete="openDeleteDialog"
           />
         </v-col>
@@ -141,11 +148,11 @@
       :entry="selectedDeleteEntry"
       :rest-api="getRestApi"
       :public-prefix="publicPrefix"
-      :loading="workingAction === 'delete'"
-      :title="deleteConfirmTitle"
-      :text="deleteConfirmText"
+      :loading="workingAction === 'delete' || workingAction === 'delete-compressed'"
+      :title="deleteDialogMode === 'compressed' ? deleteCompressedConfirmTitle : deleteConfirmTitle"
+      :text="deleteDialogMode === 'compressed' ? deleteCompressedConfirmText : deleteConfirmText"
       :cancel-label="cancelLabel"
-      :delete-label="deleteLabel"
+      :delete-label="deleteDialogMode === 'compressed' ? deleteCompressedLabel : deleteLabel"
       @confirm="confirmDeleteEntry"
     />
 
@@ -186,16 +193,19 @@
       :can-compress="canCompress"
       :disabled="workingAction !== null"
       :compressing="workingPath === selectedPreviewEntry?.path && workingAction === 'compress'"
+      :deleting-compressed="workingPath === selectedPreviewEntry?.path && workingAction === 'delete-compressed'"
       :deleting="workingPath === selectedPreviewEntry?.path && workingAction === 'delete'"
       :title="previewLabel"
       :normal-label="normalUrlLabel"
       :compressed-label="compressedUrlLabel"
       :compress-label="compressLabel"
       :move-label="moveLabel"
+      :delete-compressed-label="deleteCompressedLabel"
       :delete-label="deleteLabel"
       :open-label="openLabel"
       @compress="compressEntry"
       @move="openMoveDialog"
+      @delete-compressed="openDeleteCompressedDialog"
       @delete="openDeleteDialog"
     />
 
@@ -345,6 +355,10 @@ export default {
       type: String,
       default: '',
     },
+    deleteCompressedMethod: {
+      type: String,
+      default: '',
+    },
     uploadEndpoint: {
       type: String,
       required: true,
@@ -469,6 +483,14 @@ export default {
       type: String,
       default: 'Do you really want to delete this file?',
     },
+    deleteCompressedConfirmTitle: {
+      type: String,
+      default: 'Delete compressed file?',
+    },
+    deleteCompressedConfirmText: {
+      type: String,
+      default: 'Do you really want to delete the compressed version of this file?',
+    },
     targetLabel: {
       type: String,
       default: 'Target name',
@@ -485,9 +507,17 @@ export default {
       type: String,
       default: 'Compressed URL',
     },
+    copyLabel: {
+      type: String,
+      default: 'Copy URL',
+    },
     compressLabel: {
       type: String,
       default: 'Compress',
+    },
+    deleteCompressedLabel: {
+      type: String,
+      default: 'Delete compressed',
     },
     moveLabel: {
       type: String,
@@ -529,7 +559,7 @@ export default {
       errorMessage: '',
       requestSequence: 0,
       workingPath: null as string | null,
-      workingAction: null as 'delete' | 'move' | 'compress' | null,
+      workingAction: null as 'delete' | 'delete-compressed' | 'move' | 'compress' | null,
       moveDialog: false,
       moveSource: '',
       moveTarget: '',
@@ -539,6 +569,7 @@ export default {
       createFileDialog: false,
       editorDialog: false,
       deleteDialog: false,
+      deleteDialogMode: 'file' as 'file' | 'compressed',
       createFolderLoading: false,
       createFileLoading: false,
       createFolderError: '',
@@ -702,12 +733,27 @@ export default {
     openDeleteDialog(item: FileEntry | null) {
       if (!item?.path || this.workingAction) return
 
+      this.deleteDialogMode = 'file'
+      this.selectedDeleteEntry = item
+      this.deleteDialog = true
+      this.errorMessage = ''
+    },
+
+    openDeleteCompressedDialog(item: FileEntry | null) {
+      if (!this.deleteCompressedMethod || !item?.path || !this.getCompressedPath(item) || this.workingAction) return
+
+      this.deleteDialogMode = 'compressed'
       this.selectedDeleteEntry = item
       this.deleteDialog = true
       this.errorMessage = ''
     },
 
     async confirmDeleteEntry() {
+      if (this.deleteDialogMode === 'compressed') {
+        await this.deleteCompressedEntry(this.selectedDeleteEntry)
+        return
+      }
+
       await this.deleteEntry(this.selectedDeleteEntry)
     },
 
@@ -756,6 +802,47 @@ export default {
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'compress failed'
         console.error('compress failed', error)
+      } finally {
+        this.workingPath = null
+        this.workingAction = null
+      }
+    },
+
+    async deleteCompressedEntry(item: FileEntry | null) {
+      if (!this.deleteCompressedMethod || !item?.path || !this.getCompressedPath(item) || this.workingAction) return
+
+      this.workingPath = item.path
+      this.workingAction = 'delete-compressed'
+      this.errorMessage = ''
+
+      try {
+        const data = await this.requestWebsocket(this.deleteCompressedMethod, {
+          path: item.path,
+        })
+
+        if (data?.error) throw new Error(data.error)
+
+        if (this.selectedPreviewEntry?.path === item.path) {
+          this.selectedPreviewEntry = {
+            ...this.selectedPreviewEntry,
+            compressed: null,
+            asset: typeof this.selectedPreviewEntry.asset === 'object'
+              ? {
+                  ...this.selectedPreviewEntry.asset,
+                  compressed: null,
+                }
+              : this.selectedPreviewEntry.asset,
+          }
+        }
+
+        this.deleteDialog = false
+        this.selectedDeleteEntry = null
+        this.deleteDialogMode = 'file'
+
+        await this.fetchEntries(this.currentPath)
+      } catch (error: any) {
+        this.errorMessage = error?.message ?? 'delete compressed failed'
+        console.error('delete compressed failed', error)
       } finally {
         this.workingPath = null
         this.workingAction = null

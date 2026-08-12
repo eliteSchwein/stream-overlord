@@ -1295,7 +1295,8 @@
     "channelPointUsed": "Used by Channel Points",
     "commandUsed": "Used by Commands",
     "rotatingSceneUsed": "Used by Scene rotation",
-    "autoMacroUsed": "Used by Auto Macros"
+    "autoMacroUsed": "Used by Auto Macros",
+    "assetConfigUsed": "Used by asset configs"
   },
   "common": {
     "cancel": "Cancel",
@@ -1387,7 +1388,11 @@
     "deleteConfirmTitle": "Delete File/Folder",
     "deleteConfirmText": "Are you sure you want to delete this File/Folder?",
     "noMediaFound": "No media found!",
-    "noAssetsFound": "No media found!"
+    "noAssetsFound": "No media found!",
+    "copyUrl": "Copy URL",
+    "deleteCompressed": "Delete compressed",
+    "deleteCompressedConfirmTitle": "Delete compressed file?",
+    "deleteCompressedConfirmText": "Do you really want to delete the compressed version of this file?"
   },
   "assets": {
     "title": "Assets",

@@ -1295,7 +1295,8 @@
     "channelPointUsed": "Belegt durch Kanalpunkte",
     "commandUsed": "Belegt durch Befehle",
     "rotatingSceneUsed": "Belegt durch Szenenrotation",
-    "autoMacroUsed": "Belegt durch Auto-Makros"
+    "autoMacroUsed": "Belegt durch Auto-Makros",
+    "assetConfigUsed": "Von Asset-Konfigurationen verwendet"
   },
   "common": {
     "cancel": "Abbrechen",
@@ -1387,7 +1388,11 @@
     "deleteConfirmTitle": "Datei/Ordner löschen",
     "deleteConfirmText": "Möchtest du diese Datei/diesen Ordner wirklich löschen?",
     "noMediaFound": "Keine Medien gefunden!",
-    "noAssetsFound": "Keine Medien gefunden!"
+    "noAssetsFound": "Keine Medien gefunden!",
+    "copyUrl": "URL kopieren",
+    "deleteCompressed": "Komprimierte Datei löschen",
+    "deleteCompressedConfirmTitle": "Komprimierte Datei löschen?",
+    "deleteCompressedConfirmText": "Möchtest du die komprimierte Version dieser Datei wirklich löschen?"
   },
   "assets": {
     "title": "Assets",

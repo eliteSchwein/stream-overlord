@@ -10,12 +10,33 @@
         <span>{{ $t('system.storage') }}</span>
       </div>
 
-      <v-progress-linear
-        :model-value="storageUsedPercent"
-        height="7"
-        rounded
-        class="mb-2"
-      />
+      <div class="storage-card__progress mb-2">
+        <v-progress-linear
+          :model-value="storageUsedPercent"
+          height="7"
+          rounded
+        />
+
+        <template v-if="showSegmentedBar">
+          <div
+            v-for="segment in visibleStorageSegments"
+            :key="segment.key"
+            class="storage-card__usage-marker"
+            :class="segment.colorClass"
+            :style="{
+              left: `${segment.leftPercent}%`,
+              width: `${segment.widthPercent}%`,
+            }"
+            :title="`${segment.label}: ${formatFileSize(segment.value)}`"
+          />
+        </template>
+
+        <div
+          v-else-if="visibleStorageUsage > 0"
+          class="storage-card__usage-marker bg-primary"
+          :style="{ width: `${visibleStorageUsagePercent}%` }"
+        />
+      </div>
 
       <div class="storage-card__info">
         <div>
@@ -36,6 +57,11 @@
         <div v-if="!hideMediaUsed && mediaUsed !== null">
           <span class="text-caption text-grey-lighten-1">{{ $t('system.mediaUsed') }}</span>
           <span>{{ formatFileSize(mediaUsed) }}</span>
+        </div>
+
+        <div v-if="!hideAssetConfigUsed && assetConfigUsed !== null">
+          <span class="text-caption text-grey-lighten-1">{{ $t('system.assetConfigUsed') }}</span>
+          <span>{{ formatFileSize(assetConfigUsed) }}</span>
         </div>
 
         <div v-if="!hideOverlayUsed && overlayUsed !== null">
@@ -82,7 +108,15 @@ import { useAppStore } from '@/stores/app'
 
 export default {
   props: {
+    showSegmentedBar: {
+      type: Boolean,
+      default: false,
+    },
     hideMediaUsed: {
+      type: Boolean,
+      default: true,
+    },
+    hideAssetConfigUsed: {
       type: Boolean,
       default: true,
     },
@@ -130,6 +164,79 @@ export default {
       return Math.min(100, Math.max(0, (Number(this.storageInfo.used ?? 0) / Number(this.storageInfo.total)) * 100))
     },
 
+    visibleStorageUsage(): number {
+      const values = [
+        !this.hideMediaUsed ? this.mediaUsed : null,
+        !this.hideAssetConfigUsed ? this.assetConfigUsed : null,
+        !this.hideOverlayUsed ? this.overlayUsed : null,
+        !this.hideMusicUsed ? this.musicUsed : null,
+        !this.hideMacroUsed ? this.macroUsed : null,
+        !this.hideAutoMacroUsed ? this.autoMacroUsed : null,
+        !this.hideChannelPointUsed ? this.channelPointUsed : null,
+        !this.hideCommandUsed ? this.commandUsed : null,
+        !this.hideRotatingSceneUsed ? this.rotatingSceneUsed : null,
+      ]
+
+      return values.reduce((total, value) => {
+        const numberValue = Number(value)
+        return Number.isFinite(numberValue) ? total + numberValue : total
+      }, 0)
+    },
+
+    visibleStorageUsagePercent(): number {
+      const total = Number(this.storageInfo?.total ?? 0)
+      if (!Number.isFinite(total) || total <= 0) return 0
+
+      return Math.min(100, Math.max(0, (this.visibleStorageUsage / total) * 100))
+    },
+
+    visibleStorageSegments(): Array<{
+      key: string
+      label: string
+      value: number
+      widthPercent: number
+      leftPercent: number
+      colorClass: string
+    }> {
+      const total = Number(this.storageInfo?.total ?? 0)
+      if (!Number.isFinite(total) || total <= 0) return []
+
+      const candidates = [
+        { key: 'media', label: this.$t('system.mediaUsed'), value: this.mediaUsed, colorClass: 'bg-primary' },
+        { key: 'asset-config', label: this.$t('system.assetConfigUsed'), value: this.assetConfigUsed, colorClass: 'bg-secondary' },
+        { key: 'overlay', label: this.$t('system.overlayUsed'), value: this.overlayUsed, colorClass: 'bg-info' },
+        { key: 'music', label: this.$t('system.musicUsed'), value: this.musicUsed, colorClass: 'bg-success' },
+        { key: 'macro', label: this.$t('system.macroUsed'), value: this.macroUsed, colorClass: 'bg-warning' },
+        { key: 'auto-macro', label: this.$t('system.autoMacroUsed'), value: this.autoMacroUsed, colorClass: 'bg-deep-purple' },
+        { key: 'channel-point', label: this.$t('system.channelPointUsed'), value: this.channelPointUsed, colorClass: 'bg-pink' },
+        { key: 'command', label: this.$t('system.commandUsed'), value: this.commandUsed, colorClass: 'bg-cyan' },
+        { key: 'rotating-scene', label: this.$t('system.rotatingSceneUsed'), value: this.rotatingSceneUsed, colorClass: 'bg-orange' },
+      ]
+
+      let leftPercent = 0
+
+      return candidates.flatMap((candidate) => {
+        const value = Number(candidate.value)
+        if (!Number.isFinite(value) || value <= 0) return []
+
+        const widthPercent = Math.min(100 - leftPercent, Math.max((value / total) * 100, 0))
+        if (widthPercent <= 0) return []
+
+        const segment = {
+          key: candidate.key,
+          label: String(candidate.label),
+          value,
+          widthPercent,
+          leftPercent,
+          colorClass: candidate.colorClass,
+        }
+
+        leftPercent += widthPercent
+
+        return [segment]
+      })
+    },
+
     mediaUsed(): number | null {
       return this.firstNumber([
         this.storageInfo?.folders?.media,
@@ -137,6 +244,15 @@ export default {
         this.storageInfo?.mediaUsed,
         this.storageInfo?.assetUsed,
         this.storageInfo?.assetsUsed,
+      ])
+    },
+
+    assetConfigUsed(): number | null {
+      return this.firstNumber([
+        this.storageInfo?.folders?.asset_configs,
+        this.storageInfo?.folders?.assetConfigs,
+        this.storageInfo?.assetConfigUsed,
+        this.storageInfo?.assetConfigsUsed,
       ])
     },
 
@@ -279,6 +395,29 @@ export default {
 <style scoped>
 .storage-card {
   min-height: 116px;
+}
+
+.storage-card__progress {
+  position: relative;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.storage-card__usage-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  min-width: 2px;
+  pointer-events: auto;
+}
+
+.storage-card__usage-marker:first-child {
+  border-radius: 999px 0 0 999px;
+}
+
+.storage-card__usage-marker:last-child {
+  border-radius: 0 999px 999px 0;
 }
 
 .storage-card__info {

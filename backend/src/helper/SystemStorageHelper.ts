@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import {getSystemConfigDirectory} from "./ConfigHelper";
 import {assetRoot} from "./AssetManagementHelper";
+import {getAssetConfigDirectory} from "./AssetHelper";
 import {overlayRoot} from "./OverlayManagementHelper";
 import {logWarn} from "./LogHelper";
 import {getRegularMusicPath} from "./MusicHelper";
@@ -18,6 +19,7 @@ export type SystemStorageInfo = {
     available: number;
     folders: {
         assets: number;
+        asset_configs: number;
         overlays: number;
         music: number;
         macros: number;
@@ -39,6 +41,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
 
     fs.mkdirSync(root, { recursive: true });
     fs.mkdirSync(assetRoot, { recursive: true });
+    fs.mkdirSync(getAssetConfigDirectory(), { recursive: true });
     fs.mkdirSync(overlayRoot, { recursive: true });
     fs.mkdirSync(getMacroDirectory(), { recursive: true });
     fs.mkdirSync(channelPointRoot, { recursive: true });
@@ -61,6 +64,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
         available,
         folders: {
             assets: getDirectorySize(assetRoot),
+            asset_configs: getDirectorySize(getAssetConfigDirectory()),
             overlays: getDirectorySize(overlayRoot),
             music: getDirectorySize(getRegularMusicPath()),
             macros: getDirectorySize(getMacroDirectory()),

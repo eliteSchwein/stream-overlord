@@ -18,7 +18,10 @@
     <v-card-text>
       <v-row density="compact" class="mb-3">
         <v-col cols="12" md="6">
-          <StorageCard ref="storageCard" :hide-assets-used="false" />
+          <StorageCard
+            ref="storageCard"
+            :hide-asset-config-used="false"
+          />
         </v-col>
 
         <v-col cols="12" md="6">
@@ -282,7 +285,6 @@ export default {
           throw new Error(responseData?.error ?? data?.error ?? 'asset upload failed')
         }
 
-        await this.refreshAssets()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'asset upload failed'
@@ -326,7 +328,6 @@ export default {
         if (data?.error) throw new Error(data.error)
 
         this.editorDialog = false
-        await this.refreshAssets()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.editorError = error?.message ?? 'save asset failed'
@@ -359,7 +360,6 @@ export default {
         this.deleteDialog = false
         this.selectedDeleteName = ''
         this.selectedDeleteAsset = null
-        await this.refreshAssets()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'delete asset failed'

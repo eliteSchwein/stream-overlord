@@ -2,11 +2,14 @@ import {getAssetTuneSettings, getSystemConfigDirectory} from "./ConfigHelper";
 import * as path from "node:path";
 import * as fs from "node:fs";
 import {existsSync} from "node:fs";
-import {execFileSync} from "node:child_process";
+import {execFile} from "node:child_process";
+import {promisify} from "node:util";
 import {getGpu} from "./SystemInfoHelper";
 import {logDebug, logError, logNotice, logRegular, logWarn} from "./LogHelper";
 import {audioRegex, imageRegex, videoRegex} from "./AssetHelper";
 import {emitAssetUpdate} from "./AssetManagementHelper";
+
+const execFileAsync = promisify(execFile);
 
 type FfmpegInit = {
     ffmpegBin: string;
@@ -104,15 +107,15 @@ export async function compressAssets(
 
         logNotice(`Compressing ${videoAsset} to ${targetVideoAsset}`);
 
-        const probe = probeVideo(ffprobeBin, videoAsset);
+        const probe = await probeVideo(ffprobeBin, videoAsset);
         const args = buildVideoTranscodeArgs(videoAsset, targetVideoAsset, ffmpeg, probe);
 
         logDebug(`${ffmpegBin} ${args.map(shellPreviewArg).join(" ")}`);
 
         try {
-            execFileSync(ffmpegBin, args, {
+            await execFileAsync(ffmpegBin, args, {
                 encoding: "utf8",
-                stdio: ["ignore", "pipe", "pipe"],
+                maxBuffer: 16 * 1024 * 1024,
             });
         } catch (error: any) {
             logError(`Compressing ${videoAsset} failed:`);
@@ -148,9 +151,9 @@ export async function compressAssets(
         logDebug(`${ffmpegBin} ${args.map(shellPreviewArg).join(" ")}`);
 
         try {
-            execFileSync(ffmpegBin, args, {
+            await execFileAsync(ffmpegBin, args, {
                 encoding: "utf8",
-                stdio: ["ignore", "pipe", "pipe"],
+                maxBuffer: 16 * 1024 * 1024,
             });
         } catch (error: any) {
             logError(`Compressing ${imageAsset} failed:`);
@@ -186,9 +189,9 @@ export async function compressAssets(
         logDebug(`${ffmpegBin} ${args.map(shellPreviewArg).join(" ")}`);
 
         try {
-            execFileSync(ffmpegBin, args, {
+            await execFileAsync(ffmpegBin, args, {
                 encoding: "utf8",
-                stdio: ["ignore", "pipe", "pipe"],
+                maxBuffer: 16 * 1024 * 1024,
             });
         } catch (error: any) {
             logError(`Compressing ${audioAsset} failed:`);
@@ -223,12 +226,14 @@ async function initFfmpeg(): Promise<FfmpegInit> {
         "vp9"
     ).trim().toLowerCase();
 
-    const runAndCapture = (bin: string, args: string[]) => {
+    const runAndCapture = async (bin: string, args: string[]) => {
         try {
-            return execFileSync(bin, args, {
+            const result = await execFileAsync(bin, args, {
                 encoding: "utf8",
-                stdio: ["ignore", "pipe", "pipe"],
+                maxBuffer: 16 * 1024 * 1024,
             });
+
+            return result.stdout ?? "";
         } catch (e: any) {
             return (e?.stdout?.toString?.() || e?.stderr?.toString?.() || "") as string;
         }
@@ -250,8 +255,8 @@ async function initFfmpeg(): Promise<FfmpegInit> {
     const hasIntelGPU = controllers.some((c) => /intel/.test(vendorStr(c.vendor)));
     const hasNvidiaGPU = controllers.some((c) => /nvidia/.test(vendorStr(c.vendor)));
 
-    const encoders = runAndCapture(ffmpegBin, ["-hide_banner", "-v", "error", "-encoders"]);
-    const accels = runAndCapture(ffmpegBin, ["-hide_banner", "-v", "error", "-hwaccels"]);
+    const encoders = await runAndCapture(ffmpegBin, ["-hide_banner", "-v", "error", "-encoders"]);
+    const accels = await runAndCapture(ffmpegBin, ["-hide_banner", "-v", "error", "-hwaccels"]);
 
     const haveNvenc = /\bav1_nvenc\b/.test(encoders);
     const haveAmf = /\bav1_amf\b/.test(encoders);
@@ -353,9 +358,9 @@ async function initFfmpeg(): Promise<FfmpegInit> {
     return { ffmpegBin, ffprobeBin, inputArgs, outputArgs, vaapiDevice };
 }
 
-function probeVideo(ffprobeBin: string, file: string): VideoProbe {
+async function probeVideo(ffprobeBin: string, file: string): Promise<VideoProbe> {
     try {
-        const raw = execFileSync(
+        const result = await execFileAsync(
             ffprobeBin,
             [
                 "-v", "error",
@@ -366,11 +371,11 @@ function probeVideo(ffprobeBin: string, file: string): VideoProbe {
             ],
             {
                 encoding: "utf8",
-                stdio: ["ignore", "pipe", "pipe"],
+                maxBuffer: 16 * 1024 * 1024,
             }
         );
 
-        const parsed = JSON.parse(raw);
+        const parsed = JSON.parse(result.stdout ?? "{}");
         const stream = parsed?.streams?.[0] || {};
         const codecName = nullableString(stream.codec_name);
         const pixFmt = nullableString(stream.pix_fmt);

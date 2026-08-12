@@ -4,7 +4,7 @@ import {compressAssets, getAssetFile} from "./AssetTuneHelper";
 import {audioRegex, getParsedAssetFiles, imageRegex, readAssetFolder, videoRegex} from "./AssetHelper";
 import {logRegular, logWarn} from "./LogHelper";
 import getWebsocketServer from "../App";
-import {getSystemConfigDirectory} from "./ConfigHelper";
+import {getAssetTuneSettings, getSystemConfigDirectory} from "./ConfigHelper";
 import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 
 export const assetRoot = path.join(getSystemConfigDirectory(), "assets");
@@ -63,6 +63,48 @@ function deleteCompressedForAsset(relativePath: string) {
         fs.unlinkSync(compressedPath);
     }
 }
+
+export function deleteCompressedAsset(inputPath: string) {
+    if (!inputPath) throw new Error("path missing");
+
+    const target = resolveAssetPath(inputPath);
+
+    if (!fs.existsSync(target)) {
+        throw new Error("asset not found");
+    }
+
+    if (fs.statSync(target).isDirectory()) {
+        throw new Error("compressed asset can only be deleted for files");
+    }
+
+    const relativePath = relativeAssetPath(target);
+    const compressedRelative = compressedRelativePath(relativePath);
+
+    if (!compressedRelative) {
+        throw new Error("asset type does not have a compressed version");
+    }
+
+    const compressedPath = path.resolve(compressedAssetRoot, compressedRelative);
+
+    if (compressedPath !== compressedAssetRoot && !compressedPath.startsWith(`${compressedAssetRoot}${path.sep}`)) {
+        throw new Error("compressed path must stay inside compressed assets directory");
+    }
+
+    if (!fs.existsSync(compressedPath)) {
+        throw new Error("compressed asset not found");
+    }
+
+    logRegular(`delete compressed asset ${compressedRelative}`);
+    fs.unlinkSync(compressedPath);
+
+    emitAssetUpdate();
+
+    return {
+        path: relativePath,
+        compressed: compressedRelative,
+    };
+}
+
 
 export function emitAssetUpdate() {
     readAssetFolder();
@@ -237,7 +279,8 @@ export async function addAssetFilesFromUpload(files: any[], targetPath: string =
     const directory = resolveAssetPath(targetPath);
     fs.mkdirSync(directory, { recursive: true });
 
-    const added = [];
+    const added: string[] = [];
+    const uploadedTargets: string[] = [];
 
     for (const file of files) {
         const originalName = path.basename(file.originalname || "upload.bin");
@@ -252,9 +295,23 @@ export async function addAssetFilesFromUpload(files: any[], targetPath: string =
 
         const relPath = relativeAssetPath(target);
         added.push(relPath);
+        uploadedTargets.push(target);
     }
 
     emitAssetUpdate();
+
+    if (getAssetTuneSettings()?.auto_compress_upload === true && uploadedTargets.length > 0) {
+        void (async () => {
+            for (const target of uploadedTargets) {
+                try {
+                    await compressAssets(false, target);
+                } catch (error: any) {
+                    logWarn(`auto compression failed for uploaded asset ${relativeAssetPath(target)}`);
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                }
+            }
+        })();
+    }
 
     return added;
 }
