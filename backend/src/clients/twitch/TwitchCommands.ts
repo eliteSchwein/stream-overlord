@@ -6,7 +6,6 @@ import * as yaml from "js-yaml";
 import InfoCommand from "./commands/InfoCommand";
 import {logRegular, logWarn} from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
-import ShoutoutCommand from "./commands/ShoutoutCommand";
 import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
 import {triggerMacro} from "../../helper/MacroHelper";
@@ -45,7 +44,6 @@ export default function buildCommands(bot: Bot, twitchClient?: TwitchClient) {
 
     commands = commands.concat(new InfoCommand(bot, twitchClient).register());
     commands = commands.concat(new SetGameCommand(bot, twitchClient).register());
-    commands = commands.concat(new ShoutoutCommand(bot, twitchClient).register());
     commands = commands.concat(new GetGameCommand(bot, twitchClient).register());
     commands = commands.concat(new ToggleErrorMessageCommand(bot, twitchClient).register());
     commands = commands.concat(new MusicCommand(bot, twitchClient).register());
