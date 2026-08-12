@@ -10,7 +10,7 @@ export default class CommandEditApi extends BaseApi {
         try {
             return {
                 status: "okay",
-                ...editCommandFile(data?.path ?? data?.file ?? data?.name, data?.content ?? ""),
+                ...await editCommandFile(data?.path ?? data?.file ?? data?.name, data?.content ?? ""),
             };
         } catch (error: any) {
             return {error: error?.message ?? "edit failed"};

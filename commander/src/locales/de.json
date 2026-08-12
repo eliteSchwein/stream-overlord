@@ -1464,7 +1464,10 @@
     "create": "Befehl erstellen",
     "upload": "Befehl hochladen",
     "delete": "Befehl löschen",
-    "deleteConfirm": "Möchtest du folgenden Befehl löschen:"
+    "deleteConfirm": "Möchtest du folgenden Befehl löschen:",
+    "macro": "Makro",
+    "aliases": "Aliase",
+    "parameters": "{count} Parameter"
   },
   "integrations": {
     "wled": {

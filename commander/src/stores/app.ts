@@ -44,6 +44,7 @@ export const useAppStore = defineStore('app', {
     testMode: false,
     voices: [],
     macros: {},
+    commands: {},
     autoMacros: [],
     variables: {},
     giveaway: {},
@@ -93,6 +94,7 @@ export const useAppStore = defineStore('app', {
     getTestMode: (state) => state.testMode,
     getVoices: (state) => state.voices,
     getMacros: (state) => state.macros,
+    getCommands: (state) => state.commands,
     getAutoMacros: (state) => state.autoMacros,
     getVariables: (state) => state.variables,
     getGiveaway: (state) => state.giveaway,
@@ -315,6 +317,10 @@ export const useAppStore = defineStore('app', {
     setMacros(macros: {}) {
       this.macros = macros
       this.$patch(state => state.macros = macros)
+    },
+    setCommands(commands: {}) {
+      this.commands = commands
+      this.$patch(state => state.commands = commands)
     },
     setAutoMacros(autoMacros: []) {
       this.autoMacros = autoMacros

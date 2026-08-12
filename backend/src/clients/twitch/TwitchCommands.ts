@@ -6,6 +6,7 @@ import * as yaml from "js-yaml";
 import InfoCommand from "./commands/InfoCommand";
 import {logRegular, logWarn} from "../../helper/LogHelper";
 import SetGameCommand from "./commands/SetGameCommand";
+import ShoutoutCommand from "./commands/ShoutoutCommand";
 import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
 import {triggerMacro} from "../../helper/MacroHelper";
@@ -17,7 +18,7 @@ import isShieldActive from "../../helper/ShieldHelper";
 import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../helper/MessageEventLinkHelper";
 import TwitchClient from "./Client";
-import {getTwitchClient, setReloadUpdate} from "../../App";
+import getWebsocketServer, {getTwitchClient, setReloadUpdate} from "../../App";
 import {getAssetConfig} from "../../helper/AssetHelper";
 import {addAlert} from "../../helper/AlertHelper";
 
@@ -39,11 +40,40 @@ const COMMAND_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
 
 let fileCommands: Record<string, any> = {};
 
+function notifyCommandsUpdate() {
+    try {
+        getWebsocketServer()?.send("notify_commands_update", {
+            commands: fileCommands,
+        });
+    } catch (error) {
+        logWarn("failed to notify command update");
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+}
+
+async function reloadTwitchCommandsAfterChange(context: string) {
+    const twitchClient = getTwitchClient();
+
+    if (!twitchClient) {
+        return;
+    }
+
+    try {
+        await twitchClient.reloadCommands();
+    } catch (error) {
+        logWarn(`failed to reload Twitch commands after ${context}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        throw error;
+    }
+}
+
+
 export default function buildCommands(bot: Bot, twitchClient?: TwitchClient) {
     let commands: any[] = [];
 
     commands = commands.concat(new InfoCommand(bot, twitchClient).register());
     commands = commands.concat(new SetGameCommand(bot, twitchClient).register());
+    commands = commands.concat(new ShoutoutCommand(bot, twitchClient).register());
     commands = commands.concat(new GetGameCommand(bot, twitchClient).register());
     commands = commands.concat(new ToggleErrorMessageCommand(bot, twitchClient).register());
     commands = commands.concat(new MusicCommand(bot, twitchClient).register());
@@ -296,7 +326,6 @@ function stringifyCommandConfigContent(filePath: string, commandConfig: any) {
 }
 
 export function getConfiguredCommands() {
-    loadCommandsFromFiles();
     return fileCommands;
 }
 
@@ -343,95 +372,101 @@ export function readCommandFile(inputPathOrName: string) {
     };
 }
 
-export function editCommandFile(inputPathOrName: string, content: string) {
-    const filePath = resolveEditableCommandFile(inputPathOrName);
+export async function editCommandFile(inputPathOrName: string, content: string) {
+    setReloadUpdate(false);
 
-    if (!isCommandFile(filePath)) {
-        throw new Error("command file must be .yaml, .yml or .json");
+    try {
+        const filePath = resolveEditableCommandFile(inputPathOrName);
+
+        if (!isCommandFile(filePath)) {
+            throw new Error("command file must be .yaml, .yml or .json");
+        }
+
+        const previousContent = fs.existsSync(filePath) && fs.statSync(filePath).isFile()
+            ? fs.readFileSync(filePath, "utf8")
+            : undefined;
+        const nextContent = String(content ?? "");
+
+        if (previousContent !== undefined && !nextContent.trim()) {
+            throw new Error("refusing to overwrite existing command with empty content");
+        }
+
+        const parsedContent = parseCommandConfigContent(filePath, nextContent);
+        const normalizedContent = normalizeCommandConfigForSave(filePath, parsedContent);
+        const fileContent = stringifyCommandConfigContent(filePath, normalizedContent);
+
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, fileContent, "utf8");
+
+        loadCommandsFromFiles();
+        notifyCommandsUpdate();
+
+        await reloadTwitchCommandsAfterChange("saving command file");
+
+        return {
+            path: relativeCommandPath(filePath),
+        };
+    } finally {
+        setReloadUpdate(true);
     }
-
-    const previousContent = fs.existsSync(filePath) && fs.statSync(filePath).isFile()
-        ? fs.readFileSync(filePath, "utf8")
-        : undefined;
-    const nextContent = String(content ?? "");
-
-    if (previousContent !== undefined && !nextContent.trim()) {
-        throw new Error("refusing to overwrite existing command with empty content");
-    }
-
-    const parsedContent = parseCommandConfigContent(filePath, nextContent);
-    const normalizedContent = normalizeCommandConfigForSave(filePath, parsedContent);
-    const fileContent = stringifyCommandConfigContent(filePath, normalizedContent);
-
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, fileContent, "utf8");
-
-    loadCommandsFromFiles();
-
-    const twitchClient = getTwitchClient();
-    if (twitchClient) {
-        setReloadUpdate(false);
-
-        void twitchClient.reloadCommands()
-            .catch((error) => {
-                logWarn("failed to reload Twitch commands after saving command file");
-                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-            })
-            .finally(() => {
-                setReloadUpdate(true);
-            });
-    }
-
-    return {
-        path: relativeCommandPath(filePath),
-    };
 }
 
-export function deleteCommandFile(inputPathOrName: string) {
-    const filePath = resolveExistingCommandFile(inputPathOrName);
+export async function deleteCommandFile(inputPathOrName: string) {
+    setReloadUpdate(false);
 
-    if (fs.statSync(filePath).isDirectory()) {
-        fs.rmSync(filePath, { recursive: true, force: true });
-    } else {
-        fs.unlinkSync(filePath);
+    try {
+        const filePath = resolveExistingCommandFile(inputPathOrName);
+        const relativePath = relativeCommandPath(filePath);
+
+        if (fs.statSync(filePath).isDirectory()) {
+            fs.rmSync(filePath, { recursive: true, force: true });
+        } else {
+            fs.unlinkSync(filePath);
+        }
+
+        loadCommandsFromFiles();
+        notifyCommandsUpdate();
+
+        await reloadTwitchCommandsAfterChange("deleting command file");
+
+        return {
+            path: relativePath,
+        };
+    } finally {
+        setReloadUpdate(true);
     }
-
-    loadCommandsFromFiles();
-
-    const twitchClient = getTwitchClient();
-    if (twitchClient) {
-        void twitchClient.reloadCommands().catch((error) => {
-            logWarn("failed to reload Twitch commands after deleting command file");
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        });
-    }
-
-    return {
-        path: relativeCommandPath(filePath),
-    };
 }
 
-export function moveCommandFile(source: string, target: string) {
-    const sourcePath = resolveCommandPath(source);
-    const targetPath = resolveCommandPath(target);
+export async function moveCommandFile(source: string, target: string) {
+    setReloadUpdate(false);
 
-    if (!fs.existsSync(sourcePath)) {
-        throw new Error("source command path not found");
+    try {
+        const sourcePath = resolveCommandPath(source);
+        const targetPath = resolveCommandPath(target);
+
+        if (!fs.existsSync(sourcePath)) {
+            throw new Error("source command path not found");
+        }
+
+        if (fs.existsSync(targetPath)) {
+            throw new Error("target command path already exists");
+        }
+
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        fs.renameSync(sourcePath, targetPath);
+
+        loadCommandsFromFiles();
+        notifyCommandsUpdate();
+
+        await reloadTwitchCommandsAfterChange("moving command file");
+
+        return {
+            source: normalizeCommandPath(source).replace(/\\/g, "/"),
+            target: normalizeCommandPath(target).replace(/\\/g, "/"),
+        };
+    } finally {
+        setReloadUpdate(true);
     }
-
-    if (fs.existsSync(targetPath)) {
-        throw new Error("target command path already exists");
-    }
-
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    fs.renameSync(sourcePath, targetPath);
-
-    loadCommandsFromFiles();
-
-    return {
-        source: normalizeCommandPath(source).replace(/\\/g, "/"),
-        target: normalizeCommandPath(target).replace(/\\/g, "/"),
-    };
 }
 
 type CommandUploadFile = {
@@ -447,48 +482,57 @@ function sanitizeCommandUploadFileName(name: string) {
 }
 
 export async function addCommandFilesFromUpload(files: CommandUploadFile[] = [], targetPath: string = "") {
-    ensureCommandDirectory();
+    setReloadUpdate(false);
 
-    const targetDirectory = resolveCommandPath(targetPath);
-    fs.mkdirSync(targetDirectory, { recursive: true });
+    try {
+        ensureCommandDirectory();
 
-    const added: CommandConfigFileEntry[] = [];
+        const targetDirectory = resolveCommandPath(targetPath);
+        fs.mkdirSync(targetDirectory, { recursive: true });
 
-    for (const file of files) {
-        if (!file?.buffer) continue;
+        const added: CommandConfigFileEntry[] = [];
 
-        const originalName = file.originalname ?? "command.yaml";
-        const fileName = sanitizeCommandUploadFileName(originalName);
-        const extension = path.extname(fileName).toLowerCase();
+        for (const file of files) {
+            if (!file?.buffer) continue;
 
-        if (!COMMAND_FILE_EXTENSIONS.includes(extension)) {
-            throw new Error(`unsupported command file type: ${originalName}`);
+            const originalName = file.originalname ?? "command.yaml";
+            const fileName = sanitizeCommandUploadFileName(originalName);
+            const extension = path.extname(fileName).toLowerCase();
+
+            if (!COMMAND_FILE_EXTENSIONS.includes(extension)) {
+                throw new Error(`unsupported command file type: ${originalName}`);
+            }
+
+            const filePath = path.join(targetDirectory, fileName);
+            const resolvedFilePath = path.resolve(filePath);
+
+            if (resolvedFilePath !== getCommandDirectory() && !resolvedFilePath.startsWith(`${getCommandDirectory()}${path.sep}`)) {
+                throw new Error("invalid command upload path");
+            }
+
+            const parsedContent = parseCommandConfigContent(resolvedFilePath, file.buffer.toString("utf8"));
+            const normalizedContent = normalizeCommandConfigForSave(resolvedFilePath, parsedContent);
+            const fileContent = stringifyCommandConfigContent(resolvedFilePath, normalizedContent);
+
+            fs.writeFileSync(resolvedFilePath, fileContent, "utf8");
+
+            added.push({
+                name: path.basename(resolvedFilePath),
+                path: relativeCommandPath(resolvedFilePath),
+                type: "file",
+                extension: extension.replace(/^\./, ""),
+            });
         }
 
-        const filePath = path.join(targetDirectory, fileName);
-        const resolvedFilePath = path.resolve(filePath);
+        loadCommandsFromFiles();
+        notifyCommandsUpdate();
 
-        if (resolvedFilePath !== getCommandDirectory() && !resolvedFilePath.startsWith(`${getCommandDirectory()}${path.sep}`)) {
-            throw new Error("invalid command upload path");
-        }
+        await reloadTwitchCommandsAfterChange("uploading command files");
 
-        const parsedContent = parseCommandConfigContent(resolvedFilePath, file.buffer.toString("utf8"));
-        const normalizedContent = normalizeCommandConfigForSave(resolvedFilePath, parsedContent);
-        const fileContent = stringifyCommandConfigContent(resolvedFilePath, normalizedContent);
-
-        fs.writeFileSync(resolvedFilePath, fileContent, "utf8");
-
-        added.push({
-            name: path.basename(resolvedFilePath),
-            path: relativeCommandPath(resolvedFilePath),
-            type: "file",
-            extension: extension.replace(/^\./, ""),
-        });
+        return added;
+    } finally {
+        setReloadUpdate(true);
     }
-
-    loadCommandsFromFiles();
-
-    return added;
 }
 
 function buildConfigCommands(commands: any[], bot: Bot, twitchClient: TwitchClient) {

@@ -9,15 +9,6 @@
       </div>
 
       <div class="d-flex align-center ga-2">
-        <v-btn
-          prepend-icon="mdi-refresh"
-          variant="tonal"
-          :loading="loading"
-          :disabled="reloadInProgress"
-          @click="refreshCommands"
-        >
-          {{ $t('common.refresh') }}
-        </v-btn>
         <v-btn prepend-icon="mdi-plus" color="primary" variant="tonal" :disabled="reloadInProgress" @click="openCreateDialog">
           {{ $t('commands.create') }}
         </v-btn>
@@ -58,38 +49,96 @@
       <v-alert v-if="errorMessage" type="error" color="red-darken-3" class="mb-4" :text="errorMessage" />
       <v-alert v-if="filteredCommands.length === 0" type="info" color="grey-darken-3" :text="$t('commands.none') || 'No commands found'" />
 
-      <v-list v-else class="command-list" bg-color="transparent">
-        <v-list-item
-          v-for="(item, index) in filteredCommands"
+      <div v-else class="command-list">
+        <div
+          v-for="item in filteredCommands"
           :key="item.name"
-          :class="index % 2 === 0 ? 'command-row--even' : 'command-row--odd'"
-          rounded="lg"
+          class="command-row"
         >
-          <template #prepend>
-            <v-avatar color="grey-darken-3" rounded="lg" size="42">
-              <v-icon icon="mdi-console" />
-            </v-avatar>
-          </template>
-
-          <v-list-item-title class="d-flex align-center ga-2 min-width-0">
-            <span class="text-truncate">!{{ item.name }}</span>
-            <v-chip v-if="item.command?.requiresBroadcaster" size="x-small" color="purple" variant="tonal">Broadcaster</v-chip>
-            <v-chip v-else-if="item.command?.requiresMod" size="x-small" color="blue" variant="tonal">Mod</v-chip>
-            <v-chip v-else-if="item.command?.requiresVip" size="x-small" color="pink" variant="tonal">VIP</v-chip>
-          </v-list-item-title>
-
-          <v-list-item-subtitle class="text-truncate">
-            {{ commandSubtitle(item) }}
-          </v-list-item-subtitle>
-
-          <template #append>
-            <div class="d-flex align-center ga-1">
-              <v-btn icon="mdi-pencil" variant="text" :disabled="reloadInProgress || workingAction !== null" @click="openEditor(item)" />
-              <v-btn icon="mdi-delete" variant="text" color="error" :loading="workingName === item.name && workingAction === 'delete'" :disabled="reloadInProgress || (workingAction !== null && workingName !== item.name)" @click="openDeleteDialog(item)" />
+          <div class="command-row__content">
+            <div class="command-row__name text-truncate" :title="`!${item.name}`">
+              !{{ item.name }}
             </div>
-          </template>
-        </v-list-item>
-      </v-list>
+
+            <v-chip
+              v-if="commandAliasCount(item) > 0"
+              size="x-small"
+              variant="tonal"
+              class="command-row__chip"
+            >
+              {{ commandAliasCount(item) }} {{ $t('commands.aliases') }}
+            </v-chip>
+
+            <v-chip
+              v-if="commandParamCount(item) > 0"
+              size="x-small"
+              variant="tonal"
+              class="command-row__chip"
+            >
+              {{ $t('commands.parameters', { count: commandParamCount(item) }) }}
+            </v-chip>
+
+            <v-chip
+              v-if="item.command?.requiresBroadcaster"
+              size="x-small"
+              color="purple"
+              variant="tonal"
+              class="command-row__chip"
+            >
+              Broadcaster
+            </v-chip>
+
+            <v-chip
+              v-else-if="item.command?.requiresMod"
+              size="x-small"
+              color="blue"
+              variant="tonal"
+              class="command-row__chip"
+            >
+              Mod
+            </v-chip>
+
+            <v-chip
+              v-else-if="item.command?.requiresVip"
+              size="x-small"
+              color="pink"
+              variant="tonal"
+              class="command-row__chip"
+            >
+              VIP
+            </v-chip>
+          </div>
+
+          <div class="command-row__actions">
+            <v-btn
+              size="small"
+              variant="tonal"
+              color="primary"
+              :disabled="reloadInProgress || workingAction !== null"
+              @click="openEditor(item)"
+            >
+              <v-icon icon="mdi-pencil" />
+              <span class="d-none d-sm-inline ml-1">
+                {{ $t('common.edit') }}
+              </span>
+            </v-btn>
+
+            <v-btn
+              size="small"
+              variant="tonal"
+              color="red"
+              :loading="workingName === item.name && workingAction === 'delete'"
+              :disabled="reloadInProgress || (workingAction !== null && workingName !== item.name)"
+              @click="openDeleteDialog(item)"
+            >
+              <v-icon icon="mdi-delete" />
+              <span class="d-none d-sm-inline ml-1">
+                {{ $t('common.delete') }}
+              </span>
+            </v-btn>
+          </div>
+        </div>
+      </div>
     </v-card-text>
 
     <CommandCreateDialog
@@ -152,29 +201,26 @@ export default {
   data() {
     return {
       searchQuery: '',
-      loading: false,
       uploading: false,
       errorMessage: '',
       createDialog: false,
       editorDialog: false,
       deleteDialog: false,
       selectedCommand: null as CommandEntry | null,
-      commands: {} as Record<string, any>,
-      files: [] as any[],
       workingName: null as string | null,
       workingAction: null as string | null,
     }
   },
 
   computed: {
-    ...mapState(useAppStore, ['getRestApi', 'getReloadUpdate']),
+    ...mapState(useAppStore, ['getCommands', 'getRestApi', 'getReloadUpdate']),
 
     reloadInProgress(): boolean {
       return this.getReloadUpdate?.finished !== true
     },
 
     commandList(): CommandEntry[] {
-      return Object.entries(this.commands ?? {})
+      return Object.entries(this.getCommands ?? {})
         .map(([name, command]) => ({ name, command, file: (command as any)?.file ?? `${name}.yaml` }))
         .sort((a, b) => a.name.localeCompare(b.name))
     },
@@ -187,10 +233,6 @@ export default {
         return item.name.toLowerCase().includes(query) || JSON.stringify(item.command ?? {}).toLowerCase().includes(query)
       })
     },
-  },
-
-  mounted() {
-    void this.refreshCommands()
   },
 
   methods: {
@@ -236,30 +278,20 @@ export default {
       }
     },
 
-    async refreshCommands() {
-      if (this.reloadInProgress) return
-      this.loading = true
-      this.errorMessage = ''
+    commandAliasCount(item: CommandEntry): number {
+      const aliases = Array.isArray(item.command?.aliases)
+        ? item.command.aliases
+        : Array.isArray(item.command?.alias)
+          ? item.command.alias
+          : []
 
-      try {
-        const data = await this.requestEndpoint('commands_list', 'commands/list')
-        this.files = data?.files ?? []
-        this.commands = data?.commands ?? data?.configured_commands ?? {}
-      } catch (error: any) {
-        this.errorMessage = error?.message ?? 'commands list failed'
-      } finally {
-        this.loading = false
-      }
+      return aliases.length
     },
 
-    commandSubtitle(item: CommandEntry) {
-      const aliases = Array.isArray(item.command?.aliases) ? item.command.aliases : Array.isArray(item.command?.alias) ? item.command.alias : []
-      const params = Array.isArray(item.command?.params) ? item.command.params : []
-      const parts = [`macro: ${item.command?.macro ?? `command_${item.name}`}`]
-      if (aliases.length) parts.push(`aliases: ${aliases.join(', ')}`)
-      if (params.length) parts.push(`${params.length} param(s)`)
-      return parts.join(' · ')
+    commandParamCount(item: CommandEntry): number {
+      return Array.isArray(item.command?.params) ? item.command.params.length : 0
     },
+
 
     openCreateDialog() {
       if (this.reloadInProgress) return
@@ -326,7 +358,6 @@ export default {
 
         if (!response.ok || payload?.error || data?.error) throw new Error(payload?.message ?? payload?.error ?? 'command upload failed')
 
-        await this.refreshCommands()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'command upload failed'
@@ -344,7 +375,6 @@ export default {
       try {
         await this.writeCommand(payload)
         this.createDialog = false
-        await this.refreshCommands()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'create command failed'
@@ -363,7 +393,6 @@ export default {
       try {
         await this.writeCommand(payload)
         this.editorDialog = false
-        await this.refreshCommands()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'save command failed'
@@ -417,7 +446,6 @@ export default {
         })
         this.deleteDialog = false
         this.selectedCommand = null
-        await this.refreshCommands()
         await (this.$refs.storageCard as any)?.fetchStorageInfo?.()
       } catch (error: any) {
         this.errorMessage = error?.message ?? 'delete command failed'
@@ -470,20 +498,64 @@ export default {
 
 <style scoped lang="scss">
 .command-list {
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.command-row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px;
+  background: rgb(var(--v-theme-grey-darken-4));
+  border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
-.command-row--even {
-  background: rgba(var(--v-theme-surface), 0.34);
+.command-row__content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.command-row--odd {
-  background: rgba(var(--v-theme-surface), 0.18);
+.command-row__name {
+  min-width: 0;
+  font-weight: 500;
+}
+
+.command-row__chip {
+  flex: 0 0 auto;
+}
+
+.command-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .min-width-0 {
   min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .command-row {
+    padding-inline: 10px;
+  }
+
+  .command-row__content {
+    gap: 6px;
+  }
+
+  .command-row__actions {
+    gap: 4px;
+  }
+
+  .command-row__actions .v-btn {
+    min-width: 36px;
+    padding-inline: 8px;
+  }
 }
 </style>

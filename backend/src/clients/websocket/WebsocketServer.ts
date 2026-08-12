@@ -13,6 +13,7 @@ import getGameInfo from "../../helper/GameHelper";
 import {getAllVisibleElements, isTestModeActive, toggleElementVisiblity} from "../../helper/VisibleHelper";
 import {getVoices} from "../../helper/TTShelper";
 import {getMacros} from "../../helper/MacroHelper";
+import {getConfiguredCommands} from "../../clients/twitch/TwitchCommands";
 import {getAutoMacros} from "../../helper/AutoMacroHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
 import BaseApi from "../../abstracts/BaseApi";
@@ -55,6 +56,7 @@ export default class WebsocketServer {
         'notify_power_button',
         'notify_voice_list_update',
         'notify_macro_update',
+        'notify_commands_update',
         'notify_auto_macros_update',
         'notify_variables_update',
         'notify_giveaway_update',
@@ -220,6 +222,7 @@ export default class WebsocketServer {
                 this.send("notify_test_mode", {active: isTestModeActive()}, client)
                 this.send("notify_voice_list_update", {voices: getVoices()}, client)
                 this.send("notify_macro_update", {macros: getMacros()}, client)
+                this.send("notify_commands_update", {commands: getConfiguredCommands()}, client)
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
                 // this.send("notify_variables_update", getTemplateVariables(), client)
                 this.send("notify_giveaway_update", getGiveaway(), client)

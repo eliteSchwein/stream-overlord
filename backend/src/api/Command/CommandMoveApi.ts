@@ -10,7 +10,7 @@ export default class CommandMoveApi extends BaseApi {
         try {
             return {
                 status: "okay",
-                ...moveCommandFile(data?.source, data?.target),
+                ...await moveCommandFile(data?.source, data?.target),
             };
         } catch (error: any) {
             return {error: error?.message ?? "move failed"};

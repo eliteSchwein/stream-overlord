@@ -10,7 +10,7 @@ export default class CommandDeleteApi extends BaseApi {
         try {
             return {
                 status: "okay",
-                ...deleteCommandFile(data?.path ?? data?.file ?? data?.name),
+                ...await deleteCommandFile(data?.path ?? data?.file ?? data?.name),
             };
         } catch (error: any) {
             return {error: error?.message ?? "delete failed"};

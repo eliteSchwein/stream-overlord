@@ -1464,7 +1464,10 @@
     "create": "Create command",
     "upload": "Upload command",
     "delete": "Delete command",
-    "deleteConfirm": "Do you want to delete the following command:"
+    "deleteConfirm": "Do you want to delete the following command:",
+    "macro": "Macro",
+    "aliases": "Aliases",
+    "parameters": "{count} parameter(s)"
   },
   "integrations": {
     "wled": {
