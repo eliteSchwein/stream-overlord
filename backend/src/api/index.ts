@@ -113,6 +113,8 @@ export { default as LanguageApi } from "./System/LanguageApi";
 export { default as RestartApi } from "./System/RestartApi";
 export { default as SystemStorageApi } from "./System/SystemStorageApi";
 export { default as UpdateApi } from "./System/UpdateApi";
+export { default as UpdateRefreshApi } from "./System/UpdateRefreshApi";
+export { default as UpdateStateApi } from "./System/UpdateStateApi";
 export { default as VariableDeleteApi } from "./Variables/VariableDeleteApi";
 export { default as VariableGetApi } from "./Variables/VariableGetApi";
 export { default as VariableListApi } from "./Variables/VariableListApi";

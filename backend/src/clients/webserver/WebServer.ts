@@ -22,6 +22,7 @@ import TwitchAuth from "../twitch/Auth";
 import AutoMacrosUploadApi from "./api/AutoMacro/AutoMacrosUploadApi";
 import RotateScenesUploadApi from "./api/RotatingScene/RotateScenesUploadApi";
 import AssetsMediaUploadApi from "./api/Assets/AssetsMediaUploadApi";
+import os from "os";
 
 export default class WebServer {
     app: Express;
@@ -59,9 +60,12 @@ export default class WebServer {
             next();
         });
 
+        const overlayPath = "$HOME/.local/share/streambot/stream-overlord-overlay"
+            .replace("$HOME", os.homedir());
+
         this.app.use(
             "/dist",
-            express.static(path.join(__dirname, "../../frontend/dist"))
+            express.static(path.join(overlayPath, "dist"))
         );
 
         const htmlRoot = this.getHtmlRoot();
@@ -89,9 +93,12 @@ export default class WebServer {
 
         this.app.use(bodyParser.json());
 
+        const commanderPath = "$HOME/.local/share/streambot/stream-overlord-admin"
+            .replace("$HOME", os.homedir());
+
         this.app.use(
             "/commander",
-            express.static(path.join(__dirname, "../../commander/dist"), {
+            express.static(path.join(commanderPath, "dist"), {
                 etag: false,
                 lastModified: false,
                 maxAge: 0,
@@ -100,8 +107,9 @@ export default class WebServer {
                 },
             })
         );
+
         this.app.get(/^\/commander(\/.*)?$/, (req, res) => {
-            res.sendFile(path.join(__dirname, "../../commander/dist/index.html"));
+            res.sendFile(path.join(commanderPath, "dist", "index.html"));
         });
 
         this.webServer = this.app.listen(config?.port ?? 8105, "0.0.0.0", () => {

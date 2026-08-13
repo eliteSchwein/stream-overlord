@@ -78,5 +78,6 @@ echo "streamrip/rip found at: $(command -v rip)"
 
 bash install_neopixel.sh
 bash install_polkit.sh
+bash install_systemctl_restart_sudo.sh streambottouch
 bash install_redis_cache_only.sh
 bash migrateNode.sh

@@ -23,6 +23,7 @@ import {getManagedConnections, setConnectionUpdateNotifier} from "../../helper/C
 import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 import {emitVariablesUpdate} from "../../helper/VariableHelper";
 import {getIntegrationsSafe} from "../../helper/IntegrationsHelper";
+import {getUpdateManagerStatus} from "../../helper/UpdateHelper";
 
 
 export default class WebsocketServer {
@@ -73,6 +74,8 @@ export default class WebsocketServer {
         'notify_settings_update',
         'notify_playlist_update',
         'notify_reload_update',
+        'notify_service_reload',
+        'notify_update_manager',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -233,6 +236,8 @@ export default class WebsocketServer {
                 this.send("notify_integrations_update", getIntegrationsSafe(), client)
                 this.send("notify_settings_update", getSettings(), client)
                 this.send("notify_reload_update", getReloadUpdate(), client)
+                this.send("notify_service_reload", {}, client)
+                this.send("notify_update_manager", getUpdateManagerStatus(), client)
 
                 void emitVariablesUpdate(client)
 

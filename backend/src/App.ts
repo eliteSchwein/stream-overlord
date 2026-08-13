@@ -29,6 +29,7 @@ import {initVariables} from "./helper/VariableHelper";
 import {updateConfiguredEventIndex} from "./helper/EventHelper";
 import loadRotateScenes from "./helper/RotateSceneHelper";
 import {loadIntegrationsCache} from "./helper/IntegrationsHelper";
+import {initializeUpdateManager, setUpdateManagerNotifier} from "./helper/UpdateHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -63,6 +64,12 @@ async function init() {
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()
+
+    setUpdateManagerNotifier((method, data) => {
+        websocketServer.send(method, data)
+    })
+    initializeUpdateManager()
+
     logSuccess('websocket server is ready')
 
     webServer = new WebServer()

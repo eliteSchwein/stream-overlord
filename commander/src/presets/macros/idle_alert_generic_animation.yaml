@@ -1,9 +1,0 @@
-tasks:
-  - channel: animation
-    method: play
-    data:
-      target: generic_alert_animation
-      startFrame: 228
-      stopFrame: 327
-      frameRate: 60
-      loop: true

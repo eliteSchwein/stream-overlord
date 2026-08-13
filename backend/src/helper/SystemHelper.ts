@@ -249,7 +249,3 @@ export async function shutdownSystem() {
         logWarn(`Shutdown failed: ${e?.message || e}`);
     }
 }
-
-export async function selfUpdate() {
-    await execute(`bash -c "cd ${path.resolve(__dirname, "..", "..")} && git pull && sudo rm -rf node_modules && npm ci && systemctl restart --user stream-overlord"`);
-}
