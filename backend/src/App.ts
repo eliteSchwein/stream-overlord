@@ -28,8 +28,9 @@ import {redis} from "./clients/redis/Redis";
 import {initVariables} from "./helper/VariableHelper";
 import {updateConfiguredEventIndex} from "./helper/EventHelper";
 import loadRotateScenes from "./helper/RotateSceneHelper";
-import {loadIntegrationsCache} from "./helper/IntegrationsHelper";
+import {ensureDefaultOllamaIntegration, loadIntegrationsCache} from "./helper/IntegrationsHelper";
 import {initializeUpdateManager, setUpdateManagerNotifier} from "./helper/UpdateHelper";
+import {stopOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -53,6 +54,7 @@ async function init() {
     logRegular('load config')
     readConfig()
     loadIntegrationsCache()
+    ensureDefaultOllamaIntegration()
 
     stage = 'loading cache...'
     await redis.connect()
@@ -71,6 +73,9 @@ async function init() {
     initializeUpdateManager()
 
     logSuccess('websocket server is ready')
+
+    stage = 'starting ollama...'
+    await syncOllamaIntegration()
 
     webServer = new WebServer()
     await webServer.initial()
@@ -215,7 +220,9 @@ export async function reload() {
         logNotice('init reload')
         readConfig()
         loadIntegrationsCache(true)
+        ensureDefaultOllamaIntegration()
 
+        await syncOllamaIntegration()
         await redis.connect()
         await webServer?.precacheConfiguredHtmlTemplates()
 
@@ -279,16 +286,25 @@ export function getYoloboxClient() {
     return yoloboxClient
 }
 
-process.on('SIGINT', async () => {
+let shutdownStarted = false
+
+async function shutdown() {
+    if (shutdownStarted) return
+    shutdownStarted = true
+
     if(isMacroPresent("event_system_poweroff")) {
         await triggerMacro("event_system_poweroff")
     }
 
+    await stopOllama()
     await redis.disconnect()
     await stopMusicPlayer()
     killGpio()
     process.exit()
-})
+}
+
+process.on('SIGINT', () => void shutdown())
+process.on('SIGTERM', () => void shutdown())
 
 export function isBackendReady() {
     return ready

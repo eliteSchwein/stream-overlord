@@ -96,20 +96,35 @@ export default class WebServer {
         const commanderPath = "$HOME/.local/share/streambot/stream-overlord-admin"
             .replace("$HOME", os.homedir());
 
+        const commanderDistPath = path.join(commanderPath, "dist");
+
         this.app.use(
             "/commander",
-            express.static(path.join(commanderPath, "dist"), {
+            express.static(commanderDistPath, {
                 etag: false,
                 lastModified: false,
                 maxAge: 0,
+                redirect: false,
                 setHeaders(res) {
                     res.setHeader("Cache-Control", "no-store");
                 },
             })
         );
 
-        this.app.get(/^\/commander(\/.*)?$/, (req, res) => {
-            res.sendFile(path.join(commanderPath, "dist", "index.html"));
+        this.app.get(/^\/commander(?:\/.*)?$/, async (req, res, next) => {
+            const commanderIndex = path.join(commanderPath, "dist", "index.html");
+
+            try {
+                const html = await fs.readFile(commanderIndex, "utf8");
+                res.type("html").send(html);
+            } catch (error) {
+                logWarn(
+                    `failed to serve commander index "${commanderIndex}": ${
+                        error instanceof Error ? error.message : String(error)
+                    }`,
+                );
+                next(error);
+            }
         });
 
         this.webServer = this.app.listen(config?.port ?? 8105, "0.0.0.0", () => {

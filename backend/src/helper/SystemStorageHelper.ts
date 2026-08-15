@@ -10,6 +10,7 @@ import {getChannelPointConfigDirectory} from "./ChannelPointHelper";
 import getWebsocketServer from "../App";
 import {getCommandDirectory} from "../clients/twitch/TwitchCommands";
 import path from "node:path";
+import {getOllamaRoot} from "./OllamaHelper";
 
 export type SystemStorageInfo = {
     root: string;
@@ -27,6 +28,7 @@ export type SystemStorageInfo = {
         commands: number;
         rotating_scenes: number;
         auto_macros: number;
+        ollama: number;
     };
 };
 
@@ -72,6 +74,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             channel_points: getDirectorySize(channelPointRoot),
             commands: getDirectorySize(commandRoot),
             rotating_scenes: getDirectorySize(getRotateSceneDirectory()),
+            ollama: getDirectorySize(getOllamaRoot()),
         },
     };
 }

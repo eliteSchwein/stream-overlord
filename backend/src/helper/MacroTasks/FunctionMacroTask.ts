@@ -75,6 +75,38 @@ export default class FunctionMacroTask extends BaseMacroTask {
                 break;
             }
 
+            case "strip_emojis": {
+                if (data.content === undefined || data.content === null) {
+                    logWarn(`strip_emojis requires content`);
+                    break;
+                }
+
+                if (!data.key) {
+                    logWarn(`strip_emojis requires key`);
+                    break;
+                }
+
+                const content = fillTemplate(String(data.content), variables);
+
+                const stripped = content
+                    // Keycap emoji sequences, e.g. 1️⃣
+                    .replace(/[#*0-9]\uFE0F?\u20E3/gu, "")
+                    // Flags are made from regional indicator symbols.
+                    .replace(/\p{Regional_Indicator}+/gu, "")
+                    // Normal pictographic emoji and skin-tone modifiers.
+                    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, "")
+                    // Remove selectors/joiners left over from emoji sequences.
+                    .replace(/[\uFE0E\uFE0F\u200D]/gu, "")
+                    // Clean whitespace left behind by removed emoji.
+                    .replace(/[ \t]{2,}/g, " ")
+                    .trim();
+
+                variables[data.key] = stripped;
+
+                logRegular(`strip_emojis ${data.key}`);
+                break;
+            }
+
             case "send_message": {
                 if (!data.content) {
                     logWarn(`send_message requires content`);

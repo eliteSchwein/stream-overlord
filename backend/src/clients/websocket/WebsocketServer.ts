@@ -24,6 +24,7 @@ import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 import {emitVariablesUpdate} from "../../helper/VariableHelper";
 import {getIntegrationsSafe} from "../../helper/IntegrationsHelper";
 import {getUpdateManagerStatus} from "../../helper/UpdateHelper";
+import {getOllamaUpdate} from "../../helper/OllamaHelper";
 
 
 export default class WebsocketServer {
@@ -76,6 +77,7 @@ export default class WebsocketServer {
         'notify_reload_update',
         'notify_service_reload',
         'notify_update_manager',
+        'notify_ollama_update',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -238,6 +240,7 @@ export default class WebsocketServer {
                 this.send("notify_reload_update", getReloadUpdate(), client)
                 this.send("notify_service_reload", {}, client)
                 this.send("notify_update_manager", getUpdateManagerStatus(), client)
+                this.send("notify_ollama_update", getOllamaUpdate(), client)
 
                 void emitVariablesUpdate(client)
 

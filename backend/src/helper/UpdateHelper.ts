@@ -16,6 +16,7 @@ export type UpdateManagerConfig = {
     user_service?: boolean;
     reload?: string;
     npm_install?: boolean;
+    ollama?: boolean;
 };
 
 export type AptUpdatePackage = {
@@ -26,7 +27,7 @@ export type AptUpdatePackage = {
 
 export type UpdateManagerState = {
     name: string;
-    type: "git" | "apt";
+    type: "git" | "apt" | "ollama";
     current_version?: string;
     latest_version?: string;
     commit?: string;
@@ -63,6 +64,9 @@ export const defaultUpdateManagers: Record<string, UpdateManagerConfig> = {
         git: "https://github.com/eliteSchwein/streambot-local-admin-frontend.git",
         path: "$HOME/.local/share/streambot/stream-overlord-admin",
         reload: "admin",
+    },
+    ollama: {
+        ollama: true,
     },
 };
 
@@ -103,6 +107,7 @@ function normalizeConfig(raw: UpdateManagerConfig): UpdateManagerConfig {
         ...(raw.reload ? {reload: String(raw.reload).trim()} : {}),
         user_service: booleanValue(raw.user_service),
         npm_install: booleanValue(raw.npm_install),
+        ollama: booleanValue(raw.ollama),
     };
 }
 
@@ -277,6 +282,98 @@ async function checkApt(name: string, config: UpdateManagerConfig): Promise<Upda
     };
 }
 
+function getOllamaBinaryPath(): string {
+    return path.join(os.homedir(), ".local", "share", "streambot", "ollama", "bin", "ollama");
+}
+
+function parseOllamaVersion(value: string): string | undefined {
+    const match = value.match(/(?:ollama\s+version(?:\s+is)?\s+|version\s+)?v?(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)/i);
+    return match?.[1];
+}
+
+async function getInstalledOllamaVersion(): Promise<string | undefined> {
+    const binary = getOllamaBinaryPath();
+
+    if (!existsSync(binary)) {
+        return undefined;
+    }
+
+    try {
+        return parseOllamaVersion(await run(binary, ["--version"]));
+    } catch {
+        return undefined;
+    }
+}
+
+async function getLatestOllamaVersion(): Promise<string | undefined> {
+    const latestUrl = await run("curl", [
+        "-fsSL",
+        "-o", "/dev/null",
+        "-w", "%{url_effective}",
+        "https://github.com/ollama/ollama/releases/latest",
+    ]);
+
+    const tag = latestUrl.match(/\/tag\/v?([^/?#]+)$/)?.[1];
+    return tag || undefined;
+}
+
+async function checkOllama(name: string): Promise<UpdateManagerState> {
+    const [currentVersion, latestVersion] = await Promise.all([
+        getInstalledOllamaVersion(),
+        getLatestOllamaVersion(),
+    ]);
+
+    return {
+        name,
+        type: "ollama",
+        current_version: currentVersion,
+        latest_version: latestVersion,
+        update_available: Boolean(
+            currentVersion
+            && latestVersion
+            && currentVersion !== latestVersion
+        ),
+        checking: false,
+        updating: false,
+    };
+}
+
+function getOllamaInstallScript(): string {
+    const candidates = [
+        path.resolve(process.cwd(), "scripts", "install_ollama.sh"),
+        path.resolve(__dirname, "../../scripts/install_ollama.sh"),
+        path.resolve(__dirname, "../../../scripts/install_ollama.sh"),
+    ];
+
+    const script = candidates.find((candidate) => existsSync(candidate));
+
+    if (!script) {
+        throw new Error("could not find scripts/install_ollama.sh");
+    }
+
+    return script;
+}
+
+async function updateOllama(): Promise<void> {
+    const script = getOllamaInstallScript();
+
+    logNotice(`updating ollama using ${script}`);
+    await run("bash", [script]);
+
+    try {
+        const {restartOllama} = await import("./OllamaHelper");
+        await restartOllama();
+    } catch (error) {
+        logWarn(`ollama updated but restart failed: ${errorMessage(error)}`);
+    }
+}
+
+function getManagerType(config: UpdateManagerConfig): UpdateManagerState["type"] {
+    if (config.ollama) return "ollama";
+    if (config.package) return "apt";
+    return "git";
+}
+
 function parseAptUpgradable(output: string): AptUpdatePackage[] {
     const updates: AptUpdatePackage[] = [];
 
@@ -327,7 +424,7 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
         const previous = updateState[name];
         updateState[name] = {
             name,
-            type: config.package ? "apt" : "git",
+            type: getManagerType(config),
             current_version: previous?.current_version,
             latest_version: previous?.latest_version,
             commit: previous?.commit,
@@ -358,9 +455,11 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
     await Promise.all([
         ...Object.entries(managers).map(async ([name, config]) => {
             try {
-                const result = config.package
-                    ? await checkApt(name, config)
-                    : await checkGit(name, config);
+                const result = config.ollama
+                    ? await checkOllama(name)
+                    : config.package
+                        ? await checkApt(name, config)
+                        : await checkGit(name, config);
 
                 updateState[name] = {
                     ...result,
@@ -370,7 +469,7 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
                 updateState[name] = {
                     ...updateState[name],
                     name,
-                    type: config.package ? "apt" : "git",
+                    type: getManagerType(config),
                     update_available: false,
                     checking: false,
                     updating: false,
@@ -442,7 +541,7 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
     const current = updateState[name];
     updateState[name] = {
         name,
-        type: isSystem || config?.package ? "apt" : "git",
+        type: isSystem ? "apt" : getManagerType(config!),
         current_version: current?.current_version,
         latest_version: current?.latest_version,
         commit: current?.commit,
@@ -474,7 +573,9 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
             return updateState.system;
         }
 
-        if (config!.package) {
+        if (config!.ollama) {
+            await updateOllama();
+        } else if (config!.package) {
             await run("sudo", ["-n", "apt-get", "install", "-y", "--only-upgrade", config!.package]);
         } else {
             if (!config!.path) {
@@ -485,9 +586,11 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
             await run("git", ["-C", config!.path, "pull", "--ff-only"]);
         }
 
-        const checked = config!.package
-            ? await checkApt(name, config!)
-            : await checkGit(name, config!);
+        const checked = config!.ollama
+            ? await checkOllama(name)
+            : config!.package
+                ? await checkApt(name, config!)
+                : await checkGit(name, config!);
 
         updateState[name] = checked;
         emitUpdateManager();

@@ -85,12 +85,18 @@ export type TwitchIntegration = {
     message?: any;
 };
 
+export type OllamaIntegration = {
+    enabled?: boolean;
+    model?: string;
+};
+
 export type Integrations = {
     twitch?: TwitchIntegration;
     wled?: Record<string, WledIntegration>;
     obs?: Record<string, ObsIntegration>;
     yolobox?: YoloboxIntegration;
     neopixel?: Record<string, NeopixelIntegration>;
+    ollama?: OllamaIntegration;
 };
 
 export type SafeObsIntegration = Omit<ObsIntegration, "password" | "connected"> & {
@@ -114,6 +120,10 @@ export type SafeIntegrations = {
     obs: Record<string, SafeObsIntegration>;
     yolobox: SafeYoloboxIntegration;
     neopixel: Record<string, NeopixelIntegration>;
+    ollama: {
+        enabled: boolean;
+        model: string;
+    };
 };
 
 function sanitizeHost(value: string) {
@@ -227,6 +237,10 @@ export function getIntegrationsSafe(): SafeIntegrations {
             connected: runtimeState.yoloboxConnected,
         },
         neopixel: safeNeopixel,
+        ollama: {
+            enabled: Boolean(integrations.ollama?.enabled),
+            model: String(integrations.ollama?.model ?? ""),
+        },
     };
 }
 
@@ -446,5 +460,58 @@ export function setYoloboxIntegrationConnected(connected: boolean) {
     }
 
     runtimeState.yoloboxConnected = connected;
+    emitIntegrationsUpdate();
+}
+
+
+export function getOllamaIntegration(): OllamaIntegration {
+    return readIntegrations().ollama ?? {enabled: false, model: ""};
+}
+
+export function isOllamaIntegrationEnabled() {
+    return Boolean(getOllamaIntegration().enabled);
+}
+
+export function ensureDefaultOllamaIntegration() {
+    const integrations = readIntegrations();
+
+    if (integrations.ollama) {
+        return integrations.ollama;
+    }
+
+    integrations.ollama = {
+        enabled: false,
+        model: "",
+    };
+
+    writeIntegrations(integrations);
+    return integrations.ollama;
+}
+
+export async function setOllamaIntegrationEnabled(enabled: boolean) {
+    const integrations = readIntegrations();
+    const previousEnabled = Boolean(integrations.ollama?.enabled);
+    const nextEnabled = Boolean(enabled);
+
+    integrations.ollama ??= {enabled: false, model: ""};
+    integrations.ollama.enabled = nextEnabled;
+
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+
+    const {syncOllamaIntegration} = await import("./OllamaHelper");
+
+    // Enabling installs/starts Ollama. Disabling stops it and purges its entire
+    // ~/.local/share/streambot/ollama directory to reclaim model/runtime storage.
+    await syncOllamaIntegration(nextEnabled && !previousEnabled);
+}
+
+export function setOllamaIntegrationModel(model: string) {
+    const integrations = readIntegrations();
+
+    integrations.ollama ??= {enabled: false, model: ""};
+    integrations.ollama.model = String(model ?? "").trim();
+
+    writeIntegrations(integrations);
     emitIntegrationsUpdate();
 }

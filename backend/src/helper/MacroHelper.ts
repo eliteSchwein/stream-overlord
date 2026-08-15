@@ -34,6 +34,7 @@ import TwitchMacroTask from "./MacroTasks/TwitchMacroTask";
 import AudioMacroTask from "./MacroTasks/AudioMacroTask";
 import SystemMacroTask from "./MacroTasks/SystemMacroTask";
 import ThemeTask from "./MacroTasks/ThemeTask";
+import OllamaMacroTask from "./MacroTasks/OllamaMacroTask";
 
 let macros: any = {};
 
@@ -612,7 +613,8 @@ export default function loadMacros() {
         new AutoMacroTask(),
         new TwitchMacroTask(),
         new SystemMacroTask(),
-        new ThemeTask()
+        new ThemeTask(),
+        new OllamaMacroTask()
     )
 
     loadMacrosFromFiles();
@@ -1177,4 +1179,3 @@ function evaluateCondition(check: any, variables: any) {
         return false;
     }
 }
-
