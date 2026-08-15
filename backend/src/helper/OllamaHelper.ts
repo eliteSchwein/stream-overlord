@@ -87,7 +87,14 @@ function getOllamaEnvironment(): NodeJS.ProcessEnv {
     const configRoot = path.join(root, "config");
     const tempRoot = path.join(root, "tmp");
 
-    for (const directory of [root, runtimeHome, modelRoot, cacheRoot, configRoot, tempRoot]) {
+    for (const directory of [
+        root,
+        runtimeHome,
+        modelRoot,
+        cacheRoot,
+        configRoot,
+        tempRoot,
+    ]) {
         fs.mkdirSync(directory, {recursive: true});
     }
 
@@ -113,11 +120,23 @@ export function isOllamaInstalled() {
 
 function readTestedModels(): Record<string, string[]> {
     try {
-        const parsed = JSON.parse(fs.readFileSync(getModelConfigPath(), "utf8"));
-        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+        const parsed = JSON.parse(
+            fs.readFileSync(getModelConfigPath(), "utf8"),
+        );
+
+        if (
+            !parsed ||
+            typeof parsed !== "object" ||
+            Array.isArray(parsed)
+        ) {
+            return {};
+        }
+
         return parsed;
     } catch (error: any) {
-        runtimeState.error = error?.message ?? "failed to read ollama.json";
+        runtimeState.error =
+            error?.message ?? "failed to read ollama.json";
+
         return {};
     }
 }
@@ -128,13 +147,24 @@ export function getAvailableOllamaModels() {
     const models = new Set<string>();
 
     Object.entries(testedModels)
-        .map(([ram, entries]) => ({ram: Number(ram), entries}))
-        .filter(({ram, entries}) => Number.isFinite(ram) && ram <= ramMiB && Array.isArray(entries))
+        .map(([ram, entries]) => ({
+            ram: Number(ram),
+            entries,
+        }))
+        .filter(
+            ({ram, entries}) =>
+                Number.isFinite(ram) &&
+                ram <= ramMiB &&
+                Array.isArray(entries),
+        )
         .sort((a, b) => a.ram - b.ram)
         .forEach(({entries}) => {
             for (const model of entries) {
                 const normalized = String(model ?? "").trim();
-                if (normalized) models.add(normalized);
+
+                if (normalized) {
+                    models.add(normalized);
+                }
             }
         });
 
@@ -158,38 +188,74 @@ export function getOllamaUpdate(): OllamaUpdate {
 }
 
 export function emitOllamaUpdate(connection?: WebSocket) {
-    getWebsocketServer()?.send("notify_ollama_update", getOllamaUpdate(), connection);
+    getWebsocketServer()?.send(
+        "notify_ollama_update",
+        getOllamaUpdate(),
+        connection,
+    );
 }
 
-function logChildOutput(prefix: string, chunk: any, warn = false) {
+function logChildOutput(
+    prefix: string,
+    chunk: any,
+    warn = false,
+) {
     const lines = String(chunk ?? "")
         .split(/\r?\n/)
         .map((line) => line.trim())
         .filter(Boolean);
 
     for (const line of lines) {
-        if (warn) logWarn(`${prefix}: ${line}`);
-        else logRegular(`${prefix}: ${line}`);
+        if (warn) {
+            logWarn(`${prefix}: ${line}`);
+        } else {
+            logRegular(`${prefix}: ${line}`);
+        }
     }
 }
 
-function runProcess(command: string, args: string[], env: NodeJS.ProcessEnv = process.env): Promise<void> {
+function runProcess(
+    command: string,
+    args: string[],
+    env: NodeJS.ProcessEnv = process.env,
+): Promise<void> {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, {
             env,
             stdio: ["ignore", "pipe", "pipe"],
         });
 
-        child.stdout?.on("data", (chunk) => logChildOutput("ollama install", chunk));
-        child.stderr?.on("data", (chunk) => logChildOutput("ollama install", chunk, true));
+        child.stdout?.on(
+            "data",
+            (chunk) => logChildOutput("ollama install", chunk),
+        );
+
+        child.stderr?.on(
+            "data",
+            (chunk) => logChildOutput(
+                "ollama install",
+                chunk,
+                true,
+            ),
+        );
+
         child.once("error", reject);
+
         child.once("exit", (code, signal) => {
             if (code === 0) {
                 resolve();
                 return;
             }
 
-            reject(new Error(`ollama installer exited with ${code ?? signal ?? "unknown status"}`));
+            reject(
+                new Error(
+                    `ollama installer exited with ${
+                        code ??
+                        signal ??
+                        "unknown status"
+                    }`,
+                ),
+            );
         });
     });
 }
@@ -205,16 +271,26 @@ export async function installOllama(force = false) {
 
         try {
             const script = getInstallScript();
+
             logRegular(`install ollama from ${script}`);
-            await runProcess("bash", [script]);
+
+            await runProcess(
+                "bash",
+                [script],
+            );
 
             if (!isOllamaInstalled()) {
-                throw new Error("ollama installer finished but bin/ollama is missing");
+                throw new Error(
+                    "ollama installer finished but bin/ollama is missing",
+                );
             }
 
             logSuccess("ollama installation is ready");
         } catch (error: any) {
-            runtimeState.error = error?.message ?? "ollama installation failed";
+            runtimeState.error =
+                error?.message ??
+                "ollama installation failed";
+
             throw error;
         } finally {
             runtimeState.installing = false;
@@ -231,92 +307,176 @@ async function waitForOllama(timeoutMs = 30_000) {
 
     while (Date.now() - started < timeoutMs) {
         try {
-            await ollamaApi.get("/api/tags", {timeout: 1_500});
+            await ollamaApi.get(
+                "/api/tags",
+                {
+                    timeout: 1_500,
+                },
+            );
+
             return;
         } catch {
-            await new Promise((resolve) => setTimeout(resolve, 250));
+            await new Promise(
+                (resolve) =>
+                    setTimeout(resolve, 250),
+            );
         }
     }
 
-    throw new Error("ollama server did not become ready");
+    throw new Error(
+        "ollama server did not become ready",
+    );
 }
 
 async function startOllamaInternal() {
-    if (runtimeState.running && ollamaProcess && !ollamaProcess.killed) return;
-    if (!isOllamaIntegrationEnabled()) return;
+    if (
+        runtimeState.running &&
+        ollamaProcess &&
+        !ollamaProcess.killed
+    ) {
+        return;
+    }
+
+    if (!isOllamaIntegrationEnabled()) {
+        return;
+    }
 
     await installOllama(false);
 
     const binary = getOllamaBinary();
-    const child = spawn(binary, ["serve"], {
-        env: getOllamaEnvironment(),
-        stdio: ["ignore", "pipe", "pipe"],
-    });
+
+    const child = spawn(
+        binary,
+        ["serve"],
+        {
+            env: getOllamaEnvironment(),
+            stdio: ["ignore", "pipe", "pipe"],
+        },
+    );
 
     ollamaProcess = child;
     runtimeState.error = "";
 
-    child.stdout?.on("data", (chunk) => logChildOutput("ollama", chunk));
-    child.stderr?.on("data", (chunk) => logChildOutput("ollama", chunk, true));
+    child.stdout?.on(
+        "data",
+        (chunk) =>
+            logChildOutput(
+                "ollama",
+                chunk,
+            ),
+    );
 
-    child.once("spawn", () => {
-        runtimeState.running = true;
-        logSuccess(`ollama server started with pid ${child.pid}`);
-        emitOllamaUpdate();
-    });
+    child.stderr?.on(
+        "data",
+        (chunk) =>
+            logChildOutput(
+                "ollama",
+                chunk,
+                true,
+            ),
+    );
 
-    child.once("error", (error) => {
-        runtimeState.error = error.message;
-        runtimeState.running = false;
-        if (ollamaProcess === child) ollamaProcess = null;
-        emitOllamaUpdate();
-    });
+    child.once(
+        "spawn",
+        () => {
+            runtimeState.running = true;
 
-    child.once("exit", (code, signal) => {
-        runtimeState.running = false;
-        if (ollamaProcess === child) ollamaProcess = null;
+            logSuccess(
+                `ollama server started with pid ${child.pid}`,
+            );
 
-        if (code && code !== 0) {
-            runtimeState.error = `ollama exited with ${code ?? signal ?? "unknown status"}`;
-            logWarn(runtimeState.error);
-        }
+            emitOllamaUpdate();
+        },
+    );
 
-        emitOllamaUpdate();
-    });
+    child.once(
+        "error",
+        (error) => {
+            runtimeState.error = error.message;
+            runtimeState.running = false;
+
+            if (ollamaProcess === child) {
+                ollamaProcess = null;
+            }
+
+            emitOllamaUpdate();
+        },
+    );
+
+    child.once(
+        "exit",
+        (code, signal) => {
+            runtimeState.running = false;
+
+            if (ollamaProcess === child) {
+                ollamaProcess = null;
+            }
+
+            if (code && code !== 0) {
+                runtimeState.error =
+                    `ollama exited with ${
+                        code ??
+                        signal ??
+                        "unknown status"
+                    }`;
+
+                logWarn(runtimeState.error);
+            }
+
+            emitOllamaUpdate();
+        },
+    );
 
     await waitForOllama();
 }
 
 export async function startOllama() {
-    if (processTransition) return processTransition;
+    if (processTransition) {
+        return processTransition;
+    }
 
-    processTransition = startOllamaInternal().finally(() => {
-        processTransition = null;
-    });
+    processTransition =
+        startOllamaInternal()
+            .finally(() => {
+                processTransition = null;
+            });
 
     return processTransition;
 }
 
 async function stopOllamaInternal() {
     const child = ollamaProcess;
+
     if (!child) {
         runtimeState.running = false;
         emitOllamaUpdate();
+
         return;
     }
 
     await new Promise<void>((resolve) => {
         let finished = false;
-        let killTimer: NodeJS.Timeout | null = null;
+
+        let killTimer:
+            NodeJS.Timeout |
+            null = null;
 
         const done = () => {
             if (finished) return;
+
             finished = true;
-            if (killTimer) clearTimeout(killTimer);
+
+            if (killTimer) {
+                clearTimeout(killTimer);
+            }
+
             resolve();
         };
 
-        child.once("exit", done);
+        child.once(
+            "exit",
+            done,
+        );
 
         try {
             child.kill("SIGTERM");
@@ -325,30 +485,48 @@ async function stopOllamaInternal() {
             return;
         }
 
-        killTimer = setTimeout(() => {
-            try {
-                if (child.exitCode === null && child.signalCode === null) {
-                    child.kill("SIGKILL");
+        killTimer = setTimeout(
+            () => {
+                try {
+                    if (
+                        child.exitCode === null &&
+                        child.signalCode === null
+                    ) {
+                        child.kill("SIGKILL");
+                    }
+                } catch {
+                    // ignored, process is already gone
                 }
-            } catch {
-                // ignored, process is already gone
-            }
-            done();
-        }, 5_000);
+
+                done();
+            },
+            5_000,
+        );
+
         killTimer.unref();
     });
 
-    if (ollamaProcess === child) ollamaProcess = null;
+    if (ollamaProcess === child) {
+        ollamaProcess = null;
+    }
+
     runtimeState.running = false;
+
     emitOllamaUpdate();
 }
 
 export async function stopOllama() {
-    if (processTransition) await processTransition.catch(() => undefined);
+    if (processTransition) {
+        await processTransition.catch(
+            () => undefined,
+        );
+    }
 
-    processTransition = stopOllamaInternal().finally(() => {
-        processTransition = null;
-    });
+    processTransition =
+        stopOllamaInternal()
+            .finally(() => {
+                processTransition = null;
+            });
 
     return processTransition;
 }
@@ -356,60 +534,89 @@ export async function stopOllama() {
 export async function purgeOllama() {
     await stopOllama();
 
-    // Wait for an active installer before deleting the Ollama directory.
-    // This avoids the install process recreating files while we purge them.
+    // Wait for an active installer before deleting
+    // the Ollama directory.
+    //
+    // This avoids the install process recreating
+    // files while we purge them.
     if (installPromise) {
-        await installPromise.catch(() => undefined);
+        await installPromise.catch(
+            () => undefined,
+        );
     }
 
     const root = getOllamaRoot();
 
     try {
-        fs.rmSync(root, {
-            recursive: true,
-            force: true,
-        });
+        fs.rmSync(
+            root,
+            {
+                recursive: true,
+                force: true,
+            },
+        );
 
         runtimeState.running = false;
         runtimeState.installing = false;
         runtimeState.changing_model = false;
         runtimeState.error = "";
 
-        logSuccess(`ollama purged from ${root}`);
+        logSuccess(
+            `ollama purged from ${root}`,
+        );
     } catch (error: any) {
-        runtimeState.error = error?.message ?? "failed to purge ollama";
+        runtimeState.error =
+            error?.message ??
+            "failed to purge ollama";
+
         emitOllamaUpdate();
+
         throw error;
     }
 
     emitOllamaUpdate();
+
     return getOllamaUpdate();
 }
 
 export async function restartOllama() {
     if (!isOllamaIntegrationEnabled()) {
-        throw new Error("ollama integration is disabled");
+        throw new Error(
+            "ollama integration is disabled",
+        );
     }
 
     await stopOllama();
     await startOllama();
+
     return getOllamaUpdate();
 }
 
-export async function syncOllamaIntegration(forceInstall = false) {
+export async function syncOllamaIntegration(
+    forceInstall = false,
+) {
     if (!isOllamaIntegrationEnabled()) {
         await purgeOllama();
+
         return getOllamaUpdate();
     }
 
-    const wasInstalled = isOllamaInstalled();
+    const wasInstalled =
+        isOllamaInstalled();
 
-    await installOllama(forceInstall || !wasInstalled);
+    await installOllama(
+        forceInstall ||
+        !wasInstalled,
+    );
+
     await startOllama();
 
-    // A disabled integration purges the complete Ollama directory while the
-    // configured model remains in integrations.json. After a fresh install,
-    // automatically restore that configured model.
+    // A disabled integration purges the complete
+    // Ollama directory while the configured model
+    // remains in integrations.json.
+    //
+    // After a fresh install automatically restore
+    // that configured model.
     if (!wasInstalled) {
         await pullConfiguredOllamaModel();
     }
@@ -417,139 +624,316 @@ export async function syncOllamaIntegration(forceInstall = false) {
     return getOllamaUpdate();
 }
 
-function normalizeAxiosError(error: unknown): Error {
+function normalizeAxiosError(
+    error: unknown,
+): Error {
     if (!axios.isAxiosError(error)) {
-        return error instanceof Error ? error : new Error(String(error));
+        return error instanceof Error
+            ? error
+            : new Error(
+                String(error),
+            );
     }
 
-    const axiosError = error as AxiosError<any>;
-    const responseData = axiosError.response?.data;
-    const message = responseData?.error
-        ?? responseData?.message
-        ?? axiosError.message
-        ?? "ollama request failed";
+    const axiosError =
+        error as AxiosError<any>;
 
-    return new Error(String(message));
+    const responseData =
+        axiosError.response?.data;
+
+    const message =
+        responseData?.error ??
+        responseData?.message ??
+        axiosError.message ??
+        "ollama request failed";
+
+    return new Error(
+        String(message),
+    );
 }
 
-export async function directOllamaRequest(data: any) {
+export async function directOllamaRequest(
+    data: any,
+) {
     if (!isOllamaIntegrationEnabled()) {
-        throw new Error("ollama integration is disabled");
+        throw new Error(
+            "ollama integration is disabled",
+        );
     }
 
     await startOllama();
 
-    const rawPath = String(data?.path ?? data?.endpoint ?? "").trim();
-    if (!rawPath) throw new Error("path is required");
+    const rawPath =
+        String(
+            data?.path ??
+            data?.endpoint ??
+            "",
+        ).trim();
 
-    const requestPath = rawPath.startsWith("/") ? rawPath : `/${rawPath}`;
-    if (!requestPath.startsWith("/api/")) {
-        throw new Error("only /api/* ollama paths are allowed");
+    if (!rawPath) {
+        throw new Error(
+            "path is required",
+        );
     }
 
-    const method = String(data?.method ?? "POST").toUpperCase() as Method;
-    const allowedMethods = new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]);
+    const requestPath =
+        rawPath.startsWith("/")
+            ? rawPath
+            : `/${rawPath}`;
+
+    if (
+        !requestPath.startsWith(
+            "/api/",
+        )
+    ) {
+        throw new Error(
+            "only /api/* ollama paths are allowed",
+        );
+    }
+
+    const method =
+        String(
+            data?.method ??
+            "POST",
+        ).toUpperCase() as Method;
+
+    const allowedMethods =
+        new Set([
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+        ]);
+
     if (!allowedMethods.has(method)) {
-        throw new Error(`unsupported method: ${method}`);
+        throw new Error(
+            `unsupported method: ${method}`,
+        );
     }
 
     try {
-        const response = await ollamaApi.request({
-            method,
-            url: requestPath,
-            params: data?.params,
-            data: data?.data ?? data?.body,
-            timeout: Number(data?.timeout ?? 0) || 0,
-        });
+        let requestData =
+            data?.data ??
+            data?.body;
+
+        if (
+            requestData &&
+            typeof requestData === "object" &&
+            (
+                requestPath === "/api/chat" ||
+                requestPath === "/api/generate"
+            )
+        ) {
+            requestData = {
+                ...requestData,
+                think: false,
+            };
+        }
+
+        const response =
+            await ollamaApi.request({
+                method,
+                url: requestPath,
+                params: data?.params,
+                data: requestData,
+                timeout:
+                    Number(
+                        data?.timeout ??
+                        0,
+                    ) || 0,
+            });
 
         return response.data;
     } catch (error) {
-        throw normalizeAxiosError(error);
+        throw normalizeAxiosError(
+            error,
+        );
     }
 }
 
 async function getInstalledModelNames() {
-    const response = await ollamaApi.get("/api/tags");
-    const models = Array.isArray(response.data?.models) ? response.data.models : [];
+    const response =
+        await ollamaApi.get(
+            "/api/tags",
+        );
+
+    const models =
+        Array.isArray(
+            response.data?.models,
+        )
+            ? response.data.models
+            : [];
 
     return models
-        .map((entry: any) => String(entry?.name ?? entry?.model ?? "").trim())
+        .map(
+            (entry: any) =>
+                String(
+                    entry?.name ??
+                    entry?.model ??
+                    "",
+                ).trim(),
+        )
         .filter(Boolean);
 }
 
 async function pullConfiguredOllamaModel() {
-    const model = String(getOllamaIntegration().model ?? "").trim();
+    const model =
+        String(
+            getOllamaIntegration()
+                .model ??
+            "",
+        ).trim();
+
     if (!model) return;
 
-    const installedModels = await getInstalledModelNames();
-    if (installedModels.includes(model)) {
-        logRegular(`ollama model ${model} is already installed`);
+    const installedModels =
+        await getInstalledModelNames();
+
+    if (
+        installedModels.includes(
+            model,
+        )
+    ) {
+        logRegular(
+            `ollama model ${model} is already installed`,
+        );
+
         return;
     }
 
     runtimeState.changing_model = true;
     runtimeState.error = "";
+
     emitOllamaUpdate();
 
     try {
-        logRegular(`download configured ollama model ${model}`);
+        logRegular(
+            `download configured ollama model ${model}`,
+        );
 
-        await ollamaApi.post("/api/pull", {
-            model,
-            stream: false,
-        }, {
-            timeout: 0,
-        });
+        await ollamaApi.post(
+            "/api/pull",
+            {
+                model,
+                stream: false,
+            },
+            {
+                timeout: 0,
+            },
+        );
 
-        logSuccess(`ollama model ${model} is ready`);
+        logSuccess(
+            `ollama model ${model} is ready`,
+        );
     } catch (error) {
-        const normalizedError = normalizeAxiosError(error);
-        runtimeState.error = normalizedError.message;
+        const normalizedError =
+            normalizeAxiosError(
+                error,
+            );
+
+        runtimeState.error =
+            normalizedError.message;
+
         throw normalizedError;
     } finally {
-        runtimeState.changing_model = false;
+        runtimeState.changing_model =
+            false;
+
         emitOllamaUpdate();
     }
 }
 
-export async function changeOllamaModel(model: string) {
-    const normalizedModel = String(model ?? "").trim();
-    if (!normalizedModel) throw new Error("model is required");
-    if (!isOllamaIntegrationEnabled()) throw new Error("ollama integration is disabled");
+export async function changeOllamaModel(
+    model: string,
+) {
+    const normalizedModel =
+        String(
+            model ??
+            "",
+        ).trim();
+
+    if (!normalizedModel) {
+        throw new Error(
+            "model is required",
+        );
+    }
+
+    if (
+        !isOllamaIntegrationEnabled()
+    ) {
+        throw new Error(
+            "ollama integration is disabled",
+        );
+    }
 
     runtimeState.changing_model = true;
     runtimeState.error = "";
+
     emitOllamaUpdate();
 
     try {
         await startOllama();
 
-        const installedModels = await getInstalledModelNames();
-        for (const installedModel of installedModels) {
-            logRegular(`delete ollama model ${installedModel}`);
-            await ollamaApi.delete("/api/delete", {
-                data: {model: installedModel},
-            });
+        const installedModels =
+            await getInstalledModelNames();
+
+        for (
+            const installedModel
+            of installedModels
+            ) {
+            logRegular(
+                `delete ollama model ${installedModel}`,
+            );
+
+            await ollamaApi.delete(
+                "/api/delete",
+                {
+                    data: {
+                        model:
+                        installedModel,
+                    },
+                },
+            );
         }
 
-        logRegular(`download ollama model ${normalizedModel}`);
-        await ollamaApi.post("/api/pull", {
-            model: normalizedModel,
-            stream: false,
-        }, {
-            timeout: 0,
-        });
+        logRegular(
+            `download ollama model ${normalizedModel}`,
+        );
 
-        setOllamaIntegrationModel(normalizedModel);
+        await ollamaApi.post(
+            "/api/pull",
+            {
+                model:
+                normalizedModel,
+                stream: false,
+            },
+            {
+                timeout: 0,
+            },
+        );
+
+        setOllamaIntegrationModel(
+            normalizedModel,
+        );
+
         await restartOllama();
 
         return getOllamaUpdate();
     } catch (error) {
-        const normalizedError = normalizeAxiosError(error);
-        runtimeState.error = normalizedError.message;
+        const normalizedError =
+            normalizeAxiosError(
+                error,
+            );
+
+        runtimeState.error =
+            normalizedError.message;
+
         throw normalizedError;
     } finally {
-        runtimeState.changing_model = false;
+        runtimeState.changing_model =
+            false;
+
         emitOllamaUpdate();
     }
 }
