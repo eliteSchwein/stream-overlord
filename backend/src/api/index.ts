@@ -81,6 +81,7 @@ export { default as SetObsSceneApi } from "./Obs/SetObsSceneApi";
 export { default as TriggerObsCommandApi } from "./Obs/TriggerObsCommandApi";
 export { default as OllamaChangeModelApi } from "./Ollama/OllamaChangeModelApi";
 export { default as OllamaDirectApi } from "./Ollama/OllamaDirectApi";
+export { default as OllamaExternalApi } from "./Ollama/OllamaExternalApi";
 export { default as OllamaRestartApi } from "./Ollama/OllamaRestartApi";
 export { default as OllamaToggleApi } from "./Ollama/OllamaToggleApi";
 export { default as AdApi } from "./Overlay/AdApi";
