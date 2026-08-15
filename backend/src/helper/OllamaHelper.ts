@@ -15,10 +15,31 @@ import {logRegular, logSuccess, logWarn} from "./LogHelper";
 const OLLAMA_API_URL = "http://127.0.0.1:11434";
 const OLLAMA_HOST = "127.0.0.1:11434";
 
-const ollamaApi = axios.create({
-    baseURL: OLLAMA_API_URL,
-    timeout: 30_000,
-});
+function isExternalOllamaEnabled() {
+    return Boolean(getOllamaIntegration().external);
+}
+
+function getOllamaApi() {
+    const integration = getOllamaIntegration();
+    const external = Boolean(integration.external);
+    const baseURL = external
+        ? String(integration.external_url ?? "").trim().replace(/\/+$/, "")
+        : OLLAMA_API_URL;
+
+    if (external && !baseURL) {
+        throw new Error("external ollama URL is not configured");
+    }
+
+    const apiKey = String(integration.api_key ?? "").trim();
+
+    return axios.create({
+        baseURL,
+        timeout: 30_000,
+        headers: apiKey
+            ? {Authorization: `Bearer ${apiKey}`}
+            : undefined,
+    });
+}
 
 let ollamaProcess: ChildProcess | null = null;
 let installPromise: Promise<void> | null = null;
@@ -28,6 +49,7 @@ const runtimeState = {
     running: false,
     installing: false,
     changing_model: false,
+    external_models: [] as string[],
     error: "",
 };
 
@@ -40,6 +62,9 @@ export type OllamaUpdate = {
     model: string;
     models: string[];
     ram_mib: number;
+    external: boolean;
+    external_url: string;
+    has_api_key: boolean;
     error: string;
 };
 
@@ -142,6 +167,10 @@ function readTestedModels(): Record<string, string[]> {
 }
 
 export function getAvailableOllamaModels() {
+    if (isExternalOllamaEnabled()) {
+        return [...runtimeState.external_models];
+    }
+
     const ramMiB = Math.floor(os.totalmem() / 1024 / 1024);
     const testedModels = readTestedModels();
     const models = new Set<string>();
@@ -176,13 +205,16 @@ export function getOllamaUpdate(): OllamaUpdate {
 
     return {
         enabled: Boolean(integration.enabled),
-        installed: isOllamaInstalled(),
+        installed: Boolean(integration.external) || isOllamaInstalled(),
         running: runtimeState.running,
         installing: runtimeState.installing,
         changing_model: runtimeState.changing_model,
         model: String(integration.model ?? ""),
         models: getAvailableOllamaModels(),
         ram_mib: Math.floor(os.totalmem() / 1024 / 1024),
+        external: Boolean(integration.external),
+        external_url: String(integration.external_url ?? ""),
+        has_api_key: Boolean(integration.api_key),
         error: runtimeState.error,
     };
 }
@@ -307,7 +339,7 @@ async function waitForOllama(timeoutMs = 30_000) {
 
     while (Date.now() - started < timeoutMs) {
         try {
-            await ollamaApi.get(
+            await getOllamaApi().get(
                 "/api/tags",
                 {
                     timeout: 1_500,
@@ -338,6 +370,11 @@ async function startOllamaInternal() {
     }
 
     if (!isOllamaIntegrationEnabled()) {
+        return;
+    }
+
+    if (isExternalOllamaEnabled()) {
+        await refreshExternalOllamaState();
         return;
     }
 
@@ -586,6 +623,11 @@ export async function restartOllama() {
         );
     }
 
+    if (isExternalOllamaEnabled()) {
+        await refreshExternalOllamaState();
+        return getOllamaUpdate();
+    }
+
     await stopOllama();
     await startOllama();
 
@@ -597,12 +639,20 @@ export async function syncOllamaIntegration(
 ) {
     if (!isOllamaIntegrationEnabled()) {
         await purgeOllama();
+        runtimeState.external_models = [];
+        return getOllamaUpdate();
+    }
 
+    if (isExternalOllamaEnabled()) {
+        await stopOllama();
+        await refreshExternalOllamaState();
         return getOllamaUpdate();
     }
 
     const wasInstalled =
         isOllamaInstalled();
+
+    runtimeState.external_models = [];
 
     await installOllama(
         forceInstall ||
@@ -622,6 +672,30 @@ export async function syncOllamaIntegration(
     }
 
     return getOllamaUpdate();
+}
+
+async function refreshExternalOllamaState() {
+    if (!isExternalOllamaEnabled()) return;
+
+    try {
+        const response = await getOllamaApi().get("/api/tags", {timeout: 5_000});
+        const models = Array.isArray(response.data?.models) ? response.data.models : [];
+
+        runtimeState.external_models = models
+            .map((entry: any) => String(entry?.name ?? entry?.model ?? "").trim())
+            .filter(Boolean);
+        runtimeState.running = true;
+        runtimeState.error = "";
+    } catch (error) {
+        const normalizedError = normalizeAxiosError(error);
+        runtimeState.external_models = [];
+        runtimeState.running = false;
+        runtimeState.error = normalizedError.message;
+        emitOllamaUpdate();
+        throw normalizedError;
+    }
+
+    emitOllamaUpdate();
 }
 
 function normalizeAxiosError(
@@ -732,7 +806,7 @@ export async function directOllamaRequest(
         }
 
         const response =
-            await ollamaApi.request({
+            await getOllamaApi().request({
                 method,
                 url: requestPath,
                 params: data?.params,
@@ -754,7 +828,7 @@ export async function directOllamaRequest(
 
 async function getInstalledModelNames() {
     const response =
-        await ollamaApi.get(
+        await getOllamaApi().get(
             "/api/tags",
         );
 
@@ -778,6 +852,8 @@ async function getInstalledModelNames() {
 }
 
 async function pullConfiguredOllamaModel() {
+    if (isExternalOllamaEnabled()) return;
+
     const model =
         String(
             getOllamaIntegration()
@@ -812,7 +888,7 @@ async function pullConfiguredOllamaModel() {
             `download configured ollama model ${model}`,
         );
 
-        await ollamaApi.post(
+        await getOllamaApi().post(
             "/api/pull",
             {
                 model,
@@ -867,6 +943,20 @@ export async function changeOllamaModel(
         );
     }
 
+    if (isExternalOllamaEnabled()) {
+        await refreshExternalOllamaState();
+
+        if (
+            runtimeState.external_models.length > 0 &&
+            !runtimeState.external_models.includes(normalizedModel)
+        ) {
+            throw new Error(`ollama model is not available on external server: ${normalizedModel}`);
+        }
+
+        setOllamaIntegrationModel(normalizedModel);
+        return getOllamaUpdate();
+    }
+
     runtimeState.changing_model = true;
     runtimeState.error = "";
 
@@ -886,7 +976,7 @@ export async function changeOllamaModel(
                 `delete ollama model ${installedModel}`,
             );
 
-            await ollamaApi.delete(
+            await getOllamaApi().delete(
                 "/api/delete",
                 {
                     data: {
@@ -901,7 +991,7 @@ export async function changeOllamaModel(
             `download ollama model ${normalizedModel}`,
         );
 
-        await ollamaApi.post(
+        await getOllamaApi().post(
             "/api/pull",
             {
                 model:

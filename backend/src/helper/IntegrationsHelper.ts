@@ -88,6 +88,9 @@ export type TwitchIntegration = {
 export type OllamaIntegration = {
     enabled?: boolean;
     model?: string;
+    external?: boolean;
+    external_url?: string;
+    api_key?: string;
 };
 
 export type Integrations = {
@@ -123,6 +126,9 @@ export type SafeIntegrations = {
     ollama: {
         enabled: boolean;
         model: string;
+        external: boolean;
+        external_url: string;
+        has_api_key: boolean;
     };
 };
 
@@ -240,6 +246,9 @@ export function getIntegrationsSafe(): SafeIntegrations {
         ollama: {
             enabled: Boolean(integrations.ollama?.enabled),
             model: String(integrations.ollama?.model ?? ""),
+            external: Boolean(integrations.ollama?.external),
+            external_url: String(integrations.ollama?.external_url ?? ""),
+            has_api_key: Boolean(integrations.ollama?.api_key),
         },
     };
 }
@@ -465,7 +474,7 @@ export function setYoloboxIntegrationConnected(connected: boolean) {
 
 
 export function getOllamaIntegration(): OllamaIntegration {
-    return readIntegrations().ollama ?? {enabled: false, model: ""};
+    return readIntegrations().ollama ?? {enabled: false, model: "", external: false, external_url: "", api_key: ""};
 }
 
 export function isOllamaIntegrationEnabled() {
@@ -482,6 +491,9 @@ export function ensureDefaultOllamaIntegration() {
     integrations.ollama = {
         enabled: false,
         model: "",
+        external: false,
+        external_url: "",
+        api_key: "",
     };
 
     writeIntegrations(integrations);
@@ -493,7 +505,7 @@ export async function setOllamaIntegrationEnabled(enabled: boolean) {
     const previousEnabled = Boolean(integrations.ollama?.enabled);
     const nextEnabled = Boolean(enabled);
 
-    integrations.ollama ??= {enabled: false, model: ""};
+    integrations.ollama ??= {enabled: false, model: "", external: false, external_url: "", api_key: ""};
     integrations.ollama.enabled = nextEnabled;
 
     writeIntegrations(integrations);
@@ -509,9 +521,53 @@ export async function setOllamaIntegrationEnabled(enabled: boolean) {
 export function setOllamaIntegrationModel(model: string) {
     const integrations = readIntegrations();
 
-    integrations.ollama ??= {enabled: false, model: ""};
+    integrations.ollama ??= {enabled: false, model: "", external: false, external_url: "", api_key: ""};
     integrations.ollama.model = String(model ?? "").trim();
 
     writeIntegrations(integrations);
     emitIntegrationsUpdate();
+}
+
+
+export async function setOllamaExternalIntegration(data: {
+    external?: boolean;
+    external_url?: string;
+    api_key?: string;
+    clear_api_key?: boolean;
+}) {
+    const integrations = readIntegrations();
+
+    integrations.ollama ??= {
+        enabled: false,
+        model: "",
+        external: false,
+        external_url: "",
+        api_key: "",
+    };
+
+    const external = Boolean(data.external);
+    const externalUrl = String(data.external_url ?? integrations.ollama.external_url ?? "").trim().replace(/\/+$/, "");
+
+    if (external && !externalUrl) {
+        throw new Error("external_url is required when external ollama is enabled");
+    }
+
+    if (external && !/^https?:\/\//i.test(externalUrl)) {
+        throw new Error("external_url must start with http:// or https://");
+    }
+
+    integrations.ollama.external = external;
+    integrations.ollama.external_url = externalUrl;
+
+    if (data.clear_api_key === true) {
+        integrations.ollama.api_key = "";
+    } else if (data.api_key !== undefined && String(data.api_key).trim()) {
+        integrations.ollama.api_key = String(data.api_key).trim();
+    }
+
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+
+    const {syncOllamaIntegration} = await import("./OllamaHelper");
+    await syncOllamaIntegration(false);
 }
