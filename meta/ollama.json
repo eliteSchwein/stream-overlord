@@ -3,6 +3,11 @@
     "gemma3:270m"
   ],
   "4096": [
+    "gemma3:1b",
     "qwen3:0.6b"
+  ],
+  "8192": [
+    "qwen3:1.7b",
+    "qwen3:4b-instruct"
   ]
 }
