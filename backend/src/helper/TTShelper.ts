@@ -12,8 +12,6 @@ import axios from "axios"
 import * as path from "node:path"
 import getWebsocketServer from "../App"
 
-const escapeRegex = /[\/'"]/
-
 const HF_REPO = "rhasspy/piper-voices"
 const HF_REV = "main"
 const DEFAULT_PIPER_LOCATION = "~/.config/streambot/piper"
@@ -299,8 +297,6 @@ export async function speak(
 
     const piperAttributes = shouldUseCuda() ? "--cuda" : ""
 
-    message = message.replace(escapeRegex, "")
-
     try {
         const sinkName = getStreambotSinkName("tts")
 
@@ -312,9 +308,13 @@ export async function speak(
         // Use only the filename placed in models/
         const modelFile = path.basename(String(config.model))
 
+        // Keep arbitrary user text out of the shell command entirely.
+        // Base64 is shell-safe and preserves quotes, apostrophes, backticks, etc. exactly.
+        const encodedMessage = Buffer.from(String(message), "utf8").toString("base64")
+
         const command = `bash -o pipefail -c "cd ${shellEscape(parsePath(
             getPiperInstallPath()
-        ))} && echo ${shellEscape(message)} | ./piper ${piperAttributes} --model models/${shellEscape(`${modelFile}.onnx`)} --output-raw | ${playCommand}"`
+        ))} && printf '%s' '${encodedMessage}' | base64 -d | ./piper ${piperAttributes} --model models/${shellEscape(`${modelFile}.onnx`)} --output-raw | ${playCommand}"`
 
         logDebug(`TTS Command: ${command}`)
 
