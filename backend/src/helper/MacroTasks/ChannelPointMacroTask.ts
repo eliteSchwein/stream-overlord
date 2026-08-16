@@ -26,8 +26,6 @@ export default class ChannelPointMacroTask extends BaseMacroTask {
             case "cancel": {
                 const event = variables?.eventData ?? variables?.event;
 
-                console.log(event);
-
                 if (!event?.broadcasterId || !event?.rewardId || !event?.id) {
                     logWarn(`channel_point cancel requires broadcasterId, rewardId and redemption id`);
                     return;
@@ -37,7 +35,7 @@ export default class ChannelPointMacroTask extends BaseMacroTask {
                     event.broadcasterId,
                     event.rewardId,
                     [event.id],
-                    "FULFILLED",
+                    "CANCELED",
                 );
 
                 break;
@@ -55,7 +53,7 @@ export default class ChannelPointMacroTask extends BaseMacroTask {
                     event.broadcasterId,
                     event.rewardId,
                     [event.id],
-                    "CANCELED",
+                    "FULFILLED",
                 );
 
                 break;
