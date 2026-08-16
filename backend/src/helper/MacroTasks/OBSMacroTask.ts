@@ -1,6 +1,10 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
 import {getOBSClient} from "../../App";
 import {logRegular, logWarn} from "../LogHelper";
+import {promises as fs} from "fs";
+import os from "os";
+import path from "path";
+import {randomUUID} from "crypto";
 
 function sleep(milliseconds: number) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -80,7 +84,116 @@ export default class OBSMacroTask extends BaseMacroTask {
             return;
         }
 
+        if (method === "GetSourceScreenshot") {
+            await this.getSourceScreenshot(obsClient, obsData, connection, variables);
+            return;
+        }
+
+        if (method === "get_output_screenshot") {
+            await this.getOutputScreenshot(obsClient, obsData, connection, variables);
+            return;
+        }
+
         await obsClient.send(method, obsData, connection);
+    }
+
+    private sanitizeScreenshotData(data: any) {
+        const result = {...data};
+        delete result.resultVariable;
+
+        for (const key of ['imageWidth', 'imageHeight', 'imageCompressionQuality']) {
+            if (result[key] === null || result[key] === undefined || result[key] === '') {
+                delete result[key];
+            }
+        }
+
+        return result;
+    }
+
+    private async getSourceScreenshot(
+        obsClient: any,
+        data: any,
+        connection: string,
+        variables: any,
+    ) {
+        const sourceName = String(data.sourceName ?? '').trim();
+
+        if (!sourceName) {
+            logWarn('obs source screenshot requires sourceName');
+            return;
+        }
+
+        await this.captureScreenshot(obsClient, data, connection, variables);
+    }
+
+    private async getOutputScreenshot(
+        obsClient: any,
+        data: any,
+        connection: string,
+        variables: any,
+    ) {
+        const websocket = obsClient.getOBSWebSocket(connection);
+
+        if (!websocket) {
+            logWarn(`obs ${connection} is currently not connected`);
+            return;
+        }
+
+        logRegular(`obs (${connection}): resolving current program scene for output screenshot`);
+
+        const currentProgramScene = await websocket.call('GetCurrentProgramScene');
+        const sceneName = String(currentProgramScene?.currentProgramSceneName ?? '').trim();
+
+        if (!sceneName) {
+            logWarn(`obs ${connection} did not return a current program scene`);
+            return;
+        }
+
+        await this.captureScreenshot(obsClient, {
+            ...data,
+            sourceName: sceneName,
+        }, connection, variables);
+    }
+
+    private async captureScreenshot(
+        obsClient: any,
+        data: any,
+        connection: string,
+        variables: any,
+    ) {
+        const websocket = obsClient.getOBSWebSocket(connection);
+
+        if (!websocket) {
+            logWarn(`obs ${connection} is currently not connected`);
+            return;
+        }
+
+        const resultVariable = String(data.resultVariable ?? 'screenshot').trim() || 'screenshot';
+        const imageFormat = String(data.imageFormat ?? 'png').trim().toLowerCase() || 'png';
+        const request = this.sanitizeScreenshotData({
+            ...data,
+            imageFormat,
+        });
+
+        const response = await websocket.call('GetSourceScreenshot', request);
+        const imageData = String(response?.imageData ?? '');
+        const match = imageData.match(/^data:image\/[^;]+;base64,(.+)$/s);
+
+        if (!match) {
+            logWarn(`obs ${connection} returned invalid screenshot image data`);
+            return;
+        }
+
+        const extension = imageFormat === 'jpeg' ? 'jpg' : imageFormat;
+        const filePath = path.join(
+            os.tmpdir(),
+            `streambot-obs-screenshot-${randomUUID()}.${extension}`,
+        );
+
+        await fs.writeFile(filePath, Buffer.from(match[1], 'base64'));
+        variables[resultVariable] = filePath;
+
+        logRegular(`obs screenshot saved to ${filePath} -> ${resultVariable}`);
     }
 
     private async transitionSourceFilter(obsClient: any, data: any, connection: string) {
