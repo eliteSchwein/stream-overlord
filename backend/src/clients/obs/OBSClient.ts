@@ -162,7 +162,34 @@ export class OBSClient {
 
         try {
             connection.obsWebsocket = new OBSWebSocket()
-            await connection.obsWebsocket.connect(`ws://${config.ip}:${config.port}`, config.password ?? '')
+
+            await new Promise<void>((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    connection.obsWebsocket
+                        ?.disconnect()
+                        .catch(() => {
+                            // Ignore disconnect errors during timeout cleanup.
+                        })
+
+                    reject(new Error(
+                        `OBS connection timeout after 5 seconds (${name})`
+                    ))
+                }, 5_000)
+
+                connection.obsWebsocket!
+                    .connect(
+                        `ws://${config.ip}:${config.port}`,
+                        config.password ?? '',
+                    )
+                    .then(() => {
+                        clearTimeout(timeout)
+                        resolve()
+                    })
+                    .catch(error => {
+                        clearTimeout(timeout)
+                        reject(error)
+                    })
+            })
         } catch (error) {
             logDebug(`obs connection failed events stage 1 (${name}):`)
             logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
@@ -219,6 +246,7 @@ export class OBSClient {
         connection.obsWebsocket.on('ConnectionClosed', async (error: OBSWebSocketError) => {
             await this.handleOBSError(connection.name, error)
         })
+
         connection.obsWebsocket.on('ConnectionError', async (error: OBSWebSocketError) => {
             await this.handleOBSError(connection.name, error)
         })
@@ -254,12 +282,14 @@ export class OBSClient {
             connection.obsWebsocket.on(event, async () => {
                 if(connection.eventFetching) return
                 connection.eventFetching = true
+
                 try {
                     await this.fetchItems(connection.name)
                 } catch (error) {
                     logDebug(`obs event fetch failed (${connection.name}):`)
                     logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
                 }
+
                 connection.eventFetching = false
             })
         )
@@ -332,7 +362,11 @@ export class OBSClient {
         return this.getConnection(connectionName)?.audioData ?? {}
     }
 
-    public getSceneItemByUuid(uuid: string, connectionName = 'default', canvasUuid?: string) {
+    public getSceneItemByUuid(
+        uuid: string,
+        connectionName = 'default',
+        canvasUuid?: string
+    ) {
         const canvasData = this.getSceneData(connectionName)
 
         for (const canvas of canvasData) {
@@ -375,7 +409,9 @@ export class OBSClient {
                 return canvases
             }
         } catch (error) {
-            logDebug(`GetCanvasList unavailable or failed (${connection.name}), fallback to default canvas:`)
+            logDebug(
+                `GetCanvasList unavailable or failed (${connection.name}), fallback to default canvas:`
+            )
             logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
 
@@ -390,12 +426,18 @@ export class OBSClient {
         if(!connection.obsWebsocket) return []
 
         const requestData = canvasUuid ? {canvasUuid} : {}
-        const {scenes} = await connection.obsWebsocket.call('GetSceneList', requestData)
+        const {scenes} = await connection.obsWebsocket.call(
+            'GetSceneList',
+            requestData
+        )
 
         return scenes ?? []
     }
 
-    private async getCurrentProgramScene(connection: OBSConnection, canvasUuid: string) {
+    private async getCurrentProgramScene(
+        connection: OBSConnection,
+        canvasUuid: string
+    ) {
         if(!connection.obsWebsocket) {
             return {
                 uuid: '',
@@ -405,7 +447,10 @@ export class OBSClient {
 
         try {
             const requestData = canvasUuid ? {canvasUuid} : {}
-            const currentProgramScene = await connection.obsWebsocket.call('GetCurrentProgramScene', requestData)
+            const currentProgramScene = await connection.obsWebsocket.call(
+                'GetCurrentProgramScene',
+                requestData
+            )
 
             return {
                 uuid: String(currentProgramScene.currentProgramSceneUuid ?? ''),
@@ -422,7 +467,11 @@ export class OBSClient {
         }
     }
 
-    private async getSceneItemList(connection: OBSConnection, sceneUuid: string, canvasUuid: string) {
+    private async getSceneItemList(
+        connection: OBSConnection,
+        sceneUuid: string,
+        canvasUuid: string
+    ) {
         if(!connection.obsWebsocket) return []
 
         const requestData: Record<string, string> = {sceneUuid}
@@ -431,19 +480,31 @@ export class OBSClient {
             requestData.canvasUuid = canvasUuid
         }
 
-        const {sceneItems} = await connection.obsWebsocket.call('GetSceneItemList', requestData)
+        const {sceneItems} = await connection.obsWebsocket.call(
+            'GetSceneItemList',
+            requestData
+        )
 
         return sceneItems ?? []
     }
 
-    private async getSourceFilterList(connection: OBSConnection, sourceName: string) {
+    private async getSourceFilterList(
+        connection: OBSConnection,
+        sourceName: string
+    ) {
         if(!connection.obsWebsocket || !sourceName) return []
 
         try {
-            const {filters} = await connection.obsWebsocket.call('GetSourceFilterList', {sourceName})
+            const {filters} = await connection.obsWebsocket.call(
+                'GetSourceFilterList',
+                {sourceName}
+            )
+
             return filters ?? []
         } catch (error) {
-            logDebug(`failed to get obs source filters (${connection.name}/${sourceName}):`)
+            logDebug(
+                `failed to get obs source filters (${connection.name}/${sourceName}):`
+            )
             logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             return []
         }
@@ -486,25 +547,31 @@ export class OBSClient {
 
         const canvasList = await this.getCanvasList(connection)
         const sceneData: any[] = []
-        const filterDefaultSettingsCache = new Map<string, Record<string, any>>()
+        const filterDefaultSettingsCache =
+            new Map<string, Record<string, any>>()
 
         const getCachedFilterDefaultSettings = async (
             filterKind: string,
         ): Promise<Record<string, any>> => {
             if(!filterKind) return {}
 
-            const cachedSettings = filterDefaultSettingsCache.get(filterKind)
+            const cachedSettings =
+                filterDefaultSettingsCache.get(filterKind)
 
             if(cachedSettings) {
                 return cachedSettings
             }
 
-            const defaultSettings = await this.getSourceFilterDefaultSettings(
-                connection,
-                filterKind,
-            )
+            const defaultSettings =
+                await this.getSourceFilterDefaultSettings(
+                    connection,
+                    filterKind,
+                )
 
-            filterDefaultSettingsCache.set(filterKind, defaultSettings)
+            filterDefaultSettingsCache.set(
+                filterKind,
+                defaultSettings
+            )
 
             return defaultSettings
         }
@@ -512,20 +579,42 @@ export class OBSClient {
         for(const canvas of canvasList) {
             const canvasUuid = String(canvas.canvasUuid ?? '')
             const canvasName = String(canvas.canvasName ?? 'Default')
-            const canvasIndex = Number(canvas.canvasIndex ?? sceneData.length)
-            const currentProgramScene = await this.getCurrentProgramScene(connection, canvasUuid)
-            const scenes = await this.getSceneList(connection, canvasUuid)
+            const canvasIndex = Number(
+                canvas.canvasIndex ?? sceneData.length
+            )
+
+            const currentProgramScene =
+                await this.getCurrentProgramScene(
+                    connection,
+                    canvasUuid
+                )
+
+            const scenes =
+                await this.getSceneList(
+                    connection,
+                    canvasUuid
+                )
+
             const scenesData = []
 
             if(fullObsLog) {
-                logCustom(`canvas ${canvasName}[${canvasIndex}][${canvasUuid || 'default'}]:`.magenta)
+                logCustom(
+                    `canvas ${canvasName}[${canvasIndex}][${canvasUuid || 'default'}]:`.magenta
+                )
             }
 
             for(const scene of scenes) {
-                const sceneItems = await this.getSceneItemList(connection, scene.sceneUuid, canvasUuid)
+                const sceneItems =
+                    await this.getSceneItemList(
+                        connection,
+                        scene.sceneUuid,
+                        canvasUuid
+                    )
 
                 if(fullObsLog) {
-                    logCustom(`sources for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan)
+                    logCustom(
+                        `sources for scene ${scene.sceneName}[${scene.sceneIndex}]:`.cyan
+                    )
                 }
 
                 const sceneData = {
@@ -535,25 +624,37 @@ export class OBSClient {
                     canvas: canvasName,
                     canvasUuid,
                     active: Boolean(
-                        (currentProgramScene.uuid && scene.sceneUuid === currentProgramScene.uuid)
-                        || (currentProgramScene.name && scene.sceneName === currentProgramScene.name)
+                        (
+                            currentProgramScene.uuid &&
+                            scene.sceneUuid === currentProgramScene.uuid
+                        ) || (
+                            currentProgramScene.name &&
+                            scene.sceneName === currentProgramScene.name
+                        )
                     ),
                     items: []
                 }
 
                 for(const sceneItem of sceneItems) {
-                    const sourceFilters = await this.getSourceFilterList(
-                        connection,
-                        sceneItem.sourceName,
-                    )
+                    const sourceFilters =
+                        await this.getSourceFilterList(
+                            connection,
+                            sceneItem.sourceName,
+                        )
 
                     const filters = await Promise.all(
                         sourceFilters.map(async (filter: any) => {
-                            const filterKind = String(filter.filterKind ?? '')
+                            const filterKind =
+                                String(filter.filterKind ?? '')
+
                             const defaultSettings =
-                                await getCachedFilterDefaultSettings(filterKind)
+                                await getCachedFilterDefaultSettings(
+                                    filterKind
+                                )
+
                             const currentSettings =
                                 (filter.filterSettings ?? {}) as Record<string, any>
+
                             const settings = {
                                 ...defaultSettings,
                                 ...currentSettings,
@@ -575,7 +676,9 @@ export class OBSClient {
                     )
 
                     if(fullObsLog) {
-                        logCustom(`${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue)
+                        logCustom(
+                            `${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue
+                        )
                     }
 
                     sceneData.items.push({
@@ -607,7 +710,10 @@ export class OBSClient {
         if(connectionName === 'default') {
             // @ts-ignore
             this.sceneData = connection.sceneData
-            getWebsocketServer().send('notify_obs_scene_update', connection.sceneData)
+            getWebsocketServer().send(
+                'notify_obs_scene_update',
+                connection.sceneData
+            )
         }
 
         if(fullObsLog) {
@@ -620,28 +726,59 @@ export class OBSClient {
 
         connection.audioData = {}
 
-        let { inputs } = await connection.obsWebsocket.call("GetInputList")
+        let {inputs} =
+            await connection.obsWebsocket.call("GetInputList")
 
         inputs = inputs
-            .filter(i => (i.inputKindCaps & OBS_SOURCE_AUDIO) !== 0)
+            .filter(i =>
+                (i.inputKindCaps & OBS_SOURCE_AUDIO) !== 0
+            )
 
         for(const input of inputs) {
             try {
-                const volume = await connection.obsWebsocket.call("GetInputVolume", {inputUuid: input.inputUuid})
-                const muted = await connection.obsWebsocket.call("GetInputMute", {inputUuid: input.inputUuid})
-                const {inputAudioBalance} = await connection.obsWebsocket.call("GetInputAudioBalance", {inputUuid: input.inputUuid})
+                const volume =
+                    await connection.obsWebsocket.call(
+                        "GetInputVolume",
+                        {inputUuid: input.inputUuid}
+                    )
+
+                const muted =
+                    await connection.obsWebsocket.call(
+                        "GetInputMute",
+                        {inputUuid: input.inputUuid}
+                    )
+
+                const {inputAudioBalance} =
+                    await connection.obsWebsocket.call(
+                        "GetInputAudioBalance",
+                        {inputUuid: input.inputUuid}
+                    )
 
                 let active = false
 
                 try {
-                    const sourceActive = await connection.obsWebsocket.call("GetSourceActive", {
-                        sourceUuid: input.inputUuid,
-                    })
+                    const sourceActive =
+                        await connection.obsWebsocket.call(
+                            "GetSourceActive",
+                            {
+                                sourceUuid: input.inputUuid,
+                            }
+                        )
 
-                    active = Boolean(sourceActive.videoActive || sourceActive.videoShowing)
+                    active = Boolean(
+                        sourceActive.videoActive ||
+                        sourceActive.videoShowing
+                    )
                 } catch (error) {
-                    logDebug(`failed to get obs source active state (${connectionName}/${input.inputName}):`)
-                    logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                    logDebug(
+                        `failed to get obs source active state (${connectionName}/${input.inputName}):`
+                    )
+                    logDebug(
+                        JSON.stringify(
+                            error,
+                            Object.getOwnPropertyNames(error)
+                        )
+                    )
                 }
 
                 input.volume = volume
@@ -651,18 +788,26 @@ export class OBSClient {
             } catch (error) {
                 continue
             }
+
             connection.audioData[input.inputUuid] = input
         }
 
         if(connectionName === 'default') {
             this.audioData = connection.audioData
-            getWebsocketServer().send('notify_obs_audio_update', connection.audioData)
+
+            getWebsocketServer().send(
+                'notify_obs_audio_update',
+                connection.audioData
+            )
         }
 
-        getWebsocketServer().send('notify_obs_audio_update_named', {
-            connection: connectionName,
-            audio: connection.audioData,
-        })
+        getWebsocketServer().send(
+            'notify_obs_audio_update_named',
+            {
+                connection: connectionName,
+                audio: connection.audioData,
+            }
+        )
 
         if(fullObsLog) {
             logNotice(`end of obs dump (${connectionName})`)
@@ -676,17 +821,28 @@ export class OBSClient {
 
         logRegular(`reload all obs browser sources (${connectionName})`)
 
-        const {inputs} = await connection.obsWebsocket.call('GetInputList', {inputKind: 'browser_source'})
+        const {inputs} =
+            await connection.obsWebsocket.call(
+                'GetInputList',
+                {inputKind: 'browser_source'}
+            )
 
         for (const input of inputs) {
-            await connection.obsWebsocket.call('PressInputPropertiesButton', {
-                inputUuid: input.inputUuid as string,
-                propertyName: 'refreshnocache'
-            })
+            await connection.obsWebsocket.call(
+                'PressInputPropertiesButton',
+                {
+                    inputUuid: input.inputUuid as string,
+                    propertyName: 'refreshnocache'
+                }
+            )
         }
     }
 
-    public updateAudio(inputUuid: string, data:any, connectionName = 'default') {
+    public updateAudio(
+        inputUuid: string,
+        data: any,
+        connectionName = 'default'
+    ) {
         const connection = this.getConnection(connectionName)
 
         if(!connection) return
@@ -695,12 +851,19 @@ export class OBSClient {
 
         if(connectionName === 'default') {
             this.audioData = connection.audioData
-            getWebsocketServer().send('notify_obs_audio_update', connection.audioData)
+
+            getWebsocketServer().send(
+                'notify_obs_audio_update',
+                connection.audioData
+            )
         }
 
-        getWebsocketServer().send('notify_obs_audio_update_named', {
-            connection: connectionName,
-            audio: connection.audioData,
-        })
+        getWebsocketServer().send(
+            'notify_obs_audio_update_named',
+            {
+                connection: connectionName,
+                audio: connection.audioData,
+            }
+        )
     }
 }
