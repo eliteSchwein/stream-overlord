@@ -669,12 +669,33 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
                 if (!asset) {
                     logWarn(`command ${command} asset was not found: ${assetName}`);
                 } else {
-                    addAlert({
-                        ...asset,
+                    const alertVariables = {
+                        ...data,
                         asset: assetName,
-                        variables: data,
-                        "event-uuid": `alert-${command}_${eventUuid}`,
+                        eventUuid,
+                    };
+
+                    addAlert({
+                        asset: assetName,
+                        sound: asset.sound,
+                        duration: asset.duration ?? 15,
+                        color: asset.color,
+                        icon: asset.icon,
+                        message: asset.message ?? "",
+                        "event-uuid": eventUuid,
+                        speak: false,
+                        video: asset.video,
+                        wled: asset.wled,
+                        volume: asset.volume,
+                        image: asset.image,
+                        channel: asset.channel,
+                        start_macros: asset.start_macros ?? [],
+                        idle_macros: asset.idle_macros ?? [],
+                        end_macros: asset.end_macros ?? [],
+                        variables: alertVariables,
                     });
+
+                    logRegular(`command ${command} triggered asset: ${assetName}`);
                 }
             }
 
