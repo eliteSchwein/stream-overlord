@@ -302,13 +302,29 @@ function resolveEditableCommandFile(inputPathOrName: string = "") {
 
 function normalizeCommandConfigForSave(filePath: string, commandConfig: any) {
     const commandName = getCommandNameFromConfig(filePath, commandConfig);
-    const { message, ...cleanCommandConfig } = commandConfig ?? {};
+    const {message, ...cleanCommandConfig} = commandConfig ?? {};
 
-    return {
+    const normalizedConfig: any = {
         ...cleanCommandConfig,
         name: commandName,
-        macro: `command_${commandName}`,
     };
+
+    const macro = normalizeString(cleanCommandConfig?.macro);
+    const asset = normalizeString(cleanCommandConfig?.asset);
+
+    if (macro) {
+        normalizedConfig.macro = macro;
+    } else {
+        delete normalizedConfig.macro;
+    }
+
+    if (asset) {
+        normalizedConfig.asset = asset;
+    } else {
+        delete normalizedConfig.asset;
+    }
+
+    return normalizedConfig;
 }
 
 function stringifyCommandConfigContent(filePath: string, commandConfig: any) {
