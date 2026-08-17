@@ -185,7 +185,7 @@ function sanitizeCommandFileName(name: string) {
     return String(name)
             .trim()
             .replace(/[\\/]+/g, "_")
-            .replace(/[^a-zA-Z0-9_.-]+/g, "_")
+            .replace(/[^\p{L}\p{N}_.-]+/gu, "_")
             .replace(/^\.+/, "")
         || "command";
 }
