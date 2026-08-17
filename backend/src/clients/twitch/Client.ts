@@ -361,6 +361,11 @@ export default class TwitchClient {
             logger: { minLevel: "ERROR" }
         });
 
+        // Register subscriptions before starting the listener.
+        // Twurple queues them while the listener is inactive, then creates the
+        // user socket and subscribes once the EventSub session is ready.
+        await this.registerEvents();
+
         try {
             this.eventSub.start();
         } catch (error) {
@@ -369,8 +374,6 @@ export default class TwitchClient {
                 logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
             }
         }
-
-        await this.registerEvents();
 
         setManagedConnection("twitch", {
             enabled: true,
