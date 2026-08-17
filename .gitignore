@@ -8,3 +8,4 @@ compressed_assets
 !frontend/src/html/silly.html
 .credentials.conf
 .env.*.conf
+credentials.cfg
