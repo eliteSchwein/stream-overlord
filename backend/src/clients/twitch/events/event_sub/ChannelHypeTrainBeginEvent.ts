@@ -19,7 +19,13 @@ export default class ChannelHypeTrainBeginEvent extends BaseEvent {
     }
 
     async handle(event: any) {
-        logRegular(`hype train begin`)
+        const level = Number(event?.level)
+
+        this.twitchClient?.resetHypeTrainLevel(
+            Number.isFinite(level) ? level : undefined
+        )
+
+        logRegular(`hype train begin${Number.isFinite(level) ? ` at level ${level}` : ``}`)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')

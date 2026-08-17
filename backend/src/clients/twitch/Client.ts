@@ -62,6 +62,8 @@ export default class TwitchClient {
 
     protected eventSub?: EventSubWsListener;
 
+    private hypeTrainLevel?: number;
+
     private warnTwitchNetworkError(context: string, error: unknown): boolean {
         const err = error as any;
         const cause = err?.cause;
@@ -463,6 +465,18 @@ export default class TwitchClient {
 
     public getEventSub() {
         return this.eventSub;
+    }
+
+    public getHypeTrainLevel(): number | undefined {
+        return this.hypeTrainLevel;
+    }
+
+    public setHypeTrainLevel(level: number | undefined) {
+        this.hypeTrainLevel = level;
+    }
+
+    public resetHypeTrainLevel(level: number | undefined = undefined) {
+        this.hypeTrainLevel = level;
     }
 
     public async announce(message: string, color: TwitchMessageColor = "primary") {

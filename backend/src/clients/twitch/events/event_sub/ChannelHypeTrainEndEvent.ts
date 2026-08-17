@@ -19,6 +19,8 @@ export default class ChannelHypeTrainEndEvent extends BaseEvent {
     }
 
     async handle(event: any) {
+        this.twitchClient?.resetHypeTrainLevel()
+
         logRegular(`hype train end`)
 
         if(isShieldActive()) {
