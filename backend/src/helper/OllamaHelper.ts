@@ -691,8 +691,11 @@ async function refreshExternalOllamaState() {
         runtimeState.external_models = [];
         runtimeState.running = false;
         runtimeState.error = normalizedError.message;
+
+        logWarn(`external ollama is not reachable: ${normalizedError.message}`);
+
         emitOllamaUpdate();
-        throw normalizedError;
+        return;
     }
 
     emitOllamaUpdate();
