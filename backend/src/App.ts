@@ -17,7 +17,6 @@ import {updateSystemComponents, updateSystemInfo} from "./helper/SystemInfoHelpe
 import {updateSourceFilters} from "./helper/SourceHelper";
 import {initGpio, killGpio} from "./helper/SystemHelper";
 import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
-import {compressAssets} from "./helper/AssetTuneHelper";
 import {initAutoMacros} from "./helper/AutoMacroHelper";
 import * as apiModules from "./api";
 import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
@@ -155,9 +154,6 @@ async function init() {
     await downloadVoice()
     await fetchVoices()
 
-    stage = 'compressing assets...'
-    await compressAssets()
-
     stage = 'update obs filters...'
     await updateSourceFilters()
 
@@ -246,8 +242,6 @@ export async function reload() {
         await downloadVoice()
 
         readAssetFolder()
-
-        await compressAssets()
 
         initAutoMacros()
 
