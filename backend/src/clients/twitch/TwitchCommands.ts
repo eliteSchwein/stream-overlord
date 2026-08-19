@@ -45,6 +45,24 @@ type CommandConfigFileEntry = {
 const COMMAND_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
 
 let fileCommands: Record<string, any> = {};
+let commandRuntimeOverrides: Record<string, any> = {};
+
+const COMMAND_RUNTIME_SETTINGS = new Set([
+    "userCooldown",
+    "globalCooldown",
+    "single_use",
+    "user_list_mode",
+    "users",
+    "requiresBroadcaster",
+    "requiresMod",
+    "requiresVip",
+]);
+
+const COMMAND_REGISTRATION_SETTINGS = new Set([
+    "aliases",
+    "userCooldown",
+    "globalCooldown",
+]);
 
 function notifyCommandsUpdate() {
     try {
@@ -249,6 +267,7 @@ function loadCommandsFromFiles() {
         }
     }
 
+    commandRuntimeOverrides = {};
     resetCommandRuntimeStates(fileCommands);
     logRegular(`loaded command configs total: ${Object.keys(fileCommands).length}`);
 }
@@ -373,6 +392,252 @@ function stringifyCommandConfigContent(filePath: string, commandConfig: any) {
     });
 }
 
+function getEffectiveCommandConfig(name: string) {
+    const command = fileCommands[name];
+
+    if (!command) {
+        return undefined;
+    }
+
+    return {
+        ...command,
+        ...(commandRuntimeOverrides[name] ?? {}),
+    };
+}
+
+function normalizeRuntimeCommandSetting(setting: string, value: any) {
+    switch (setting) {
+        case "users":
+            return normalizeRuntimeArray(value)
+                .map(entry => String(entry ?? "").trim())
+                .filter(Boolean);
+
+        case "userCooldown":
+        case "globalCooldown": {
+            if (value === "" || value === null || value === undefined) {
+                return undefined;
+            }
+
+            const numberValue = Number(value);
+
+            if (!Number.isFinite(numberValue) || numberValue < 0) {
+                throw new Error(`${setting} must be a positive number`);
+            }
+
+            return numberValue;
+        }
+
+        case "single_use":
+            return normalizeSingleUse(value);
+
+        case "user_list_mode":
+            return normalizeUserListMode(value);
+
+        case "requiresBroadcaster":
+        case "requiresMod":
+        case "requiresVip":
+            return normalizeBoolean(value);
+
+        default:
+            throw new Error(`unsupported command runtime setting: ${setting}`);
+    }
+}
+
+function normalizeRuntimeArray(value: any): any[] {
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    if (value === undefined || value === null || value === "") {
+        return [];
+    }
+
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+            return [];
+        }
+
+        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) return parsed;
+            } catch {
+                // Fall through to comma/newline parsing.
+            }
+        }
+
+        return trimmed
+            .split(/[,\n]/)
+            .map(entry => entry.trim())
+            .filter(Boolean);
+    }
+
+    return [value];
+}
+
+function normalizeBoolean(value: any): boolean {
+    if (typeof value === "boolean") {
+        return value;
+    }
+
+    const normalized = String(value ?? "").trim().toLowerCase();
+
+    if (["true", "1", "yes", "on", "enable", "enabled"].includes(normalized)) {
+        return true;
+    }
+
+    if (["false", "0", "no", "off", "disable", "disabled"].includes(normalized)) {
+        return false;
+    }
+
+    return Boolean(value);
+}
+
+export async function setConfiguredCommandRuntimeSettings(
+    name: string,
+    settings: Record<string, any>,
+) {
+    const commandName = String(name ?? "").trim().replace(/^!+/, "");
+
+    if (!commandName) {
+        throw new Error("command name is required");
+    }
+
+    if (!fileCommands[commandName]) {
+        throw new Error(`command not found: ${commandName}`);
+    }
+
+    const entries = Object.entries(settings ?? {});
+
+    if (entries.length === 0) {
+        return getConfiguredCommands()[commandName];
+    }
+
+    const normalizedSettings: Record<string, any> = {};
+    let needsReload = false;
+
+    for (const [setting, value] of entries) {
+        if (!COMMAND_RUNTIME_SETTINGS.has(setting)) {
+            throw new Error(`unsupported command runtime setting: ${setting}`);
+        }
+
+        normalizedSettings[setting] = normalizeRuntimeCommandSetting(setting, value);
+
+        if (COMMAND_REGISTRATION_SETTINGS.has(setting)) {
+            needsReload = true;
+        }
+    }
+
+    commandRuntimeOverrides[commandName] = {
+        ...(commandRuntimeOverrides[commandName] ?? {}),
+        ...normalizedSettings,
+    };
+
+    logRegular(
+        `command ${commandName} temporary settings = ${JSON.stringify(normalizedSettings)}`
+    );
+
+    notifyCommandsUpdate();
+
+    if (needsReload) {
+        await reloadTwitchCommandsAfterChange(
+            `changing temporary command settings for ${commandName}`,
+        );
+    }
+
+    return {
+        ...getConfiguredCommands()[commandName],
+        runtime_settings: commandRuntimeOverrides[commandName] ?? {},
+    };
+}
+
+export async function setConfiguredCommandRuntimeSetting(
+    name: string,
+    setting: string,
+    value: any,
+) {
+    return setConfiguredCommandRuntimeSettings(name, {
+        [String(setting ?? "").trim()]: value,
+    });
+}
+
+export async function resetConfiguredCommandRuntimeSetting(
+    name: string,
+    setting?: string,
+) {
+    const commandName = String(name ?? "").trim().replace(/^!+/, "");
+    const normalizedSetting = String(setting ?? "").trim();
+
+    if (!commandName) {
+        throw new Error("command name is required");
+    }
+
+    const commandConfig = fileCommands[commandName];
+
+    if (!commandConfig) {
+        throw new Error(`command not found: ${commandName}`);
+    }
+
+    if (!normalizedSetting) {
+        const previousOverrides = commandRuntimeOverrides[commandName] ?? {};
+        const needsReload = Object.keys(previousOverrides)
+            .some(key => COMMAND_REGISTRATION_SETTINGS.has(key));
+
+        delete commandRuntimeOverrides[commandName];
+        setCommandRuntimeEnabled(commandName, commandConfig.enabled !== false);
+
+        logRegular(`command ${commandName} temporary settings reset`);
+        notifyCommandsUpdate();
+
+        if (needsReload) {
+            await reloadTwitchCommandsAfterChange(
+                `resetting temporary command settings for ${commandName}`,
+            );
+        }
+
+        return getConfiguredCommands()[commandName];
+    }
+
+    if (normalizedSetting === "enabled") {
+        setCommandRuntimeEnabled(commandName, commandConfig.enabled !== false);
+        logRegular(`command ${commandName} temporary enabled state reset`);
+        notifyCommandsUpdate();
+        return getConfiguredCommands()[commandName];
+    }
+
+    if (!COMMAND_RUNTIME_SETTINGS.has(normalizedSetting)) {
+        throw new Error(`unsupported command runtime setting: ${normalizedSetting}`);
+    }
+
+    const hadOverride = Object.prototype.hasOwnProperty.call(
+        commandRuntimeOverrides[commandName] ?? {},
+        normalizedSetting,
+    );
+
+    if (commandRuntimeOverrides[commandName]) {
+        delete commandRuntimeOverrides[commandName][normalizedSetting];
+
+        if (Object.keys(commandRuntimeOverrides[commandName]).length === 0) {
+            delete commandRuntimeOverrides[commandName];
+        }
+    }
+
+    if (hadOverride) {
+        logRegular(`command ${commandName} temporary setting ${normalizedSetting} reset`);
+        notifyCommandsUpdate();
+
+        if (COMMAND_REGISTRATION_SETTINGS.has(normalizedSetting)) {
+            await reloadTwitchCommandsAfterChange(
+                `resetting temporary command setting ${normalizedSetting} for ${commandName}`,
+            );
+        }
+    }
+
+    return getConfiguredCommands()[commandName];
+}
+
 export function setConfiguredCommandRuntimeEnabled(
     name: string,
     enabled: boolean,
@@ -433,6 +698,9 @@ export function getConfiguredCommands() {
                     name,
                     command?.enabled !== false,
                 ),
+                runtime_settings: {
+                    ...(commandRuntimeOverrides[name] ?? {}),
+                },
             },
         ]),
     );
@@ -645,14 +913,16 @@ export async function addCommandFilesFromUpload(files: CommandUploadFile[] = [],
 }
 
 function buildConfigCommands(commands: any[], bot: Bot, twitchClient: TwitchClient) {
-    loadCommandsFromFiles();
+    if (Object.keys(fileCommands).length === 0) {
+        loadCommandsFromFiles();
+    }
 
     const commandNames = Object.keys(fileCommands);
 
     logRegular(`register configured commands: ${commandNames.length}`);
 
     for (const command of commandNames) {
-        const config = fileCommands[command];
+        const config = getEffectiveCommandConfig(command) ?? fileCommands[command];
 
         logRegular(
             `register command file: ${command} ` +
@@ -667,37 +937,42 @@ function buildConfigCommands(commands: any[], bot: Bot, twitchClient: TwitchClie
 }
 
 function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient: TwitchClient) {
-    const aliases = normalizeArray(option.alias ?? option.aliases ?? []);
-    const paramConfig = normalizeArray(option.params ?? []) as ConfigParam[];
-    const macro = normalizeString(option.macro);
-    const assetName = normalizeString(option.asset);
+    const registrationOption = getEffectiveCommandConfig(command) ?? option;
+    const aliases = normalizeArray(registrationOption.alias ?? registrationOption.aliases ?? []);
 
-    const singleUse = normalizeSingleUse(option.single_use ?? option.singleUse);
-    const userListMode = normalizeUserListMode(option.user_list_mode ?? option.userListMode);
-    const userList = new Set(
-        normalizeArray(option.users ?? option.user_list ?? option.userList ?? [])
-            .map(value => normalizeUserName(value))
-            .filter(Boolean),
-    );
+    const commandOptions: any = {
+        aliases,
+        userCooldown: registrationOption.userCooldown,
+        globalCooldown: registrationOption.globalCooldown,
+    };
 
     let globallyUsed = false;
     const usedByUsers = new Set<string>();
 
-    const commandOptions: any = {
-        aliases,
-        userCooldown: option.userCooldown,
-        globalCooldown: option.globalCooldown,
-    };
-
     return createBotCommand(command, async (rawParam: string[], context: BotCommandContext) => {
         try {
-            if (!getCommandRuntimeEnabled(command, option.enabled !== false)) {
+            const currentOption = getEffectiveCommandConfig(command) ?? option;
+
+            if (!getCommandRuntimeEnabled(command, currentOption.enabled !== false)) {
                 return;
             }
 
+            const paramConfig = normalizeArray(currentOption.params ?? []) as ConfigParam[];
+            const macro = normalizeString(currentOption.macro);
+            const assetName = normalizeString(currentOption.asset);
+            const singleUse = normalizeSingleUse(currentOption.single_use ?? currentOption.singleUse);
+            const userListMode = normalizeUserListMode(
+                currentOption.user_list_mode ?? currentOption.userListMode
+            );
+            const userList = new Set(
+                normalizeArray(currentOption.users ?? currentOption.user_list ?? currentOption.userList ?? [])
+                    .map(value => normalizeUserName(value))
+                    .filter(Boolean),
+            );
+
             logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${command} ${rawParam.join(" ")}`);
 
-            if (option.enforceSame || option.enforce_primary) {
+            if (currentOption.enforceSame || currentOption.enforce_primary) {
                 const primaryChannel = getPrimaryChannel();
 
                 if (context.broadcasterId !== primaryChannel.id) {
@@ -726,13 +1001,13 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
                 return;
             }
 
-            if (option.requiresBroadcaster && context.broadcasterId !== context.userId) {
+            if (currentOption.requiresBroadcaster && context.broadcasterId !== context.userId) {
                 await replyPermissionError(context);
                 return;
             }
 
             if (
-                option.requiresMod &&
+                currentOption.requiresMod &&
                 !hasModerator(context.broadcasterName, context.userId) &&
                 context.broadcasterId !== context.userId
             ) {
@@ -741,7 +1016,7 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
             }
 
             if (
-                option.requiresVip &&
+                currentOption.requiresVip &&
                 !hasVip(context.broadcasterName, context.userId) &&
                 context.broadcasterId !== context.userId
             ) {
