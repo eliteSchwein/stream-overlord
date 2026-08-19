@@ -27,6 +27,7 @@ import {getIntegrationsSafe} from "../../helper/IntegrationsHelper";
 import {getUpdateManagerStatus} from "../../helper/UpdateHelper";
 import {getOllamaUpdate} from "../../helper/OllamaHelper";
 import {getConfiguredEventIndex} from "../../helper/EventHelper";
+import {getDynamicData} from "../../helper/DynamicDataHelper";
 
 
 export default class WebsocketServer {
@@ -84,6 +85,7 @@ export default class WebsocketServer {
         'notify_update_manager',
         'notify_ollama_update',
         'notify_events_update',
+        'notify_dynamic_data_update',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -237,6 +239,7 @@ export default class WebsocketServer {
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
                 this.send("notify_rotating_scene_update", {rotatingScenes: getRotateScenes()}, client)
                 this.send("notify_events_update", {events: getConfiguredEventIndex()}, client)
+                this.send("notify_dynamic_data_update", {dynamic_data: getDynamicData()}, client)
                 // this.send("notify_variables_update", getTemplateVariables(), client)
                 this.send("notify_giveaway_update", getGiveaway(), client)
                 this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)

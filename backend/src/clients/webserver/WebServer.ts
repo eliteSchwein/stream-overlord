@@ -1,4 +1,4 @@
-import {getConfig, getLanguage, getSystemConfigDirectory} from "../../helper/ConfigHelper";
+import {getConfig, getSystemConfigDirectory} from "../../helper/ConfigHelper";
 import cors from "cors";
 import {logDebug, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import express, {Express, NextFunction, Request, Response} from "express";
@@ -15,6 +15,7 @@ import {getRemoteCacheDirectory} from "../../helper/RemoteCacheHelper";
 import AssetsUploadApi from "./api/Assets/AssetsUploadApi";
 import OverlaysUploadApi from "./api/Overlay/OverlaysUploadApi";
 import {setOverlayCacheRebuildHandler} from "../../helper/OverlayManagementHelper";
+import {initDynamicData, refreshDynamicData} from "../../helper/DynamicDataHelper";
 import MacrosUploadApi from "./api/Macros/MacrosUploadApi";
 import ChannelPointsUploadApi from "./api/ChannelPoints/ChannelPointsUploadApi";
 import CommandsUploadApi from "./api/Command/CommandsUploadApi";
@@ -70,9 +71,17 @@ export default class WebServer {
 
         const htmlRoot = this.getHtmlRoot();
 
-        setOverlayCacheRebuildHandler(() => this.precacheConfiguredHtmlTemplates());
+        setOverlayCacheRebuildHandler(async () => {
+            await Promise.all([
+                this.precacheConfiguredHtmlTemplates(),
+                refreshDynamicData(htmlRoot),
+            ]);
+        });
 
-        await this.precacheConfiguredHtmlTemplates();
+        await Promise.all([
+            this.precacheConfiguredHtmlTemplates(),
+            initDynamicData(htmlRoot),
+        ]);
 
         // custom HTML serving with template expansion + transparent background injection
         this.app.use(this.transparentHtmlStatic(htmlRoot));
@@ -132,10 +141,7 @@ export default class WebServer {
         });
 
         this.app.get("/config.json", (req, res) => {
-            res.json({
-                ...getConfig(),
-                language: getLanguage(),
-            });
+            res.json(getConfig());
         });
 
         this.app.get("/api/auth/twitch", async (req: Request, res: Response) => {
