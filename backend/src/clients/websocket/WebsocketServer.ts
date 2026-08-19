@@ -15,6 +15,7 @@ import {getVoices} from "../../helper/TTShelper";
 import {getMacros} from "../../helper/MacroHelper";
 import {getConfiguredCommands} from "../../clients/twitch/TwitchCommands";
 import {getAutoMacros} from "../../helper/AutoMacroHelper";
+import {getRotateScenes} from "../../helper/RotateSceneHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
 import BaseApi from "../../abstracts/BaseApi";
 import {getParsedAssetFiles} from "../../helper/AssetHelper";
@@ -60,6 +61,8 @@ export default class WebsocketServer {
         'notify_macro_update',
         'notify_commands_update',
         'notify_auto_macros_update',
+        'notify_rotating_scene_update',
+        'notify_rotating_scene_runtime_update',
         'notify_variables_update',
         'notify_giveaway_update',
         'notify_yolobox_update',
@@ -229,6 +232,7 @@ export default class WebsocketServer {
                 this.send("notify_macro_update", {macros: getMacros()}, client)
                 this.send("notify_commands_update", {commands: getConfiguredCommands()}, client)
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
+                this.send("notify_rotating_scene_update", {rotatingScenes: getRotateScenes()}, client)
                 // this.send("notify_variables_update", getTemplateVariables(), client)
                 this.send("notify_giveaway_update", getGiveaway(), client)
                 this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)

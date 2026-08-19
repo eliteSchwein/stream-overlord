@@ -244,13 +244,18 @@ function loadRotateScenesFromFiles() {
     }
 }
 
+export function notifyRotatingScenesUpdate() {
+    getWebsocketServer().send("notify_rotating_scene_update", {
+        rotatingScenes,
+    });
+}
+
 export default function loadRotateScenes() {
     logRegular("load rotating scenes");
     rotatingScenes = {};
 
     loadRotateScenesFromFiles();
-
-    getWebsocketServer().send("notify_rotating_scene_update", {rotatingScenes});
+    notifyRotatingScenesUpdate();
 }
 
 export function getRotateScenes() {
