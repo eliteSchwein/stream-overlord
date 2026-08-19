@@ -65,6 +65,7 @@ export default class TwitchClient {
     private controlAuthProvider?: any;
     private twitchConfig?: any;
     private hypeTrainLevel?: number;
+    private connectGeneration = 0;
 
     private warnTwitchNetworkError(context: string, error: unknown): boolean {
         const err = error as any;
@@ -278,6 +279,8 @@ export default class TwitchClient {
     }
 
     public async connect() {
+        const generation = ++this.connectGeneration;
+
         if (this.bot?.chat) {
             logRegular("disconnect twitch");
             this.bot.chat.quit();
@@ -342,36 +345,60 @@ export default class TwitchClient {
             commands
         });
 
-        await this.loadStoredAuthUserId(this.auth, "control");
+        const bot = this.bot;
 
-        await this.tryMessageAuth(config);
+        // Chat is deliberately non-blocking. API/EventSub setup can complete
+        // independently and the managed connection state is updated later.
+        const chatConnectionPromise = this.waitForControlChatConnection();
 
-        const chatConnected = await this.waitForControlChatConnection();
+        void chatConnectionPromise.then(chatConnected => {
+            if (generation !== this.connectGeneration || this.bot !== bot) {
+                return;
+            }
 
-        if (!chatConnected) {
-            logWarn("twitch chat connection timed out after 30000 ms - continuing with API/EventSub setup");
+            if (chatConnected) {
+                setManagedConnection("twitch", {
+                    enabled: true,
+                    state: "connected",
+                    connected: true,
+                    message: "connected"
+                });
+                logSuccess("twitch chat connected");
+                return;
+            }
+
+            logWarn("twitch chat connection timed out after 30000 ms");
             setManagedConnection("twitch", {
                 enabled: true,
                 state: "chat_timeout",
                 connected: false,
-                message: "Twitch auth is ready, but chat did not connect yet"
+                message: "Twitch API/EventSub is ready, but chat did not connect yet"
             });
-        }
+        });
 
-        await loadPrimaryChannel(this);
-        await updateTwitchData(this.bot);
+        // These do not depend on Twitch chat and can happen concurrently.
+        const controlAuthUserPromise = this.loadStoredAuthUserId(this.auth, "control");
+        const messageAuthPromise = this.tryMessageAuth(config);
+        const primaryChannelPromise = loadPrimaryChannel(this);
+
+        // Event registration needs getPrimaryChannel(), so only that lookup
+        // must complete before EventSub registration begins.
+        await primaryChannelPromise;
 
         logRegular("connect eventsub");
 
         this.eventSub = new EventSubWsListener({
-            apiClient: this.bot.api,
+            apiClient: bot.api,
             logger: { minLevel: "ERROR" }
         });
 
-        // Register subscriptions before starting the listener.
-        // Twurple queues them while the listener is inactive, then creates the
-        // user socket and subscribes once the EventSub session is ready.
-        await this.registerEvents();
+        // Twitch data loading and EventSub registration are independent after
+        // the primary channel is known.
+        await Promise.all([
+            controlAuthUserPromise,
+            updateTwitchData(bot),
+            this.registerEvents(),
+        ]);
 
         try {
             this.eventSub.start();
@@ -382,19 +409,27 @@ export default class TwitchClient {
             }
         }
 
-        setManagedConnection("twitch", {
-            enabled: true,
-            state: chatConnected ? "connected" : "chat_timeout",
-            connected: chatConnected,
-            message: chatConnected
-                ? "connected"
-                : "Twitch API/EventSub is ready, but chat did not connect yet"
+        // Message auth is optional and must not hold the main Twitch startup
+        // hostage. It continues in parallel if it is still initializing.
+        void messageAuthPromise.catch(error => {
+            if (!this.warnTwitchNetworkError("twitch message auth initialization failed", error)) {
+                logWarn("twitch message auth initialization failed");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
         });
 
-        logSuccess(chatConnected
-            ? "twitch client is ready"
-            : "twitch api/eventsub is ready, but chat did not connect yet"
-        );
+        if (generation !== this.connectGeneration || this.bot !== bot) {
+            return;
+        }
+
+        setManagedConnection("twitch", {
+            enabled: true,
+            state: "api_ready",
+            connected: false,
+            message: "Twitch API/EventSub is ready, waiting for chat"
+        });
+
+        logSuccess("twitch api/eventsub is ready");
     }
 
     private registerBotEvents(bot: Bot) {
@@ -415,23 +450,33 @@ export default class TwitchClient {
 
         this.registerBotEvents(bot);
 
-        await this.safeRegister("follow event", () => new FollowEvent(eventSub, bot).register());
-        await this.safeRegister("channel update event", () => new ChannelUpdateEvent(eventSub, bot).register());
-        await this.safeRegister("user update event", () => new UserUpdateEvent(eventSub, bot).register());
-        await this.safeRegister("stream online event", () => new StreamOnlineEvent(eventSub, bot).register());
-        await this.safeRegister("stream offline event", () => new StreamOfflineEvent(eventSub, bot).register());
-        await this.safeRegister("shield event", () => new ShieldEvent(eventSub, bot).register());
-        await this.safeRegister("message delete event", () => new MessageDeleteEvent(eventSub, bot).register());
-        await this.safeRegister("channel ban event", () => new ChannelBanEvent(eventSub, bot).register());
-        await this.safeRegister("channel unban event", () => new ChannelUnbanEvent(eventSub, bot).register());
-        await this.safeRegister("channel moderator add event", () => new ChannelModeratorAddEvent(eventSub, bot).register());
-        await this.safeRegister("channel moderator remove event", () => new ChannelModeratorRemoveEvent(eventSub, bot).register());
-        await this.safeRegister("channel vip add event", () => new ChannelVipAddEvent(eventSub, bot).register());
-        await this.safeRegister("channel vip remove event", () => new ChannelVipRemoveEvent(eventSub, bot).register());
-        await this.safeRegister("shared chat session event", () => new ChannelSharedChatSession(eventSub, bot).register());
-        await this.safeRegister("shared chat session end event", () => new ChannelSharedChatSessionEnd(eventSub, bot).register());
+        const affiliateOrPartnerPromise = this.isAffiliateOrPartner();
 
-        const affiliateOrPartner = await this.isAffiliateOrPartner();
+        const regularEventRegistrations = [
+            ["follow event", () => new FollowEvent(eventSub, bot).register()],
+            ["channel update event", () => new ChannelUpdateEvent(eventSub, bot).register()],
+            ["user update event", () => new UserUpdateEvent(eventSub, bot).register()],
+            ["stream online event", () => new StreamOnlineEvent(eventSub, bot).register()],
+            ["stream offline event", () => new StreamOfflineEvent(eventSub, bot).register()],
+            ["shield event", () => new ShieldEvent(eventSub, bot).register()],
+            ["message delete event", () => new MessageDeleteEvent(eventSub, bot).register()],
+            ["channel ban event", () => new ChannelBanEvent(eventSub, bot).register()],
+            ["channel unban event", () => new ChannelUnbanEvent(eventSub, bot).register()],
+            ["channel moderator add event", () => new ChannelModeratorAddEvent(eventSub, bot).register()],
+            ["channel moderator remove event", () => new ChannelModeratorRemoveEvent(eventSub, bot).register()],
+            ["channel vip add event", () => new ChannelVipAddEvent(eventSub, bot).register()],
+            ["channel vip remove event", () => new ChannelVipRemoveEvent(eventSub, bot).register()],
+            ["shared chat session event", () => new ChannelSharedChatSession(eventSub, bot).register()],
+            ["shared chat session end event", () => new ChannelSharedChatSessionEnd(eventSub, bot).register()],
+        ] as const;
+
+        await Promise.all(
+            regularEventRegistrations.map(([name, register]) =>
+                this.safeRegister(name, register)
+            )
+        );
+
+        const affiliateOrPartner = await affiliateOrPartnerPromise;
 
         if (!affiliateOrPartner) {
             logWarn("primary channel is not affiliate/partner - skipping monetization-related Twitch features");
@@ -439,24 +484,32 @@ export default class TwitchClient {
             return;
         }
 
-        await this.safeRegister("channel ad break begin event", () => new ChannelAdBreakBeginEvent(eventSub, bot).register());
-        await this.safeRegister("channel points event", () => new ChannelPointsEvent(eventSub, bot).register());
-        await this.safeRegister("channel point edit event", () => new ChannelPointEditEvent(eventSub, bot).register());
-        await this.safeRegister("bits event", () => new CheerEvent(eventSub, bot).register());
-        await this.safeRegister("poll prediction event", () => new PollPredictionEvent(eventSub, bot).register());
-        await this.safeRegister("poll progress event", () => new PollProgressEvent(eventSub, bot).register());
-        await this.safeRegister("prediction lock event", () => new PredictionLockEvent(eventSub, bot).register());
-        await this.safeRegister("prediction progress event", () => new PredictionProgressEvent(eventSub, bot).register());
-        await this.safeRegister("channel hype train begin event", () => new ChannelHypeTrainBeginEvent(eventSub, bot).register());
-        await this.safeRegister("channel hype train progress event", () => new ChannelHypeTrainProgressEvent(eventSub, bot).register());
-        await this.safeRegister("channel hype train end event", () => new ChannelHypeTrainEndEvent(eventSub, bot).register());
-        await this.safeRegister("channel goal begin event", () => new ChannelGoalBeginEvent(eventSub, bot).register());
-        await this.safeRegister("channel goal progress event", () => new ChannelGoalProgressEvent(eventSub, bot).register());
-        await this.safeRegister("channel goal end event", () => new ChannelGoalEndEvent(eventSub, bot).register());
-        await this.safeRegister("channel charity campaign start event", () => new ChannelCharityCampaignStartEvent(eventSub, bot).register());
-        await this.safeRegister("channel charity campaign progress event", () => new ChannelCharityCampaignProgressEvent(eventSub, bot).register());
-        await this.safeRegister("channel charity campaign stop event", () => new ChannelCharityCampaignStopEvent(eventSub, bot).register());
-        await this.safeRegister("channel charity donation event", () => new ChannelCharityDonationEvent(eventSub, bot).register());
+        const monetizationEventRegistrations = [
+            ["channel ad break begin event", () => new ChannelAdBreakBeginEvent(eventSub, bot).register()],
+            ["channel points event", () => new ChannelPointsEvent(eventSub, bot).register()],
+            ["channel point edit event", () => new ChannelPointEditEvent(eventSub, bot).register()],
+            ["bits event", () => new CheerEvent(eventSub, bot).register()],
+            ["poll prediction event", () => new PollPredictionEvent(eventSub, bot).register()],
+            ["poll progress event", () => new PollProgressEvent(eventSub, bot).register()],
+            ["prediction lock event", () => new PredictionLockEvent(eventSub, bot).register()],
+            ["prediction progress event", () => new PredictionProgressEvent(eventSub, bot).register()],
+            ["channel hype train begin event", () => new ChannelHypeTrainBeginEvent(eventSub, bot).register()],
+            ["channel hype train progress event", () => new ChannelHypeTrainProgressEvent(eventSub, bot).register()],
+            ["channel hype train end event", () => new ChannelHypeTrainEndEvent(eventSub, bot).register()],
+            ["channel goal begin event", () => new ChannelGoalBeginEvent(eventSub, bot).register()],
+            ["channel goal progress event", () => new ChannelGoalProgressEvent(eventSub, bot).register()],
+            ["channel goal end event", () => new ChannelGoalEndEvent(eventSub, bot).register()],
+            ["channel charity campaign start event", () => new ChannelCharityCampaignStartEvent(eventSub, bot).register()],
+            ["channel charity campaign progress event", () => new ChannelCharityCampaignProgressEvent(eventSub, bot).register()],
+            ["channel charity campaign stop event", () => new ChannelCharityCampaignStopEvent(eventSub, bot).register()],
+            ["channel charity donation event", () => new ChannelCharityDonationEvent(eventSub, bot).register()],
+        ] as const;
+
+        await Promise.all(
+            monetizationEventRegistrations.map(([name, register]) =>
+                this.safeRegister(name, register)
+            )
+        );
     }
 
     public async reloadCommands() {
