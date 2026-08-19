@@ -488,6 +488,78 @@ export class OBSClient {
         return sceneItems ?? []
     }
 
+    private async getGroupList(
+        connection: OBSConnection,
+        canvasUuid: string
+    ): Promise<string[]> {
+        if(!connection.obsWebsocket) return []
+
+        try {
+            const requestData: Record<string, string> = {}
+
+            if(canvasUuid) {
+                requestData.canvasUuid = canvasUuid
+            }
+
+            const response: any = await connection.obsWebsocket.call(
+                'GetGroupList',
+                requestData
+            )
+
+            const groups = Array.isArray(response?.groups)
+                ? response.groups
+                : []
+
+            return groups
+                .map((group: any) => {
+                    if(typeof group === 'string') return group
+
+                    return String(
+                        group?.groupName
+                        ?? group?.sceneName
+                        ?? group?.name
+                        ?? ''
+                    )
+                })
+                .filter(Boolean)
+        } catch(error) {
+            logDebug(`failed to get obs group list (${connection.name})`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            return []
+        }
+    }
+
+    private async getGroupSceneItemList(
+        connection: OBSConnection,
+        groupName: string,
+        canvasUuid: string
+    ) {
+        if(!connection.obsWebsocket || !groupName) return []
+
+        try {
+            const requestData: Record<string, string> = {
+                sceneName: groupName,
+            }
+
+            if(canvasUuid) {
+                requestData.canvasUuid = canvasUuid
+            }
+
+            const response: any = await connection.obsWebsocket.call(
+                'GetGroupSceneItemList',
+                requestData
+            )
+
+            return response?.sceneItems ?? []
+        } catch(error) {
+            logDebug(
+                `failed to get obs group items (${connection.name}/${groupName})`
+            )
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            return []
+        }
+    }
+
     private async getSourceFilterList(
         connection: OBSConnection,
         sourceName: string
@@ -595,6 +667,13 @@ export class OBSClient {
                     canvasUuid
                 )
 
+            const groupNames = new Set(
+                await this.getGroupList(
+                    connection,
+                    canvasUuid
+                )
+            )
+
             const scenesData = []
 
             if(fullObsLog) {
@@ -635,7 +714,12 @@ export class OBSClient {
                     items: []
                 }
 
-                for(const sceneItem of sceneItems) {
+                const buildSceneItem = async (
+                    sceneItem: any,
+                    parentSceneName: string,
+                    parentSceneUuid: string,
+                    depth: number = 0,
+                ): Promise<any> => {
                     const sourceFilters =
                         await this.getSourceFilterList(
                             connection,
@@ -675,20 +759,73 @@ export class OBSClient {
                         }),
                     )
 
-                    if(fullObsLog) {
-                        logCustom(
-                            `${sceneItem.sourceName}[${sceneItem.sceneItemId}][${sceneItem.sourceUuid}]`.blue
+                    const sourceName = String(sceneItem.sourceName ?? '')
+                    const sourceUuid = String(sceneItem.sourceUuid ?? '')
+                    const isGroup = groupNames.has(sourceName)
+
+                    let children: any[] = []
+
+                    if(isGroup) {
+                        const childItems =
+                            await this.getGroupSceneItemList(
+                                connection,
+                                sourceName,
+                                canvasUuid,
+                            )
+
+                        children = await Promise.all(
+                            childItems.map((childItem: any) =>
+                                buildSceneItem(
+                                    childItem,
+                                    sourceName,
+                                    sourceUuid,
+                                    depth + 1,
+                                )
+                            )
                         )
                     }
 
-                    sceneData.items.push({
+                    if(fullObsLog) {
+                        logCustom(
+                            `${sourceName}[${sceneItem.sceneItemId}][${sourceUuid}]`.blue
+                        )
+                    }
+
+                    const enabled = sceneItem.sceneItemEnabled !== false
+
+                    return {
                         id: sceneItem.sceneItemId,
-                        uuid: sceneItem.sourceUuid,
-                        name: sceneItem.sourceName,
+                        sceneItemId: sceneItem.sceneItemId,
+                        uuid: sourceUuid,
+                        sourceUuid,
+                        name: sourceName,
+                        sourceName,
+                        sourceType: sceneItem.sourceType,
+                        inputKind: sceneItem.inputKind,
                         transform: sceneItem.sceneItemTransform,
+                        sceneItemEnabled: enabled,
+                        enabled,
+                        sceneItemLocked: sceneItem.sceneItemLocked,
+                        isGroup,
+                        children,
+                        depth,
+                        parentSceneName,
+                        parentSceneUuid,
+                        canvasUuid,
                         filters,
-                    })
+                    }
                 }
+
+                sceneData.items = await Promise.all(
+                    sceneItems.map((sceneItem: any) =>
+                        buildSceneItem(
+                            sceneItem,
+                            String(scene.sceneName ?? ''),
+                            String(scene.sceneUuid ?? ''),
+                            0,
+                        )
+                    )
+                )
 
                 scenesData.push(sceneData)
             }
