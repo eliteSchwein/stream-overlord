@@ -10,8 +10,10 @@ import {sleep} from "../../../helper/GeneralHelper";
 import {triggerConfiguredEvent} from "./EventHelper";
 
 const audioVolumeSavePath = path.join(getSystemConfigDirectory(), "streambot-audio.json");
+const audioPresetSavePath = path.join(getSystemConfigDirectory(), "streambot-audio-presets.json");
 
 let audioData: any = {};
+let audioPresets: Record<string, any> = {};
 let audioOutputs: any[] = [];
 let audioOutputsLastRefresh = 0;
 let audioOutputsRefreshPromise: Promise<void> | null = null;
@@ -46,6 +48,8 @@ const defaultAudioConfig: Record<string, any> = {
 
 const pipewireLoopbackModuleIds: Record<string, string[]> = {};
 const pipewireLoopbackSinkInputIds: Record<string, string[]> = {};
+const pipewireSetupPromises: Record<string, Promise<void> | undefined> = {};
+const audioVolumeWriteGeneration: Record<string, number> = {};
 
 type PipewireLoopbackModule = {
     moduleId: string;
@@ -75,18 +79,34 @@ function getAudioConfigWithDefaults(): Record<string, any> {
 export async function initAudio() {
     const config = getAudioConfigWithDefaults();
     const savedVolumes = loadSavedAudioVolumes();
-    const initTasks: Promise<void>[] = [];
 
+    audioPresets = loadAudioPresets();
     audioData = {};
 
-    for (const key in config) {
-        const linkedOutputs = normalizeLinkedOutputs(
+    // Resolve the system default sink once for this init pass. It is only
+    // used as a fallback for PipeWire interfaces without linked_output(s).
+    const defaultOutputName = await getDefaultAudioSinkName();
+
+    const initTasks = Object.keys(config).map(async key => {
+        let linkedOutputs = normalizeLinkedOutputs(
             savedVolumes[key]?.linked_outputs ??
             savedVolumes[key]?.linked_output ??
             config[key]?.linked_outputs ??
             config[key]?.linked_output ??
             null,
         );
+
+        if (
+            isEnabled(config[key]?.pipewire_sink) &&
+            linkedOutputs.length === 0 &&
+            defaultOutputName &&
+            !isStreambotAudioSink(defaultOutputName)
+        ) {
+            linkedOutputs = [defaultOutputName];
+            logRegular(
+                `no linked audio output configured for ${key}, using default output ${defaultOutputName}`
+            );
+        }
 
         const savedVolume = Number(savedVolumes[key]?.current_volume);
         const volume = Number.isFinite(savedVolume)
@@ -104,16 +124,19 @@ export async function initAudio() {
         };
 
         if (isEnabled(audioData[key].pipewire_sink)) {
-            initTasks.push(initializePipewireAudioSink(key, linkedOutputs, outputVolume));
-            continue;
+            await initializePipewireAudioSink(key, linkedOutputs, outputVolume);
+            return;
         }
 
-        initTasks.push(setVolume(key, outputVolume, false, false));
-    }
+        await setVolume(key, outputVolume, false, false);
+    });
 
     await Promise.all(initTasks);
+
+    // Persist fallback/default links as well, so next startup can reuse them.
     saveAudioVolumes();
     await sendAudioUpdate();
+    notifyAudioPresetsUpdate();
 }
 
 async function initializePipewireAudioSink(
@@ -121,7 +144,7 @@ async function initializePipewireAudioSink(
     linkedOutputs: string[],
     volume: number,
 ): Promise<void> {
-    await setupPipewireAudioSink(key, linkedOutputs);
+    await setupPipewireAudioSink(key, linkedOutputs, true);
     await setPipewireSinkOutputVolume(key, volume);
 
     // PipeWire sometimes creates the loopback sink-input a little later.
@@ -156,32 +179,40 @@ export async function setVolume(
     const previousVolume = Number(currentAudioData.current_volume ?? 0);
     const previousMuted = currentAudioData.muted === true;
     const safeVolume = normalizeVolume(volume);
+    const generation = (audioVolumeWriteGeneration[audioInterface] ?? 0) + 1;
 
-    if (isEnabled(currentAudioData.pipewire_sink)) {
-        await setPipewireSinkOutputVolume(audioInterface, safeVolume);
+    audioVolumeWriteGeneration[audioInterface] = generation;
 
-        const actualVolume = await getPipewireSinkOutputVolume(audioInterface);
-        applyAudioVolumeState(audioInterface, actualVolume ?? safeVolume);
-    } else {
-        if (currentAudioData.command) {
-            try {
-                await execute(`${currentAudioData.command} ${safeVolume}`);
-            } catch (error) {
-                logWarn(`setting volume for ${audioInterface} failed:`);
-                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-            }
-        }
-
-        applyAudioVolumeState(audioInterface, safeVolume);
-    }
+    // Update the in-memory state immediately. The UI should follow the user's
+    // slider, not a slower pactl readback from an older request.
+    applyAudioVolumeState(audioInterface, safeVolume);
 
     if (saveUpdate) {
         saveAudioVolumes();
     }
 
-    if (!sendUpdate) return;
+    if (sendUpdate) {
+        getWebsocketServer().send("notify_audio_update", audioData);
+    }
 
-    await sendAudioUpdate();
+    if (isEnabled(currentAudioData.pipewire_sink)) {
+        await setPipewireSinkOutputVolume(audioInterface, safeVolume);
+    } else if (currentAudioData.command) {
+        try {
+            await execute(`${currentAudioData.command} ${safeVolume}`);
+        } catch (error) {
+            logWarn(`setting volume for ${audioInterface} failed:`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+    }
+
+    // A newer slider write happened while this one was in flight. Do not let
+    // this older request emit events/state based on stale data.
+    if (audioVolumeWriteGeneration[audioInterface] !== generation) {
+        return;
+    }
+
+    if (!sendUpdate) return;
 
     const nextAudioData = audioData[audioInterface];
     const nextVolume = Number(nextAudioData?.current_volume ?? safeVolume);
@@ -204,6 +235,7 @@ export async function setVolume(
         await triggerAudioEvent("event_audio_unmute", eventPayload);
     }
 }
+
 
 export async function linkPipewireSinkToAudioOutput(
     audioInterface: string,
@@ -232,14 +264,16 @@ export async function linkPipewireSinkToAudioOutput(
 
     const wantedVolume = Number(currentAudioData.current_volume ?? currentAudioData.default_volume ?? 0.2);
 
-    await setupPipewireAudioSink(audioInterface, linkedOutputs);
+    await setupPipewireAudioSink(audioInterface, linkedOutputs, false);
     await setPipewireSinkOutputVolume(audioInterface, wantedVolume);
 
-    const volume = await getPipewireSinkOutputVolume(audioInterface);
-    applyAudioVolumeState(audioInterface, volume ?? wantedVolume);
-
+    applyAudioVolumeState(audioInterface, wantedVolume);
     saveAudioVolumes();
-    await sendAudioUpdate(true);
+
+    // Push the configured state immediately; refresh physical-output metadata
+    // asynchronously because pactl enumeration is comparatively expensive.
+    getWebsocketServer().send("notify_audio_update", audioData);
+    void sendAudioUpdate(true);
 
     await triggerAudioEvent("event_audio_output_link", {
         audio_interface: audioInterface,
@@ -280,14 +314,16 @@ export async function unlinkPipewireSinkFromAudioOutput(
 
     const wantedVolume = Number(currentAudioData.current_volume ?? currentAudioData.default_volume ?? 0.2);
 
-    await setupPipewireAudioSink(audioInterface, linkedOutputs);
+    await setupPipewireAudioSink(audioInterface, linkedOutputs, false);
     await setPipewireSinkOutputVolume(audioInterface, wantedVolume);
 
-    const volume = await getPipewireSinkOutputVolume(audioInterface);
-    applyAudioVolumeState(audioInterface, volume ?? wantedVolume);
-
+    applyAudioVolumeState(audioInterface, wantedVolume);
     saveAudioVolumes();
-    await sendAudioUpdate(true);
+
+    // Push the configured state immediately; refresh physical-output metadata
+    // asynchronously because pactl enumeration is comparatively expensive.
+    getWebsocketServer().send("notify_audio_update", audioData);
+    void sendAudioUpdate(true);
 
     await triggerAudioEvent("event_audio_output_unlink", {
         audio_interface: audioInterface,
@@ -345,6 +381,185 @@ export async function setAudioOutputVolume(
     return {
         output: output.name,
         volume: safeVolume,
+    };
+}
+
+
+type AudioPreset = {
+    name: string;
+    volumes?: Record<string, number>;
+    outputs?: Record<string, string[]>;
+};
+
+function loadAudioPresets(): Record<string, AudioPreset> {
+    if (!existsSync(audioPresetSavePath)) return {};
+
+    try {
+        const parsed = JSON.parse(readFileSync(audioPresetSavePath, "utf8"));
+
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            return {};
+        }
+
+        return parsed;
+    } catch (error) {
+        logWarn("loading audio presets failed:");
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return {};
+    }
+}
+
+function saveAudioPresetsFile() {
+    try {
+        writeFileSync(audioPresetSavePath, JSON.stringify(audioPresets, null, 4));
+    } catch (error) {
+        logWarn("saving audio presets failed:");
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+}
+
+export function getAudioPresets(): Record<string, AudioPreset> {
+    if (!audioPresets || typeof audioPresets !== "object") {
+        audioPresets = loadAudioPresets();
+    }
+
+    return audioPresets;
+}
+
+export function notifyAudioPresetsUpdate() {
+    getWebsocketServer()?.send("notify_audio_presets_update", {
+        presets: getAudioPresets(),
+    });
+}
+
+export async function saveAudioPreset(
+    name: string,
+    includeVolumes = true,
+    includeOutputs = false,
+    volumeInterfaces: string[] = [],
+    outputInterfaces: string[] = [],
+    outputMappings: Record<string, string[]> | null = null,
+) {
+    const presetName = String(name ?? "").trim();
+
+    if (!presetName) return {error: "missing preset name"};
+    if (!includeVolumes && !includeOutputs) return {error: "preset is empty"};
+
+    const preset: AudioPreset = {
+        name: presetName,
+    };
+
+    if (includeVolumes) {
+        preset.volumes = {};
+
+        const selectedVolumeInterfaces = volumeInterfaces.length > 0
+            ? Array.from(new Set(volumeInterfaces.map(value => String(value).trim()).filter(Boolean)))
+            : Object.keys(audioData);
+
+        for (const key of selectedVolumeInterfaces) {
+            if (!audioData[key]) continue;
+
+            const volume = Number(audioData[key]?.current_volume);
+
+            if (Number.isFinite(volume)) {
+                preset.volumes[key] = normalizeVolume(volume);
+            }
+        }
+    }
+
+    if (includeOutputs) {
+        preset.outputs = {};
+
+        const selectedOutputInterfaces = outputInterfaces.length > 0
+            ? Array.from(new Set(outputInterfaces.map(value => String(value).trim()).filter(Boolean)))
+            : Object.keys(audioData);
+
+        for (const key of selectedOutputInterfaces) {
+            if (!audioData[key] || !isEnabled(audioData[key]?.pipewire_sink)) continue;
+
+            preset.outputs[key] = outputMappings && Array.isArray(outputMappings[key])
+                ? normalizeLinkedOutputs(outputMappings[key])
+                : normalizeLinkedOutputs(
+                    audioData[key]?.linked_outputs ??
+                    audioData[key]?.linked_output ??
+                    [],
+                );
+        }
+    }
+
+    audioPresets[presetName] = preset;
+    saveAudioPresetsFile();
+    notifyAudioPresetsUpdate();
+
+    return {
+        saved: true,
+        preset,
+    };
+}
+
+export async function deleteAudioPreset(name: string) {
+    const presetName = String(name ?? "").trim();
+
+    if (!presetName) return {error: "missing preset name"};
+    if (!audioPresets[presetName]) return {error: "unknown preset"};
+
+    delete audioPresets[presetName];
+    saveAudioPresetsFile();
+    notifyAudioPresetsUpdate();
+
+    return {
+        deleted: true,
+        name: presetName,
+    };
+}
+
+export async function applyAudioPreset(name: string) {
+    const presetName = String(name ?? "").trim();
+    const preset = audioPresets[presetName];
+
+    if (!preset) return {error: "unknown preset"};
+
+    const interfaces = new Set<string>([
+        ...Object.keys(preset.outputs ?? {}),
+        ...Object.keys(preset.volumes ?? {}),
+    ]);
+
+    await Promise.all(
+        Array.from(interfaces).map(async key => {
+            const current = audioData[key];
+
+            if (!current) return;
+
+            const presetOutputs = preset.outputs?.[key];
+
+            if (Array.isArray(presetOutputs) && isEnabled(current.pipewire_sink)) {
+                const linkedOutputs = normalizeLinkedOutputs(presetOutputs);
+
+                current.linked_outputs = linkedOutputs;
+                current.linked_output = linkedOutputs[0] ?? null;
+                audioData[key] = current;
+
+                await setupPipewireAudioSink(key, linkedOutputs, false);
+            }
+
+            const presetVolume = Number(preset.volumes?.[key]);
+
+            if (Number.isFinite(presetVolume)) {
+                await setVolume(key, normalizeVolume(presetVolume), false, false);
+            }
+        })
+    );
+
+    saveAudioVolumes();
+
+    // Send the new mixer state immediately. Output enumeration can update
+    // asynchronously because route application is already complete.
+    getWebsocketServer().send("notify_audio_update", audioData);
+    void sendAudioUpdate(true);
+
+    return {
+        applied: true,
+        name: presetName,
     };
 }
 
@@ -436,8 +651,11 @@ export async function sendAudioUpdate(forceAudioOutputs = false) {
 }
 
 async function runAudioUpdate(forceAudioOutputs = false) {
-    await refreshPipewireSinkVolumes();
-    await refreshAudioOutputs(forceAudioOutputs);
+    await Promise.all([
+        refreshPipewireSinkVolumes(),
+        refreshAudioOutputs(forceAudioOutputs),
+    ]);
+
     await updateMusicVolumeFromAudio(audioData);
 
     getWebsocketServer().send("notify_audio_update", audioData);
@@ -447,21 +665,23 @@ async function runAudioUpdate(forceAudioOutputs = false) {
 async function refreshPipewireSinkVolumes() {
     let changed = false;
 
-    for (const key in audioData) {
-        if (!isEnabled(audioData[key].pipewire_sink)) continue;
+    await Promise.all(
+        Object.keys(audioData).map(async key => {
+            if (!isEnabled(audioData[key].pipewire_sink)) return;
 
-        const volume = await getPipewireSinkOutputVolume(key);
-        if (volume === null) continue;
+            const volume = await getPipewireSinkOutputVolume(key);
+            if (volume === null) return;
 
-        const currentVolume = Number(audioData[key].current_volume);
-        const currentMuted = audioData[key].muted === true;
-        const nextMuted = volume === 0;
+            const currentVolume = Number(audioData[key].current_volume);
+            const currentMuted = audioData[key].muted === true;
+            const nextMuted = volume === 0;
 
-        if (currentVolume !== volume || currentMuted !== nextMuted) {
-            applyAudioVolumeState(key, volume);
-            changed = true;
-        }
-    }
+            if (currentVolume !== volume || currentMuted !== nextMuted) {
+                applyAudioVolumeState(key, volume);
+                changed = true;
+            }
+        })
+    );
 
     if (changed) {
         saveAudioVolumes();
@@ -696,17 +916,57 @@ export function getStreambotSinkName(configName: string): string {
 export async function setupPipewireAudioSink(
     configName: string,
     outputNames: string[] | string | null = audioData[configName]?.linked_outputs ?? audioData[configName]?.linked_output ?? [],
+    stabilize = false,
+) {
+    // Multiple UI/startup calls for the same virtual sink can overlap.
+    // Serialize only per interface so alert/tts/music still wire in parallel,
+    // while a single interface can never race itself and create duplicate
+    // module-loopback instances.
+    const previous = pipewireSetupPromises[configName] ?? Promise.resolve();
+
+    const current = previous
+        .catch(() => undefined)
+        .then(() => setupPipewireAudioSinkInternal(configName, outputNames, stabilize));
+
+    pipewireSetupPromises[configName] = current;
+
+    try {
+        await current;
+    } finally {
+        if (pipewireSetupPromises[configName] === current) {
+            delete pipewireSetupPromises[configName];
+        }
+    }
+}
+
+async function setupPipewireAudioSinkInternal(
+    configName: string,
+    outputNames: string[] | string | null,
+    stabilize: boolean,
 ) {
     const sinkName = getStreambotSinkName(configName);
     const linkedOutputs = normalizeLinkedOutputs(outputNames);
-    const wantedOutputs = linkedOutputs.length > 0 ? linkedOutputs : [null];
 
     await ensurePipewireAudioSink(sinkName);
-    await forcePipewireSinkAliveWithRetry(sinkName);
 
-    const existingLoopbacks = await getExistingPipewireLoopbackModules(configName);
+    // Once the virtual sink exists, checking/restoring its state and scanning
+    // existing loopbacks are independent operations.
+    const [, existingLoopbacks] = await Promise.all([
+        stabilize
+            ? forcePipewireSinkAliveWithRetry(sinkName)
+            : forcePipewireSinkAlive(sinkName),
+        getExistingPipewireLoopbackModules(configName),
+    ]);
+
     const keptModuleIds: string[] = [];
-    const wantedKeys = new Set(wantedOutputs.map(outputName => getPipewireLoopbackTargetKey(outputName)));
+
+    // Important: an empty linked_outputs array means explicitly disconnected.
+    // Do NOT translate it to [null], because null tells module-loopback to use
+    // the current default/main output.
+    const wantedOutputs: (string | null)[] = [...linkedOutputs];
+    const wantedKeys = new Set(
+        wantedOutputs.map(outputName => getPipewireLoopbackTargetKey(outputName))
+    );
     const usedKeys = new Set<string>();
     const modulesToUnload: string[] = [];
 
@@ -722,24 +982,34 @@ export async function setupPipewireAudioSink(
         keptModuleIds.push(loopback.moduleId);
     }
 
-    await Promise.all(modulesToUnload.map(async moduleId => {
-        try {
-            await runCommand("pactl", ["unload-module", moduleId]);
-        } catch {}
-    }));
+    await Promise.all(
+        modulesToUnload.map(async moduleId => {
+            try {
+                await runCommand("pactl", ["unload-module", moduleId]);
+            } catch {}
+        })
+    );
 
     const missingOutputs = wantedOutputs.filter(outputName =>
-        !usedKeys.has(getPipewireLoopbackTargetKey(outputName)),
+        !usedKeys.has(getPipewireLoopbackTargetKey(outputName))
     );
 
     const createdModuleIds = await Promise.all(
-        missingOutputs.map(outputName => loadPipewireLoopback(configName, sinkName, outputName)),
+        missingOutputs.map(outputName =>
+            loadPipewireLoopback(configName, sinkName, outputName)
+        )
     );
 
-    pipewireLoopbackModuleIds[configName] = [
+    pipewireLoopbackModuleIds[configName] = Array.from(new Set([
         ...keptModuleIds,
         ...createdModuleIds.filter((moduleId): moduleId is string => Boolean(moduleId)),
-    ];
+    ]));
+
+    if (wantedOutputs.length === 0) {
+        pipewireLoopbackSinkInputIds[configName] = [];
+        await forcePipewireSinkAlive(sinkName);
+        return;
+    }
 
     await sleep(25);
 
@@ -749,7 +1019,11 @@ export async function setupPipewireAudioSink(
     // PipeWire/Pulse can restore the null sink state slightly after module creation.
     // Keep the virtual streambot sink itself at 100% and unmuted; per-interface volume
     // is controlled on the loopback sink-inputs instead.
-    await forcePipewireSinkAliveWithRetry(sinkName);
+    if (stabilize) {
+        await forcePipewireSinkAliveWithRetry(sinkName);
+    } else {
+        await forcePipewireSinkAlive(sinkName);
+    }
 }
 
 async function ensurePipewireAudioSink(sinkName: string): Promise<void> {
@@ -933,13 +1207,20 @@ async function loadPipewireLoopback(
 }
 
 export async function cleanupPipewireAudioSink(configName: string) {
-    const moduleIds = pipewireLoopbackModuleIds[configName] ?? [];
+    // Do not race cleanup against an in-flight setup for the same interface.
+    await pipewireSetupPromises[configName]?.catch(() => undefined);
 
-    for (const moduleId of moduleIds) {
+    const existingLoopbacks = await getExistingPipewireLoopbackModules(configName);
+    const moduleIds = Array.from(new Set([
+        ...(pipewireLoopbackModuleIds[configName] ?? []),
+        ...existingLoopbacks.map(loopback => loopback.moduleId),
+    ]));
+
+    await Promise.all(moduleIds.map(async moduleId => {
         try {
             await runCommand("pactl", ["unload-module", moduleId]);
         } catch {}
-    }
+    }));
 
     pipewireLoopbackModuleIds[configName] = [];
     pipewireLoopbackSinkInputIds[configName] = [];
@@ -1008,7 +1289,10 @@ export async function setPipewireSinkOutputVolume(
     volume: number,
 ): Promise<void> {
     const safeVolume = normalizeVolume(volume);
-    await forcePipewireSinkAliveWithRetry(getStreambotSinkName(configName), 4, 100);
+
+    // Normal slider/relink operations should be quick. The heavier retry
+    // loops are handled explicitly during startup initialization.
+    await forcePipewireSinkAlive(getStreambotSinkName(configName));
 
     if (!pipewireLoopbackSinkInputIds[configName]?.length) {
         pipewireLoopbackSinkInputIds[configName] =
@@ -1018,8 +1302,21 @@ export async function setPipewireSinkOutputVolume(
     const sinkInputIds = pipewireLoopbackSinkInputIds[configName] ?? [];
 
     if (!sinkInputIds.length) {
-        logWarn(`${getStreambotSinkName(configName)} loopback sink-input not found`);
-        await forcePipewireSinkOutputVolumeWithRetry(configName, safeVolume, 8, 150);
+        // A newly-created loopback can appear a fraction later. Do one short
+        // retry without blocking an interactive slider for over a second.
+        await sleep(40);
+
+        pipewireLoopbackSinkInputIds[configName] =
+            await findPipewireLoopbackSinkInputIds(configName);
+
+        const retryIds = pipewireLoopbackSinkInputIds[configName] ?? [];
+
+        if (!retryIds.length) {
+            logWarn(`${getStreambotSinkName(configName)} loopback sink-input not found`);
+            return;
+        }
+
+        await forcePipewireSinkInputsVolume(configName, retryIds, safeVolume);
         return;
     }
 

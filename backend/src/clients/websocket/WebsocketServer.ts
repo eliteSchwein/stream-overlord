@@ -5,7 +5,7 @@ import ConnectEvent from "./events/ConnectEvent";
 import {getRandomInt} from "../../../../helper/GeneralHelper";
 import isShieldActive from "../../helper/ShieldHelper";
 import {getChannelPointUpdatePayload} from "../../helper/ChannelPointHelper";
-import {getAudioData, getAudioOutputs} from "../../helper/AudioHelper";
+import {getAudioData, getAudioOutputs, getAudioPresets} from "../../helper/AudioHelper";
 import {getSystemInfo} from "../../helper/SystemInfoHelper";
 import {getSourceFilters} from "../../helper/SourceHelper";
 import {getOBSClient, getReloadUpdate, getYoloboxClient} from "../../App";
@@ -72,6 +72,7 @@ export default class WebsocketServer {
         'notify_music_cava',
         'notify_animation_update',
         'notify_audio_outputs_update',
+        'notify_audio_presets_update',
         'notify_media_update',
         'notify_storage_update',
         'notify_variables_update',
@@ -241,6 +242,7 @@ export default class WebsocketServer {
                 this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)
                 this.send("notify_assets_update", getParsedAssetFiles(), client)
                 this.send("notify_audio_outputs_update", getAudioOutputs(), client)
+                this.send("notify_audio_presets_update", {presets: getAudioPresets()}, client)
                 this.send("notify_storage_update", getSystemStorageInfo(), client)
                 this.send("notify_integrations_update", getIntegrationsSafe(), client)
                 this.send("notify_settings_update", getSettings(), client)

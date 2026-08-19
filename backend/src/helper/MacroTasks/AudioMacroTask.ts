@@ -1,11 +1,52 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
-import {getAudioData, setVolume} from "../AudioHelper";
+import {
+    applyAudioPreset,
+    getAudioData,
+    setVolume,
+} from "../AudioHelper";
 import {logRegular, logWarn} from "../LogHelper";
 
 export default class AudioMacroTask extends BaseMacroTask {
     channel = "audio";
 
     async handle(method: string, data: any = {}) {
+        switch (method) {
+            case "load_preset": {
+                const presetName = String(
+                    data.name ??
+                    data.preset ??
+                    data.preset_name ??
+                    "",
+                ).trim();
+
+                if (!presetName) {
+                    logWarn("audio load_preset requires preset name");
+                    return;
+                }
+
+                const result = await applyAudioPreset(presetName);
+
+                if (result?.error) {
+                    logWarn(
+                        `loading audio preset ${presetName} failed: ${result.error}`,
+                    );
+                    return;
+                }
+
+                logRegular(`audio preset loaded: ${presetName}`);
+                return;
+            }
+
+            case "set_volume":
+            case "adjust_volume":
+            case "relative_volume":
+                break;
+
+            default:
+                logWarn(`invalid audio method: ${method}`);
+                return;
+        }
+
         const audioInterface = String(
             data.interface ??
             data.audio_interface ??
@@ -35,10 +76,14 @@ export default class AudioMacroTask extends BaseMacroTask {
                     return;
                 }
 
-                const normalizedVolume = Math.max(0, Math.min(100, percent)) / 100;
+                const normalizedVolume =
+                    Math.max(0, Math.min(100, percent)) / 100;
 
                 await setVolume(audioInterface, normalizedVolume);
-                logRegular(`audio ${audioInterface} volume set to ${Math.round(normalizedVolume * 100)}%`);
+
+                logRegular(
+                    `audio ${audioInterface} volume set to ${Math.round(normalizedVolume * 100)}%`,
+                );
                 return;
             }
 
@@ -51,7 +96,9 @@ export default class AudioMacroTask extends BaseMacroTask {
                 );
 
                 if (!Number.isFinite(deltaPercent)) {
-                    logWarn("audio adjust_volume requires numeric adjustment");
+                    logWarn(
+                        "audio adjust_volume requires numeric adjustment",
+                    );
                     return;
                 }
 
@@ -63,18 +110,19 @@ export default class AudioMacroTask extends BaseMacroTask {
 
                 const nextVolume = Math.max(
                     0,
-                    Math.min(1, currentVolume + deltaPercent / 100),
+                    Math.min(
+                        1,
+                        currentVolume + deltaPercent / 100,
+                    ),
                 );
 
                 await setVolume(audioInterface, nextVolume);
+
                 logRegular(
                     `audio ${audioInterface} volume adjusted by ${deltaPercent}% to ${Math.round(nextVolume * 100)}%`,
                 );
                 return;
             }
-
-            default:
-                logWarn(`invalid audio method: ${method}`);
         }
     }
 }
