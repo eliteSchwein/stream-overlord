@@ -100,20 +100,6 @@ let systemConfig: StreambotSettings = {
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
 const systemConfigPath = path.resolve(systemConfigDir, "streambot-settings.json");
 
-function detectSystemLanguage() {
-    return (
-        process.env.LC_ALL ||
-        process.env.LC_MESSAGES ||
-        process.env.LANG ||
-        process.env.LANGUAGE ||
-        "en"
-    )
-        .split(".")[0]
-        .split("_")[0]
-        .split(":")[0]
-        .toLowerCase();
-}
-
 function ensureSystemConfigDir() {
     mkdirSync(systemConfigDir, {recursive: true});
 }
@@ -283,7 +269,10 @@ function normalizeHexColor(value: unknown, fallback: string): string {
 }
 
 function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
-    const language = rawSystemConfig.language?.trim().toLowerCase() || detectSystemLanguage();
+    const requestedLanguage = String(rawSystemConfig.language || "en")
+        .trim()
+        .toLowerCase();
+    const language = requestedLanguage === "de" ? "de" : "en";
 
     return {
         language,

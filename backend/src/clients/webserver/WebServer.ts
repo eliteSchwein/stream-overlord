@@ -1,4 +1,4 @@
-import {getConfig, getSystemConfigDirectory} from "../../helper/ConfigHelper";
+import {getConfig, getLanguage, getSystemConfigDirectory} from "../../helper/ConfigHelper";
 import cors from "cors";
 import {logDebug, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import express, {Express, NextFunction, Request, Response} from "express";
@@ -132,7 +132,10 @@ export default class WebServer {
         });
 
         this.app.get("/config.json", (req, res) => {
-            res.json(getConfig());
+            res.json({
+                ...getConfig(),
+                language: getLanguage(),
+            });
         });
 
         this.app.get("/api/auth/twitch", async (req: Request, res: Response) => {
