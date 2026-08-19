@@ -2,6 +2,7 @@ import {randomUUID} from "crypto";
 import {getAssetConfig, isAssetConfigPresent} from "./AssetHelper";
 import {addAlert} from "./AlertHelper";
 import {isMacroPresent, triggerMacro} from "./MacroHelper";
+import getWebsocketServer from "../App";
 
 export type EventEntry = {
     name: string;
@@ -109,6 +110,16 @@ export function getEventEntries(): EventIndex {
     return eventEntries;
 }
 
+export function notifyEventsUpdate() {
+    try {
+        getWebsocketServer()?.send("notify_events_update", {
+            events: configuredEventIndex,
+        });
+    } catch (_) {
+        // Websocket server may not be initialized yet during early startup.
+    }
+}
+
 export function updateConfiguredEventIndex(): EventIndex {
     configuredEventIndex = {};
 
@@ -125,6 +136,8 @@ export function updateConfiguredEventIndex(): EventIndex {
             };
         });
     }
+
+    notifyEventsUpdate();
 
     return configuredEventIndex;
 }
