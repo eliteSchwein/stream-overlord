@@ -30,6 +30,7 @@ export { default as CommandEditApi } from "./Command/CommandEditApi";
 export { default as CommandListApi } from "./Command/CommandListApi";
 export { default as CommandMoveApi } from "./Command/CommandMoveApi";
 export { default as CommandReadApi } from "./Command/CommandReadApi";
+export { default as CommandToggleApi } from "./Command/CommandToggleApi";
 export { default as LinkSinkApi } from "./Common/LinkSinkApi";
 export { default as SetAudioOutputVolumeApi } from "./Common/SetAudioOutputVolumeApi";
 export { default as SetVolumeApi } from "./Common/SetVolumeApi";

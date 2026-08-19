@@ -62,6 +62,8 @@ export default class TwitchClient {
 
     protected eventSub?: EventSubWsListener;
 
+    private controlAuthProvider?: any;
+    private twitchConfig?: any;
     private hypeTrainLevel?: number;
 
     private warnTwitchNetworkError(context: string, error: unknown): boolean {
@@ -312,6 +314,9 @@ export default class TwitchClient {
 
         const authProvider = await this.auth.getAuthCode(authRequired, "control" as any);
 
+        this.twitchConfig = config;
+        this.controlAuthProvider = authProvider;
+
         if (!authProvider) {
             setManagedConnection("twitch", {
                 enabled: false,
@@ -392,6 +397,13 @@ export default class TwitchClient {
         );
     }
 
+    private registerBotEvents(bot: Bot) {
+        new SubEvent(bot, this).register();
+        new CommunitySubEvent(bot, this).register();
+        new SubGiftEvent(bot, this).register();
+        new RaidEvent(bot, this).register();
+    }
+
     public async registerEvents() {
         if (!this.bot || !this.eventSub) {
             logWarn("cannot register Twitch events without an active Twitch connection");
@@ -401,10 +413,7 @@ export default class TwitchClient {
         const bot = this.bot;
         const eventSub = this.eventSub;
 
-        new SubEvent(bot, this).register();
-        new CommunitySubEvent(bot, this).register();
-        new SubGiftEvent(bot, this).register();
-        new RaidEvent(bot, this).register();
+        this.registerBotEvents(bot);
 
         await this.safeRegister("follow event", () => new FollowEvent(eventSub, bot).register());
         await this.safeRegister("channel update event", () => new ChannelUpdateEvent(eventSub, bot).register());
@@ -451,8 +460,49 @@ export default class TwitchClient {
     }
 
     public async reloadCommands() {
-        logRegular("reload twitch commands");
-        await this.connect();
+        logRegular("reload twitch command section");
+
+        if (!this.bot || !this.controlAuthProvider || !this.twitchConfig) {
+            logWarn("cannot reload twitch commands without an active control bot");
+            return;
+        }
+
+        const previousBot = this.bot;
+        const commands = buildCommands(previousBot, this);
+
+        const nextBot = new Bot({
+            authProvider: this.controlAuthProvider,
+            channels: this.twitchConfig.channels,
+            chatClientOptions: null,
+            commands,
+        });
+
+        this.bot = nextBot;
+        this.registerBotEvents(nextBot);
+
+        const connected = await this.waitForControlChatConnection(10_000);
+
+        if (!connected) {
+            logWarn("replacement twitch command bot failed to connect - keeping previous bot");
+
+            try {
+                nextBot.chat?.quit();
+            } catch {
+                // Ignore cleanup failure.
+            }
+
+            this.bot = previousBot;
+            throw new Error("replacement twitch command bot failed to connect");
+        }
+
+        try {
+            previousBot.chat?.quit();
+        } catch (error) {
+            logWarn("failed to disconnect previous twitch command bot");
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+
+        logRegular("twitch command section reloaded");
     }
 
     public getBot() {

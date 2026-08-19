@@ -66,3 +66,59 @@ export const executeProcess = (
         })
     })
 }
+
+const runtimeCommandEnabled = new Map<string, boolean>()
+
+function normalizeCommandName(name: unknown) {
+    return String(name ?? "")
+        .trim()
+        .replace(/^!+/, "")
+        .toLowerCase()
+}
+
+export function resetCommandRuntimeStates(commands: Record<string, any> = {}) {
+    runtimeCommandEnabled.clear()
+
+    for (const [name, config] of Object.entries(commands)) {
+        runtimeCommandEnabled.set(
+            normalizeCommandName(name),
+            (config as any)?.enabled !== false,
+        )
+    }
+}
+
+export function getCommandRuntimeEnabled(
+    name: unknown,
+    defaultEnabled: boolean = true,
+) {
+    const commandName = normalizeCommandName(name)
+
+    if (!runtimeCommandEnabled.has(commandName)) {
+        return defaultEnabled
+    }
+
+    return runtimeCommandEnabled.get(commandName) === true
+}
+
+export function setCommandRuntimeEnabled(
+    name: unknown,
+    enabled: boolean,
+) {
+    const commandName = normalizeCommandName(name)
+
+    if (!commandName) {
+        throw new Error("command name is required")
+    }
+
+    runtimeCommandEnabled.set(commandName, enabled === true)
+    return enabled === true
+}
+
+export function toggleCommandRuntimeEnabled(
+    name: unknown,
+    defaultEnabled: boolean = true,
+) {
+    const enabled = !getCommandRuntimeEnabled(name, defaultEnabled)
+    setCommandRuntimeEnabled(name, enabled)
+    return enabled
+}

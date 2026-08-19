@@ -13,7 +13,13 @@ import {triggerMacro} from "../../helper/MacroHelper";
 import MusicCommand from "./commands/MusicCommand";
 import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
 import {hasModerator, hasVip} from "./helper/PermissionHelper";
-import {isShowErrorMessage} from "../../helper/CommandHelper";
+import {
+    getCommandRuntimeEnabled,
+    isShowErrorMessage,
+    resetCommandRuntimeStates,
+    setCommandRuntimeEnabled,
+    toggleCommandRuntimeEnabled,
+} from "../../helper/CommandHelper";
 import isShieldActive from "../../helper/ShieldHelper";
 import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../helper/MessageEventLinkHelper";
@@ -43,7 +49,7 @@ let fileCommands: Record<string, any> = {};
 function notifyCommandsUpdate() {
     try {
         getWebsocketServer()?.send("notify_commands_update", {
-            commands: fileCommands,
+            commands: getConfiguredCommands(),
         });
     } catch (error) {
         logWarn("failed to notify command update");
@@ -87,21 +93,30 @@ export default function buildCommands(bot: Bot, twitchClient?: TwitchClient) {
 }
 
 function buildOverviewCommand(commands: any[], twitchClient?: TwitchClient) {
-    let commandList = "";
-
-    for (const command of commands) {
-        if (!command || !command.name) continue;
-        commandList = `${commandList}, ${command.name}`;
-    }
-
-    commandList = commandList.substring(1);
-
     return createBotCommand("commands", (params, context) => {
+        const commandList = commands
+            .filter((entry) => {
+                if (!entry?.name) return false;
+
+                const configuredCommand = fileCommands[entry.name];
+
+                if (!configuredCommand) {
+                    return true;
+                }
+
+                return getCommandRuntimeEnabled(
+                    entry.name,
+                    configuredCommand.enabled !== false,
+                );
+            })
+            .map((entry) => entry.name)
+            .join(", ");
+
         void twitchClient?.reply(
             `Es gibt folgende Befehle: ${commandList}`,
             context.msg.id,
             context.broadcasterId
-        )
+        );
     });
 }
 
@@ -234,6 +249,7 @@ function loadCommandsFromFiles() {
         }
     }
 
+    resetCommandRuntimeStates(fileCommands);
     logRegular(`loaded command configs total: ${Object.keys(fileCommands).length}`);
 }
 
@@ -307,7 +323,23 @@ function normalizeCommandConfigForSave(filePath: string, commandConfig: any) {
     const normalizedConfig: any = {
         ...cleanCommandConfig,
         name: commandName,
+        enabled: cleanCommandConfig?.enabled !== false,
+        single_use: normalizeSingleUse(cleanCommandConfig?.single_use ?? cleanCommandConfig?.singleUse),
+        user_list_mode: normalizeUserListMode(cleanCommandConfig?.user_list_mode ?? cleanCommandConfig?.userListMode),
+        users: normalizeArray(
+            cleanCommandConfig?.users ??
+            cleanCommandConfig?.user_list ??
+            cleanCommandConfig?.userList ??
+            [],
+        )
+            .map(value => normalizeUserName(value))
+            .filter(Boolean),
     };
+
+    delete normalizedConfig.singleUse;
+    delete normalizedConfig.userListMode;
+    delete normalizedConfig.user_list;
+    delete normalizedConfig.userList;
 
     const macro = normalizeString(cleanCommandConfig?.macro);
     const asset = normalizeString(cleanCommandConfig?.asset);
@@ -341,8 +373,69 @@ function stringifyCommandConfigContent(filePath: string, commandConfig: any) {
     });
 }
 
+export function setConfiguredCommandRuntimeEnabled(
+    name: string,
+    enabled: boolean,
+) {
+    const commandName = String(name ?? "").trim().replace(/^!+/, "");
+
+    if (!commandName) {
+        throw new Error("command name is required");
+    }
+
+    const commandConfig = fileCommands[commandName];
+
+    if (!commandConfig) {
+        throw new Error(`command not found: ${commandName}`);
+    }
+
+    setCommandRuntimeEnabled(commandName, enabled);
+    logRegular(`command ${commandName} temporarily ${enabled ? "enabled" : "disabled"}`);
+    notifyCommandsUpdate();
+
+    return getConfiguredCommands()[commandName];
+}
+
+export function toggleConfiguredCommandRuntimeEnabled(name: string) {
+    const commandName = String(name ?? "").trim().replace(/^!+/, "");
+
+    if (!commandName) {
+        throw new Error("command name is required");
+    }
+
+    const commandConfig = fileCommands[commandName];
+
+    if (!commandConfig) {
+        throw new Error(`command not found: ${commandName}`);
+    }
+
+    const enabled = toggleCommandRuntimeEnabled(
+        commandName,
+        commandConfig.enabled !== false,
+    );
+
+    logRegular(`command ${commandName} temporarily ${enabled ? "enabled" : "disabled"}`);
+    notifyCommandsUpdate();
+
+    return {
+        ...getConfiguredCommands()[commandName],
+        runtime_enabled: enabled,
+    };
+}
+
 export function getConfiguredCommands() {
-    return fileCommands;
+    return Object.fromEntries(
+        Object.entries(fileCommands).map(([name, command]) => [
+            name,
+            {
+                ...command,
+                runtime_enabled: getCommandRuntimeEnabled(
+                    name,
+                    command?.enabled !== false,
+                ),
+            },
+        ]),
+    );
 }
 
 export function listCommandFiles(inputPath: string = ""): CommandConfigFileEntry[] {
@@ -579,6 +672,17 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
     const macro = normalizeString(option.macro);
     const assetName = normalizeString(option.asset);
 
+    const singleUse = normalizeSingleUse(option.single_use ?? option.singleUse);
+    const userListMode = normalizeUserListMode(option.user_list_mode ?? option.userListMode);
+    const userList = new Set(
+        normalizeArray(option.users ?? option.user_list ?? option.userList ?? [])
+            .map(value => normalizeUserName(value))
+            .filter(Boolean),
+    );
+
+    let globallyUsed = false;
+    const usedByUsers = new Set<string>();
+
     const commandOptions: any = {
         aliases,
         userCooldown: option.userCooldown,
@@ -587,6 +691,10 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
 
     return createBotCommand(command, async (rawParam: string[], context: BotCommandContext) => {
         try {
+            if (!getCommandRuntimeEnabled(command, option.enabled !== false)) {
+                return;
+            }
+
             logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${command} ${rawParam.join(" ")}`);
 
             if (option.enforceSame || option.enforce_primary) {
@@ -595,6 +703,27 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
                 if (context.broadcasterId !== primaryChannel.id) {
                     return;
                 }
+            }
+
+            const normalizedUserName = normalizeUserName(context.userName);
+            const singleUseUserKey = String(context.userId || normalizedUserName);
+
+            if (
+                (userListMode === "blacklist" && userList.has(normalizedUserName)) ||
+                (userListMode === "whitelist" && !userList.has(normalizedUserName))
+            ) {
+                await replyCommandUnavailable(context);
+                return;
+            }
+
+            if (singleUse === "global" && globallyUsed) {
+                await replyCommandAlreadyUsed(context);
+                return;
+            }
+
+            if (singleUse === "user" && usedByUsers.has(singleUseUserKey)) {
+                await replyCommandAlreadyUsed(context);
+                return;
             }
 
             if (option.requiresBroadcaster && context.broadcasterId !== context.userId) {
@@ -640,6 +769,12 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
 
             const parsedParams = await parseConfigParams(command, rawParam, context, bot, paramConfig);
             if (!parsedParams.ok) return;
+
+            if (singleUse === "global") {
+                globallyUsed = true;
+            } else if (singleUse === "user") {
+                usedByUsers.add(singleUseUserKey);
+            }
 
             const eventUuid = `command_${uuidv4()}`;
 
@@ -707,6 +842,33 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
         }
     }, commandOptions);
+}
+
+function normalizeSingleUse(value: any): "none" | "user" | "global" {
+    const normalized = String(value ?? "none").trim().toLowerCase();
+
+    if (normalized === "user" || normalized === "global") {
+        return normalized;
+    }
+
+    return "none";
+}
+
+function normalizeUserListMode(value: any): "none" | "blacklist" | "whitelist" {
+    const normalized = String(value ?? "none").trim().toLowerCase();
+
+    if (normalized === "blacklist" || normalized === "whitelist") {
+        return normalized;
+    }
+
+    return "none";
+}
+
+function normalizeUserName(value: any): string {
+    return String(value ?? "")
+        .trim()
+        .replace(/^@+/, "")
+        .toLowerCase();
 }
 
 async function parseConfigParams(
@@ -888,6 +1050,30 @@ async function replyPermissionError(
     await replyWithFallback(
         context,
         "du hast keine Berechtigung auf diesen Befehl!",
+    );
+}
+
+async function replyCommandUnavailable(
+    context: BotCommandContext,
+) {
+    logWarn(`command unavailable for ${context.userName} in ${context.broadcasterName}`);
+    if (!isShowErrorMessage()) return;
+
+    await replyWithFallback(
+        context,
+        "du kannst diesen Befehl nicht verwenden!",
+    );
+}
+
+async function replyCommandAlreadyUsed(
+    context: BotCommandContext,
+) {
+    logWarn(`single-use command already used by ${context.userName} in ${context.broadcasterName}`);
+    if (!isShowErrorMessage()) return;
+
+    await replyWithFallback(
+        context,
+        "dieser Befehl wurde bereits verwendet!",
     );
 }
 
