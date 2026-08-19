@@ -39,7 +39,7 @@ let yoloboxClient: YoloboxClient
 
 
 let ready = false
-let stage = 'Unknown'
+let stage = 'unknown'
 let unreadyMessage = 'backend loading'
 let reloadFinished = true
 
@@ -55,13 +55,13 @@ async function init() {
     loadIntegrationsCache()
     ensureDefaultOllamaIntegration()
 
-    stage = 'loading cache...'
+    stage = 'loading_cache'
     await redis.connect()
 
-    stage = 'loading variables...'
+    stage = 'loading_variables'
     await initVariables()
 
-    stage = 'loading web components...'
+    stage = 'loading_web_components'
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()
@@ -73,17 +73,17 @@ async function init() {
 
     logSuccess('websocket server is ready')
 
-    stage = 'starting ollama...'
+    stage = 'starting_ollama'
     await syncOllamaIntegration()
 
     webServer = new WebServer()
     await webServer.initial()
 
-    stage = 'loading system components...'
+    stage = 'loading_system_components'
 
     await updateSystemComponents()
 
-    stage = 'starting twitch bot...'
+    stage = 'starting_twitch_bot'
 
     twitchClient = new TwitchClient()
     await twitchClient.connect()
@@ -91,7 +91,7 @@ async function init() {
     registerPermissionInterval(twitchClient.getBot())
 
     try {
-        stage = 'OBS connection'
+        stage = 'connecting_obs'
 
         logRegular('connecting obs...')
         obsClient = new OBSClient()
@@ -102,7 +102,7 @@ async function init() {
     }
 
     try {
-        stage = 'connecting Yolobox...'
+        stage = 'connecting_yolobox'
         logRegular('connect yolobox')
         yoloboxClient = new YoloboxClient()
         await yoloboxClient.connect()
@@ -111,68 +111,68 @@ async function init() {
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
 
-    stage = 'Fetching Game Info'
+    stage = 'fetching_game_info'
 
     await fetchGameInfo()
 
-    stage = 'starting schedulers...'
+    stage = 'starting_schedulers'
     logRegular('initial schedulers')
     initialTimers()
     initialAlerts()
     initialSchedulers()
 
-    stage = 'initial macros...'
+    stage = 'initializing_macros'
     loadMacros()
 
-    stage = 'sending default wled colors...'
+    stage = 'sending_default_wled_colors'
     logRegular('activate configured wled lamps')
     await setLedColor()
 
-    stage = 'starting audio...'
+    stage = 'starting_audio'
     logRegular('load audio outputs')
     await initAudio()
 
-    stage = 'update system informations...'
+    stage = 'updating_system_information'
     logRegular("init system info")
     await updateSystemInfo()
 
-    stage = 'reading assets folder...'
+    stage = 'reading_assets_folder'
     readAssetFolder()
 
-    stage = 'starting watchers...'
+    stage = 'starting_watchers'
     watchConfig()
     initAssetWatcher()
 
-    stage = 'starting gpio...'
+    stage = 'starting_gpio'
     initGpio()
 
-    stage = 'starting neopixel...'
+    stage = 'starting_neopixel'
     await initNeopixels()
 
-    stage = 'starting tts...'
+    stage = 'starting_tts'
     await installPiper()
     await downloadVoice()
     await fetchVoices()
 
-    stage = 'update obs filters...'
+    stage = 'updating_obs_filters'
     await updateSourceFilters()
 
-    stage = 'starting auto macros...'
+    stage = 'starting_auto_macros'
     initAutoMacros()
 
-    stage = 'loading scene rotations...'
+    stage = 'loading_scene_rotations'
     loadRotateScenes()
 
-    stage = 'starting music player...'
+    stage = 'starting_music_player'
     loadMusicConfig()
     await startMusicPlayer()
 
-    stage = 'update event index...'
+    stage = 'updating_event_index'
     updateConfiguredEventIndex()
 
     logSuccess('backend is ready')
     ready = true
-    stage = 'Finished'
+    stage = 'finished'
 
     await obsClient?.reloadAllBrowserScenes()
 
