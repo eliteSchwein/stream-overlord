@@ -805,6 +805,9 @@ export async function directOllamaRequest(
             requestData = {
                 ...requestData,
                 think: false,
+                ...(isExternalOllamaEnabled()
+                    ? {keep_alive: -1}
+                    : {}),
             };
         }
 
@@ -956,7 +959,40 @@ export async function changeOllamaModel(
             throw new Error(`ollama model is not available on external server: ${normalizedModel}`);
         }
 
+        const previousModel = String(
+            getOllamaIntegration().model ?? "",
+        ).trim();
+
+        if (
+            previousModel &&
+            previousModel !== normalizedModel
+        ) {
+            logRegular(
+                `unload previous external ollama model ${previousModel}`,
+            );
+
+            await getOllamaApi().post(
+                "/api/generate",
+                {
+                    model: previousModel,
+                    keep_alive: 0,
+                },
+                {
+                    timeout: 30_000,
+                },
+            );
+        }
+
         setOllamaIntegrationModel(normalizedModel);
+
+        // External models are kept resident by directOllamaRequest() after
+        // their first chat/generate request. Changing the selected model
+        // explicitly unloads the previous one above, but does not preload the
+        // newly selected model.
+        runtimeState.running = true;
+        runtimeState.error = "";
+        emitOllamaUpdate();
+
         return getOllamaUpdate();
     }
 
