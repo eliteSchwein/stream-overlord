@@ -375,6 +375,7 @@ async function startOllamaInternal() {
 
     if (isExternalOllamaEnabled()) {
         await refreshExternalOllamaState();
+        await preloadConfiguredExternalOllamaModel();
         return;
     }
 
@@ -481,7 +482,54 @@ export async function startOllama() {
     return processTransition;
 }
 
+async function unloadConfiguredExternalOllamaModel() {
+    if (!isExternalOllamaEnabled()) return;
+
+    const model = String(
+        getOllamaIntegration().model ?? "",
+    ).trim();
+
+    if (!model) return;
+
+    logRegular(
+        `unload external ollama model ${model}`,
+    );
+
+    try {
+        await getOllamaApi().post(
+            "/api/generate",
+            {
+                model,
+                keep_alive: 0,
+            },
+            {
+                timeout: 30_000,
+            },
+        );
+
+        logSuccess(
+            `external ollama model ${model} is unloaded`,
+        );
+    } catch (error) {
+        const normalizedError =
+            normalizeAxiosError(error);
+
+        logWarn(
+            `failed to unload external ollama model ${model}: ${normalizedError.message}`,
+        );
+    }
+}
+
 async function stopOllamaInternal() {
+    if (isExternalOllamaEnabled()) {
+        await unloadConfiguredExternalOllamaModel();
+
+        runtimeState.running = false;
+        emitOllamaUpdate();
+
+        return;
+    }
+
     const child = ollamaProcess;
 
     if (!child) {
@@ -625,6 +673,7 @@ export async function restartOllama() {
 
     if (isExternalOllamaEnabled()) {
         await refreshExternalOllamaState();
+        await preloadConfiguredExternalOllamaModel();
         return getOllamaUpdate();
     }
 
@@ -646,6 +695,7 @@ export async function syncOllamaIntegration(
     if (isExternalOllamaEnabled()) {
         await stopOllama();
         await refreshExternalOllamaState();
+        await preloadConfiguredExternalOllamaModel();
         return getOllamaUpdate();
     }
 
@@ -672,6 +722,47 @@ export async function syncOllamaIntegration(
     }
 
     return getOllamaUpdate();
+}
+
+async function preloadConfiguredExternalOllamaModel() {
+    if (!isExternalOllamaEnabled()) return;
+
+    const model = String(
+        getOllamaIntegration().model ?? "",
+    ).trim();
+
+    if (!model) return;
+
+    if (
+        runtimeState.external_models.length > 0 &&
+        !runtimeState.external_models.includes(model)
+    ) {
+        logWarn(
+            `configured external ollama model is not available: ${model}`,
+        );
+        return;
+    }
+
+    logRegular(
+        `preload external ollama model ${model}`,
+    );
+
+    await getOllamaApi().post(
+        "/api/generate",
+        {
+            model,
+            prompt: "",
+            stream: false,
+            keep_alive: -1,
+        },
+        {
+            timeout: 0,
+        },
+    );
+
+    logSuccess(
+        `external ollama model ${model} is loaded`,
+    );
 }
 
 async function refreshExternalOllamaState() {
@@ -967,28 +1058,15 @@ export async function changeOllamaModel(
             previousModel &&
             previousModel !== normalizedModel
         ) {
-            logRegular(
-                `unload previous external ollama model ${previousModel}`,
-            );
-
-            await getOllamaApi().post(
-                "/api/generate",
-                {
-                    model: previousModel,
-                    keep_alive: 0,
-                },
-                {
-                    timeout: 30_000,
-                },
-            );
+            await unloadConfiguredExternalOllamaModel();
         }
 
         setOllamaIntegrationModel(normalizedModel);
 
-        // External models are kept resident by directOllamaRequest() after
-        // their first chat/generate request. Changing the selected model
-        // explicitly unloads the previous one above, but does not preload the
-        // newly selected model.
+        // Load the newly selected external model immediately and keep it
+        // resident so the first real request does not pay the cold-start cost.
+        await preloadConfiguredExternalOllamaModel();
+
         runtimeState.running = true;
         runtimeState.error = "";
         emitOllamaUpdate();
