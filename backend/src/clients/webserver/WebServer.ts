@@ -24,6 +24,16 @@ import AutoMacrosUploadApi from "./api/AutoMacro/AutoMacrosUploadApi";
 import RotateScenesUploadApi from "./api/RotatingScene/RotateScenesUploadApi";
 import AssetsMediaUploadApi from "./api/Assets/AssetsMediaUploadApi";
 import os from "os";
+import {
+    addFontUpload,
+    deleteFont,
+    fontsRoot,
+    getCompiledCustomCss,
+    getGeneratedFontCss,
+    listFontFiles,
+    readCustomStyle,
+    saveCustomStyle,
+} from "../../helper/OverlayStyleManagementHelper";
 
 export default class WebServer {
     app: Express;
@@ -69,6 +79,49 @@ export default class WebServer {
             express.static(path.join(overlayPath, "dist"))
         );
 
+        this.app.use(
+            "/fonts",
+            express.static(fontsRoot, {
+                etag: true,
+                maxAge: "1h",
+            })
+        );
+
+        this.app.get("/custom.css", async (_req, res) => {
+            try {
+                const css = await getCompiledCustomCss();
+                res.type("css");
+                res.setHeader("Cache-Control", "public, max-age=60");
+                res.send(css);
+            } catch (error) {
+                logWarn(
+                    `failed to compile custom stylesheet: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`
+                );
+                res.status(500).type("text").send(
+                    error instanceof Error ? error.message : "custom stylesheet compilation failed"
+                );
+            }
+        });
+
+        this.app.get("/fonts.css", (_req, res) => {
+            try {
+                res.type("css");
+                res.setHeader("Cache-Control", "public, max-age=60");
+                res.send(getGeneratedFontCss());
+            } catch (error) {
+                logWarn(
+                    `failed to generate font stylesheet: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`
+                );
+                res.status(500).type("text").send(
+                    error instanceof Error ? error.message : "font stylesheet generation failed"
+                );
+            }
+        });
+
         const htmlRoot = this.getHtmlRoot();
 
         setOverlayCacheRebuildHandler(async () => {
@@ -101,6 +154,116 @@ export default class WebServer {
         );
 
         this.app.use(bodyParser.json());
+
+        // Custom overlay CSS / SCSS
+        this.app.get("/overlay/custom-style", (_req, res) => {
+            res.json({
+                ...readCustomStyle(),
+                fonts: listFontFiles(),
+                generated_font_css: getGeneratedFontCss(),
+            });
+        });
+
+        this.app.post("/overlay/custom-style", async (req, res) => {
+            try {
+                const result = await saveCustomStyle(
+                    String(req.body?.content ?? ""),
+                    req.body?.mode === "scss" ? "scss" : "css",
+                );
+
+                res.json({
+                    status: "okay",
+                    ...result,
+                    fonts: listFontFiles(),
+                    generated_font_css: getGeneratedFontCss(),
+                });
+            } catch (error) {
+                res.status(400).json({
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        });
+
+        this.app.get("/overlay/custom-style/download", async (_req, res) => {
+            try {
+                const css = await getCompiledCustomCss();
+                res.setHeader("Content-Disposition", 'attachment; filename="custom.css"');
+                res.type("css").send(css);
+            } catch (error) {
+                res.status(400).json({
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        });
+
+        this.app.get("/overlay/fonts/download", (_req, res) => {
+            try {
+                res.setHeader("Content-Disposition", 'attachment; filename="fonts.css"');
+                res.type("css").send(getGeneratedFontCss());
+            } catch (error) {
+                res.status(400).json({
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        });
+
+        this.app.get("/overlay/fonts", (_req, res) => {
+            res.json({
+                files: listFontFiles(),
+                generated_css: getGeneratedFontCss(),
+            });
+        });
+
+        this.app.post(
+            "/overlay/fonts/upload",
+            express.raw({
+                type: "application/octet-stream",
+                limit: "100mb",
+            }),
+            async (req, res) => {
+                try {
+                    const fileName = decodeURIComponent(
+                        String(req.header("x-file-name") ?? "font.bin"),
+                    );
+                    const targetFolder = decodeURIComponent(
+                        String(req.header("x-target-folder") ?? ""),
+                    );
+
+                    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+                        throw new Error("empty font upload");
+                    }
+
+                    const added = await addFontUpload(fileName, req.body, targetFolder);
+
+                    res.json({
+                        status: "okay",
+                        added,
+                        files: listFontFiles(),
+                        generated_css: getGeneratedFontCss(),
+                    });
+                } catch (error) {
+                    res.status(400).json({
+                        error: error instanceof Error ? error.message : String(error),
+                    });
+                }
+            }
+        );
+
+        this.app.post("/overlay/fonts/delete", (req, res) => {
+            try {
+                deleteFont(String(req.body?.path ?? ""));
+
+                res.json({
+                    status: "okay",
+                    files: listFontFiles(),
+                    generated_css: getGeneratedFontCss(),
+                });
+            } catch (error) {
+                res.status(400).json({
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        });
 
         const commanderPath = "$HOME/.local/share/streambot/stream-overlord-admin"
             .replace("$HOME", os.homedir());
@@ -463,6 +626,18 @@ export default class WebServer {
         if (!/<link\b[^>]*\bhref=["']\/dist\/app\.css["'][^>]*>/i.test(html)) {
             requiredTags.push(
                 '<link rel="stylesheet" href="/dist/app.css">'
+            );
+        }
+
+        if (!/<link\b[^>]*\bhref=["']\/fonts\.css["'][^>]*>/i.test(html)) {
+            requiredTags.push(
+                '<link rel="stylesheet" href="/fonts.css">'
+            );
+        }
+
+        if (!/<link\b[^>]*\bhref=["']\/custom\.css["'][^>]*>/i.test(html)) {
+            requiredTags.push(
+                '<link rel="stylesheet" href="/custom.css">'
             );
         }
 

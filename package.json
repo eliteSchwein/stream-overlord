@@ -81,6 +81,7 @@
     "lottie-web": "^5.13.0",
     "multer": "^2.2.0",
     "redis": "^6.2.0",
+    "sass": "^1.103.1",
     "sharp": "^0.35.3",
     "systeminformation": "^5.33.1",
     "tesmart-api": "^1.0.0"
