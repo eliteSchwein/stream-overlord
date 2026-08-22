@@ -141,7 +141,35 @@ export default class TwitchMacroTask extends BaseMacroTask {
                     }
 
                     const clip = await api.clips.getClipById(clipId);
-                    storeResult(clip ?? {id: clipId});
+
+                    if (!clip) {
+                        storeResult({
+                            id: clipId,
+                            url: `https://clips.twitch.tv/${clipId}`,
+                        });
+                        break;
+                    }
+
+                    storeResult({
+                        id: clip.id,
+                        url: clip.url,
+                        embed_url: clip.embedUrl,
+                        title: clip.title,
+                        broadcaster_id: clip.broadcasterId,
+                        broadcaster_name: clip.broadcasterDisplayName,
+                        creator_id: clip.creatorId,
+                        creator_name: clip.creatorDisplayName,
+                        game_id: clip.gameId,
+                        language: clip.language,
+                        thumbnail_url: clip.thumbnailUrl,
+                        duration: clip.duration,
+                        views: clip.views,
+                        video_id: clip.videoId,
+                        vod_offset: clip.vodOffset,
+                        created_at: clip.creationDate,
+                        is_featured: clip.isFeatured,
+                    });
+
                     break;
                 }
 
