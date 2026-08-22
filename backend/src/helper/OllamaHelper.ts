@@ -747,22 +747,46 @@ async function preloadConfiguredExternalOllamaModel() {
         `preload external ollama model ${model}`,
     );
 
-    await getOllamaApi().post(
-        "/api/generate",
-        {
-            model,
-            prompt: "",
-            stream: false,
-            keep_alive: -1,
-        },
-        {
-            timeout: 0,
-        },
-    );
+    try {
+        await getOllamaApi().post(
+            "/api/generate",
+            {
+                model,
+                prompt: "",
+                stream: false,
+                keep_alive: -1,
+            },
+            {
+                timeout: 0,
+            },
+        );
 
-    logSuccess(
-        `external ollama model ${model} is loaded`,
-    );
+        runtimeState.running = true;
+        runtimeState.error = "";
+
+        logSuccess(
+            `external ollama model ${model} is loaded`,
+        );
+    } catch (error) {
+        const normalizedError =
+            normalizeAxiosError(error);
+
+        runtimeState.running = false;
+        runtimeState.error =
+            normalizedError.message;
+
+        logWarn(
+            `failed to preload external ollama model ${model}: ${normalizedError.message}`,
+        );
+
+        emitOllamaUpdate();
+
+        // External Ollama is optional. A connection failure must never
+        // propagate into startup/sync and terminate the bot process.
+        return;
+    }
+
+    emitOllamaUpdate();
 }
 
 async function refreshExternalOllamaState() {
