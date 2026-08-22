@@ -382,8 +382,10 @@ export default class WebServer {
         }
 
         const html = await fs.readFile(resolvedFile, "utf8");
+        const htmlWithRequiredHead = this.ensureRequiredHeadTags(html);
+
         const renderedHtml = await this.expandTemplateTags(
-            html,
+            htmlWithRequiredHead,
             path.dirname(resolvedFile),
             resolvedRoot,
             [...includeStack, resolvedFile]
@@ -442,6 +444,56 @@ export default class WebServer {
         return result;
     }
 
+
+    private ensureRequiredHeadTags(html: string): string {
+        const requiredTags: string[] = [];
+
+        if (!/<meta\b[^>]*\bname=["']viewport["'][^>]*>/i.test(html)) {
+            requiredTags.push(
+                '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            );
+        }
+
+        if (!/<script\b[^>]*\bsrc=["']\/dist\/app\.js["'][^>]*>/i.test(html)) {
+            requiredTags.push(
+                '<script type="module" src="/dist/app.js"></script>'
+            );
+        }
+
+        if (!/<link\b[^>]*\bhref=["']\/dist\/app\.css["'][^>]*>/i.test(html)) {
+            requiredTags.push(
+                '<link rel="stylesheet" href="/dist/app.css">'
+            );
+        }
+
+        if (!/<meta\b[^>]*\bcharset=["']?UTF-8["']?[^>]*>/i.test(html)) {
+            requiredTags.push(
+                '<meta charset="UTF-8">'
+            );
+        }
+
+        if (!requiredTags.length) {
+            return html;
+        }
+
+        const tags = requiredTags.join("\n    ");
+
+        if (/<head\b[^>]*>/i.test(html)) {
+            return html.replace(
+                /<head\b([^>]*)>/i,
+                `<head$1>\n    ${tags}`
+            );
+        }
+
+        if (/<html\b[^>]*>/i.test(html)) {
+            return html.replace(
+                /<html\b([^>]*)>/i,
+                `<html$1>\n<head>\n    ${tags}\n</head>`
+            );
+        }
+
+        return `<head>\n    ${tags}\n</head>\n${html}`;
+    }
 
     private stripHeadFromHtml(html: string): string {
         return html
