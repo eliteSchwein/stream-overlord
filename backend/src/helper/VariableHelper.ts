@@ -93,8 +93,20 @@ export async function getVariables() {
     return variables;
 }
 
+export async function getVariablesUpdatePayload() {
+    const [variables, staticVariables] = await Promise.all([
+        getVariables(),
+        readStaticVariables(),
+    ]);
+
+    return {
+        values: variables,
+        persistent_keys: Object.keys(staticVariables).sort(),
+    };
+}
+
 export async function emitVariablesUpdate(client: WebSocket|undefined = undefined) {
-    getWebsocketServer().send('notify_variables_update', await getVariables(), client);
+    getWebsocketServer().send('notify_variables_update', await getVariablesUpdatePayload(), client);
 }
 
 export async function getVariable(key: string) {
@@ -122,13 +134,13 @@ export async function setVariable(key: string, value: any, toFile: boolean = fal
         await redis.setVariable(getRedisKey(key), JSON.stringify(value));
     }
 
+    if (toFile) {
+        const variables = await readStaticVariables();
+        variables[key] = value;
+        await writeStaticVariables(variables);
+    }
+
     void emitVariablesUpdate();
-
-    if (!toFile) return;
-
-    const variables = await readStaticVariables();
-    variables[key] = value;
-    await writeStaticVariables(variables);
 }
 
 export async function deleteVariable(key: string, fromFile: boolean = false) {
@@ -138,11 +150,13 @@ export async function deleteVariable(key: string, fromFile: boolean = false) {
         await redis.deleteVariable(getRedisKey(key));
     }
 
-    if (!fromFile) return;
+    if (fromFile) {
+        const variables = await readStaticVariables();
+        delete variables[key];
+        await writeStaticVariables(variables);
+    }
 
-    const variables = await readStaticVariables();
-    delete variables[key];
-    await writeStaticVariables(variables);
+    void emitVariablesUpdate();
 }
 
 export async function listVariables(): Promise<string[]> {
