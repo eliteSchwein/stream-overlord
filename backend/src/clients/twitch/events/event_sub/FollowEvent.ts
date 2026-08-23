@@ -11,6 +11,13 @@ export default class FollowEvent extends BaseEvent {
     configName = "event_twitch_follow"
     eventTypes = []
 
+
+    simulationFields = [
+        { name: 'userId', type: 'text' as const, localeKey: 'events.simulation.fields.userId', default: '987654321', required: true },
+        { name: 'userDisplayName', type: 'text' as const, localeKey: 'events.simulation.fields.userDisplayName', default: 'TestFollower', required: true },
+        { name: 'followDate', type: 'text' as const, localeKey: 'events.simulation.fields.followDate', default: '2026-08-23T20:15:00.000Z', required: true },
+    ]
+
     async handleRegister() {
         const primaryChannel = getPrimaryChannel()
 

@@ -47,6 +47,7 @@ import StreamOfflineEvent from "./events/event_sub/StreamOfflineEvent";
 import StreamOnlineEvent from "./events/event_sub/StreamOnlineEvent";
 import UserUpdateEvent from "./events/event_sub/UserUpdateEvent";
 import {updateTwitchData} from "../../helper/TwitchDataHelper";
+import {clearCommunitySubGiftState} from "../../helper/CommunitySubGiftHelper";
 
 type TwitchMessageColor = "blue" | "green" | "orange" | "purple" | "primary";
 
@@ -280,6 +281,7 @@ export default class TwitchClient {
 
     public async connect() {
         const generation = ++this.connectGeneration;
+        clearCommunitySubGiftState();
 
         if (this.bot?.chat) {
             logRegular("disconnect twitch");
@@ -514,6 +516,7 @@ export default class TwitchClient {
 
     public async reloadCommands() {
         logRegular("reload twitch command section");
+        clearCommunitySubGiftState();
 
         if (!this.bot || !this.controlAuthProvider || !this.twitchConfig) {
             logWarn("cannot reload twitch commands without an active control bot");

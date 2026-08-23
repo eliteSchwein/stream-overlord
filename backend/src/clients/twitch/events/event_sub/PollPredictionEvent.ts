@@ -5,12 +5,66 @@ import {
     EventSubChannelPredictionBeginEvent,
     EventSubChannelPredictionEndEvent
 } from "@twurple/eventsub-base";
-import {registerEventEntries} from "../../../../helper/EventHelper";
+import type {EventSimulationField} from "../../../../helper/EventHelper";
 import {setVariable} from "../../../../helper/VariableHelper";
 
 export default class PollPredictionEvent extends BaseEvent {
     name = 'PollPredictionEvent'
     eventTypes = ['onChannelPollBegin', 'onChannelPollEnd', 'onChannelPredictionBegin', 'onChannelPredictionEnd']
+
+    private pollBeginSimulationFields: EventSimulationField[] = [
+        { name: 'id', type: 'text' as const, localeKey: 'events.simulation.fields.pollId', default: 'poll-test', required: true },
+        { name: 'title', type: 'text' as const, localeKey: 'events.simulation.fields.title', default: 'What should we play?', required: true },
+        { name: 'choices', type: 'textarea' as const, localeKey: 'events.simulation.fields.choices', default: '[{"id":"choice-1","title":"Game A","bitsVotes":0,"channelPointsVotes":0,"votes":10},{"id":"choice-2","title":"Game B","bitsVotes":0,"channelPointsVotes":0,"votes":5}]', json: true, required: true },
+        { name: 'isBitsVotingEnabled', type: 'boolean' as const, localeKey: 'events.simulation.fields.isBitsVotingEnabled', default: false },
+        { name: 'bitsPerVote', type: 'number' as const, localeKey: 'events.simulation.fields.bitsPerVote', default: 0, min: 0, step: 1 },
+        { name: 'isChannelPointsVotingEnabled', type: 'boolean' as const, localeKey: 'events.simulation.fields.isChannelPointsVotingEnabled', default: false },
+        { name: 'channelPointsPerVote', type: 'number' as const, localeKey: 'events.simulation.fields.channelPointsPerVote', default: 0, min: 0, step: 1 },
+        { name: 'startDate', type: 'text' as const, localeKey: 'events.simulation.fields.startDate', default: '2026-08-23T20:00:00.000Z', required: true },
+        { name: 'endDate', type: 'text' as const, localeKey: 'events.simulation.fields.endDate', default: '2026-08-23T20:05:00.000Z', required: true },
+    ]
+
+    private pollEndSimulationFields: EventSimulationField[] = [
+        ...this.pollBeginSimulationFields,
+        { name: 'status', type: 'text' as const, localeKey: 'events.simulation.fields.status', default: 'completed', required: true },
+    ]
+
+    private predictionBeginSimulationFields: EventSimulationField[] = [
+        { name: 'id', type: 'text' as const, localeKey: 'events.simulation.fields.predictionId', default: 'prediction-test', required: true },
+        { name: 'title', type: 'text' as const, localeKey: 'events.simulation.fields.title', default: 'Will we win?', required: true },
+        { name: 'outcomes', type: 'textarea' as const, localeKey: 'events.simulation.fields.outcomes', default: '[{"id":"outcome-1","title":"Yes","color":"blue","users":10,"channelPoints":5000,"topPredictors":[]},{"id":"outcome-2","title":"No","color":"pink","users":5,"channelPoints":2500,"topPredictors":[]}]', json: true, required: true },
+        { name: 'startDate', type: 'text' as const, localeKey: 'events.simulation.fields.startDate', default: '2026-08-23T20:00:00.000Z', required: true },
+        { name: 'lockDate', type: 'text' as const, localeKey: 'events.simulation.fields.lockDate', default: '2026-08-23T20:02:00.000Z', required: true },
+    ]
+
+    private predictionEndSimulationFields: EventSimulationField[] = [
+        { name: 'id', type: 'text' as const, localeKey: 'events.simulation.fields.predictionId', default: 'prediction-test', required: true },
+        { name: 'title', type: 'text' as const, localeKey: 'events.simulation.fields.title', default: 'Will we win?', required: true },
+        { name: 'outcomes', type: 'textarea' as const, localeKey: 'events.simulation.fields.outcomes', default: '[{"id":"outcome-1","title":"Yes","color":"blue","users":10,"channelPoints":5000,"topPredictors":[]},{"id":"outcome-2","title":"No","color":"pink","users":5,"channelPoints":2500,"topPredictors":[]}]', json: true, required: true },
+        { name: 'startDate', type: 'text' as const, localeKey: 'events.simulation.fields.startDate', default: '2026-08-23T20:00:00.000Z', required: true },
+        { name: 'endDate', type: 'text' as const, localeKey: 'events.simulation.fields.endDate', default: '2026-08-23T20:10:00.000Z', required: true },
+        { name: 'status', type: 'text' as const, localeKey: 'events.simulation.fields.status', default: 'resolved', required: true },
+        { name: 'winningOutcomeId', type: 'text' as const, localeKey: 'events.simulation.fields.winningOutcomeId', default: 'outcome-1' },
+        { name: 'winningOutcome', type: 'textarea' as const, localeKey: 'events.simulation.fields.winningOutcome', default: '{"id":"outcome-1","title":"Yes","color":"blue","users":10,"channelPoints":5000,"topPredictors":[]}', json: true },
+    ]
+
+    protected getSimulationFields(configName: string): EventSimulationField[] {
+        switch (configName) {
+            case 'event_twitch_poll_begin':
+                return this.pollBeginSimulationFields
+            case 'event_twitch_poll_completed':
+            case 'event_twitch_poll_terminated':
+                return this.pollEndSimulationFields
+            case 'event_twitch_prediction_completed':
+                return this.predictionBeginSimulationFields
+            case 'event_twitch_prediction_resolved':
+            case 'event_twitch_prediction_canceled':
+            case 'event_twitch_prediction_finished':
+                return this.predictionEndSimulationFields
+            default:
+                return []
+        }
+    }
 
     private getHighestChoice(choices: any[] | null | undefined) {
         if (!choices?.length) {
@@ -77,7 +131,7 @@ export default class PollPredictionEvent extends BaseEvent {
     }
 
     async handleRegister() {
-        registerEventEntries([
+        for (const configName of [
             "event_twitch_poll_begin",
             "event_twitch_poll_completed",
             "event_twitch_poll_terminated",
@@ -85,7 +139,9 @@ export default class PollPredictionEvent extends BaseEvent {
             "event_twitch_prediction_resolved",
             "event_twitch_prediction_canceled",
             "event_twitch_prediction_finished"
-        ])
+        ]) {
+            this.registerConfigEvent(configName)
+        }
     }
 
     async handle(event: any) {

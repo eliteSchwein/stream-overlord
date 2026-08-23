@@ -10,6 +10,14 @@ export default class PredictionProgressEvent extends BaseEvent {
     configName = 'event_twitch_prediction_progress'
     eventTypes = []
 
+    simulationFields = [
+        { name: 'id', type: 'text' as const, localeKey: 'events.simulation.fields.predictionId', default: 'prediction-test', required: true },
+        { name: 'title', type: 'text' as const, localeKey: 'events.simulation.fields.title', default: 'Will we win?', required: true },
+        { name: 'outcomes', type: 'textarea' as const, localeKey: 'events.simulation.fields.outcomes', default: '[{"id":"outcome-1","title":"Yes","color":"blue","users":10,"channelPoints":5000,"topPredictors":[]},{"id":"outcome-2","title":"No","color":"pink","users":5,"channelPoints":2500,"topPredictors":[]}]', json: true, required: true },
+        { name: 'startDate', type: 'text' as const, localeKey: 'events.simulation.fields.startDate', default: '2026-08-23T20:00:00.000Z', required: true },
+        { name: 'lockDate', type: 'text' as const, localeKey: 'events.simulation.fields.lockDate', default: '2026-08-23T20:02:00.000Z', required: true },
+    ]
+
     async handleRegister() {
         const primaryChannel = getPrimaryChannel()
 

@@ -10,6 +10,14 @@ export default class ChannelCharityDonationEvent extends BaseEvent {
     configName = 'event_twitch_charity_donation'
     eventTypes = []
 
+    simulationFields = [
+        { name: 'id', type: 'text' as const, localeKey: 'events.simulation.fields.donationId', default: 'charity-donation-test', required: true },
+        { name: 'campaignId', type: 'text' as const, localeKey: 'events.simulation.fields.campaignId', default: 'charity-campaign-test', required: true },
+        { name: 'userId', type: 'text' as const, localeKey: 'events.simulation.fields.userId', default: '987654321', required: true },
+        { name: 'userDisplayName', type: 'text' as const, localeKey: 'events.simulation.fields.userDisplayName', default: 'TestDonor', required: true },
+        { name: 'amount', type: 'textarea' as const, localeKey: 'events.simulation.fields.amount', default: '{"value":500,"decimalPlaces":2,"currency":"EUR"}', json: true, required: true },
+    ]
+
     async handleRegister() {
         const primaryChannel = getPrimaryChannel()
 

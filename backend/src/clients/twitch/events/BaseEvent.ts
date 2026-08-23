@@ -13,7 +13,7 @@ import {sleep} from "../../../../../helper/GeneralHelper";
 import {interpolateTemplate, isMacroPresent, triggerMacro} from "../../../helper/MacroHelper";
 import {getAssetConfig, isAssetConfigPresent} from "../../../helper/AssetHelper";
 import {addAlert} from "../../../helper/AlertHelper";
-import {registerEventEntry} from "../../../helper/EventHelper";
+import {EventSimulationField, registerEventEntry} from "../../../helper/EventHelper";
 import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 
 export default class BaseEvent {
@@ -26,6 +26,7 @@ export default class BaseEvent {
     eventCooldown = 5;
     eventUuid: string;
     configName: string | undefined = undefined;
+    simulationFields: EventSimulationField[] = [];
 
     public constructor(bot: Bot, twitchClient?: TwitchClient) {
         this.bot = bot;
@@ -46,13 +47,17 @@ export default class BaseEvent {
 
     registerConfigEvent(configName: string | undefined = undefined) {
         if (configName) {
-            registerEventEntry(configName);
+            registerEventEntry(configName, this.getSimulationFields(configName));
             return;
         }
 
         if (!this.configName) return;
 
-        registerEventEntry(this.configName);
+        registerEventEntry(this.configName, this.getSimulationFields(this.configName));
+    }
+
+    protected getSimulationFields(_configName: string): EventSimulationField[] {
+        return this.simulationFields;
     }
 
     protected async announce(message: string, color: string = "primary") {

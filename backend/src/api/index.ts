@@ -43,6 +43,7 @@ export { default as WebRequestApi } from "./Common/WebRequestApi";
 export { default as ConnectionAuthApi } from "./Connection/ConnectionAuthApi";
 export { default as GetEffectApi } from "./Effect/GetEffectApi";
 export { default as EventListApi } from "./Events/EventListApi";
+export { default as EventSimulateApi } from "./Events/EventSimulateApi";
 export { default as AllGamesApi } from "./Games/AllGamesApi";
 export { default as CurrentGameApi } from "./Games/CurrentGameApi";
 export { default as SetGameApi } from "./Games/SetGameApi";

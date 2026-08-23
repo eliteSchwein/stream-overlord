@@ -15,7 +15,7 @@ import {sleep} from "../../../../../../helper/GeneralHelper";
 import {interpolateTemplate, isMacroPresent, triggerMacro} from "../../../../helper/MacroHelper";
 import {getAssetConfig, isAssetConfigPresent} from "../../../../helper/AssetHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
-import {registerEventEntry} from "../../../../helper/EventHelper";
+import {EventSimulationField, registerEventEntry} from "../../../../helper/EventHelper";
 
 export default class BaseEvent {
     eventSubWs: EventSubWsListener;
@@ -28,6 +28,7 @@ export default class BaseEvent {
     eventCooldown = 5;
     eventUuid: string | undefined = undefined;
     configName: string | undefined = undefined;
+    simulationFields: EventSimulationField[] = [];
 
     public constructor(eventSubWs: EventSubWsListener, bot: Bot, twitchClient?: TwitchClient) {
         this.eventSubWs = eventSubWs;
@@ -46,7 +47,7 @@ export default class BaseEvent {
             this.eventSubWs[eventType](primaryChannel.id, (event: any) => this.handleEvent(event));
         }
 
-        void this.handleRegister();
+        await this.handleRegister();
 
         this.registerConfigEvent();
     }
@@ -55,13 +56,17 @@ export default class BaseEvent {
 
     registerConfigEvent(configName: string | undefined = undefined) {
         if (configName) {
-            registerEventEntry(configName);
+            registerEventEntry(configName, this.getSimulationFields(configName));
             return;
         }
 
         if (!this.configName) return;
 
-        registerEventEntry(this.configName);
+        registerEventEntry(this.configName, this.getSimulationFields(this.configName));
+    }
+
+    protected getSimulationFields(_configName: string): EventSimulationField[] {
+        return this.simulationFields;
     }
 
     protected async announce(message: string, color: string = "primary") {
