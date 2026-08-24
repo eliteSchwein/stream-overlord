@@ -1,4 +1,4 @@
-import {execFile} from "child_process";
+import {execFile, spawn} from "child_process";
 import {existsSync, readFileSync, writeFileSync} from "fs";
 import path from "path";
 import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
@@ -19,29 +19,35 @@ let audioOutputsLastRefresh = 0;
 let audioOutputsRefreshPromise: Promise<void> | null = null;
 let sendAudioUpdatePromise: Promise<void> | null = null;
 let sendAudioUpdatePending = false;
+let audioSubscriptionProcess: ReturnType<typeof spawn> | null = null;
+let audioSubscriptionBuffer = "";
+let audioSubscriptionRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let audioSubscriptionRestartTimer: ReturnType<typeof setTimeout> | null = null;
 
 const audioOutputsRefreshIntervalMs = 2000;
+const audioSubscriptionDebounceMs = 75;
+const audioSubscriptionRestartDelayMs = 1000;
 
 const defaultAudioConfig: Record<string, any> = {
     alert: {
         default_volume: 0.8,
         min_range: 0,
         max_range: 1,
-        steps_range: 0.05,
+        steps_range: 0.01,
         pipewire_sink: true,
     },
     tts: {
         default_volume: 0.12,
         min_range: 0,
         max_range: 1,
-        steps_range: 0.05,
+        steps_range: 0.01,
         pipewire_sink: true,
     },
     music: {
         default_volume: 0.25,
         min_range: 0,
         max_range: 1,
-        steps_range: 0.005,
+        steps_range: 0.01,
         pipewire_sink: true,
     },
 };
@@ -137,6 +143,7 @@ export async function initAudio() {
     saveAudioVolumes();
     await sendAudioUpdate();
     notifyAudioPresetsUpdate();
+    startAudioSystemSubscription();
 }
 
 async function initializePipewireAudioSink(
@@ -569,16 +576,25 @@ function applyAudioVolumeState(audioInterface: string, volume: number) {
     if (!currentAudioData) return;
 
     const safeVolume = normalizeVolume(volume);
+    const wasMuted = currentAudioData.muted === true;
+    const previousVolume = Number(currentAudioData.current_volume ?? 0);
 
     if (safeVolume === 0) {
-        logRegular(`mute ${audioInterface}`);
+        if (!wasMuted) {
+            logRegular(`mute ${audioInterface}`);
+        }
+
         currentAudioData.muted = true;
 
-        if (!currentAudioData.current_volume) {
+        // Keep the last useful volume while muted so unmute can restore it.
+        if (!Number.isFinite(previousVolume)) {
             currentAudioData.current_volume = Number(currentAudioData.min_range ?? 0);
         }
     } else {
-        logRegular(`set volume for ${audioInterface} to ${safeVolume}`);
+        if (wasMuted || !volumesEqual(previousVolume, safeVolume)) {
+            logRegular(`set volume for ${audioInterface} to ${safeVolume}`);
+        }
+
         currentAudioData.current_volume = safeVolume;
         currentAudioData.muted = false;
     }
@@ -592,6 +608,33 @@ function normalizeVolume(volume: number): number {
     if (!Number.isFinite(parsed)) return 0;
 
     return Math.max(0, Math.min(1, parsed));
+}
+
+function normalizeVolumeForInterface(audioInterface: string, volume: number): number {
+    const currentAudioData = audioData[audioInterface] ?? {};
+    const min = Number(currentAudioData.min_range ?? 0);
+    const max = Number(currentAudioData.max_range ?? 1);
+    const step = Number(currentAudioData.steps_range ?? 0.01);
+
+    const safeMin = Number.isFinite(min) ? min : 0;
+    const safeMax = Number.isFinite(max) ? max : 1;
+    const clamped = Math.max(safeMin, Math.min(safeMax, normalizeVolume(volume)));
+
+    if (!Number.isFinite(step) || step <= 0) {
+        return clamped;
+    }
+
+    const stepped = safeMin + Math.round((clamped - safeMin) / step) * step;
+
+    // Avoid normal floating point artifacts such as 0.7500000000000001.
+    return Math.max(
+        safeMin,
+        Math.min(safeMax, Number(stepped.toFixed(6))),
+    );
+}
+
+function volumesEqual(left: number, right: number): boolean {
+    return Math.abs(Number(left) - Number(right)) < 0.000001;
 }
 
 function loadSavedAudioVolumes() {
@@ -628,6 +671,105 @@ function saveAudioVolumes() {
         logWarn("saving audio volumes failed:");
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
+}
+
+
+function startAudioSystemSubscription() {
+    if (audioSubscriptionProcess && !audioSubscriptionProcess.killed) {
+        return;
+    }
+
+    if (audioSubscriptionRestartTimer) {
+        clearTimeout(audioSubscriptionRestartTimer);
+        audioSubscriptionRestartTimer = null;
+    }
+
+    audioSubscriptionBuffer = "";
+
+    const subscription = spawn("pactl", ["subscribe"], {
+        stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    audioSubscriptionProcess = subscription;
+
+    subscription.stdout.on("data", chunk => {
+        audioSubscriptionBuffer += chunk.toString();
+
+        const lines = audioSubscriptionBuffer.split(/\r?\n/);
+        audioSubscriptionBuffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+            handleAudioSystemSubscriptionEvent(line);
+        }
+    });
+
+    subscription.stderr.on("data", chunk => {
+        const message = chunk.toString().trim();
+        if (message) {
+            logWarn(`pactl subscribe: ${message}`);
+        }
+    });
+
+    subscription.on("error", error => {
+        logWarn("starting pactl audio subscription failed:");
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    });
+
+    subscription.on("close", () => {
+        if (audioSubscriptionProcess === subscription) {
+            audioSubscriptionProcess = null;
+        }
+
+        scheduleAudioSystemSubscriptionRestart();
+    });
+}
+
+function handleAudioSystemSubscriptionEvent(line: string) {
+    const event = line.trim();
+
+    if (!event) return;
+
+    // sink:
+    //   Physical output volume/mute/default-output changes.
+    //
+    // sink-input:
+    //   Volume/mute changes of the streambot loopbacks.
+    //
+    // server:
+    //   Default sink changes.
+    if (
+        !/\bon sink #/i.test(event) &&
+        !/\bon sink-input #/i.test(event) &&
+        !/\bon server\b/i.test(event)
+    ) {
+        return;
+    }
+
+    scheduleAudioSystemRefresh();
+}
+
+function scheduleAudioSystemRefresh() {
+    if (audioSubscriptionRefreshTimer) {
+        clearTimeout(audioSubscriptionRefreshTimer);
+    }
+
+    audioSubscriptionRefreshTimer = setTimeout(() => {
+        audioSubscriptionRefreshTimer = null;
+
+        // Force physical-output enumeration because the normal refresh has a
+        // short cache. This makes pulsemixer/media-key changes visible in the
+        // websocket state immediately.
+        void sendAudioUpdate(true);
+    }, audioSubscriptionDebounceMs);
+}
+
+function scheduleAudioSystemSubscriptionRestart() {
+    if (audioSubscriptionRestartTimer) return;
+
+    audioSubscriptionRestartTimer = setTimeout(() => {
+        audioSubscriptionRestartTimer = null;
+        startAudioSystemSubscription();
+    }, audioSubscriptionRestartDelayMs);
 }
 
 export async function sendAudioUpdate(forceAudioOutputs = false) {
@@ -669,15 +811,37 @@ async function refreshPipewireSinkVolumes() {
         Object.keys(audioData).map(async key => {
             if (!isEnabled(audioData[key].pipewire_sink)) return;
 
-            const volume = await getPipewireSinkOutputVolume(key);
-            if (volume === null) return;
+            const rawVolume = await getPipewireSinkOutputVolume(key);
+            if (rawVolume === null) return;
 
-            const currentVolume = Number(audioData[key].current_volume);
-            const currentMuted = audioData[key].muted === true;
-            const nextMuted = volume === 0;
+            const currentAudioData = audioData[key];
+            const currentVolume = Number(currentAudioData.current_volume ?? 0);
+            const currentMuted = currentAudioData.muted === true;
+            const nextMuted = rawVolume <= 0;
 
-            if (currentVolume !== volume || currentMuted !== nextMuted) {
-                applyAudioVolumeState(key, volume);
+            // A muted interface intentionally keeps its previous non-zero
+            // current_volume so unmute can restore it. Therefore a PipeWire
+            // readback of 0 while already muted is NOT a volume change.
+            if (nextMuted) {
+                if (!currentMuted) {
+                    applyAudioVolumeState(key, 0);
+                    changed = true;
+                }
+
+                return;
+            }
+
+            const steppedVolume = normalizeVolumeForInterface(key, rawVolume);
+
+            // External tools such as pulsemixer/media keys can write arbitrary
+            // percentages. Keep the actual PipeWire value on the configured
+            // slider grid as well, e.g. 0.77 -> 0.75 for a 0.05 step.
+            if (!volumesEqual(rawVolume, steppedVolume)) {
+                await setPipewireSinkOutputVolume(key, steppedVolume);
+            }
+
+            if (currentMuted || !volumesEqual(currentVolume, steppedVolume)) {
+                applyAudioVolumeState(key, steppedVolume);
                 changed = true;
             }
         })
