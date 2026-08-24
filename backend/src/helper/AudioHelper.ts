@@ -56,6 +56,9 @@ const pipewireLoopbackModuleIds: Record<string, string[]> = {};
 const pipewireLoopbackSinkInputIds: Record<string, string[]> = {};
 const pipewireSetupPromises: Record<string, Promise<void> | undefined> = {};
 const audioVolumeWriteGeneration: Record<string, number> = {};
+const audioVolumeWritePending: Record<string, number> = {};
+let audioSystemRefreshPromise: Promise<void> | null = null;
+let audioSystemRefreshPending = false;
 
 type PipewireLoopbackModule = {
     moduleId: string;
@@ -185,13 +188,14 @@ export async function setVolume(
 
     const previousVolume = Number(currentAudioData.current_volume ?? 0);
     const previousMuted = currentAudioData.muted === true;
-    const safeVolume = normalizeVolume(volume);
+    const safeVolume = normalizeVolumeForInterface(audioInterface, volume);
     const generation = (audioVolumeWriteGeneration[audioInterface] ?? 0) + 1;
 
     audioVolumeWriteGeneration[audioInterface] = generation;
+    audioVolumeWritePending[audioInterface] = generation;
 
-    // Update the in-memory state immediately. The UI should follow the user's
-    // slider, not a slower pactl readback from an older request.
+    // Update the in-memory state immediately. While this generation is being
+    // written to PipeWire, subscription readback is not allowed to overwrite it.
     applyAudioVolumeState(audioInterface, safeVolume);
 
     if (saveUpdate) {
@@ -202,14 +206,20 @@ export async function setVolume(
         getWebsocketServer().send("notify_audio_update", audioData);
     }
 
-    if (isEnabled(currentAudioData.pipewire_sink)) {
-        await setPipewireSinkOutputVolume(audioInterface, safeVolume);
-    } else if (currentAudioData.command) {
-        try {
-            await execute(`${currentAudioData.command} ${safeVolume}`);
-        } catch (error) {
-            logWarn(`setting volume for ${audioInterface} failed:`);
-            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    try {
+        if (isEnabled(currentAudioData.pipewire_sink)) {
+            await setPipewireSinkOutputVolume(audioInterface, safeVolume);
+        } else if (currentAudioData.command) {
+            try {
+                await execute(`${currentAudioData.command} ${safeVolume}`);
+            } catch (error) {
+                logWarn(`setting volume for ${audioInterface} failed:`);
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
+    } finally {
+        if (audioVolumeWritePending[audioInterface] === generation) {
+            delete audioVolumeWritePending[audioInterface];
         }
     }
 
@@ -755,12 +765,42 @@ function scheduleAudioSystemRefresh() {
 
     audioSubscriptionRefreshTimer = setTimeout(() => {
         audioSubscriptionRefreshTimer = null;
-
-        // Force physical-output enumeration because the normal refresh has a
-        // short cache. This makes pulsemixer/media-key changes visible in the
-        // websocket state immediately.
-        void sendAudioUpdate(true);
+        void sendChangedAudioSystemUpdate();
     }, audioSubscriptionDebounceMs);
+}
+
+async function sendChangedAudioSystemUpdate() {
+    if (audioSystemRefreshPromise) {
+        audioSystemRefreshPending = true;
+        return audioSystemRefreshPromise;
+    }
+
+    audioSystemRefreshPromise = (async () => {
+        const previousOutputs = JSON.stringify(audioOutputs);
+        const audioChanged = await refreshPipewireSinkVolumes();
+
+        await refreshAudioOutputs(true);
+
+        if (audioChanged) {
+            await updateMusicVolumeFromAudio(audioData);
+            getWebsocketServer().send("notify_audio_update", audioData);
+        }
+
+        if (JSON.stringify(audioOutputs) !== previousOutputs) {
+            getWebsocketServer().send("notify_audio_outputs_update", audioOutputs);
+        }
+    })();
+
+    try {
+        await audioSystemRefreshPromise;
+    } finally {
+        audioSystemRefreshPromise = null;
+
+        if (audioSystemRefreshPending) {
+            audioSystemRefreshPending = false;
+            void sendChangedAudioSystemUpdate();
+        }
+    }
 }
 
 function scheduleAudioSystemSubscriptionRestart() {
@@ -804,24 +844,30 @@ async function runAudioUpdate(forceAudioOutputs = false) {
     getWebsocketServer().send("notify_audio_outputs_update", audioOutputs);
 }
 
-async function refreshPipewireSinkVolumes() {
+async function refreshPipewireSinkVolumes(): Promise<boolean> {
     let changed = false;
 
     await Promise.all(
         Object.keys(audioData).map(async key => {
             if (!isEnabled(audioData[key].pipewire_sink)) return;
 
+            // setVolume() is authoritative while its pactl commands are still
+            // running. Reading during that window can return the previous
+            // PipeWire value and make the UI jump backwards.
+            if (audioVolumeWritePending[key] !== undefined) return;
+
             const rawVolume = await getPipewireSinkOutputVolume(key);
             if (rawVolume === null) return;
+
+            // A write may have started while pactl was being queried.
+            if (audioVolumeWritePending[key] !== undefined) return;
 
             const currentAudioData = audioData[key];
             const currentVolume = Number(currentAudioData.current_volume ?? 0);
             const currentMuted = currentAudioData.muted === true;
             const nextMuted = rawVolume <= 0;
 
-            // A muted interface intentionally keeps its previous non-zero
-            // current_volume so unmute can restore it. Therefore a PipeWire
-            // readback of 0 while already muted is NOT a volume change.
+            // Muted interfaces retain their previous non-zero current_volume.
             if (nextMuted) {
                 if (!currentMuted) {
                     applyAudioVolumeState(key, 0);
@@ -833,13 +879,9 @@ async function refreshPipewireSinkVolumes() {
 
             const steppedVolume = normalizeVolumeForInterface(key, rawVolume);
 
-            // External tools such as pulsemixer/media keys can write arbitrary
-            // percentages. Keep the actual PipeWire value on the configured
-            // slider grid as well, e.g. 0.77 -> 0.75 for a 0.05 step.
-            if (!volumesEqual(rawVolume, steppedVolume)) {
-                await setPipewireSinkOutputVolume(key, steppedVolume);
-            }
-
+            // Do not write the snapped value back here. An external volume
+            // change should produce one state update, not another pactl event
+            // that feeds straight back into the subscription.
             if (currentMuted || !volumesEqual(currentVolume, steppedVolume)) {
                 applyAudioVolumeState(key, steppedVolume);
                 changed = true;
@@ -850,6 +892,8 @@ async function refreshPipewireSinkVolumes() {
     if (changed) {
         saveAudioVolumes();
     }
+
+    return changed;
 }
 
 async function refreshAudioOutputs(force = false) {
