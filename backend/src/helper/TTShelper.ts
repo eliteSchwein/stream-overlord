@@ -2,7 +2,7 @@ import {getTtsSettings} from "./ConfigHelper"
 import {executeProcess} from "./CommandHelper"
 import {logDebug, logNotice, logSuccess, logWarn} from "./LogHelper"
 import {getAudioData, getStreambotSinkName} from "./AudioHelper"
-import {createWriteStream, existsSync, mkdirSync, rmSync} from "node:fs"
+import {createWriteStream, existsSync, mkdirSync, readdirSync, rmSync} from "node:fs"
 import {execFileSync, spawn} from "node:child_process"
 import {promisify} from "node:util"
 import * as stream from "node:stream"
@@ -251,6 +251,47 @@ export async function downloadVoice(locale?: string) {
 
 export const downloadVoices = downloadVoice
 
+export async function pruneUnconfiguredVoices() {
+    const modelsDirectory = getModelsDirectory()
+    if (!existsSync(modelsDirectory)) return
+
+    const configuredModels = new Set(
+        Object.values(getConfiguredTtsVoices())
+            .map((voice) => path.basename(String(voice)).replace(/\.onnx$/i, ""))
+            .filter(Boolean),
+    )
+
+    let storageChanged = false
+
+    for (const file of readdirSync(modelsDirectory)) {
+        let modelName: string | undefined
+
+        if (/\.onnx\.json$/i.test(file)) {
+            modelName = file.replace(/\.onnx\.json$/i, "")
+        } else if (/\.onnx$/i.test(file)) {
+            modelName = file.replace(/\.onnx$/i, "")
+        } else {
+            continue
+        }
+
+        if (configuredModels.has(modelName)) continue
+
+        rmSync(path.join(modelsDirectory, file), {force: true})
+        storageChanged = true
+        logNotice(`removed unused TTS model file: ${file}`)
+    }
+
+    if (storageChanged) await emitStorageUpdate()
+}
+
+export async function syncConfiguredVoices() {
+    if (!(getTtsSettings() as any)?.enabled) return
+    if (!isTtsInstalled()) return
+
+    await pruneUnconfiguredVoices()
+    await downloadVoice()
+}
+
 export function getVoices(): Record<string, string[]> {
     return voices
 }
@@ -328,7 +369,7 @@ export async function syncTtsSettings(forceInstall = false) {
 
         const wasInstalled = isTtsInstalled()
         await installTts(forceInstall || !wasInstalled)
-        await downloadVoice()
+        await syncConfiguredVoices()
     })().finally(() => {
         syncPromise = null
     })

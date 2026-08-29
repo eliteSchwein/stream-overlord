@@ -158,12 +158,12 @@ function applyTtsSettingsChange(previous: TtsSettings, next: TtsSettings) {
     if (sameValue(previous, next)) return;
 
     void import("./TTShelper")
-        .then(async ({downloadVoice, installTts, purgeTts}) => {
+        .then(async ({installTts, purgeTts, syncConfiguredVoices}) => {
             // Installing/purging is tied only to the enabled toggle changing.
             if (previous.enabled !== next.enabled) {
                 if (next.enabled) {
                     await installTts();
-                    await downloadVoice();
+                    await syncConfiguredVoices();
                 } else {
                     await purgeTts();
                 }
@@ -172,7 +172,7 @@ function applyTtsSettingsChange(previous: TtsSettings, next: TtsSettings) {
 
             // Voice changes are hot-applied, but never install Piper on their own.
             if (next.enabled && !sameValue(previous.voices, next.voices)) {
-                await downloadVoice();
+                await syncConfiguredVoices();
             }
         })
         .catch((error: any) => {
