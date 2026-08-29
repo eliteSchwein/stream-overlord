@@ -27,6 +27,22 @@ export default class TwitchMacroTask extends BaseMacroTask {
             return Number.isFinite(parsed) ? parsed : fallback;
         };
         const resolveUser = async (value: unknown) => {
+            if (!value) return null;
+
+            if (typeof value === "object") {
+                const user = value as { id?: unknown; name?: unknown };
+
+                if (user.id) {
+                    return await api.users.getUserById(String(user.id));
+                }
+
+                if (user.name) {
+                    const userName = String(user.name).trim().replace(/^@/, "");
+                    if (!userName) return null;
+                    return await api.users.getUserByName(userName);
+                }
+            }
+
             const userName = text(value).replace(/^@/, "");
             if (!userName) return null;
             return await api.users.getUserByName(userName);
