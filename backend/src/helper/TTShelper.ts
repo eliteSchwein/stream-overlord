@@ -1,6 +1,6 @@
 import {getTtsSettings} from "./ConfigHelper"
 import {executeProcess} from "./CommandHelper"
-import {logDebug, logError, logNotice, logSuccess, logWarn} from "./LogHelper"
+import {logDebug, logNotice, logSuccess, logWarn} from "./LogHelper"
 import {getAudioData, getStreambotSinkName} from "./AudioHelper"
 import {createWriteStream, existsSync, mkdirSync, rmSync} from "node:fs"
 import {execFileSync, spawn} from "node:child_process"

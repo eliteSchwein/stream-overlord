@@ -2,7 +2,7 @@ import {execFile} from "node:child_process";
 import {promisify} from "node:util";
 import * as os from "node:os";
 import * as path from "node:path";
-import {existsSync, mkdirSync, readdirSync} from "node:fs";
+import {existsSync, mkdirSync, readFileSync, readdirSync} from "node:fs";
 import {getConfig} from "./ConfigHelper";
 import {logError, logNotice, logRegular, logWarn} from "./LogHelper";
 
@@ -17,6 +17,7 @@ export type UpdateManagerConfig = {
     reload?: string;
     npm_install?: boolean;
     ollama?: boolean;
+    piper?: boolean;
 };
 
 export type AptUpdatePackage = {
@@ -27,7 +28,7 @@ export type AptUpdatePackage = {
 
 export type UpdateManagerState = {
     name: string;
-    type: "git" | "apt" | "ollama";
+    type: "git" | "apt" | "ollama" | "piper";
     current_version?: string;
     latest_version?: string;
     commit?: string;
@@ -67,6 +68,9 @@ export const defaultUpdateManagers: Record<string, UpdateManagerConfig> = {
     },
     ollama: {
         ollama: true,
+    },
+    piper: {
+        piper: true,
     },
 };
 
@@ -108,6 +112,7 @@ function normalizeConfig(raw: UpdateManagerConfig): UpdateManagerConfig {
         user_service: booleanValue(raw.user_service),
         npm_install: booleanValue(raw.npm_install),
         ollama: booleanValue(raw.ollama),
+        piper: booleanValue(raw.piper),
     };
 }
 
@@ -368,8 +373,84 @@ async function updateOllama(): Promise<void> {
     }
 }
 
+function getPiperRoot(): string {
+    return path.join(os.homedir(), ".local", "share", "streambot", "tts");
+}
+
+function getInstalledPiperVersion(): string | undefined {
+    const binary = path.join(getPiperRoot(), "piper");
+    const versionFile = path.join(getPiperRoot(), ".version");
+
+    if (!existsSync(binary) || !existsSync(versionFile)) {
+        return undefined;
+    }
+
+    try {
+        return readFileSync(versionFile, "utf8").trim() || undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+async function getLatestPiperVersion(): Promise<string | undefined> {
+    const latestUrl = await run("curl", [
+        "-fsSL",
+        "-o", "/dev/null",
+        "-w", "%{url_effective}",
+        "https://github.com/rhasspy/piper/releases/latest",
+    ]);
+
+    const tag = latestUrl.match(/\/tag\/v?([^/?#]+)$/)?.[1];
+    return tag || undefined;
+}
+
+async function checkPiper(name: string): Promise<UpdateManagerState> {
+    const [currentVersion, latestVersion] = await Promise.all([
+        Promise.resolve(getInstalledPiperVersion()),
+        getLatestPiperVersion(),
+    ]);
+
+    return {
+        name,
+        type: "piper",
+        current_version: currentVersion,
+        latest_version: latestVersion,
+        update_available: Boolean(
+            currentVersion
+            && latestVersion
+            && currentVersion !== latestVersion
+        ),
+        checking: false,
+        updating: false,
+    };
+}
+
+function getPiperInstallScript(): string {
+    const candidates = [
+        path.resolve(process.cwd(), "scripts", "install_tts.sh"),
+        path.resolve(__dirname, "../../scripts/install_tts.sh"),
+        path.resolve(__dirname, "../../../scripts/install_tts.sh"),
+    ];
+
+    const script = candidates.find((candidate) => existsSync(candidate));
+
+    if (!script) {
+        throw new Error("could not find scripts/install_tts.sh");
+    }
+
+    return script;
+}
+
+async function updatePiper(): Promise<void> {
+    const script = getPiperInstallScript();
+
+    logNotice(`updating piper using ${script}`);
+    await run("bash", [script]);
+}
+
 function getManagerType(config: UpdateManagerConfig): UpdateManagerState["type"] {
     if (config.ollama) return "ollama";
+    if (config.piper) return "piper";
     if (config.package) return "apt";
     return "git";
 }
@@ -457,9 +538,11 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
             try {
                 const result = config.ollama
                     ? await checkOllama(name)
-                    : config.package
-                        ? await checkApt(name, config)
-                        : await checkGit(name, config);
+                    : config.piper
+                        ? await checkPiper(name)
+                        : config.package
+                            ? await checkApt(name, config)
+                            : await checkGit(name, config);
 
                 updateState[name] = {
                     ...result,
@@ -575,6 +658,8 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
 
         if (config!.ollama) {
             await updateOllama();
+        } else if (config!.piper) {
+            await updatePiper();
         } else if (config!.package) {
             await run("sudo", ["-n", "apt-get", "install", "-y", "--only-upgrade", config!.package]);
         } else {
@@ -588,9 +673,11 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
 
         const checked = config!.ollama
             ? await checkOllama(name)
-            : config!.package
-                ? await checkApt(name, config!)
-                : await checkGit(name, config!);
+            : config!.piper
+                ? await checkPiper(name)
+                : config!.package
+                    ? await checkApt(name, config!)
+                    : await checkGit(name, config!);
 
         updateState[name] = checked;
         emitUpdateManager();

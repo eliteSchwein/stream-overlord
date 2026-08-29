@@ -16,7 +16,7 @@ import loadMacros, {isMacroPresent, triggerMacro} from "./helper/MacroHelper";
 import {updateSystemComponents, updateSystemInfo} from "./helper/SystemInfoHelper";
 import {updateSourceFilters} from "./helper/SourceHelper";
 import {initGpio, killGpio} from "./helper/SystemHelper";
-import {downloadVoice, fetchVoices, installPiper} from "./helper/TTShelper";
+import {fetchVoices} from "./helper/TTShelper";
 import {initAutoMacros} from "./helper/AutoMacroHelper";
 import * as apiModules from "./api";
 import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
@@ -149,9 +149,7 @@ async function init() {
     stage = 'starting_neopixel'
     await initNeopixels()
 
-    stage = 'starting_tts'
-    await installPiper()
-    await downloadVoice()
+    stage = 'loading_tts_voices'
     await fetchVoices()
 
     stage = 'updating_obs_filters'
@@ -239,7 +237,6 @@ export async function reload() {
 
         await initNeopixels()
 
-        await downloadVoice()
 
         readAssetFolder()
 

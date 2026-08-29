@@ -10,7 +10,6 @@ let config: any = {};
 let primaryChannel: any = undefined;
 let configWatcherRegistered = false;
 let reloadTimer: NodeJS.Timeout | undefined;
-let ttsSyncTimer: NodeJS.Timeout | undefined;
 
 export type AssetTuneCodec = "vp9" | "av1";
 
@@ -144,20 +143,49 @@ function scheduleReload() {
     }, 250);
 }
 
-function scheduleTtsSync() {
-    if (ttsSyncTimer) {
-        clearTimeout(ttsSyncTimer);
+function sameValue(left: unknown, right: unknown) {
+    return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function hasNonTtsChanges(previous: StreambotSettings, next: StreambotSettings) {
+    const {tts: _previousTts, ...previousWithoutTts} = previous;
+    const {tts: _nextTts, ...nextWithoutTts} = next;
+
+    return !sameValue(previousWithoutTts, nextWithoutTts);
+}
+
+function applyTtsSettingsChange(previous: TtsSettings, next: TtsSettings) {
+    if (sameValue(previous, next)) return;
+
+    void import("./TTShelper")
+        .then(async ({downloadVoice, installTts, purgeTts}) => {
+            // Installing/purging is tied only to the enabled toggle changing.
+            if (previous.enabled !== next.enabled) {
+                if (next.enabled) {
+                    await installTts();
+                    await downloadVoice();
+                } else {
+                    await purgeTts();
+                }
+                return;
+            }
+
+            // Voice changes are hot-applied, but never install Piper on their own.
+            if (next.enabled && !sameValue(previous.voices, next.voices)) {
+                await downloadVoice();
+            }
+        })
+        .catch((error: any) => {
+            logWarn(`failed to apply TTS settings: ${error?.message ?? error}`);
+        });
+}
+
+function handleSystemConfigChange(previous: StreambotSettings, next: StreambotSettings) {
+    applyTtsSettingsChange(previous.tts, next.tts);
+
+    if (hasNonTtsChanges(previous, next)) {
+        scheduleReload();
     }
-
-    ttsSyncTimer = setTimeout(() => {
-        ttsSyncTimer = undefined;
-
-        void import("./TTShelper")
-            .then(({syncTtsSettings}) => syncTtsSettings())
-            .catch((error: any) => {
-                logWarn(`failed to sync TTS settings: ${error?.message ?? error}`);
-            });
-    }, 0);
 }
 
 function normalizeAssetTuneSettings(rawAssetTuneSettings: Partial<AssetTuneSettings> = {}): AssetTuneSettings {
@@ -349,7 +377,6 @@ export function readSystemConfig() {
     if (!existsSync(systemConfigPath)) {
         systemConfig = normalizeSystemConfig();
         writeSystemConfigFile(systemConfig);
-        scheduleTtsSync();
         return systemConfig;
     }
 
@@ -370,11 +397,12 @@ export function readSystemConfig() {
         writeSystemConfigFile(systemConfig);
     }
 
-    scheduleTtsSync();
     return systemConfig;
 }
 
 export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
+    const previousSystemConfig = systemConfig;
+
     systemConfig = normalizeSystemConfig({
         ...systemConfig,
         ...newSystemConfig,
@@ -414,7 +442,7 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
     writeSystemConfigFile(systemConfig);
 
     emitSettingsUpdate();
-    scheduleTtsSync();
+    handleSystemConfigChange(previousSystemConfig, systemConfig);
 
     return systemConfig;
 }
@@ -625,8 +653,9 @@ export function watchConfig() {
             }
 
             logNotice("system config update detected");
-            readSystemConfig();
-            scheduleReload();
+            const previousSystemConfig = systemConfig;
+            const nextSystemConfig = readSystemConfig();
+            handleSystemConfigChange(previousSystemConfig, nextSystemConfig);
         }
     );
 }
