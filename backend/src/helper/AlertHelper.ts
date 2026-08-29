@@ -260,7 +260,12 @@ function startAlertSpeech(activeAlert: any) {
 
     void (async () => {
         try {
-            await speak(speakMessage, activeAlert["event-uuid"]);
+            await speak(
+                speakMessage,
+                activeAlert["event-uuid"],
+                activeAlert.locale,
+                activeAlert.voice
+            );
         } catch (error) {
             logWarn(`alert speak failed: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
