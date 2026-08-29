@@ -446,6 +446,13 @@ async function updatePiper(): Promise<void> {
 
     logNotice(`updating piper using ${script}`);
     await run("bash", [script]);
+
+    try {
+        const {emitSystemStorageUpdate} = await import("./SystemStorageHelper");
+        emitSystemStorageUpdate();
+    } catch (error) {
+        logWarn(`piper updated but storage refresh failed: ${errorMessage(error)}`);
+    }
 }
 
 function getManagerType(config: UpdateManagerConfig): UpdateManagerState["type"] {

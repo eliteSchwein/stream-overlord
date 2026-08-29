@@ -28,6 +28,15 @@ const activeSpeechProcesses: Record<string, any> = {}
 let installPromise: Promise<void> | null = null
 let syncPromise: Promise<void> | null = null
 
+async function emitStorageUpdate() {
+    try {
+        const {emitSystemStorageUpdate} = await import("./SystemStorageHelper")
+        emitSystemStorageUpdate()
+    } catch (error: any) {
+        logWarn(`failed to update system storage after TTS change: ${error?.message ?? error}`)
+    }
+}
+
 function getInstallScript() {
     const candidates = [
         path.resolve(__dirname, "../../scripts/install_tts.sh"),
@@ -192,6 +201,7 @@ async function resolveVoicePaths(modelSetting: string): Promise<{onnxRepoPath: s
 }
 
 export async function downloadVoice(locale?: string) {
+    let storageChanged = false
     const configured = getConfiguredTtsVoices()
     const entries = locale
         ? Object.entries(configured).filter(([configuredLocale]) => configuredLocale === locale)
@@ -222,12 +232,20 @@ export async function downloadVoice(locale?: string) {
             }
 
             logNotice(`Downloading TTS voice ${configuredLocale} -> ${voice}`)
-            if (needOnnx) await hfDownloadFile(resolved.onnxRepoPath, onnxDest)
-            if (needJson) await hfDownloadFile(resolved.jsonRepoPath, jsonDest)
+            if (needOnnx) {
+                await hfDownloadFile(resolved.onnxRepoPath, onnxDest)
+                storageChanged = true
+            }
+            if (needJson) {
+                await hfDownloadFile(resolved.jsonRepoPath, jsonDest)
+                storageChanged = true
+            }
         }
 
     } catch (error: any) {
         logWarn(`TTS voice download failed: ${error?.message ?? error}`)
+    } finally {
+        if (storageChanged) await emitStorageUpdate()
     }
 }
 
@@ -273,6 +291,7 @@ export async function installTts(force = false) {
             }
 
             logSuccess(`TTS installation is ready`)
+            await emitStorageUpdate()
         } finally {
             installPromise = null
         }
@@ -293,6 +312,7 @@ export async function purgeTts() {
 
     rmSync(root, {recursive: true, force: true})
     logSuccess(`TTS purged from ${root}`)
+    await emitStorageUpdate()
 }
 
 export async function syncTtsSettings(forceInstall = false) {
