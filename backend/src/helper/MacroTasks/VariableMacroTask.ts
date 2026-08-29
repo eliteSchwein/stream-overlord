@@ -27,6 +27,32 @@ function getPathValue(root: any, path: string): any {
     return value;
 }
 
+
+function setPathValue(root: any, path: string, value: any) {
+    const parts = String(path)
+        .trim()
+        .split('.')
+        .map(part => part.trim())
+        .filter(Boolean);
+
+    if (!parts.length) return;
+
+    let target = root;
+
+    for (let index = 0; index < parts.length - 1; index++) {
+        const part = parts[index];
+        const current = target[part];
+
+        if (!current || typeof current !== 'object' || Array.isArray(current)) {
+            target[part] = {};
+        }
+
+        target = target[part];
+    }
+
+    target[parts[parts.length - 1]] = value;
+}
+
 class LocalExpressionParser {
     private index = 0;
 
@@ -474,7 +500,7 @@ export default class VariableMacroTask extends BaseMacroTask {
                     const expression = data.expression ?? data.value;
                     const value = evaluateLocalExpression(expression, variables);
 
-                    variables[key] = value;
+                    setPathValue(variables, key, value);
 
                     logRegular(`variable local_set ${key}=${JSON.stringify(value)}`);
                 } catch (error: any) {
