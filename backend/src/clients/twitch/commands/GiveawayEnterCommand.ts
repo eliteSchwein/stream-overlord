@@ -3,6 +3,7 @@ import {addGiveawayUser, hasGiveawayUser, isGiveawayActive} from "../../../helpe
 
 export default class GiveawayEnterCommand extends BaseCommand {
     command = 'ticket'
+    globalCooldown = 0;
 
     async handle(params: any, context: any) {
         if(!isGiveawayActive()) {
