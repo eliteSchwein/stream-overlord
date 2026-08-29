@@ -4,9 +4,10 @@ set -euo pipefail
 USER_NAME="$USER"
 WRAPPER="/usr/local/bin/stream-overlord-neopixel"
 POLKIT_RULE="/etc/polkit-1/rules.d/49-stream-overlord-power.rules"
+RSYSLOG_RULE="/etc/rsyslog.d/30-hide-neopixel-pkexec.conf"
 
-echo "[1/2] Writing polkit rule: $POLKIT_RULE"
-sudo tee "$POLKIT_RULE" >/dev/null <<EOF
+echo "[1/4] Writing polkit rule: $POLKIT_RULE"
+sudo tee "$POLKIT_RULE" >/dev/null <<EOF_POLKIT
 /**
  * Stream Overlord polkit rules:
  *  - Allow user "${USER_NAME}" to reboot/power off without password (systemd-logind)
@@ -40,10 +41,18 @@ polkit.addRule(function(action, subject) {
     }
   }
 });
-EOF
+EOF_POLKIT
 
-echo "[2/2] Restarting polkit..."
+echo "[2/4] Writing rsyslog filter: $RSYSLOG_RULE"
+sudo tee "$RSYSLOG_RULE" >/dev/null <<EOF_RSYSLOG
+if (\$programname == "pkexec" and \$msg contains "${WRAPPER}") then stop
+EOF_RSYSLOG
+
+echo "[3/4] Restarting polkit..."
 sudo systemctl restart polkit || true
+
+echo "[4/4] Restarting rsyslog..."
+sudo systemctl restart rsyslog
 
 echo "Done."
 echo "Test:"
