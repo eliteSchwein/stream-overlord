@@ -1211,6 +1211,17 @@ async function parseConfigParams(
                 return { ok: false };
             }
 
+            let gameName = "";
+
+            try {
+                const stream = await bot.api.streams.getStreamByUserId(user.id);
+                gameName = stream?.gameName ?? "";
+            } catch (_) {
+                logWarn(`failed to fetch category for command user ${user.displayName}`);
+            }
+
+            (user as any).gameName = gameName;
+
             params[paramOptions.name] = user;
             paramIndex++;
             continue;
