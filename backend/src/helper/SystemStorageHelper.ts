@@ -11,6 +11,7 @@ import getWebsocketServer from "../App";
 import {getCommandDirectory} from "../clients/twitch/TwitchCommands";
 import path from "node:path";
 import {getOllamaRoot} from "./OllamaHelper";
+import {getTtsRoot} from "./TTShelper";
 
 export type SystemStorageInfo = {
     root: string;
@@ -29,6 +30,7 @@ export type SystemStorageInfo = {
         rotating_scenes: number;
         auto_macros: number;
         ollama: number;
+        tts: number;
     };
 };
 
@@ -75,6 +77,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             commands: getDirectorySize(commandRoot),
             rotating_scenes: getDirectorySize(getRotateSceneDirectory()),
             ollama: getDirectorySize(getOllamaRoot()),
+            tts: getDirectorySize(getTtsRoot()),
         },
     };
 }

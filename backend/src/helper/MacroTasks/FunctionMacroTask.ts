@@ -50,7 +50,8 @@ export default class FunctionMacroTask extends BaseMacroTask {
             case "speak": {
                 await speak(
                     fillTemplate(data.content ?? "", variables),
-                    data.event_uuid ?? variables.eventUuid
+                    data.event_uuid ?? variables.eventUuid,
+                    data.locale
                 );
                 break;
             }

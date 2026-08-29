@@ -93,6 +93,7 @@ export default class AlertMacroTask extends BaseMacroTask {
             "event-uuid": eventUuid,
             speak: options.speak === true,
             speak_message: options.speak === true ? speakMessage : undefined,
+            locale: options.speak === true ? options.locale : undefined,
             video: theme.video,
             wled: mergeWledDefaults(theme.wled),
             volume: theme.volume,

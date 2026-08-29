@@ -9,7 +9,7 @@ cp stream-overlord.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable stream-overlord
 
-sudo apt install -y evtest alsa-utils libespeak-ng1 espeak libespeak-dev curl liblgpio-dev build-essential liblgpio1
+sudo apt install -y evtest alsa-utils curl liblgpio-dev build-essential liblgpio1
 
 # music dependencies
 sudo apt install -y \

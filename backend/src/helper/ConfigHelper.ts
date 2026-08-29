@@ -10,6 +10,7 @@ let config: any = {};
 let primaryChannel: any = undefined;
 let configWatcherRegistered = false;
 let reloadTimer: NodeJS.Timeout | undefined;
+let ttsSyncTimer: NodeJS.Timeout | undefined;
 
 export type AssetTuneCodec = "vp9" | "av1";
 
@@ -28,7 +29,8 @@ export type AssetTuneSettings = {
 };
 
 export type TtsSettings = {
-    model: string;
+    enabled: boolean;
+    voices: Record<string, string>;
 };
 
 export type ThemeSettings = {
@@ -71,7 +73,8 @@ const defaultAssetTuneSettings: AssetTuneSettings = {
 };
 
 const defaultTtsSettings: TtsSettings = {
-    model: "de_DE-thorsten-medium",
+    enabled: false,
+    voices: {},
 };
 
 const defaultThemeSettings: ThemeSettings = {
@@ -141,6 +144,22 @@ function scheduleReload() {
     }, 250);
 }
 
+function scheduleTtsSync() {
+    if (ttsSyncTimer) {
+        clearTimeout(ttsSyncTimer);
+    }
+
+    ttsSyncTimer = setTimeout(() => {
+        ttsSyncTimer = undefined;
+
+        void import("./TTShelper")
+            .then(({syncTtsSettings}) => syncTtsSettings())
+            .catch((error: any) => {
+                logWarn(`failed to sync TTS settings: ${error?.message ?? error}`);
+            });
+    }, 0);
+}
+
 function normalizeAssetTuneSettings(rawAssetTuneSettings: Partial<AssetTuneSettings> = {}): AssetTuneSettings {
     const codec = String(rawAssetTuneSettings.codec || defaultAssetTuneSettings.codec)
         .trim()
@@ -162,15 +181,25 @@ function normalizeAssetTuneSettings(rawAssetTuneSettings: Partial<AssetTuneSetti
 }
 
 function normalizeTtsSettings(rawTtsSettings: Partial<TtsSettings> = {}): TtsSettings {
+    const rawVoices = rawTtsSettings.voices && typeof rawTtsSettings.voices === "object" && !Array.isArray(rawTtsSettings.voices)
+        ? rawTtsSettings.voices
+        : {};
+
+    const voices: Record<string, string> = {};
+
+    for (const [locale, voice] of Object.entries(rawVoices)) {
+        const normalizedLocale = String(locale ?? "").trim();
+        const normalizedVoice = String(voice ?? "").trim().replace(/\.onnx$/i, "");
+
+        if (normalizedLocale && normalizedVoice) {
+            voices[normalizedLocale] = normalizedVoice;
+        }
+    }
+
     return {
-        model: normalizeTtsModel(rawTtsSettings.model),
+        enabled: booleanSetting(rawTtsSettings.enabled, defaultTtsSettings.enabled),
+        voices,
     };
-}
-
-function normalizeTtsModel(value: unknown): string {
-    const model = stringSetting(value, defaultTtsSettings.model);
-
-    return model.endsWith(".onnx") ? model.slice(0, -5) : model;
 }
 
 function normalizeThemeSettings(rawThemeSettings: Partial<ThemeSettings> = {}): ThemeSettings {
@@ -320,6 +349,7 @@ export function readSystemConfig() {
     if (!existsSync(systemConfigPath)) {
         systemConfig = normalizeSystemConfig();
         writeSystemConfigFile(systemConfig);
+        scheduleTtsSync();
         return systemConfig;
     }
 
@@ -340,6 +370,7 @@ export function readSystemConfig() {
         writeSystemConfigFile(systemConfig);
     }
 
+    scheduleTtsSync();
     return systemConfig;
 }
 
@@ -382,7 +413,8 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
 
     writeSystemConfigFile(systemConfig);
 
-    emitSettingsUpdate()
+    emitSettingsUpdate();
+    scheduleTtsSync();
 
     return systemConfig;
 }
