@@ -55,7 +55,7 @@ export default class PollPredictionEvent extends BaseEvent {
             case 'event_twitch_poll_completed':
             case 'event_twitch_poll_terminated':
                 return this.pollEndSimulationFields
-            case 'event_twitch_prediction_completed':
+            case 'event_twitch_prediction_begin':
                 return this.predictionBeginSimulationFields
             case 'event_twitch_prediction_resolved':
             case 'event_twitch_prediction_canceled':
@@ -135,7 +135,7 @@ export default class PollPredictionEvent extends BaseEvent {
             "event_twitch_poll_begin",
             "event_twitch_poll_completed",
             "event_twitch_poll_terminated",
-            "event_twitch_prediction_completed",
+            "event_twitch_prediction_begin",
             "event_twitch_prediction_resolved",
             "event_twitch_prediction_canceled",
             "event_twitch_prediction_finished"
@@ -190,7 +190,7 @@ export default class PollPredictionEvent extends BaseEvent {
 
         if (event instanceof EventSubChannelPredictionBeginEvent) {
             await setVariable("twitch_prediction", this.sanitizeEvent(event), false);
-            await this.triggerConfiguredEvent(event, "event_twitch_prediction_completed")
+            await this.triggerConfiguredEvent(event, "event_twitch_prediction_begin")
             // await this.bot.say(channel, `Es ist eine Vorhersage "${event.title}" aktiv, wenn ihr diese nicht sieht bitte die Seite neuladen.`);
             return;
         }
