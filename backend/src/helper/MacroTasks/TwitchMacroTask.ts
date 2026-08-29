@@ -26,11 +26,33 @@ export default class TwitchMacroTask extends BaseMacroTask {
             const parsed = Number(value);
             return Number.isFinite(parsed) ? parsed : fallback;
         };
-        const resolveUser = async (value: unknown) => {
-            if (!value) return null;
+        const resolveTemplateValue = (value: unknown): unknown => {
+            if (typeof value !== "string") return value;
 
-            if (typeof value === "object") {
-                const user = value as { id?: unknown; name?: unknown };
+            const match = value.trim().match(/^\$\{([^}]+)}$/);
+            if (!match) return value;
+
+            const parts = match[1].split(".").map(part => part.trim()).filter(Boolean);
+            let resolved: any = templateData;
+
+            for (const part of parts) {
+                if (resolved === null || resolved === undefined || typeof resolved !== "object") {
+                    return value;
+                }
+
+                resolved = resolved[part];
+            }
+
+            return resolved ?? value;
+        };
+
+        const resolveUser = async (value: unknown) => {
+            const resolvedValue = resolveTemplateValue(value);
+
+            if (!resolvedValue) return null;
+
+            if (typeof resolvedValue === "object") {
+                const user = resolvedValue as { id?: unknown; name?: unknown };
 
                 if (user.id) {
                     return await api.users.getUserById(String(user.id));
@@ -43,7 +65,7 @@ export default class TwitchMacroTask extends BaseMacroTask {
                 }
             }
 
-            const userName = text(value).replace(/^@/, "");
+            const userName = text(resolvedValue).replace(/^@/, "");
             if (!userName) return null;
             return await api.users.getUserByName(userName);
         };
