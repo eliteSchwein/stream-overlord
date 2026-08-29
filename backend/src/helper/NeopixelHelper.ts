@@ -1,20 +1,15 @@
 // NeopixelHelper.ts
 //
-// pkexec + Python CLI backend (NO --frame).
-// Calls root wrapper: /usr/local/bin/stream-overlord-neopixel
-// which runs: /home/pi/stream-overlord/backend/helper/neopixel_cli.py in the venv.
+// Unix socket backend.
+// A root systemd daemon owns the NeoPixel GPIO hardware and listens on:
+//   /run/stream-overlord-neopixel/neopixel.sock
 //
-// Assumptions about neopixel_cli.py (no --frame):
-// - --gpio <n> required
-// - --count <n> optional (defaults to 1)
-// - --color <name|hex> required
-// - --index <n> optional. If provided, the PY script should color index -> end
-//   AND preserve other LEDs via its own state file (recommended).
+// No pkexec/sudo is needed for individual LED updates.
 
 import {getNeopixelIntegrations} from "./IntegrationsHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {logDebug, logRegular, logWarn} from "./LogHelper";
-import {spawn} from "node:child_process";
+import {createConnection} from "node:net";
 
 type NeoCfg = {
     gpio: number;
@@ -28,13 +23,18 @@ type StripState = {
     amount: number;
 };
 
+type NeopixelResponse = {
+    ok?: boolean;
+    error?: string;
+};
+
 export type HeartbeatLedRef = { name: string; index: number };
 export const heartbeatLeds: HeartbeatLedRef[] = [];
 
 const strips = new Map<string, StripState>();
 let configured = false;
 
-const WRAPPER = "/usr/local/bin/stream-overlord-neopixel";
+const SOCKET_PATH = "/run/stream-overlord-neopixel/neopixel.sock";
 
 const NAMED_COLORS: Record<string, string> = {
     black: "#000000",
@@ -74,20 +74,51 @@ function parseColor(input: string): { r: number; g: number; b: number } {
     );
 }
 
-function runPkexec(args: string[]): Promise<{ code: number; stderr: string; stdout: string }> {
+function sendCommand(command: Record<string, unknown>): Promise<NeopixelResponse> {
     return new Promise((resolve) => {
-        const p = spawn("pkexec", [WRAPPER, ...args], { stdio: ["ignore", "pipe", "pipe"] });
+        const socket = createConnection(SOCKET_PATH);
+        let response = "";
+        let settled = false;
 
-        let stdout = "";
-        let stderr = "";
+        const finish = (result: NeopixelResponse) => {
+            if (settled) return;
+            settled = true;
+            socket.destroy();
+            resolve(result);
+        };
 
-        p.stdout.on("data", (d) => (stdout += d.toString()));
-        p.stderr.on("data", (d) => (stderr += d.toString()));
+        socket.setTimeout(2000);
 
-        p.on("close", (code) => resolve({ code: code ?? 1, stderr, stdout }));
-        p.on("error", (err) =>
-            resolve({ code: 1, stderr: `spawn error: ${String(err)}`, stdout: "" }),
-        );
+        socket.on("connect", () => {
+            socket.write(`${JSON.stringify(command)}\n`);
+        });
+
+        socket.on("data", (data) => {
+            response += data.toString();
+            const newline = response.indexOf("\n");
+            if (newline === -1) return;
+
+            const line = response.slice(0, newline).trim();
+            try {
+                finish(JSON.parse(line) as NeopixelResponse);
+            } catch {
+                finish({ok: false, error: `invalid daemon response: ${line}`});
+            }
+        });
+
+        socket.on("timeout", () => {
+            finish({ok: false, error: "neopixel daemon timed out"});
+        });
+
+        socket.on("error", (err) => {
+            finish({ok: false, error: err.message});
+        });
+
+        socket.on("end", () => {
+            if (!settled) {
+                finish({ok: false, error: "neopixel daemon closed the connection without a response"});
+            }
+        });
     });
 }
 
@@ -97,21 +128,23 @@ async function callPythonSet(
     color: string,
     index: number | null,
 ): Promise<void> {
-    const args: string[] = ["--gpio", String(gpio), "--color", color];
+    const command: Record<string, unknown> = {
+        command: "set",
+        gpio,
+        color,
+    };
 
-    // If count is undefined, python defaults to 1 (as requested)
     if (typeof count === "number") {
-        args.push("--count", String(count));
+        command.count = count;
     }
 
-    // If index is provided, python colors index -> end (your desired semantics)
     if (index !== null) {
-        args.push("--index", String(index));
+        command.index = index;
     }
 
-    const res = await runPkexec(args);
-    if (res.code !== 0) {
-        logDebug(`neopixel call failed: ${res.stderr.trim() || `exit ${res.code}`}`);
+    const res = await sendCommand(command);
+    if (!res.ok) {
+        logDebug(`neopixel call failed: ${res.error ?? "unknown daemon error"}`);
     }
 }
 
@@ -134,15 +167,16 @@ export async function initNeopixels() {
     for (const [name, cfg] of pairs) {
         if (!cfg || typeof cfg.gpio !== "number" || typeof cfg.amount !== "number") continue;
 
-        strips.set(name, { name, gpio: cfg.gpio, amount: cfg.amount });
+        const neoCfg = cfg as NeoCfg;
+        strips.set(name, {name, gpio: neoCfg.gpio, amount: neoCfg.amount});
 
         if (
-            typeof cfg.heartbeat_index === "number" &&
-            Number.isInteger(cfg.heartbeat_index) &&
-            cfg.heartbeat_index >= 0 &&
-            cfg.heartbeat_index < cfg.amount
+            typeof neoCfg.heartbeat_index === "number" &&
+            Number.isInteger(neoCfg.heartbeat_index) &&
+            neoCfg.heartbeat_index >= 0 &&
+            neoCfg.heartbeat_index < neoCfg.amount
         ) {
-            heartbeatLeds.push({ name, index: cfg.heartbeat_index });
+            heartbeatLeds.push({name, index: neoCfg.heartbeat_index});
         }
     }
 
@@ -152,8 +186,7 @@ export async function initNeopixels() {
         return;
     }
 
-    // Set all strips black on init (python script should set all when index is null)
-    // @ts-ignore
+    // Set all strips black on init.
     for (const strip of strips.values()) {
         await callPythonSet(strip.gpio, strip.amount, "black", null);
     }
@@ -171,7 +204,6 @@ export async function colorNeopixel(name: string, color: string, index: number |
         return;
     }
 
-    // validate color early (so we can warn before pkexec)
     try {
         parseColor(color);
     } catch (e: any) {
@@ -179,7 +211,6 @@ export async function colorNeopixel(name: string, color: string, index: number |
         return;
     }
 
-    // validate index
     if (index !== null) {
         if (!Number.isInteger(index) || index < 0 || index >= strip.amount) {
             logWarn(`index out of range: ${index} (0..${strip.amount - 1})`);
@@ -187,36 +218,27 @@ export async function colorNeopixel(name: string, color: string, index: number |
         }
     }
 
-    // Important: we always pass count so python knows the strip length
     await callPythonSet(strip.gpio, strip.amount, color, index);
 }
 
 /**
- * Pulse heartbeat LEDs:
- * - set heartbeat LEDs green (python colors index->end, so we set individual LEDs by using index
- *   BUT this requires the python script to preserve state for other LEDs via its state file)
- * - wait 100ms
- * - set them off again (black)
- *
+ * Pulse heartbeat LEDs green for 25ms, then turn them black again.
+ * Index semantics are unchanged: the daemon colors index -> end.
  * Never throws; returns if not configured.
  */
 export async function pulseHeartbeatLeds() {
     if (!configured) return;
 
-    // ON
     for (const h of heartbeatLeds) {
         const strip = strips.get(h.name);
         if (!strip) continue;
         if (h.index < 0 || h.index >= strip.amount) continue;
 
-        // If your python script uses "index->end" semantics, this will color from heartbeat_index to end.
-        // If you want ONLY that one LED, change the python semantics or add a --mode flag there.
         await callPythonSet(strip.gpio, strip.amount, "green", h.index);
     }
 
     await sleep(25);
 
-    // OFF
     for (const h of heartbeatLeds) {
         const strip = strips.get(h.name);
         if (!strip) continue;
