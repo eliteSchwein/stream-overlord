@@ -35,13 +35,24 @@ export default class ChannelHypeTrainBeginEvent extends BaseEvent {
     }
 
     async handle(event: any) {
+        const id = String(event?.id ?? '').trim() || undefined
         const level = Number(event?.level)
+        const trackedId = this.twitchClient?.getHypeTrainId()
+        const trackedLevel = this.twitchClient?.getHypeTrainLevel(id)
 
-        this.twitchClient?.resetHypeTrainLevel(
-            Number.isFinite(level) ? level : undefined
+        if (!id || !trackedId || trackedId !== id) {
+            this.twitchClient?.resetHypeTrainLevel(
+                Number.isFinite(level) ? level : undefined,
+                id
+            )
+        } else if (Number.isFinite(level) && (trackedLevel === undefined || level > trackedLevel)) {
+            this.twitchClient?.setHypeTrainLevel(level, id)
+        }
+
+        logRegular(
+            `hype train begin${Number.isFinite(level) ? ` at level ${level}` : ``}` +
+            `${trackedLevel !== undefined && trackedId === id && trackedLevel > level ? ` (keeping level ${trackedLevel})` : ``}`
         )
-
-        logRegular(`hype train begin${Number.isFinite(level) ? ` at level ${level}` : ``}`)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')

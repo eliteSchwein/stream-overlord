@@ -65,6 +65,7 @@ export default class TwitchClient {
 
     private controlAuthProvider?: any;
     private twitchConfig?: any;
+    private hypeTrainId?: string;
     private hypeTrainLevel?: number;
     private connectGeneration = 0;
 
@@ -573,15 +574,28 @@ export default class TwitchClient {
         return this.eventSub;
     }
 
-    public getHypeTrainLevel(): number | undefined {
+    public getHypeTrainId(): string | undefined {
+        return this.hypeTrainId;
+    }
+
+    public getHypeTrainLevel(id?: string): number | undefined {
+        if (id && this.hypeTrainId && id !== this.hypeTrainId) {
+            return undefined;
+        }
+
         return this.hypeTrainLevel;
     }
 
-    public setHypeTrainLevel(level: number | undefined) {
+    public setHypeTrainLevel(level: number | undefined, id?: string) {
+        if (id) {
+            this.hypeTrainId = id;
+        }
+
         this.hypeTrainLevel = level;
     }
 
-    public resetHypeTrainLevel(level: number | undefined = undefined) {
+    public resetHypeTrainLevel(level: number | undefined = undefined, id?: string) {
+        this.hypeTrainId = id;
         this.hypeTrainLevel = level;
     }
 

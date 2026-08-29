@@ -59,8 +59,21 @@ export default class ChannelHypeTrainProgressEvent extends BaseEvent {
     }
 
     async handle(event: any) {
+        const id = String(event?.id ?? '').trim() || undefined
         const level = Number(event?.level)
-        const previousLevel = this.twitchClient?.getHypeTrainLevel()
+        const trackedId = this.twitchClient?.getHypeTrainId()
+        let previousLevel = this.twitchClient?.getHypeTrainLevel(id)
+
+        // EventSub delivery order is not guaranteed. A progress event may be the
+        // first notification we receive for a train. If it already reports level
+        // 2+, treat that as the transition from the immediately preceding level.
+        if (Number.isFinite(level) && previousLevel === undefined) {
+            previousLevel = level > 1 ? level - 1 : level
+
+            if (id && trackedId && trackedId !== id) {
+                logRegular(`hype train progress switched train: ${trackedId} -> ${id}`)
+            }
+        }
 
         logRegular(
             `hype train progress${
@@ -71,10 +84,8 @@ export default class ChannelHypeTrainProgressEvent extends BaseEvent {
         )
 
         if (Number.isFinite(level)) {
-            if (previousLevel === undefined) {
-                this.twitchClient?.setHypeTrainLevel(level)
-            } else if (level > previousLevel) {
-                this.twitchClient?.setHypeTrainLevel(level)
+            if (previousLevel !== undefined && level > previousLevel) {
+                this.twitchClient?.setHypeTrainLevel(level, id)
 
                 logRegular(`hype train level up: ${previousLevel} -> ${level}`)
 
@@ -87,8 +98,8 @@ export default class ChannelHypeTrainProgressEvent extends BaseEvent {
                         'event_twitch_hype_train_level_up'
                     )
                 }
-            } else if (level !== previousLevel) {
-                this.twitchClient?.setHypeTrainLevel(level)
+            } else {
+                this.twitchClient?.setHypeTrainLevel(level, id)
             }
         }
 

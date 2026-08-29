@@ -32,7 +32,14 @@ export default class ChannelHypeTrainEndEvent extends BaseEvent {
     }
 
     async handle(event: any) {
-        this.twitchClient?.resetHypeTrainLevel()
+        const id = String(event?.id ?? '').trim() || undefined
+        const trackedId = this.twitchClient?.getHypeTrainId()
+
+        if (!id || !trackedId || trackedId === id) {
+            this.twitchClient?.resetHypeTrainLevel()
+        } else {
+            logRegular(`ignore stale hype train end for ${id}; active train is ${trackedId}`)
+        }
 
         logRegular(`hype train end`)
 
