@@ -313,6 +313,7 @@ async function getInstalledOllamaVersion(): Promise<string | undefined> {
 async function getLatestOllamaVersion(): Promise<string | undefined> {
     const latestUrl = await run("curl", [
         "-fsSL",
+        "-L",
         "-o", "/dev/null",
         "-w", "%{url_effective}",
         "https://github.com/ollama/ollama/releases/latest",
@@ -381,20 +382,27 @@ function getInstalledPiperVersion(): string | undefined {
     const binary = path.join(getPiperRoot(), "piper");
     const versionFile = path.join(getPiperRoot(), ".version");
 
-    if (!existsSync(binary) || !existsSync(versionFile)) {
+    if (!existsSync(binary)) {
         return undefined;
     }
 
+    // Existing Piper installs created before version tracking do not have .version.
+    // They were all installed from the fixed 2023.11.14-2 archive.
+    if (!existsSync(versionFile)) {
+        return "2023.11.14-2";
+    }
+
     try {
-        return readFileSync(versionFile, "utf8").trim() || undefined;
+        return readFileSync(versionFile, "utf8").trim() || "2023.11.14-2";
     } catch {
-        return undefined;
+        return "2023.11.14-2";
     }
 }
 
 async function getLatestPiperVersion(): Promise<string | undefined> {
     const latestUrl = await run("curl", [
         "-fsSL",
+        "-L",
         "-o", "/dev/null",
         "-w", "%{url_effective}",
         "https://github.com/rhasspy/piper/releases/latest",

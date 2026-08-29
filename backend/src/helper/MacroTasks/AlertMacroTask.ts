@@ -94,6 +94,7 @@ export default class AlertMacroTask extends BaseMacroTask {
             speak: options.speak === true,
             speak_message: options.speak === true ? speakMessage : undefined,
             locale: options.speak === true ? options.locale : undefined,
+            voice: options.speak === true ? options.voice : undefined,
             video: theme.video,
             wled: mergeWledDefaults(theme.wled),
             volume: theme.volume,

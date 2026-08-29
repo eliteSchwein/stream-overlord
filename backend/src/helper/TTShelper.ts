@@ -1,6 +1,6 @@
 import {getTtsSettings} from "./ConfigHelper"
 import {executeProcess} from "./CommandHelper"
-import {logDebug, logNotice, logSuccess, logWarn} from "./LogHelper"
+import {logDebug, logError, logNotice, logSuccess, logWarn} from "./LogHelper"
 import {getAudioData, getStreambotSinkName} from "./AudioHelper"
 import {createWriteStream, existsSync, mkdirSync, readdirSync, rmSync} from "node:fs"
 import {execFileSync, spawn} from "node:child_process"
@@ -86,15 +86,23 @@ export function isTtsInstalled() {
     return existsSync(getPiperBinary())
 }
 
-export function getConfiguredTtsVoices(): Record<string, string> {
+export function getConfiguredTtsVoices(): Record<string, string[]> {
     const configured = (getTtsSettings() as any)?.voices
     if (!configured || typeof configured !== "object" || Array.isArray(configured)) return {}
 
-    const result: Record<string, string> = {}
-    for (const [locale, voice] of Object.entries(configured)) {
+    const result: Record<string, string[]> = {}
+    for (const [locale, rawVoiceList] of Object.entries(configured)) {
         const normalizedLocale = String(locale ?? "").trim()
-        const normalizedVoice = String(voice ?? "").trim().replace(/\.onnx$/i, "")
-        if (normalizedLocale && normalizedVoice) result[normalizedLocale] = normalizedVoice
+        if (!normalizedLocale) continue
+
+        const values = Array.isArray(rawVoiceList) ? rawVoiceList : [rawVoiceList]
+        const normalizedVoices = [...new Set(
+            values
+                .map((voice) => String(voice ?? "").trim().replace(/\.onnx$/i, ""))
+                .filter(Boolean),
+        )]
+
+        if (normalizedVoices.length) result[normalizedLocale] = normalizedVoices
     }
     return result
 }
@@ -203,9 +211,12 @@ async function resolveVoicePaths(modelSetting: string): Promise<{onnxRepoPath: s
 export async function downloadVoice(locale?: string) {
     let storageChanged = false
     const configured = getConfiguredTtsVoices()
-    const entries = locale
+    const entries = (locale
         ? Object.entries(configured).filter(([configuredLocale]) => configuredLocale === locale)
         : Object.entries(configured)
+    ).flatMap(([configuredLocale, voiceList]) =>
+        voiceList.map((voice) => [configuredLocale, voice] as const)
+    )
 
     if (!entries.length) return
 
@@ -257,6 +268,7 @@ export async function pruneUnconfiguredVoices() {
 
     const configuredModels = new Set(
         Object.values(getConfiguredTtsVoices())
+            .flat()
             .map((voice) => path.basename(String(voice)).replace(/\.onnx$/i, ""))
             .filter(Boolean),
     )
@@ -381,6 +393,7 @@ export async function speak(
     message: string,
     eventUuid: string | undefined = undefined,
     locale: string | undefined = undefined,
+    requestedVoice: string | undefined = undefined,
 ) {
     const settings = getTtsSettings() as any
     if (!settings?.enabled) {
@@ -405,9 +418,17 @@ export async function speak(
         return
     }
 
-    const voice = configuredVoices[selectedLocale]
-    if (!voice) {
+    const localeVoices = configuredVoices[selectedLocale] ?? []
+    if (!localeVoices.length) {
         logWarn(`TTS failed: no voice configured for locale '${selectedLocale}'`)
+        return
+    }
+
+    const explicitVoice = String(requestedVoice ?? "").trim().replace(/\.onnx$/i, "")
+    const voice = explicitVoice || localeVoices[0]
+
+    if (!localeVoices.includes(voice)) {
+        logWarn(`TTS failed: voice '${voice}' is not configured for locale '${selectedLocale}'`)
         return
     }
     if (!isTtsInstalled()) {

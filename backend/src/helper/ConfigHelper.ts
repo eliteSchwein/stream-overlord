@@ -29,7 +29,7 @@ export type AssetTuneSettings = {
 
 export type TtsSettings = {
     enabled: boolean;
-    voices: Record<string, string>;
+    voices: Record<string, string[]>;
 };
 
 export type ThemeSettings = {
@@ -213,14 +213,21 @@ function normalizeTtsSettings(rawTtsSettings: Partial<TtsSettings> = {}): TtsSet
         ? rawTtsSettings.voices
         : {};
 
-    const voices: Record<string, string> = {};
+    const voices: Record<string, string[]> = {};
 
-    for (const [locale, voice] of Object.entries(rawVoices)) {
+    for (const [locale, rawVoiceList] of Object.entries(rawVoices)) {
         const normalizedLocale = String(locale ?? "").trim();
-        const normalizedVoice = String(voice ?? "").trim().replace(/\.onnx$/i, "");
+        if (!normalizedLocale) continue;
 
-        if (normalizedLocale && normalizedVoice) {
-            voices[normalizedLocale] = normalizedVoice;
+        const values = Array.isArray(rawVoiceList) ? rawVoiceList : [rawVoiceList];
+        const normalizedVoices = [...new Set(
+            values
+                .map((voice) => String(voice ?? "").trim().replace(/\.onnx$/i, ""))
+                .filter(Boolean),
+        )];
+
+        if (normalizedVoices.length) {
+            voices[normalizedLocale] = normalizedVoices;
         }
     }
 
