@@ -3,6 +3,64 @@ import * as path from "node:path";
 import {getSystemConfigDirectory} from "./ConfigHelper";
 import {logWarn} from "./LogHelper";
 import getWebsocketServer from "../App";
+function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
+    const directory = path.dirname(filePath);
+    fs.mkdirSync(directory, {recursive: true});
+
+    const previousMode = fs.existsSync(filePath)
+        ? fs.statSync(filePath).mode & 0o777
+        : undefined;
+    const tempPath = path.join(
+        directory,
+        `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+
+    let fd: number | undefined;
+
+    try {
+        fd = fs.openSync(tempPath, "wx");
+
+        if (previousMode !== undefined) {
+            fs.fchmodSync(fd, previousMode);
+        }
+
+        if (typeof content === "string") {
+            fs.writeFileSync(fd, content, encoding);
+        } else {
+            fs.writeFileSync(fd, content);
+        }
+
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
+        fd = undefined;
+
+        fs.renameSync(tempPath, filePath);
+
+        const directoryFd = fs.openSync(directory, "r");
+        try {
+            fs.fsyncSync(directoryFd);
+        } finally {
+            fs.closeSync(directoryFd);
+        }
+    } catch (error) {
+        if (fd !== undefined) {
+            try {
+                fs.closeSync(fd);
+            } catch {
+                // Ignore cleanup errors and preserve the original write error.
+            }
+        }
+
+        try {
+            fs.unlinkSync(tempPath);
+        } catch {
+            // The temp file may already have been renamed or may not exist.
+        }
+
+        throw error;
+    }
+}
+
 
 export const overlayRoot = path.join(getSystemConfigDirectory(), "streambot-overlays");
 
@@ -210,7 +268,7 @@ export async function addOverlayFilesFromUpload(files: any[], targetPath: string
             continue;
         }
 
-        fs.writeFileSync(target, file.buffer);
+        atomicWriteFileSync(target, file.buffer);
 
         added.push(relativeOverlayPath(target));
     }
@@ -284,7 +342,7 @@ export function editOverlayFile(inputPath: string, content: string) {
     }
 
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(target, content, "utf8");
+    atomicWriteFileSync(target, content, "utf8");
 
     const relPath = relativeOverlayPath(target);
     const stat = fs.statSync(target);

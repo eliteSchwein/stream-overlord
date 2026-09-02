@@ -26,6 +26,64 @@ import TwitchClient from "./Client";
 import getWebsocketServer, {getTwitchClient, setReloadUpdate} from "../../App";
 import {getAssetConfig} from "../../helper/AssetHelper";
 import {addAlert} from "../../helper/AlertHelper";
+function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
+    const directory = path.dirname(filePath);
+    fs.mkdirSync(directory, {recursive: true});
+
+    const previousMode = fs.existsSync(filePath)
+        ? fs.statSync(filePath).mode & 0o777
+        : undefined;
+    const tempPath = path.join(
+        directory,
+        `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+
+    let fd: number | undefined;
+
+    try {
+        fd = fs.openSync(tempPath, "wx");
+
+        if (previousMode !== undefined) {
+            fs.fchmodSync(fd, previousMode);
+        }
+
+        if (typeof content === "string") {
+            fs.writeFileSync(fd, content, encoding);
+        } else {
+            fs.writeFileSync(fd, content);
+        }
+
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
+        fd = undefined;
+
+        fs.renameSync(tempPath, filePath);
+
+        const directoryFd = fs.openSync(directory, "r");
+        try {
+            fs.fsyncSync(directoryFd);
+        } finally {
+            fs.closeSync(directoryFd);
+        }
+    } catch (error) {
+        if (fd !== undefined) {
+            try {
+                fs.closeSync(fd);
+            } catch {
+                // Ignore cleanup errors and preserve the original write error.
+            }
+        }
+
+        try {
+            fs.unlinkSync(tempPath);
+        } catch {
+            // The temp file may already have been renamed or may not exist.
+        }
+
+        throw error;
+    }
+}
+
 
 type ConfigParam = {
     name: string;
@@ -771,7 +829,7 @@ export async function editCommandFile(inputPathOrName: string, content: string) 
         const fileContent = stringifyCommandConfigContent(filePath, normalizedContent);
 
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
-        fs.writeFileSync(filePath, fileContent, "utf8");
+        atomicWriteFileSync(filePath, fileContent, "utf8");
 
         loadCommandsFromFiles();
         notifyCommandsUpdate();
@@ -889,7 +947,7 @@ export async function addCommandFilesFromUpload(files: CommandUploadFile[] = [],
             const normalizedContent = normalizeCommandConfigForSave(resolvedFilePath, parsedContent);
             const fileContent = stringifyCommandConfigContent(resolvedFilePath, normalizedContent);
 
-            fs.writeFileSync(resolvedFilePath, fileContent, "utf8");
+            atomicWriteFileSync(resolvedFilePath, fileContent, "utf8");
 
             added.push({
                 name: path.basename(resolvedFilePath),

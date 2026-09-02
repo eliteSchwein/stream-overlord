@@ -6,6 +6,64 @@ import {activateTimer, deactivateTimer, registerTimerCallback, setTimerTime} fro
 import getWebsocketServer, {getOBSClient} from "../App";
 import {isDebug, logDebug, logRegular, logWarn} from "./LogHelper";
 import {emitSystemStorageUpdate} from "./SystemStorageHelper";
+function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
+    const directory = path.dirname(filePath);
+    fs.mkdirSync(directory, {recursive: true});
+
+    const previousMode = fs.existsSync(filePath)
+        ? fs.statSync(filePath).mode & 0o777
+        : undefined;
+    const tempPath = path.join(
+        directory,
+        `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+
+    let fd: number | undefined;
+
+    try {
+        fd = fs.openSync(tempPath, "wx");
+
+        if (previousMode !== undefined) {
+            fs.fchmodSync(fd, previousMode);
+        }
+
+        if (typeof content === "string") {
+            fs.writeFileSync(fd, content, encoding);
+        } else {
+            fs.writeFileSync(fd, content);
+        }
+
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
+        fd = undefined;
+
+        fs.renameSync(tempPath, filePath);
+
+        const directoryFd = fs.openSync(directory, "r");
+        try {
+            fs.fsyncSync(directoryFd);
+        } finally {
+            fs.closeSync(directoryFd);
+        }
+    } catch (error) {
+        if (fd !== undefined) {
+            try {
+                fs.closeSync(fd);
+            } catch {
+                // Ignore cleanup errors and preserve the original write error.
+            }
+        }
+
+        try {
+            fs.unlinkSync(tempPath);
+        } catch {
+            // The temp file may already have been renamed or may not exist.
+        }
+
+        throw error;
+    }
+}
+
 
 const ROTATE_SCENE_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
 const ROTATE_SCENE_TIMER = "scene_rotation";
@@ -339,7 +397,7 @@ export function editRotateSceneFile(inputPathOrName: string, content: string) {
     normalizeRotateSceneConfig(filePath, parseRotateSceneConfigContent(filePath, nextContent) as RotateSceneConfig);
 
     fs.mkdirSync(path.dirname(filePath), {recursive: true});
-    fs.writeFileSync(filePath, nextContent, "utf8");
+    atomicWriteFileSync(filePath, nextContent, "utf8");
 
     loadRotateScenes();
     emitSystemStorageUpdate();
@@ -376,7 +434,7 @@ export async function addRotateSceneFilesFromUpload(files: any[] = [], targetPat
 
         normalizeRotateSceneConfig(filePath, parseRotateSceneConfigContent(filePath, content) as RotateSceneConfig);
 
-        fs.writeFileSync(filePath, content, "utf8");
+        atomicWriteFileSync(filePath, content, "utf8");
 
         added.push({
             name: originalName,

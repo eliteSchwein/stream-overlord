@@ -41,6 +41,58 @@ let macros: any = {};
 
 const MACRO_FILE_EXTENSIONS = [".yaml", ".yml", ".json"];
 
+
+function atomicWriteConfigFileSync(filePath: string, content: string) {
+    const directory = path.dirname(filePath);
+    fs.mkdirSync(directory, {recursive: true});
+
+    const tempPath = path.join(
+        directory,
+        `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+
+    let fd: number | undefined;
+
+    try {
+        const mode = fs.existsSync(filePath)
+            ? fs.statSync(filePath).mode & 0o777
+            : 0o666;
+
+        fd = fs.openSync(tempPath, "wx", mode);
+        fs.writeFileSync(fd, content, "utf8");
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
+        fd = undefined;
+
+        fs.renameSync(tempPath, filePath);
+
+        const directoryFd = fs.openSync(directory, "r");
+        try {
+            fs.fsyncSync(directoryFd);
+        } finally {
+            fs.closeSync(directoryFd);
+        }
+    } catch (error) {
+        if (fd !== undefined) {
+            try {
+                fs.closeSync(fd);
+            } catch {
+                // Ignore cleanup errors and keep the original write error.
+            }
+        }
+
+        try {
+            if (fs.existsSync(tempPath)) {
+                fs.unlinkSync(tempPath);
+            }
+        } catch {
+            // Ignore cleanup errors and keep the original write error.
+        }
+
+        throw error;
+    }
+}
+
 const macroRawMemoryCache = new Map<string, string>();
 
 let macroTasks: Record<string, BaseMacroTask> = {}
@@ -407,14 +459,13 @@ export function editMacroFile(inputPathOrName: string, content: string) {
         : undefined;
     const nextContent = String(content ?? "");
 
-    if (previousContent !== undefined && !nextContent.trim()) {
-        throw new Error("refusing to overwrite existing macro with empty content");
+    if (!nextContent.trim()) {
+        throw new Error("refusing to write empty macro");
     }
 
     parseMacroConfigContent(filePath, nextContent);
 
-    fs.mkdirSync(path.dirname(filePath), {recursive: true});
-    fs.writeFileSync(filePath, nextContent, "utf8");
+    atomicWriteConfigFileSync(filePath, nextContent);
 
     const macroName = getMacroCacheNameFromContent(filePath, nextContent);
     updateMacroRawCache(macroName, nextContent);
@@ -532,10 +583,14 @@ export async function addMacroFilesFromUpload(files: MacroUploadFile[] = [], tar
 
         const content = file.buffer.toString("utf8");
 
+        if (!content.trim()) {
+            throw new Error(`refusing to write empty macro: ${originalName}`);
+        }
+
         // Validate before writing so broken yaml/json uploads do not poison the macro directory.
         parseMacroConfigContent(resolvedFilePath, content);
 
-        fs.writeFileSync(resolvedFilePath, content, "utf8");
+        atomicWriteConfigFileSync(resolvedFilePath, content);
 
         const macroName = getMacroCacheNameFromContent(resolvedFilePath, content);
         updateMacroRawCache(macroName, content);

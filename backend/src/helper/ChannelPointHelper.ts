@@ -7,6 +7,64 @@ import {HelixCustomReward, HelixUser} from "@twurple/api";
 import {logError, logRegular, logWarn} from "./LogHelper";
 import {getGameInfoData} from "../clients/website/WebsiteClient";
 import {emitSystemStorageUpdate} from "./SystemStorageHelper";
+function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
+    const directory = path.dirname(filePath);
+    fs.mkdirSync(directory, {recursive: true});
+
+    const previousMode = fs.existsSync(filePath)
+        ? fs.statSync(filePath).mode & 0o777
+        : undefined;
+    const tempPath = path.join(
+        directory,
+        `.${path.basename(filePath)}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+
+    let fd: number | undefined;
+
+    try {
+        fd = fs.openSync(tempPath, "wx");
+
+        if (previousMode !== undefined) {
+            fs.fchmodSync(fd, previousMode);
+        }
+
+        if (typeof content === "string") {
+            fs.writeFileSync(fd, content, encoding);
+        } else {
+            fs.writeFileSync(fd, content);
+        }
+
+        fs.fsyncSync(fd);
+        fs.closeSync(fd);
+        fd = undefined;
+
+        fs.renameSync(tempPath, filePath);
+
+        const directoryFd = fs.openSync(directory, "r");
+        try {
+            fs.fsyncSync(directoryFd);
+        } finally {
+            fs.closeSync(directoryFd);
+        }
+    } catch (error) {
+        if (fd !== undefined) {
+            try {
+                fs.closeSync(fd);
+            } catch {
+                // Ignore cleanup errors and preserve the original write error.
+            }
+        }
+
+        try {
+            fs.unlinkSync(tempPath);
+        } catch {
+            // The temp file may already have been renamed or may not exist.
+        }
+
+        throw error;
+    }
+}
+
 
 let channelPoints: Record<string, HelixCustomReward> = {};
 let activeChannelPoints: any[] = [];
@@ -439,7 +497,7 @@ export async function editChannelPointFile(inputPathOrName: string, content: str
         throw new Error("channel point config file must be .yaml, .yml or .json");
     }
 
-    fs.writeFileSync(filePath, normalizeChannelPointConfigContentForWrite(filePath, content ?? "", patch), "utf8");
+    atomicWriteFileSync(filePath, normalizeChannelPointConfigContentForWrite(filePath, content ?? "", patch), "utf8");
 
     setReloadUpdate(false);
 
@@ -560,7 +618,7 @@ export async function addChannelPointFilesFromUpload(files: any[]) {
         const target = resolveChannelPointConfigFilePath(originalName);
         const content = file.buffer ?? file.content ?? "";
 
-        fs.writeFileSync(target, content);
+        atomicWriteFileSync(target, Buffer.isBuffer(content) ? content : String(content), "utf8");
         added.push(relativeChannelPointConfigPath(target));
     }
 
