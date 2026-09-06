@@ -49,25 +49,107 @@ export default class TwitchMacroTask extends BaseMacroTask {
         const resolveUser = async (value: unknown) => {
             const resolvedValue = resolveTemplateValue(value);
 
-            if (!resolvedValue) return null;
-
-            if (typeof resolvedValue === "object") {
-                const user = resolvedValue as { id?: unknown; name?: unknown };
-
-                if (user.id) {
-                    return await api.users.getUserById(String(user.id));
-                }
-
-                if (user.name) {
-                    const userName = String(user.name).trim().replace(/^@/, "");
-                    if (!userName) return null;
-                    return await api.users.getUserByName(userName);
-                }
+            if (
+                resolvedValue === null ||
+                resolvedValue === undefined ||
+                resolvedValue === ""
+            ) {
+                return null;
             }
 
-            const userName = text(resolvedValue).replace(/^@/, "");
-            if (!userName) return null;
-            return await api.users.getUserByName(userName);
+            const hydrateUser = async (user: any) => {
+                const hasRequiredFields =
+                    user?.id &&
+                    user?.name &&
+                    user?.displayName &&
+                    user?.profilePictureUrl &&
+                    user?.gameName !== undefined;
+
+                if (hasRequiredFields) {
+                    return user;
+                }
+
+                let fetchedUser: any = null;
+
+                if (user?.id) {
+                    fetchedUser = await api.users.getUserById(String(user.id));
+                } else if (user?.name) {
+                    const userName = String(user.name).trim().replace(/^@/, "");
+
+                    if (userName) {
+                        fetchedUser = await api.users.getUserByName(userName);
+                    }
+                }
+
+                if (!fetchedUser) {
+                    return null;
+                }
+
+                let gameName = user?.gameName ?? "";
+
+                if (user?.gameName === undefined) {
+                    try {
+                        const stream = await api.streams.getStreamByUserId(fetchedUser.id);
+                        gameName = stream?.gameName ?? "";
+                    } catch {
+                        logWarn(`failed to fetch category for twitch user ${fetchedUser.displayName}`);
+                    }
+                }
+
+                return {
+                    ...user,
+                    id: fetchedUser.id,
+                    name: fetchedUser.name,
+                    displayName: fetchedUser.displayName,
+                    description: fetchedUser.description,
+                    profilePictureUrl: fetchedUser.profilePictureUrl,
+                    broadcasterType: fetchedUser.broadcasterType,
+                    creationDate: fetchedUser.creationDate,
+                    gameName,
+                };
+            };
+
+            if (typeof resolvedValue === "object") {
+                return hydrateUser(resolvedValue);
+            }
+
+            const input = String(resolvedValue).trim().replace(/^@/, "");
+
+            if (!input) {
+                return null;
+            }
+
+            let fetchedUser: any = null;
+
+            if (/^\d+$/.test(input)) {
+                fetchedUser = await api.users.getUserById(input);
+            } else {
+                fetchedUser = await api.users.getUserByName(input);
+            }
+
+            if (!fetchedUser) {
+                return null;
+            }
+
+            let gameName = "";
+
+            try {
+                const stream = await api.streams.getStreamByUserId(fetchedUser.id);
+                gameName = stream?.gameName ?? "";
+            } catch {
+                logWarn(`failed to fetch category for twitch user ${fetchedUser.displayName}`);
+            }
+
+            return {
+                id: fetchedUser.id,
+                name: fetchedUser.name,
+                displayName: fetchedUser.displayName,
+                description: fetchedUser.description,
+                profilePictureUrl: fetchedUser.profilePictureUrl,
+                broadcasterType: fetchedUser.broadcasterType,
+                creationDate: fetchedUser.creationDate,
+                gameName,
+            };
         };
 
         const sanitizeResult = (value: any): any => {

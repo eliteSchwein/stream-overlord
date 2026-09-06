@@ -465,7 +465,21 @@ async function startOllamaInternal() {
         },
     );
 
-    await waitForOllama();
+    try {
+        await waitForOllama();
+    } catch (error: any) {
+        runtimeState.running = false;
+        runtimeState.error =
+            error?.message ??
+            "ollama server did not become ready";
+
+        logWarn(
+            `ollama startup failed: ${runtimeState.error}`,
+        );
+
+        emitOllamaUpdate();
+        return;
+    }
 }
 
 export async function startOllama() {

@@ -205,6 +205,15 @@ export async function startMusicPlayer(restoreModeFromState = true) {
     suppressMusicStateWrite = true
     await stopMusicPlayer()
 
+    if (!(await isCommandAvailable('mpv'))) {
+        logWarn('music player not started: mpv is not installed or not available in PATH')
+        mpvProcess = null
+        suppressMusicStateWrite = false
+        await notifyPlaylistUpdate()
+        await sync()
+        return
+    }
+
     if (restoreModeFromState && pendingMusicCrashState?.songrequest_enabled === true) {
         songRequestEnabled = true
     }
@@ -1684,6 +1693,14 @@ function expandPath(input: string): string {
 
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function isCommandAvailable(command: string): Promise<boolean> {
+    return new Promise(resolve => {
+        execFile(command, ['--version'], error => {
+            resolve(!error)
+        })
+    })
 }
 
 function runCommand(command: string, args: string[]): Promise<void> {

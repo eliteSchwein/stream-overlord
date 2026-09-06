@@ -1278,9 +1278,17 @@ async function parseConfigParams(
                 logWarn(`failed to fetch category for command user ${user.displayName}`);
             }
 
-            (user as any).gameName = gameName;
+            params[paramOptions.name] = {
+                id: user.id,
+                name: user.name,
+                displayName: user.displayName,
+                description: user.description,
+                profilePictureUrl: user.profilePictureUrl,
+                broadcasterType: user.broadcasterType,
+                creationDate: user.creationDate,
+                gameName,
+            };
 
-            params[paramOptions.name] = user;
             paramIndex++;
             continue;
         }
