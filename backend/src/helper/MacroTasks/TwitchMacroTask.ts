@@ -20,7 +20,7 @@ export default class TwitchMacroTask extends BaseMacroTask {
             return;
         }
 
-        const templateData = {...data, variables};
+        const templateData = {...data, ...variables, variables};
         const text = (value: unknown) => fillTemplate(String(value ?? ""), templateData).trim();
         const number = (value: unknown, fallback?: number) => {
             const parsed = Number(value);
