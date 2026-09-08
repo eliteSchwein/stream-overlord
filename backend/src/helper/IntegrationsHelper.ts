@@ -85,14 +85,33 @@ export type TwitchIntegration = {
     message?: any;
 };
 
+export type ExternalAiProvider = "ollama" | "openai";
+
+export type OllamaExternalProviderConfig = {
+    url?: string;
+    api_key?: string;
+    model?: string;
+};
+
 export type OllamaIntegration = {
     enabled?: boolean;
-    // Currently active model. Kept for compatibility with existing frontend/API code.
+
+    // Active model. Kept for compatibility with the existing frontend/API surface.
     model?: string;
-    // Remember the last selected model independently for each Ollama mode.
+
+    // Internal mode stays managed Ollama with exactly one remembered model.
     internal_model?: string;
-    external_model?: string;
+
+    // `external` is kept as the mode flag for compatibility.
     external?: boolean;
+    external_provider?: ExternalAiProvider;
+
+    // Each external provider remembers its own URL/key/model.
+    external_ollama?: OllamaExternalProviderConfig;
+    external_openai?: OllamaExternalProviderConfig;
+
+    // Legacy fields migrated automatically into external_ollama.
+    external_model?: string;
     external_url?: string;
     api_key?: string;
 };
@@ -131,10 +150,20 @@ export type SafeIntegrations = {
         enabled: boolean;
         model: string;
         internal_model: string;
-        external_model: string;
         external: boolean;
+        external_provider: ExternalAiProvider;
         external_url: string;
         has_api_key: boolean;
+        external_ollama: {
+            url: string;
+            model: string;
+            has_api_key: boolean;
+        };
+        external_openai: {
+            url: string;
+            model: string;
+            has_api_key: boolean;
+        };
     };
 };
 
@@ -249,15 +278,34 @@ export function getIntegrationsSafe(): SafeIntegrations {
             connected: runtimeState.yoloboxConnected,
         },
         neopixel: safeNeopixel,
-        ollama: {
-            enabled: Boolean(integrations.ollama?.enabled),
-            model: String(integrations.ollama?.model ?? ""),
-            internal_model: String(integrations.ollama?.internal_model ?? ""),
-            external_model: String(integrations.ollama?.external_model ?? ""),
-            external: Boolean(integrations.ollama?.external),
-            external_url: String(integrations.ollama?.external_url ?? ""),
-            has_api_key: Boolean(integrations.ollama?.api_key),
-        },
+        ollama: (() => {
+            const integration = getOllamaIntegration();
+            const provider = integration.external_provider ?? "ollama";
+            const activeExternalConfig =
+                provider === "openai"
+                    ? integration.external_openai
+                    : integration.external_ollama;
+
+            return {
+                enabled: Boolean(integration.enabled),
+                model: String(integration.model ?? ""),
+                internal_model: String(integration.internal_model ?? ""),
+                external: Boolean(integration.external),
+                external_provider: provider,
+                external_url: String(activeExternalConfig?.url ?? ""),
+                has_api_key: Boolean(activeExternalConfig?.api_key),
+                external_ollama: {
+                    url: String(integration.external_ollama?.url ?? ""),
+                    model: String(integration.external_ollama?.model ?? ""),
+                    has_api_key: Boolean(integration.external_ollama?.api_key),
+                },
+                external_openai: {
+                    url: String(integration.external_openai?.url ?? ""),
+                    model: String(integration.external_openai?.model ?? ""),
+                    has_api_key: Boolean(integration.external_openai?.api_key),
+                },
+            };
+        })(),
     };
 }
 
@@ -486,14 +534,35 @@ function getDefaultOllamaIntegration(): OllamaIntegration {
         enabled: false,
         model: "",
         internal_model: "",
-        external_model: "",
         external: false,
-        external_url: "",
-        api_key: "",
+        external_provider: "ollama",
+        external_ollama: {
+            url: "",
+            api_key: "",
+            model: "",
+        },
+        external_openai: {
+            url: "",
+            api_key: "",
+            model: "",
+        },
     };
 }
 
-function migrateOllamaModelMemory(integration: OllamaIntegration): boolean {
+function getExternalProviderConfig(
+    integration: OllamaIntegration,
+    provider: ExternalAiProvider,
+): OllamaExternalProviderConfig {
+    if (provider === "openai") {
+        integration.external_openai ??= {};
+        return integration.external_openai;
+    }
+
+    integration.external_ollama ??= {};
+    return integration.external_ollama;
+}
+
+function migrateOllamaIntegration(integration: OllamaIntegration): boolean {
     let changed = false;
     const activeModel = String(integration.model ?? "").trim();
 
@@ -502,8 +571,86 @@ function migrateOllamaModelMemory(integration: OllamaIntegration): boolean {
         changed = true;
     }
 
-    if (integration.external_model === undefined) {
-        integration.external_model = integration.external ? activeModel : "";
+    if (
+        integration.external_provider !== "ollama" &&
+        integration.external_provider !== "openai"
+    ) {
+        integration.external_provider = "ollama";
+        changed = true;
+    }
+
+    if (!integration.external_ollama) {
+        integration.external_ollama = {};
+        changed = true;
+    }
+
+    if (!integration.external_openai) {
+        integration.external_openai = {};
+        changed = true;
+    }
+
+    // Migrate the old single external Ollama fields into the new Ollama provider
+    // config. Existing users therefore keep their current server/model/key.
+    if (
+        integration.external_url !== undefined &&
+        integration.external_ollama.url === undefined
+    ) {
+        integration.external_ollama.url =
+            String(integration.external_url ?? "").trim();
+        changed = true;
+    }
+
+    if (
+        integration.api_key !== undefined &&
+        integration.external_ollama.api_key === undefined
+    ) {
+        integration.external_ollama.api_key =
+            String(integration.api_key ?? "").trim();
+        changed = true;
+    }
+
+    if (
+        integration.external_model !== undefined &&
+        integration.external_ollama.model === undefined
+    ) {
+        integration.external_ollama.model =
+            String(integration.external_model ?? "").trim();
+        changed = true;
+    }
+
+    if (
+        integration.external &&
+        integration.external_provider === "ollama" &&
+        !String(integration.external_ollama.model ?? "").trim() &&
+        activeModel
+    ) {
+        integration.external_ollama.model = activeModel;
+        changed = true;
+    }
+
+    if (
+        integration.external &&
+        integration.external_provider === "openai" &&
+        !String(integration.external_openai.model ?? "").trim() &&
+        activeModel
+    ) {
+        integration.external_openai.model = activeModel;
+        changed = true;
+    }
+
+    // Legacy fields are no longer written after migration.
+    if (integration.external_model !== undefined) {
+        delete integration.external_model;
+        changed = true;
+    }
+
+    if (integration.external_url !== undefined) {
+        delete integration.external_url;
+        changed = true;
+    }
+
+    if (integration.api_key !== undefined) {
+        delete integration.api_key;
         changed = true;
     }
 
@@ -517,7 +664,7 @@ export function getOllamaIntegration(): OllamaIntegration {
         return getDefaultOllamaIntegration();
     }
 
-    if (migrateOllamaModelMemory(integrations.ollama)) {
+    if (migrateOllamaIntegration(integrations.ollama)) {
         writeIntegrations(integrations);
     }
 
@@ -537,7 +684,7 @@ export function ensureDefaultOllamaIntegration() {
         return integrations.ollama;
     }
 
-    if (migrateOllamaModelMemory(integrations.ollama)) {
+    if (migrateOllamaIntegration(integrations.ollama)) {
         writeIntegrations(integrations);
     }
 
@@ -550,6 +697,7 @@ export async function setOllamaIntegrationEnabled(enabled: boolean) {
     const nextEnabled = Boolean(enabled);
 
     integrations.ollama ??= getDefaultOllamaIntegration();
+    migrateOllamaIntegration(integrations.ollama);
     integrations.ollama.enabled = nextEnabled;
 
     writeIntegrations(integrations);
@@ -557,8 +705,6 @@ export async function setOllamaIntegrationEnabled(enabled: boolean) {
 
     const {syncOllamaIntegration} = await import("./OllamaHelper");
 
-    // Enabling installs/starts Ollama. Disabling stops it and purges its entire
-    // ~/.local/share/streambot/ollama directory to reclaim model/runtime storage.
     await syncOllamaIntegration(nextEnabled && !previousEnabled);
 }
 
@@ -566,14 +712,18 @@ export function setOllamaIntegrationModel(model: string) {
     const integrations = readIntegrations();
 
     integrations.ollama ??= getDefaultOllamaIntegration();
-    migrateOllamaModelMemory(integrations.ollama);
+    migrateOllamaIntegration(integrations.ollama);
 
     const normalizedModel = String(model ?? "").trim();
 
     integrations.ollama.model = normalizedModel;
 
     if (integrations.ollama.external) {
-        integrations.ollama.external_model = normalizedModel;
+        const provider = integrations.ollama.external_provider ?? "ollama";
+        getExternalProviderConfig(
+            integrations.ollama,
+            provider,
+        ).model = normalizedModel;
     } else {
         integrations.ollama.internal_model = normalizedModel;
     }
@@ -582,9 +732,9 @@ export function setOllamaIntegrationModel(model: string) {
     emitIntegrationsUpdate();
 }
 
-
 export async function setOllamaExternalIntegration(data: {
     external?: boolean;
+    provider?: ExternalAiProvider;
     external_url?: string;
     api_key?: string;
     clear_api_key?: boolean;
@@ -592,68 +742,93 @@ export async function setOllamaExternalIntegration(data: {
     const integrations = readIntegrations();
 
     integrations.ollama ??= getDefaultOllamaIntegration();
-    migrateOllamaModelMemory(integrations.ollama);
+    migrateOllamaIntegration(integrations.ollama);
 
-    const previousExternal = Boolean(integrations.ollama.external);
+    const integration = integrations.ollama;
+    const previousExternal = Boolean(integration.external);
+    const previousProvider = integration.external_provider ?? "ollama";
     const external = Boolean(data.external);
+    const provider: ExternalAiProvider =
+        data.provider === "openai"
+            ? "openai"
+            : "ollama";
+
+    const providerConfig = getExternalProviderConfig(
+        integration,
+        provider,
+    );
+
     const externalUrl = String(
-        data.external_url ?? integrations.ollama.external_url ?? "",
+        data.external_url ??
+        providerConfig.url ??
+        "",
     ).trim().replace(/\/+$/, "");
 
     if (external && !externalUrl) {
-        throw new Error("external_url is required when external ollama is enabled");
+        throw new Error("external AI server URL is required");
     }
 
     if (external && !/^https?:\/\//i.test(externalUrl)) {
-        throw new Error("external_url must start with http:// or https://");
+        throw new Error("external AI server URL must start with http:// or https://");
     }
 
-    const modeChanged = previousExternal !== external;
+    const modeChanged =
+        previousExternal !== external ||
+        (
+            external &&
+            previousExternal &&
+            previousProvider !== provider
+        );
 
-    // Import before changing the persisted mode. stopOllama() must still see the
-    // mode we are LEAVING so it can stop the correct backend:
-    //
-    // internal -> external: kill local `ollama serve`
-    // external -> internal: unload the external model
     const {
         stopOllama,
         syncOllamaIntegration,
     } = await import("./OllamaHelper");
 
+    // Stop/unload the provider we are leaving before changing persisted mode/provider.
     if (
         modeChanged &&
-        Boolean(integrations.ollama.enabled)
+        Boolean(integration.enabled)
     ) {
         await stopOllama();
     }
 
-    // Persist the active model into the mode we are leaving.
-    const activeModel = String(integrations.ollama.model ?? "").trim();
+    // Remember the active model in the provider/mode we are leaving.
+    const activeModel = String(integration.model ?? "").trim();
 
     if (previousExternal) {
-        integrations.ollama.external_model = activeModel;
+        getExternalProviderConfig(
+            integration,
+            previousProvider,
+        ).model = activeModel;
     } else {
-        integrations.ollama.internal_model = activeModel;
+        integration.internal_model = activeModel;
     }
 
-    integrations.ollama.external = external;
-    integrations.ollama.external_url = externalUrl;
-
-    // Restore the last model used in the mode we are entering.
-    integrations.ollama.model = String(
-        external
-            ? integrations.ollama.external_model ?? ""
-            : integrations.ollama.internal_model ?? "",
-    ).trim();
+    providerConfig.url = externalUrl;
 
     if (data.clear_api_key === true) {
-        integrations.ollama.api_key = "";
-    } else if (data.api_key !== undefined && String(data.api_key).trim()) {
-        integrations.ollama.api_key = String(data.api_key).trim();
+        providerConfig.api_key = "";
+    } else if (
+        data.api_key !== undefined &&
+        String(data.api_key).trim()
+    ) {
+        providerConfig.api_key =
+            String(data.api_key).trim();
     }
+
+    integration.external = external;
+    integration.external_provider = provider;
+
+    integration.model = String(
+        external
+            ? providerConfig.model ?? ""
+            : integration.internal_model ?? "",
+    ).trim();
 
     writeIntegrations(integrations);
     emitIntegrationsUpdate();
 
     await syncOllamaIntegration(false);
 }
+

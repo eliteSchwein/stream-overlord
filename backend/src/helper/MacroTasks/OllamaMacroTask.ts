@@ -1,5 +1,5 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
-import {directOllamaRequest} from "../OllamaHelper";
+import {aiChatRequest} from "../OllamaHelper";
 import {getOllamaIntegration} from "../IntegrationsHelper";
 import {logRegular, logWarn} from "../LogHelper";
 
@@ -14,6 +14,7 @@ export default class OllamaMacroTask extends BaseMacroTask {
     channel = "ollama";
 
     async handle(method: string, data: any = {}, variables: any = {}) {
+
         if (method !== "chat") {
             logWarn(`invalid ollama method: ${method}`);
             return;
@@ -21,12 +22,12 @@ export default class OllamaMacroTask extends BaseMacroTask {
 
         const model = String(getOllamaIntegration().model ?? "").trim();
         if (!model) {
-            throw new Error("ollama integration has no model configured");
+            throw new Error("AI integration has no model configured");
         }
 
         const messages = this.normalizeMessages(data.messages);
         if (messages.length === 0) {
-            throw new Error("ollama chat requires at least one message");
+            throw new Error("AI chat requires at least one message");
         }
 
         const resultKey = String(
@@ -36,26 +37,25 @@ export default class OllamaMacroTask extends BaseMacroTask {
         ).trim();
 
         const timeout = Number(data.timeout ?? 0);
+        const contextSize = Number(
+            data.context_size ??
+            data.contextSize ??
+            0,
+        );
 
-        logRegular(`ollama macro chat with ${messages.length} message(s)`);
+        logRegular(`AI macro chat with ${messages.length} message(s)`);
 
-        const response = await directOllamaRequest({
-            path: "/api/chat",
-            method: "POST",
-            timeout: Number.isFinite(timeout) && timeout > 0 ? timeout : 0,
-            data: {
-                model,
-                messages,
-                stream: false,
+        const response = await aiChatRequest(
+            messages,
+            Number.isFinite(timeout) && timeout > 0
+                ? timeout
+                : 0,
+            Number.isFinite(contextSize) && contextSize > 0
+                ? Math.floor(contextSize)
+                : 0,
+        );
 
-                // The macro is intentionally stateless. Ollama's chat endpoint
-                // receives the complete conversation for this one request and
-                // keep_alive=0 unloads the model immediately afterwards.
-                keep_alive: 0,
-            },
-        });
-
-        let content = String(response?.message?.content ?? "");
+        let content = String(response?.content ?? "");
 
         const stripEmojis = data.strip_emojis === true || data.stripEmojis === true;
 

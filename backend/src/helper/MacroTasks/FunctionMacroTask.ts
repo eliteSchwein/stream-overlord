@@ -1,4 +1,5 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
+import * as fs from "node:fs";
 import {sleep} from "../../../../helper/GeneralHelper";
 import fillTemplate from "../TemplateHelper";
 import {toggleAutoMacro} from "../AutoMacroHelper";
@@ -6,6 +7,7 @@ import {speak} from "../TTShelper";
 import {addSongRequest, toggleSongRequest} from "../MusicHelper";
 import {getTwitchClient} from "../../App";
 import {logRegular, logWarn} from "../LogHelper";
+import {assetRoot} from "../AssetManagementHelper";
 
 export default class FunctionMacroTask extends BaseMacroTask {
     channel = "function";
@@ -32,6 +34,29 @@ export default class FunctionMacroTask extends BaseMacroTask {
                 variables[data.key] = value;
 
                 logRegular(`random ${data.key}=${value} (${min}-${max})`);
+                break;
+            }
+
+            case "dump_variables": {
+                fs.mkdirSync(
+                    assetRoot,
+                    {
+                        recursive: true,
+                    },
+                );
+
+                const dumpPath =
+                    `${assetRoot}/dumped_variables.json`;
+
+                fs.writeFileSync(
+                    dumpPath,
+                    `${JSON.stringify(variables, null, 4)}\n`,
+                    "utf8",
+                );
+
+                logRegular(
+                    `dumped macro variables to ${dumpPath}`,
+                );
                 break;
             }
 

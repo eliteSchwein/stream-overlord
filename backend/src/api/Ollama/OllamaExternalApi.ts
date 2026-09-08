@@ -10,6 +10,7 @@ export default class OllamaExternalApi extends BaseApi {
         try {
             await setOllamaExternalIntegration({
                 external: Boolean(data?.external),
+                provider: data?.provider === "openai" ? "openai" : "ollama",
                 external_url: String(data?.external_url ?? ""),
                 api_key: data?.api_key,
                 clear_api_key: data?.clear_api_key === true,
@@ -18,7 +19,7 @@ export default class OllamaExternalApi extends BaseApi {
             return {success: true};
         } catch (error: any) {
             return {
-                error: error?.message ?? "failed to configure external ollama server",
+                error: error?.message ?? "failed to configure external AI provider",
             };
         }
     }

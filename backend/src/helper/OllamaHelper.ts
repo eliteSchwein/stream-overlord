@@ -15,22 +15,39 @@ import {logRegular, logSuccess, logWarn} from "./LogHelper";
 const OLLAMA_API_URL = "http://127.0.0.1:11434";
 const OLLAMA_HOST = "127.0.0.1:11434";
 
-function isExternalOllamaEnabled() {
+function isExternalAiEnabled() {
     return Boolean(getOllamaIntegration().external);
+}
+
+function getExternalAiProvider() {
+    return getOllamaIntegration().external_provider === "openai"
+        ? "openai"
+        : "ollama";
+}
+
+function isExternalOllamaEnabled() {
+    return isExternalAiEnabled() && getExternalAiProvider() === "ollama";
+}
+
+function isExternalOpenAiEnabled() {
+    return isExternalAiEnabled() && getExternalAiProvider() === "openai";
 }
 
 function getOllamaApi() {
     const integration = getOllamaIntegration();
-    const external = Boolean(integration.external);
+    const external = isExternalOllamaEnabled();
+    const externalConfig = integration.external_ollama ?? {};
     const baseURL = external
-        ? String(integration.external_url ?? "").trim().replace(/\/+$/, "")
+        ? String(externalConfig.url ?? "").trim().replace(/\/+$/, "")
         : OLLAMA_API_URL;
 
     if (external && !baseURL) {
         throw new Error("external ollama URL is not configured");
     }
 
-    const apiKey = String(integration.api_key ?? "").trim();
+    const apiKey = external
+        ? String(externalConfig.api_key ?? "").trim()
+        : "";
 
     return axios.create({
         baseURL,
@@ -39,6 +56,40 @@ function getOllamaApi() {
             ? {Authorization: `Bearer ${apiKey}`}
             : undefined,
     });
+}
+
+function getOpenAiApi() {
+    const integration = getOllamaIntegration();
+    const config = integration.external_openai ?? {};
+    const baseURL = String(config.url ?? "").trim().replace(/\/+$/, "");
+
+    if (!baseURL) {
+        throw new Error("OpenAI-compatible API URL is not configured");
+    }
+
+    const apiKey = String(config.api_key ?? "").trim();
+
+    return axios.create({
+        baseURL,
+        timeout: 30_000,
+        headers: apiKey
+            ? {Authorization: `Bearer ${apiKey}`}
+            : undefined,
+    });
+}
+
+function getOpenAiPath(pathname: string) {
+    const baseURL = String(
+        getOllamaIntegration().external_openai?.url ?? "",
+    ).trim().replace(/\/+$/, "");
+
+    const path = pathname.startsWith("/")
+        ? pathname
+        : `/${pathname}`;
+
+    return /\/v1$/i.test(baseURL)
+        ? path.replace(/^\/v1/i, "")
+        : path;
 }
 
 let ollamaProcess: ChildProcess | null = null;
@@ -63,8 +114,19 @@ export type OllamaUpdate = {
     models: string[];
     ram_mib: number;
     external: boolean;
+    external_provider: "ollama" | "openai";
     external_url: string;
     has_api_key: boolean;
+    external_ollama: {
+        url: string;
+        model: string;
+        has_api_key: boolean;
+    };
+    external_openai: {
+        url: string;
+        model: string;
+        has_api_key: boolean;
+    };
     error: string;
 };
 
@@ -214,7 +276,7 @@ function readTestedModels(): Record<string, string[]> {
 }
 
 export function getAvailableOllamaModels() {
-    if (isExternalOllamaEnabled()) {
+    if (isExternalAiEnabled()) {
         return [...runtimeState.external_models];
     }
 
@@ -260,8 +322,27 @@ export function getOllamaUpdate(): OllamaUpdate {
         models: getAvailableOllamaModels(),
         ram_mib: Math.floor(os.totalmem() / 1024 / 1024),
         external: Boolean(integration.external),
-        external_url: String(integration.external_url ?? ""),
-        has_api_key: Boolean(integration.api_key),
+        external_provider: getExternalAiProvider(),
+        external_url: String(
+            getExternalAiProvider() === "openai"
+                ? integration.external_openai?.url ?? ""
+                : integration.external_ollama?.url ?? "",
+        ),
+        has_api_key: Boolean(
+            getExternalAiProvider() === "openai"
+                ? integration.external_openai?.api_key
+                : integration.external_ollama?.api_key,
+        ),
+        external_ollama: {
+            url: String(integration.external_ollama?.url ?? ""),
+            model: String(integration.external_ollama?.model ?? ""),
+            has_api_key: Boolean(integration.external_ollama?.api_key),
+        },
+        external_openai: {
+            url: String(integration.external_openai?.url ?? ""),
+            model: String(integration.external_openai?.model ?? ""),
+            has_api_key: Boolean(integration.external_openai?.api_key),
+        },
         error: runtimeState.error,
     };
 }
@@ -420,8 +501,14 @@ async function startOllamaInternal() {
         return;
     }
 
-    if (isExternalOllamaEnabled()) {
+    if (isExternalAiEnabled()) {
         deleteLocalOllamaModels();
+
+        if (isExternalOpenAiEnabled()) {
+            await refreshExternalOpenAiState();
+            return;
+        }
+
         await refreshExternalOllamaState();
         await preloadConfiguredOllamaModel();
         return;
@@ -584,8 +671,10 @@ async function unloadConfiguredExternalOllamaModel() {
 }
 
 async function stopOllamaInternal() {
-    if (isExternalOllamaEnabled()) {
-        await unloadConfiguredExternalOllamaModel();
+    if (isExternalAiEnabled()) {
+        if (isExternalOllamaEnabled()) {
+            await unloadConfiguredExternalOllamaModel();
+        }
 
         runtimeState.running = false;
         emitOllamaUpdate();
@@ -734,8 +823,14 @@ export async function restartOllama() {
         );
     }
 
-    if (isExternalOllamaEnabled()) {
+    if (isExternalAiEnabled()) {
         deleteLocalOllamaModels();
+
+        if (isExternalOpenAiEnabled()) {
+            await refreshExternalOpenAiState();
+            return getOllamaUpdate();
+        }
+
         await refreshExternalOllamaState();
         await preloadConfiguredOllamaModel();
         return getOllamaUpdate();
@@ -756,9 +851,14 @@ export async function syncOllamaIntegration(
         return getOllamaUpdate();
     }
 
-    if (isExternalOllamaEnabled()) {
-        await stopOllama();
+    if (isExternalAiEnabled()) {
         deleteLocalOllamaModels();
+
+        if (isExternalOpenAiEnabled()) {
+            await refreshExternalOpenAiState();
+            return getOllamaUpdate();
+        }
+
         await refreshExternalOllamaState();
         await preloadConfiguredOllamaModel();
         return getOllamaUpdate();
@@ -786,6 +886,10 @@ export async function syncOllamaIntegration(
 }
 
 async function preloadConfiguredOllamaModel() {
+    if (isExternalOpenAiEnabled()) {
+        return;
+    }
+
     const integration = getOllamaIntegration();
     const model = String(
         integration.model ?? "",
@@ -880,6 +984,47 @@ async function refreshExternalOllamaState() {
     emitOllamaUpdate();
 }
 
+async function refreshExternalOpenAiState() {
+    if (!isExternalOpenAiEnabled()) return;
+
+    try {
+        const response = await getOpenAiApi().get(
+            getOpenAiPath("/v1/models"),
+            {
+                timeout: 5_000,
+            },
+        );
+
+        const models = Array.isArray(response.data?.data)
+            ? response.data.data
+            : [];
+
+        runtimeState.external_models = models
+            .map((entry: any) =>
+                String(entry?.id ?? entry?.name ?? "").trim(),
+            )
+            .filter(Boolean);
+
+        runtimeState.running = true;
+        runtimeState.error = "";
+    } catch (error) {
+        const normalizedError = normalizeAxiosError(error);
+
+        runtimeState.external_models = [];
+        runtimeState.running = false;
+        runtimeState.error = normalizedError.message;
+
+        logWarn(
+            `OpenAI-compatible API is not reachable: ${normalizedError.message}`,
+        );
+
+        emitOllamaUpdate();
+        return;
+    }
+
+    emitOllamaUpdate();
+}
+
 function normalizeAxiosError(
     error: unknown,
 ): Error {
@@ -918,6 +1063,12 @@ export async function directOllamaRequest(
     }
 
     await startOllama();
+
+    if (isExternalOpenAiEnabled()) {
+        throw new Error(
+            "raw ollama requests are not available for OpenAI-compatible providers",
+        );
+    }
 
     const rawPath =
         String(
@@ -1009,6 +1160,94 @@ export async function directOllamaRequest(
     }
 }
 
+export type AiChatMessage = {
+    role: "system" | "user" | "assistant" | "tool";
+    content: string;
+};
+
+export async function aiChatRequest(
+    messages: AiChatMessage[],
+    timeout = 0,
+    contextSize = 0,
+) {
+    if (!isOllamaIntegrationEnabled()) {
+        throw new Error(
+            "AI integration is disabled",
+        );
+    }
+
+    const model = String(
+        getOllamaIntegration().model ?? "",
+    ).trim();
+
+    if (!model) {
+        throw new Error(
+            "AI integration has no model configured",
+        );
+    }
+
+    if (isExternalOpenAiEnabled()) {
+        await refreshExternalOpenAiState();
+
+        try {
+            const response = await getOpenAiApi().post(
+                getOpenAiPath("/v1/chat/completions"),
+                {
+                    model,
+                    messages,
+                    stream: false,
+                },
+                {
+                    timeout:
+                        Number.isFinite(timeout) &&
+                        timeout > 0
+                            ? timeout
+                            : 0,
+                },
+            );
+
+            return {
+                content: String(
+                    response.data?.choices?.[0]?.message?.content ?? "",
+                ),
+                raw: response.data,
+            };
+        } catch (error) {
+            throw normalizeAxiosError(error);
+        }
+    }
+
+    const normalizedContextSize =
+        Number.isFinite(contextSize) &&
+        contextSize > 0
+            ? Math.floor(contextSize)
+            : 0;
+
+    const response = await directOllamaRequest({
+        path: "/api/chat",
+        method: "POST",
+        timeout,
+        data: {
+            model,
+            messages,
+            stream: false,
+            keep_alive: -1,
+            ...(normalizedContextSize > 0
+                ? {
+                    options: {
+                        num_ctx: normalizedContextSize,
+                    },
+                }
+                : {}),
+        },
+    });
+
+    return {
+        content: String(response?.message?.content ?? ""),
+        raw: response,
+    };
+}
+
 async function getInstalledModelNames() {
     const response =
         await getOllamaApi().get(
@@ -1035,7 +1274,7 @@ async function getInstalledModelNames() {
 }
 
 async function pullConfiguredOllamaModel() {
-    if (isExternalOllamaEnabled()) return;
+    if (isExternalAiEnabled()) return;
 
     const model =
         String(
@@ -1126,15 +1365,39 @@ export async function changeOllamaModel(
         );
     }
 
-    if (isExternalOllamaEnabled()) {
+    if (isExternalAiEnabled()) {
         deleteLocalOllamaModels();
+
+        if (isExternalOpenAiEnabled()) {
+            await refreshExternalOpenAiState();
+
+            if (
+                runtimeState.external_models.length > 0 &&
+                !runtimeState.external_models.includes(normalizedModel)
+            ) {
+                throw new Error(
+                    `model is not available on OpenAI-compatible server: ${normalizedModel}`,
+                );
+            }
+
+            setOllamaIntegrationModel(normalizedModel);
+
+            runtimeState.running = true;
+            runtimeState.error = "";
+            emitOllamaUpdate();
+
+            return getOllamaUpdate();
+        }
+
         await refreshExternalOllamaState();
 
         if (
             runtimeState.external_models.length > 0 &&
             !runtimeState.external_models.includes(normalizedModel)
         ) {
-            throw new Error(`ollama model is not available on external server: ${normalizedModel}`);
+            throw new Error(
+                `ollama model is not available on external server: ${normalizedModel}`,
+            );
         }
 
         const previousModel = String(
@@ -1150,8 +1413,6 @@ export async function changeOllamaModel(
 
         setOllamaIntegrationModel(normalizedModel);
 
-        // Load the newly selected external model immediately and keep it
-        // resident so the first real request does not pay the cold-start cost.
         await preloadConfiguredOllamaModel();
 
         runtimeState.running = true;
