@@ -87,7 +87,11 @@ export type TwitchIntegration = {
 
 export type OllamaIntegration = {
     enabled?: boolean;
+    // Currently active model. Kept for compatibility with existing frontend/API code.
     model?: string;
+    // Remember the last selected model independently for each Ollama mode.
+    internal_model?: string;
+    external_model?: string;
     external?: boolean;
     external_url?: string;
     api_key?: string;
@@ -126,6 +130,8 @@ export type SafeIntegrations = {
     ollama: {
         enabled: boolean;
         model: string;
+        internal_model: string;
+        external_model: string;
         external: boolean;
         external_url: string;
         has_api_key: boolean;
@@ -246,6 +252,8 @@ export function getIntegrationsSafe(): SafeIntegrations {
         ollama: {
             enabled: Boolean(integrations.ollama?.enabled),
             model: String(integrations.ollama?.model ?? ""),
+            internal_model: String(integrations.ollama?.internal_model ?? ""),
+            external_model: String(integrations.ollama?.external_model ?? ""),
             external: Boolean(integrations.ollama?.external),
             external_url: String(integrations.ollama?.external_url ?? ""),
             has_api_key: Boolean(integrations.ollama?.api_key),
@@ -473,8 +481,47 @@ export function setYoloboxIntegrationConnected(connected: boolean) {
 }
 
 
+function getDefaultOllamaIntegration(): OllamaIntegration {
+    return {
+        enabled: false,
+        model: "",
+        internal_model: "",
+        external_model: "",
+        external: false,
+        external_url: "",
+        api_key: "",
+    };
+}
+
+function migrateOllamaModelMemory(integration: OllamaIntegration): boolean {
+    let changed = false;
+    const activeModel = String(integration.model ?? "").trim();
+
+    if (integration.internal_model === undefined) {
+        integration.internal_model = integration.external ? "" : activeModel;
+        changed = true;
+    }
+
+    if (integration.external_model === undefined) {
+        integration.external_model = integration.external ? activeModel : "";
+        changed = true;
+    }
+
+    return changed;
+}
+
 export function getOllamaIntegration(): OllamaIntegration {
-    return readIntegrations().ollama ?? {enabled: false, model: "", external: false, external_url: "", api_key: ""};
+    const integrations = readIntegrations();
+
+    if (!integrations.ollama) {
+        return getDefaultOllamaIntegration();
+    }
+
+    if (migrateOllamaModelMemory(integrations.ollama)) {
+        writeIntegrations(integrations);
+    }
+
+    return integrations.ollama;
 }
 
 export function isOllamaIntegrationEnabled() {
@@ -484,19 +531,16 @@ export function isOllamaIntegrationEnabled() {
 export function ensureDefaultOllamaIntegration() {
     const integrations = readIntegrations();
 
-    if (integrations.ollama) {
+    if (!integrations.ollama) {
+        integrations.ollama = getDefaultOllamaIntegration();
+        writeIntegrations(integrations);
         return integrations.ollama;
     }
 
-    integrations.ollama = {
-        enabled: false,
-        model: "",
-        external: false,
-        external_url: "",
-        api_key: "",
-    };
+    if (migrateOllamaModelMemory(integrations.ollama)) {
+        writeIntegrations(integrations);
+    }
 
-    writeIntegrations(integrations);
     return integrations.ollama;
 }
 
@@ -505,7 +549,7 @@ export async function setOllamaIntegrationEnabled(enabled: boolean) {
     const previousEnabled = Boolean(integrations.ollama?.enabled);
     const nextEnabled = Boolean(enabled);
 
-    integrations.ollama ??= {enabled: false, model: "", external: false, external_url: "", api_key: ""};
+    integrations.ollama ??= getDefaultOllamaIntegration();
     integrations.ollama.enabled = nextEnabled;
 
     writeIntegrations(integrations);
@@ -521,8 +565,18 @@ export async function setOllamaIntegrationEnabled(enabled: boolean) {
 export function setOllamaIntegrationModel(model: string) {
     const integrations = readIntegrations();
 
-    integrations.ollama ??= {enabled: false, model: "", external: false, external_url: "", api_key: ""};
-    integrations.ollama.model = String(model ?? "").trim();
+    integrations.ollama ??= getDefaultOllamaIntegration();
+    migrateOllamaModelMemory(integrations.ollama);
+
+    const normalizedModel = String(model ?? "").trim();
+
+    integrations.ollama.model = normalizedModel;
+
+    if (integrations.ollama.external) {
+        integrations.ollama.external_model = normalizedModel;
+    } else {
+        integrations.ollama.internal_model = normalizedModel;
+    }
 
     writeIntegrations(integrations);
     emitIntegrationsUpdate();
@@ -537,16 +591,14 @@ export async function setOllamaExternalIntegration(data: {
 }) {
     const integrations = readIntegrations();
 
-    integrations.ollama ??= {
-        enabled: false,
-        model: "",
-        external: false,
-        external_url: "",
-        api_key: "",
-    };
+    integrations.ollama ??= getDefaultOllamaIntegration();
+    migrateOllamaModelMemory(integrations.ollama);
 
+    const previousExternal = Boolean(integrations.ollama.external);
     const external = Boolean(data.external);
-    const externalUrl = String(data.external_url ?? integrations.ollama.external_url ?? "").trim().replace(/\/+$/, "");
+    const externalUrl = String(
+        data.external_url ?? integrations.ollama.external_url ?? "",
+    ).trim().replace(/\/+$/, "");
 
     if (external && !externalUrl) {
         throw new Error("external_url is required when external ollama is enabled");
@@ -556,8 +608,24 @@ export async function setOllamaExternalIntegration(data: {
         throw new Error("external_url must start with http:// or https://");
     }
 
+    // Persist the active model into the mode we are leaving before switching.
+    const activeModel = String(integrations.ollama.model ?? "").trim();
+
+    if (previousExternal) {
+        integrations.ollama.external_model = activeModel;
+    } else {
+        integrations.ollama.internal_model = activeModel;
+    }
+
     integrations.ollama.external = external;
     integrations.ollama.external_url = externalUrl;
+
+    // Restore the last model used in the mode we are entering.
+    integrations.ollama.model = String(
+        external
+            ? integrations.ollama.external_model ?? ""
+            : integrations.ollama.internal_model ?? "",
+    ).trim();
 
     if (data.clear_api_key === true) {
         integrations.ollama.api_key = "";

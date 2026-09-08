@@ -776,15 +776,11 @@ export async function syncOllamaIntegration(
 
     await startOllama();
 
-    // A disabled integration purges the complete
-    // Ollama directory while the configured model
-    // remains in integrations.json.
-    //
-    // After a fresh install automatically restore
-    // that configured model.
-    if (!wasInstalled) {
-        await pullConfiguredOllamaModel();
-    }
+    // Always ensure the remembered internal model exists. External mode removes
+    // local model files to save storage but deliberately keeps the Ollama runtime,
+    // so checking only whether the binary was installed is not sufficient here.
+    await pullConfiguredOllamaModel();
+    await preloadConfiguredOllamaModel();
 
     return getOllamaUpdate();
 }
