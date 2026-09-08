@@ -16,6 +16,13 @@ export default class SaveAudioPresetApi extends BaseApi {
             data?.output_mappings && typeof data.output_mappings === "object"
                 ? data.output_mappings
                 : null,
+            data?.volume_states && typeof data.volume_states === "object"
+                ? data.volume_states
+                : null,
+            Array.isArray(data?.physical_output_names) ? data.physical_output_names : [],
+            data?.physical_output_states && typeof data.physical_output_states === "object"
+                ? data.physical_output_states
+                : null,
         );
     }
 }

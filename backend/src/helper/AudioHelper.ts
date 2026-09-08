@@ -402,9 +402,59 @@ export async function setAudioOutputVolume(
 }
 
 
+export async function setAudioOutputMute(
+    outputName: string,
+    muted: boolean,
+) {
+    if (!outputName) return { error: "missing output" };
+
+    const outputs = await getAvailableAudioOutputs();
+    const output = outputs.find(item => item.name === outputName || item.id === outputName);
+
+    if (!output) return { error: "unknown output" };
+
+    try {
+        await runCommand("pactl", [
+            "set-sink-mute",
+            output.name,
+            muted ? "1" : "0",
+        ]);
+    } catch (error) {
+        logWarn(`setting output mute for ${output.name} failed:`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return { error: "setting output mute failed" };
+    }
+
+    await refreshAudioOutputs(true);
+    getWebsocketServer().send("notify_audio_outputs_update", audioOutputs);
+
+    const updatedOutput = audioOutputs.find(item => item.name === output.name) ?? output;
+
+    await triggerAudioEvent(muted ? "event_audio_output_mute" : "event_audio_output_unmute", {
+        output: output.name,
+        output_data: updatedOutput,
+        muted,
+    });
+
+    return {
+        output: output.name,
+        muted,
+    };
+}
+
+
+type AudioPresetVolumeState = {
+    volume: number;
+    muted: boolean;
+};
+
 type AudioPreset = {
     name: string;
+    // Kept for backwards compatibility with existing preset files.
     volumes?: Record<string, number>;
+    mutes?: Record<string, boolean>;
+    interface_states?: Record<string, AudioPresetVolumeState>;
+    physical_outputs?: Record<string, AudioPresetVolumeState>;
     outputs?: Record<string, string[]>;
 };
 
@@ -456,6 +506,9 @@ export async function saveAudioPreset(
     volumeInterfaces: string[] = [],
     outputInterfaces: string[] = [],
     outputMappings: Record<string, string[]> | null = null,
+    volumeStates: Record<string, Partial<AudioPresetVolumeState>> | null = null,
+    physicalOutputNames: string[] = [],
+    physicalOutputStates: Record<string, Partial<AudioPresetVolumeState>> | null = null,
 ) {
     const presetName = String(name ?? "").trim();
 
@@ -468,6 +521,9 @@ export async function saveAudioPreset(
 
     if (includeVolumes) {
         preset.volumes = {};
+        preset.mutes = {};
+        preset.interface_states = {};
+        preset.physical_outputs = {};
 
         const selectedVolumeInterfaces = volumeInterfaces.length > 0
             ? Array.from(new Set(volumeInterfaces.map(value => String(value).trim()).filter(Boolean)))
@@ -476,11 +532,52 @@ export async function saveAudioPreset(
         for (const key of selectedVolumeInterfaces) {
             if (!audioData[key]) continue;
 
-            const volume = Number(audioData[key]?.current_volume);
+            const override = volumeStates?.[key] ?? {};
+            const volume = Number(override.volume ?? audioData[key]?.current_volume);
+            const muted = typeof override.muted === "boolean"
+                ? override.muted
+                : audioData[key]?.muted === true;
 
-            if (Number.isFinite(volume)) {
-                preset.volumes[key] = normalizeVolume(volume);
-            }
+            if (!Number.isFinite(volume)) continue;
+
+            const safeVolume = normalizeVolumeForInterface(key, volume);
+
+            // Write both new and old fields so older frontends/backends can
+            // still inspect/use the numeric preset volume.
+            preset.volumes[key] = safeVolume;
+            preset.mutes[key] = muted;
+            preset.interface_states[key] = {
+                volume: safeVolume,
+                muted,
+            };
+        }
+
+        const availablePhysicalOutputs = await getAvailableAudioOutputs();
+        const selectedPhysicalOutputNames = physicalOutputNames.length > 0
+            ? Array.from(new Set(
+                physicalOutputNames.map(value => String(value).trim()).filter(Boolean)
+            ))
+            : availablePhysicalOutputs.map(output => String(output.name));
+
+        for (const outputName of selectedPhysicalOutputNames) {
+            const output = availablePhysicalOutputs.find(item =>
+                item.name === outputName || item.id === outputName
+            );
+
+            if (!output) continue;
+
+            const override = physicalOutputStates?.[output.name] ?? {};
+            const volume = Number(override.volume ?? output.volume);
+            const muted = typeof override.muted === "boolean"
+                ? override.muted
+                : output.muted === true;
+
+            if (!Number.isFinite(volume)) continue;
+
+            preset.physical_outputs[output.name] = {
+                volume: normalizeVolume(volume),
+                muted,
+            };
         }
     }
 
@@ -539,6 +636,8 @@ export async function applyAudioPreset(name: string) {
     const interfaces = new Set<string>([
         ...Object.keys(preset.outputs ?? {}),
         ...Object.keys(preset.volumes ?? {}),
+        ...Object.keys(preset.mutes ?? {}),
+        ...Object.keys(preset.interface_states ?? {}),
     ]);
 
     await Promise.all(
@@ -559,20 +658,59 @@ export async function applyAudioPreset(name: string) {
                 await setupPipewireAudioSink(key, linkedOutputs, false);
             }
 
-            const presetVolume = Number(preset.volumes?.[key]);
+            const state = preset.interface_states?.[key];
+            const presetVolume = Number(state?.volume ?? preset.volumes?.[key]);
+            const presetMuted = typeof state?.muted === "boolean"
+                ? state.muted
+                : preset.mutes?.[key] === true;
 
             if (Number.isFinite(presetVolume)) {
-                await setVolume(key, normalizeVolume(presetVolume), false, false);
+                // First establish the saved restore volume. If the preset says
+                // muted, the second write mutes without discarding current_volume.
+                await setVolume(key, normalizeVolumeForInterface(key, presetVolume), false, false);
+
+                if (presetMuted) {
+                    await setVolume(key, 0, false, false);
+                }
             }
         })
     );
 
+    const physicalOutputStates = preset.physical_outputs ?? {};
+
+    for (const [outputName, state] of Object.entries(physicalOutputStates)) {
+        const volume = Number(state?.volume);
+
+        try {
+            if (Number.isFinite(volume)) {
+                await runCommand("pactl", [
+                    "set-sink-volume",
+                    outputName,
+                    `${Math.round(normalizeVolume(volume) * 100)}%`,
+                ]);
+            }
+
+            await runCommand("pactl", [
+                "set-sink-mute",
+                outputName,
+                state?.muted === true ? "1" : "0",
+            ]);
+        } catch (error) {
+            logWarn(`applying physical output state for ${outputName} failed:`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+    }
+
     saveAudioVolumes();
 
-    // Send the new mixer state immediately. Output enumeration can update
-    // asynchronously because route application is already complete.
     getWebsocketServer().send("notify_audio_update", audioData);
-    void sendAudioUpdate(true);
+
+    if (Object.keys(physicalOutputStates).length > 0) {
+        await refreshAudioOutputs(true);
+        getWebsocketServer().send("notify_audio_outputs_update", audioOutputs);
+    } else {
+        void sendAudioUpdate(true);
+    }
 
     return {
         applied: true,

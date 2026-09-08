@@ -35,6 +35,7 @@ export { default as ApplyAudioPresetApi } from "./Common/ApplyAudioPresetApi";
 export { default as DeleteAudioPresetApi } from "./Common/DeleteAudioPresetApi";
 export { default as LinkSinkApi } from "./Common/LinkSinkApi";
 export { default as SaveAudioPresetApi } from "./Common/SaveAudioPresetApi";
+export { default as SetAudioOutputMuteApi } from "./Common/SetAudioOutputMuteApi";
 export { default as SetAudioOutputVolumeApi } from "./Common/SetAudioOutputVolumeApi";
 export { default as SetVolumeApi } from "./Common/SetVolumeApi";
 export { default as StatusApi } from "./Common/StatusApi";
