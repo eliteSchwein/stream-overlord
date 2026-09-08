@@ -6,7 +6,6 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import TestApi from "./api/TestApi";
 import * as bodyParser from "body-parser";
-import {registerApiEndpoints} from "../../App";
 import {redis} from "../redis/Redis";
 import {Server} from "node:http";
 import YoloboxPreviewApi from "./api/Yolobox/YoloboxPreviewApi";
@@ -130,11 +129,6 @@ export default class WebServer {
             ]);
         });
 
-        await Promise.all([
-            this.precacheConfiguredHtmlTemplates(),
-            initDynamicData(htmlRoot),
-        ]);
-
         // custom HTML serving with template expansion + transparent background injection
         this.app.use(this.transparentHtmlStatic(htmlRoot));
 
@@ -251,12 +245,19 @@ export default class WebServer {
         // Rotate Scene API
         new RotateScenesUploadApi().register(this.app)
 
-        await registerApiEndpoints();
-
         if (!twitchConfig?.test_mode) return;
 
         logWarn("enable test endpoints");
         new TestApi().register(this.app);
+    }
+
+    public async initializeDynamicContent() {
+        const htmlRoot = this.getHtmlRoot();
+
+        await Promise.all([
+            this.precacheConfiguredHtmlTemplates(),
+            initDynamicData(htmlRoot),
+        ]);
     }
 
     private transparentHtmlStatic(rootDir: string) {

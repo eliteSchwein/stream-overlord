@@ -52,32 +52,39 @@ async function init() {
 
     logRegular('load config')
     readConfig()
-    loadIntegrationsCache()
-    ensureDefaultOllamaIntegration()
 
-    stage = 'loading_cache'
-    await redis.connect()
-
-    stage = 'loading_variables'
-    await initVariables()
+    webServer = new WebServer()
+    await webServer.initial()
 
     stage = 'loading_web_components'
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()
 
+    logSuccess('websocket server is ready')
+
+    await registerApiEndpoints()
+
+    stage = 'loading_integrations'
+    loadIntegrationsCache()
+    ensureDefaultOllamaIntegration()
+
+    stage = 'loading_cache'
+    await redis.connect()
+
+    stage = 'loading_web_content'
+    await webServer.initializeDynamicContent()
+
+    stage = 'loading_variables'
+    await initVariables()
+
     setUpdateManagerNotifier((method, data) => {
         websocketServer.send(method, data)
     })
     initializeUpdateManager()
 
-    logSuccess('websocket server is ready')
-
     stage = 'starting_ollama'
     await syncOllamaIntegration()
-
-    webServer = new WebServer()
-    await webServer.initial()
 
     stage = 'loading_system_components'
 
