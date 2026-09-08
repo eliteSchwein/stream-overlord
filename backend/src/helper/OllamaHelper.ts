@@ -139,6 +139,53 @@ function getOllamaEnvironment(): NodeJS.ProcessEnv {
     };
 }
 
+function getLocalOllamaModelRoot() {
+    return path.join(getOllamaRoot(), "models");
+}
+
+function deleteLocalOllamaModels() {
+    const modelRoot = getLocalOllamaModelRoot();
+
+    if (!fs.existsSync(modelRoot)) {
+        return;
+    }
+
+    try {
+        fs.rmSync(
+            modelRoot,
+            {
+                recursive: true,
+                force: true,
+            },
+        );
+
+        // Keep the expected directory structure available for a later switch
+        // back to internal Ollama without reinstalling the runtime.
+        fs.mkdirSync(
+            modelRoot,
+            {
+                recursive: true,
+            },
+        );
+
+        logSuccess(
+            `deleted local ollama models from ${modelRoot}`,
+        );
+    } catch (error: any) {
+        const message =
+            error?.message ??
+            "failed to delete local ollama models";
+
+        runtimeState.error = message;
+
+        logWarn(
+            `failed to delete local ollama models: ${message}`,
+        );
+
+        throw error;
+    }
+}
+
 export function isOllamaInstalled() {
     return fs.existsSync(getOllamaBinary());
 }
@@ -374,8 +421,9 @@ async function startOllamaInternal() {
     }
 
     if (isExternalOllamaEnabled()) {
+        deleteLocalOllamaModels();
         await refreshExternalOllamaState();
-        await preloadConfiguredExternalOllamaModel();
+        await preloadConfiguredOllamaModel();
         return;
     }
 
@@ -467,6 +515,7 @@ async function startOllamaInternal() {
 
     try {
         await waitForOllama();
+        await preloadConfiguredOllamaModel();
     } catch (error: any) {
         runtimeState.running = false;
         runtimeState.error =
@@ -686,8 +735,9 @@ export async function restartOllama() {
     }
 
     if (isExternalOllamaEnabled()) {
+        deleteLocalOllamaModels();
         await refreshExternalOllamaState();
-        await preloadConfiguredExternalOllamaModel();
+        await preloadConfiguredOllamaModel();
         return getOllamaUpdate();
     }
 
@@ -708,8 +758,9 @@ export async function syncOllamaIntegration(
 
     if (isExternalOllamaEnabled()) {
         await stopOllama();
+        deleteLocalOllamaModels();
         await refreshExternalOllamaState();
-        await preloadConfiguredExternalOllamaModel();
+        await preloadConfiguredOllamaModel();
         return getOllamaUpdate();
     }
 
@@ -738,16 +789,16 @@ export async function syncOllamaIntegration(
     return getOllamaUpdate();
 }
 
-async function preloadConfiguredExternalOllamaModel() {
-    if (!isExternalOllamaEnabled()) return;
-
+async function preloadConfiguredOllamaModel() {
+    const integration = getOllamaIntegration();
     const model = String(
-        getOllamaIntegration().model ?? "",
+        integration.model ?? "",
     ).trim();
 
     if (!model) return;
 
     if (
+        isExternalOllamaEnabled() &&
         runtimeState.external_models.length > 0 &&
         !runtimeState.external_models.includes(model)
     ) {
@@ -758,7 +809,7 @@ async function preloadConfiguredExternalOllamaModel() {
     }
 
     logRegular(
-        `preload external ollama model ${model}`,
+        `preload ${isExternalOllamaEnabled() ? "external" : "internal"} ollama model ${model}`,
     );
 
     try {
@@ -779,24 +830,27 @@ async function preloadConfiguredExternalOllamaModel() {
         runtimeState.error = "";
 
         logSuccess(
-            `external ollama model ${model} is loaded`,
+            `${isExternalOllamaEnabled() ? "external" : "internal"} ollama model ${model} is loaded`,
         );
     } catch (error) {
         const normalizedError =
             normalizeAxiosError(error);
 
-        runtimeState.running = false;
         runtimeState.error =
             normalizedError.message;
 
+        if (isExternalOllamaEnabled()) {
+            runtimeState.running = false;
+        }
+
         logWarn(
-            `failed to preload external ollama model ${model}: ${normalizedError.message}`,
+            `failed to preload ${isExternalOllamaEnabled() ? "external" : "internal"} ollama model ${model}: ${normalizedError.message}`,
         );
 
         emitOllamaUpdate();
 
-        // External Ollama is optional. A connection failure must never
-        // propagate into startup/sync and terminate the bot process.
+        // Preloading is an optimization. A preload failure must not terminate
+        // startup/sync; the next real request may still succeed.
         return;
     }
 
@@ -934,9 +988,7 @@ export async function directOllamaRequest(
             requestData = {
                 ...requestData,
                 think: false,
-                ...(isExternalOllamaEnabled()
-                    ? {keep_alive: -1}
-                    : {}),
+                keep_alive: -1,
             };
         }
 
@@ -1079,6 +1131,7 @@ export async function changeOllamaModel(
     }
 
     if (isExternalOllamaEnabled()) {
+        deleteLocalOllamaModels();
         await refreshExternalOllamaState();
 
         if (
@@ -1103,7 +1156,7 @@ export async function changeOllamaModel(
 
         // Load the newly selected external model immediately and keep it
         // resident so the first real request does not pay the cold-start cost.
-        await preloadConfiguredExternalOllamaModel();
+        await preloadConfiguredOllamaModel();
 
         runtimeState.running = true;
         runtimeState.error = "";
