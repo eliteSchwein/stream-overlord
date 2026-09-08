@@ -145,6 +145,34 @@ function emitUpdateManager() {
     notifier?.("notify_update_manager", getUpdateManagerStatus());
 }
 
+function getUpdatingManagerNames(excludeName?: string): string[] {
+    return Object.values(updateState)
+        .filter((manager) => manager?.updating === true && manager.name !== excludeName)
+        .map((manager) => manager.name);
+}
+
+function assertUpdateAllowed(name: string) {
+    const backendUpdating = updateState.backend?.updating === true;
+
+    if (name !== "backend" && backendUpdating) {
+        throw new Error("update blocked while backend update is in progress");
+    }
+
+    if (name === "backend") {
+        const active = getUpdatingManagerNames("backend");
+
+        if (active.length > 0) {
+            throw new Error(
+                `backend update blocked while another update is in progress: ${active.join(", ")}`,
+            );
+        }
+    }
+
+    if (updateState[name]?.updating) {
+        throw new Error(`update manager '${name}' is already updating`);
+    }
+}
+
 function errorMessage(error: unknown): string {
     if (error instanceof Error) return error.message;
     return String(error);
@@ -635,6 +663,11 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
     if (!isSystem && !config) {
         throw new Error(`unknown update manager '${name}'`);
     }
+
+    // Backend updates are exclusive because their post-update action restarts
+    // this service. Other managers may update in parallel with each other, but
+    // they cannot start while the backend itself is updating.
+    assertUpdateAllowed(name);
 
     const current = updateState[name];
     updateState[name] = {
