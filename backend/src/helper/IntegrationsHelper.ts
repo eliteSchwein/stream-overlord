@@ -608,7 +608,26 @@ export async function setOllamaExternalIntegration(data: {
         throw new Error("external_url must start with http:// or https://");
     }
 
-    // Persist the active model into the mode we are leaving before switching.
+    const modeChanged = previousExternal !== external;
+
+    // Import before changing the persisted mode. stopOllama() must still see the
+    // mode we are LEAVING so it can stop the correct backend:
+    //
+    // internal -> external: kill local `ollama serve`
+    // external -> internal: unload the external model
+    const {
+        stopOllama,
+        syncOllamaIntegration,
+    } = await import("./OllamaHelper");
+
+    if (
+        modeChanged &&
+        Boolean(integrations.ollama.enabled)
+    ) {
+        await stopOllama();
+    }
+
+    // Persist the active model into the mode we are leaving.
     const activeModel = String(integrations.ollama.model ?? "").trim();
 
     if (previousExternal) {
@@ -636,6 +655,5 @@ export async function setOllamaExternalIntegration(data: {
     writeIntegrations(integrations);
     emitIntegrationsUpdate();
 
-    const {syncOllamaIntegration} = await import("./OllamaHelper");
     await syncOllamaIntegration(false);
 }
