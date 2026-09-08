@@ -1,25 +1,23 @@
 import BaseApi from "../../abstracts/BaseApi";
-import {
-    getCompiledCustomCss,
-    readCustomStyle,
-} from "../../helper/OverlayStyleManagementHelper";
+import {readCustomStyle} from "../../helper/OverlayStyleManagementHelper";
 
 export default class CustomStyleDownloadApi extends BaseApi {
     restEndpoint = "overlay/custom-style/download";
     restPost = false;
     websocketMethod = "overlay_custom_style_download";
 
-    async handle(): Promise<any> {
+    async handle(data: any): Promise<any> {
         try {
-            const style = readCustomStyle();
-            const content = style.mode === "scss"
-                ? await getCompiledCustomCss()
-                : style.content;
+            const result = readCustomStyle(data?.path);
+
+            if (!result.file) {
+                throw new Error("style file not found");
+            }
 
             return {
-                filename: "custom.css",
-                type: "text/css",
-                content,
+                filename: result.file.name,
+                type: result.file.mode === "scss" ? "text/x-scss" : "text/css",
+                content: result.content,
             };
         } catch (error: any) {
             return {error: error?.message ?? "custom stylesheet download failed"};

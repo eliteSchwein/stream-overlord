@@ -1,5 +1,9 @@
 import BaseApi from "../../abstracts/BaseApi";
-import {getGeneratedFontCss, listFontFiles, saveCustomStyle} from "../../helper/OverlayStyleManagementHelper";
+import {
+    getGeneratedFontCss,
+    listFontFiles,
+    saveCustomStyle,
+} from "../../helper/OverlayStyleManagementHelper";
 
 export default class OverlayCustomStyleSaveApi extends BaseApi {
     restEndpoint = "overlay/custom-style/save";
@@ -9,12 +13,11 @@ export default class OverlayCustomStyleSaveApi extends BaseApi {
     async handle(data: any): Promise<any> {
         try {
             const result = await saveCustomStyle(
+                String(data?.path ?? ""),
                 String(data?.content ?? ""),
-                data?.mode === "scss" ? "scss" : "css",
             );
 
             return {
-                status: "okay",
                 ...result,
                 fonts: listFontFiles(),
                 generated_font_css: getGeneratedFontCss(),

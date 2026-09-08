@@ -2,6 +2,15 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {getSystemConfigDirectory} from "./ConfigHelper";
 import {logWarn} from "./LogHelper";
+
+const fontExtensions = new Set([
+    ".ttf",
+    ".otf",
+    ".woff",
+    ".woff2",
+    ".eot",
+]);
+
 function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
     const directory = path.dirname(filePath);
     fs.mkdirSync(directory, {recursive: true});
@@ -46,22 +55,29 @@ function atomicWriteFileSync(filePath: string, content: string | Buffer, encodin
             try {
                 fs.closeSync(fd);
             } catch {
-                // Ignore cleanup errors and preserve the original write error.
+                // Preserve the original write error.
             }
         }
 
         try {
             fs.unlinkSync(tempPath);
         } catch {
-            // The temp file may already have been renamed or may not exist.
+            // The temp file may already have been renamed.
         }
 
         throw error;
     }
 }
 
-
 export type CustomStyleMode = "css" | "scss";
+
+export type CustomStyleEntry = {
+    name: string;
+    path: string;
+    mode: CustomStyleMode;
+    size: number;
+    modified: string;
+};
 
 export type FontAxis = {
     tag: string;
@@ -87,18 +103,11 @@ export type FontEntry = {
 };
 
 const customizationRoot = path.join(getSystemConfigDirectory(), "streambot-customization");
+export const stylesRoot = path.join(customizationRoot, "styles");
 export const fontsRoot = path.join(customizationRoot, "fonts");
 
-const sourcePath = path.join(customizationRoot, "custom.scss");
-const modePath = path.join(customizationRoot, "mode.txt");
-
-const fontExtensions = new Set([
-    ".ttf",
-    ".otf",
-    ".woff",
-    ".woff2",
-    ".eot",
-]);
+const legacySourcePath = path.join(customizationRoot, "custom.scss");
+const legacyModePath = path.join(customizationRoot, "mode.txt");
 
 let cachedCustomCss = "";
 let cachedCustomSignature = "";
@@ -109,55 +118,157 @@ let cachedFontSignature = "";
 
 function ensureDirectories() {
     fs.mkdirSync(customizationRoot, {recursive: true});
+    fs.mkdirSync(stylesRoot, {recursive: true});
     fs.mkdirSync(fontsRoot, {recursive: true});
+    migrateLegacyCustomStyle();
 }
 
 function normalizeMode(value: unknown): CustomStyleMode {
     return String(value).toLowerCase() === "scss" ? "scss" : "css";
 }
 
-export function getCustomStyleMode(): CustomStyleMode {
+function sanitizeStyleFileName(value: unknown): string {
+    const fileName = path.basename(String(value ?? "").trim());
+
+    if (!fileName) {
+        throw new Error("style file name missing");
+    }
+
+    if (!/^[a-zA-Z0-9._ -]+\.(css|scss)$/i.test(fileName)) {
+        throw new Error("style file name must end in .css or .scss");
+    }
+
+    return fileName;
+}
+
+function resolveStylePath(fileName: unknown): string {
     ensureDirectories();
 
+    const normalized = sanitizeStyleFileName(fileName);
+    const resolved = path.resolve(stylesRoot, normalized);
+
+    if (path.dirname(resolved) !== path.resolve(stylesRoot)) {
+        throw new Error("style path must stay inside styles directory");
+    }
+
+    return resolved;
+}
+
+function migrateLegacyCustomStyle() {
+    if (!fs.existsSync(legacySourcePath)) return;
+
+    let mode: CustomStyleMode = "css";
     try {
-        return normalizeMode(fs.readFileSync(modePath, "utf8").trim());
+        mode = normalizeMode(fs.readFileSync(legacyModePath, "utf8").trim());
     } catch {
-        return "css";
+        mode = "css";
+    }
+
+    const targetPath = path.join(stylesRoot, `custom.${mode}`);
+    if (!fs.existsSync(targetPath)) {
+        fs.copyFileSync(legacySourcePath, targetPath);
+    }
+
+    try {
+        fs.unlinkSync(legacySourcePath);
+    } catch {
+        // Ignore cleanup failures after a successful migration.
+    }
+
+    try {
+        fs.unlinkSync(legacyModePath);
+    } catch {
+        // Ignore cleanup failures after a successful migration.
     }
 }
 
-export function readCustomStyle() {
-    ensureDirectories();
+function styleEntryFromPath(filePath: string): CustomStyleEntry {
+    const stat = fs.statSync(filePath);
+    const name = path.basename(filePath);
 
     return {
-        mode: getCustomStyleMode(),
-        content: fs.existsSync(sourcePath)
-            ? fs.readFileSync(sourcePath, "utf8")
-            : "",
+        name,
+        path: name,
+        mode: path.extname(name).toLowerCase() === ".scss" ? "scss" : "css",
+        size: stat.size,
+        modified: stat.mtime.toISOString(),
     };
 }
 
-export async function saveCustomStyle(content: string, mode: CustomStyleMode = "css") {
+export function listCustomStyles(): CustomStyleEntry[] {
+    ensureDirectories();
+
+    return fs.readdirSync(stylesRoot, {withFileTypes: true})
+        .filter(entry => entry.isFile() && /\.(css|scss)$/i.test(entry.name))
+        .map(entry => styleEntryFromPath(path.join(stylesRoot, entry.name)))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: "base",
+        }));
+}
+
+export function readCustomStyle(fileName?: string) {
+    ensureDirectories();
+
+    const styles = listCustomStyles();
+    const selected = fileName
+        ? styles.find(style => style.path === sanitizeStyleFileName(fileName))
+        : styles[0];
+
+    if (!selected) {
+        return {
+            file: null,
+            content: "",
+        };
+    }
+
+    return {
+        file: selected,
+        content: fs.readFileSync(resolveStylePath(selected.path), "utf8"),
+    };
+}
+
+export async function saveCustomStyle(
+    fileName: string,
+    content: string,
+) {
     ensureDirectories();
 
     if (typeof content !== "string") {
         throw new Error("custom style content must be a string");
     }
 
-    const normalizedMode = normalizeMode(mode);
+    const normalizedName = sanitizeStyleFileName(fileName);
+    const mode: CustomStyleMode = path.extname(normalizedName).toLowerCase() === ".scss"
+        ? "scss"
+        : "css";
 
-    // Compile first, so invalid SCSS never replaces the last working source.
-    await compileStyle(content, normalizedMode);
+    // Compile first so invalid SCSS never replaces the previous working file.
+    await compileStyle(content, mode, normalizedName);
 
-    atomicWriteFileSync(sourcePath, content, "utf8");
-    atomicWriteFileSync(modePath, normalizedMode, "utf8");
-
+    atomicWriteFileSync(resolveStylePath(normalizedName), content, "utf8");
     invalidateCustomStyleCache();
 
     return {
-        mode: normalizedMode,
-        size: Buffer.byteLength(content),
-        css: await getCompiledCustomCss(),
+        status: "okay",
+        file: styleEntryFromPath(resolveStylePath(normalizedName)),
+        files: listCustomStyles(),
+    };
+}
+
+export function deleteCustomStyle(fileName: string) {
+    const filePath = resolveStylePath(fileName);
+
+    if (!fs.existsSync(filePath)) {
+        throw new Error("style file not found");
+    }
+
+    fs.unlinkSync(filePath);
+    invalidateCustomStyleCache();
+
+    return {
+        status: "okay",
+        files: listCustomStyles(),
     };
 }
 
@@ -173,17 +284,9 @@ export function invalidateFontCssCache() {
 }
 
 function getCustomStyleSignature(): string {
-    ensureDirectories();
-
-    const sourceStat = fs.existsSync(sourcePath) ? fs.statSync(sourcePath) : null;
-    const modeStat = fs.existsSync(modePath) ? fs.statSync(modePath) : null;
-
-    return [
-        sourceStat?.mtimeMs ?? 0,
-        sourceStat?.size ?? 0,
-        modeStat?.mtimeMs ?? 0,
-        modeStat?.size ?? 0,
-    ].join("|");
+    return listCustomStyles()
+        .map(style => `${style.path}:${style.size}:${style.modified}`)
+        .join("|");
 }
 
 function getFontSignature(): string {
@@ -192,14 +295,19 @@ function getFontSignature(): string {
         .join("|");
 }
 
-async function compileStyle(content: string, mode: CustomStyleMode): Promise<string> {
+async function compileStyle(
+    content: string,
+    mode: CustomStyleMode,
+    fileName = "custom.scss",
+): Promise<string> {
     if (mode === "css") return content;
 
     try {
         const sass = await import("sass");
         const result = sass.compileString(content, {
             style: "expanded",
-            loadPaths: [customizationRoot, fontsRoot],
+            url: new URL(`file://${path.join(stylesRoot, fileName)}`),
+            loadPaths: [stylesRoot, customizationRoot, fontsRoot],
         });
 
         return result.css;
@@ -223,9 +331,16 @@ export async function getCompiledCustomCss(): Promise<string> {
     }
 
     customCompilePromise = (async () => {
-        const {content, mode} = readCustomStyle();
+        const chunks: string[] = [];
 
-        cachedCustomCss = await compileStyle(content, mode);
+        for (const style of listCustomStyles()) {
+            const content = fs.readFileSync(resolveStylePath(style.path), "utf8");
+            const css = await compileStyle(content, style.mode, style.name);
+
+            chunks.push(`/* ${style.name} */\n${css.trim()}`);
+        }
+
+        cachedCustomCss = chunks.filter(Boolean).join("\n\n");
         cachedCustomSignature = getCustomStyleSignature();
         customCompilePromise = null;
 

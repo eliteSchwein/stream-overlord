@@ -154,9 +154,6 @@ export default class WebServer {
 
         this.app.use(bodyParser.json());
 
-        // Font file upload requires multipart handling and is registered separately.
-        new FontUploadApi().register(this.app);
-
         const commanderPath = "$HOME/.local/share/streambot/stream-overlord-admin"
             .replace("$HOME", os.homedir());
 
