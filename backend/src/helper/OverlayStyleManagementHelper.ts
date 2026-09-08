@@ -63,6 +63,13 @@ function atomicWriteFileSync(filePath: string, content: string | Buffer, encodin
 
 export type CustomStyleMode = "css" | "scss";
 
+export type FontAxis = {
+    tag: string;
+    min: number;
+    default: number;
+    max: number;
+};
+
 export type FontEntry = {
     name: string;
     path: string;
@@ -70,7 +77,11 @@ export type FontEntry = {
     family: string;
     className: string;
     weight: number;
+    weightMin: number;
+    weightMax: number;
     style: "normal" | "italic";
+    variable: boolean;
+    axes: FontAxis[];
     size: number;
     modified: string;
 };
@@ -275,6 +286,7 @@ function inferFamily(relativePath: string): string {
     }
 
     const stem = path.basename(normalized, path.extname(normalized))
+        .replace(/[-_ ]?variablefont(?:[-_ ].*)?$/i, "")
         .replace(
             /[-_ ]?(thin|extralight|extra-light|ultralight|ultra-light|light|regular|normal|medium|semibold|semi-bold|demibold|demi-bold|bold|extrabold|extra-bold|ultrabold|ultra-bold|black|heavy|italic|oblique)+$/i,
             "",
@@ -300,6 +312,87 @@ function inferWeight(fileName: string): number {
 
 function inferStyle(fileName: string): "normal" | "italic" {
     return /italic|oblique/i.test(fileName) ? "italic" : "normal";
+}
+
+function readFixed16_16(buffer: Buffer, offset: number): number {
+    return buffer.readInt32BE(offset) / 65536;
+}
+
+function readVariableFontAxes(filePath: string): FontAxis[] {
+    try {
+        const buffer = fs.readFileSync(filePath);
+
+        // Raw SFNT only (TTF/OTF). WOFF/WOFF2 need decompression before the
+        // OpenType table directory can be inspected.
+        if (buffer.length < 12) return [];
+
+        const signature = buffer.toString("ascii", 0, 4);
+        const isTrueType = buffer.readUInt32BE(0) === 0x00010000;
+        const isOpenType = signature === "OTTO";
+
+        if (!isTrueType && !isOpenType) return [];
+
+        const tableCount = buffer.readUInt16BE(4);
+        let fvarOffset = -1;
+        let fvarLength = 0;
+
+        for (let index = 0; index < tableCount; index++) {
+            const recordOffset = 12 + index * 16;
+            if (recordOffset + 16 > buffer.length) break;
+
+            const tag = buffer.toString("ascii", recordOffset, recordOffset + 4);
+            if (tag !== "fvar") continue;
+
+            fvarOffset = buffer.readUInt32BE(recordOffset + 8);
+            fvarLength = buffer.readUInt32BE(recordOffset + 12);
+            break;
+        }
+
+        if (fvarOffset < 0 || fvarOffset + 16 > buffer.length) return [];
+        if (fvarLength > 0 && fvarOffset + fvarLength > buffer.length) return [];
+
+        const axesOffset = buffer.readUInt16BE(fvarOffset + 4);
+        const axisCount = buffer.readUInt16BE(fvarOffset + 8);
+        const axisSize = buffer.readUInt16BE(fvarOffset + 10);
+
+        if (axisSize < 20) return [];
+
+        const axes: FontAxis[] = [];
+
+        for (let index = 0; index < axisCount; index++) {
+            const offset = fvarOffset + axesOffset + index * axisSize;
+            if (offset + 20 > buffer.length) break;
+
+            axes.push({
+                tag: buffer.toString("ascii", offset, offset + 4),
+                min: readFixed16_16(buffer, offset + 4),
+                default: readFixed16_16(buffer, offset + 8),
+                max: readFixed16_16(buffer, offset + 12),
+            });
+        }
+
+        return axes;
+    } catch {
+        return [];
+    }
+}
+
+function getWeightRange(axes: FontAxis[], fallbackWeight: number) {
+    const weightAxis = axes.find(axis => axis.tag === "wght");
+
+    if (!weightAxis) {
+        return {
+            weight: fallbackWeight,
+            weightMin: fallbackWeight,
+            weightMax: fallbackWeight,
+        };
+    }
+
+    return {
+        weight: Math.round(weightAxis.default),
+        weightMin: Math.round(weightAxis.min),
+        weightMax: Math.round(weightAxis.max),
+    };
 }
 
 function cssFormat(ext: string): string | null {
@@ -334,6 +427,9 @@ function walkFonts(directory: string, prefix = ""): FontEntry[] {
 
         const stat = fs.statSync(fullPath);
         const family = inferFamily(relativePath);
+        const axes = readVariableFontAxes(fullPath);
+        const fallbackWeight = inferWeight(entry.name);
+        const {weight, weightMin, weightMax} = getWeightRange(axes, fallbackWeight);
 
         result.push({
             name: entry.name,
@@ -341,8 +437,12 @@ function walkFonts(directory: string, prefix = ""): FontEntry[] {
             url: `/fonts/${relativePath.split("/").map(encodeURIComponent).join("/")}`,
             family,
             className: `font-${slugify(family)}`,
-            weight: inferWeight(entry.name),
+            weight,
+            weightMin,
+            weightMax,
             style: inferStyle(entry.name),
+            variable: axes.length > 0,
+            axes,
             size: stat.size,
             modified: stat.mtime.toISOString(),
         });
@@ -371,11 +471,15 @@ export function generateFontCss(): string {
             ? `url("${font.url}") format("${format}")`
             : `url("${font.url}")`;
 
+        const fontWeight = font.variable && font.weightMin !== font.weightMax
+            ? `${font.weightMin} ${font.weightMax}`
+            : `${font.weight}`;
+
         return [
             "@font-face {",
             `    font-family: "${font.family.replace(/"/g, '\\"')}";`,
             `    src: ${source};`,
-            `    font-weight: ${font.weight};`,
+            `    font-weight: ${fontWeight};`,
             `    font-style: ${font.style};`,
             "    font-display: swap;",
             "}",
@@ -396,7 +500,23 @@ export function generateFontCss(): string {
         ].join("\n"));
     }
 
-    return [...faces, ...classes].join("\n\n");
+    const weightClasses = [
+        [100, "thin"],
+        [200, "extra-light"],
+        [300, "light"],
+        [400, "normal"],
+        [500, "medium"],
+        [600, "semi-bold"],
+        [700, "bold"],
+        [800, "extra-bold"],
+        [900, "black"],
+    ].map(([weight, name]) => [
+        `.font-${name} {`,
+        `    font-weight: ${weight};`,
+        "}",
+    ].join("\n"));
+
+    return [...faces, ...classes, ...weightClasses].join("\n\n");
 }
 
 export function getGeneratedFontCss(): string {

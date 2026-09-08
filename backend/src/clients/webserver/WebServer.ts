@@ -25,15 +25,11 @@ import RotateScenesUploadApi from "./api/RotatingScene/RotateScenesUploadApi";
 import AssetsMediaUploadApi from "./api/Assets/AssetsMediaUploadApi";
 import os from "os";
 import {
-    addFontUpload,
-    deleteFont,
     fontsRoot,
     getCompiledCustomCss,
     getGeneratedFontCss,
-    listFontFiles,
-    readCustomStyle,
-    saveCustomStyle,
 } from "../../helper/OverlayStyleManagementHelper";
+import FontUploadApi from "./api/Overlay/FontUploadApi";
 
 export default class WebServer {
     app: Express;
@@ -53,7 +49,8 @@ export default class WebServer {
 
         this.app.use(
             cors({
-                origin: "*",
+                // Reflect the requesting origin so credentialed CORS requests remain valid.
+                origin: true,
                 methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 allowedHeaders: [
                     "Content-Type",
@@ -61,6 +58,8 @@ export default class WebServer {
                     "Origin",
                     "X-Requested-With",
                     "Accept",
+                    "X-File-Name",
+                    "X-Target-Folder",
                 ],
                 credentials: true,
             })
@@ -155,115 +154,8 @@ export default class WebServer {
 
         this.app.use(bodyParser.json());
 
-        // Custom overlay CSS / SCSS
-        this.app.get("/overlay/custom-style", (_req, res) => {
-            res.json({
-                ...readCustomStyle(),
-                fonts: listFontFiles(),
-                generated_font_css: getGeneratedFontCss(),
-            });
-        });
-
-        this.app.post("/overlay/custom-style", async (req, res) => {
-            try {
-                const result = await saveCustomStyle(
-                    String(req.body?.content ?? ""),
-                    req.body?.mode === "scss" ? "scss" : "css",
-                );
-
-                res.json({
-                    status: "okay",
-                    ...result,
-                    fonts: listFontFiles(),
-                    generated_font_css: getGeneratedFontCss(),
-                });
-            } catch (error) {
-                res.status(400).json({
-                    error: error instanceof Error ? error.message : String(error),
-                });
-            }
-        });
-
-        this.app.get("/overlay/custom-style/download", async (_req, res) => {
-            try {
-                const css = await getCompiledCustomCss();
-                res.setHeader("Content-Disposition", 'attachment; filename="custom.css"');
-                res.type("css").send(css);
-            } catch (error) {
-                res.status(400).json({
-                    error: error instanceof Error ? error.message : String(error),
-                });
-            }
-        });
-
-        this.app.get("/overlay/fonts/download", (_req, res) => {
-            try {
-                res.setHeader("Content-Disposition", 'attachment; filename="fonts.css"');
-                res.type("css").send(getGeneratedFontCss());
-            } catch (error) {
-                res.status(400).json({
-                    error: error instanceof Error ? error.message : String(error),
-                });
-            }
-        });
-
-        this.app.get("/overlay/fonts", (_req, res) => {
-            res.json({
-                files: listFontFiles(),
-                generated_css: getGeneratedFontCss(),
-            });
-        });
-
-        this.app.post(
-            "/overlay/fonts/upload",
-            express.raw({
-                type: "application/octet-stream",
-                limit: "100mb",
-            }),
-            async (req, res) => {
-                try {
-                    const fileName = decodeURIComponent(
-                        String(req.header("x-file-name") ?? "font.bin"),
-                    );
-                    const targetFolder = decodeURIComponent(
-                        String(req.header("x-target-folder") ?? ""),
-                    );
-
-                    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
-                        throw new Error("empty font upload");
-                    }
-
-                    const added = await addFontUpload(fileName, req.body, targetFolder);
-
-                    res.json({
-                        status: "okay",
-                        added,
-                        files: listFontFiles(),
-                        generated_css: getGeneratedFontCss(),
-                    });
-                } catch (error) {
-                    res.status(400).json({
-                        error: error instanceof Error ? error.message : String(error),
-                    });
-                }
-            }
-        );
-
-        this.app.post("/overlay/fonts/delete", (req, res) => {
-            try {
-                deleteFont(String(req.body?.path ?? ""));
-
-                res.json({
-                    status: "okay",
-                    files: listFontFiles(),
-                    generated_css: getGeneratedFontCss(),
-                });
-            } catch (error) {
-                res.status(400).json({
-                    error: error instanceof Error ? error.message : String(error),
-                });
-            }
-        });
+        // Font file upload requires multipart handling and is registered separately.
+        new FontUploadApi().register(this.app);
 
         const commanderPath = "$HOME/.local/share/streambot/stream-overlord-admin"
             .replace("$HOME", os.homedir());
@@ -335,6 +227,7 @@ export default class WebServer {
 
         // Overlay API
         new OverlaysUploadApi().register(this.app);
+        new FontUploadApi().register(this.app);
 
         // Music API
         new MusicPlaylistAddApi().register(this.app)
