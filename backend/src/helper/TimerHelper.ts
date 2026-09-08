@@ -4,9 +4,33 @@ import {logDebug, logWarn} from "./LogHelper";
 
 const timers: any[] = [];
 
+const timeUnitMultipliers: Record<string, number> = {
+    milliseconds: 0.001,
+    seconds: 1,
+    minutes: 60,
+    hours: 3600,
+};
+
 function getPublicTimerData(timer: any = {}) {
     const {callback, ...publicTimer} = timer;
     return publicTimer;
+}
+
+function sendTimerUpdate(timer: any, action: string) {
+    getWebsocketServer().send("notify_timer", {
+        ...getPublicTimerData(timer),
+        action,
+    });
+}
+
+export function getTimerSeconds(data: any = {}) {
+    const time = Number(data.time);
+    const unit = String(data.unit ?? "seconds");
+    const multiplier = timeUnitMultipliers[unit];
+
+    if (!Number.isFinite(time) || !multiplier) return null;
+
+    return Math.round(time * multiplier);
 }
 
 async function triggerFinishedMacro(timer: any) {
@@ -69,12 +93,12 @@ export default function initialTimers() {
 
 export function startTimer(data: any = {}) {
     const name = String(data.name ?? "").trim();
-    const time = Number(data.time);
+    const time = getTimerSeconds(data);
     const end = data.end ?? "blink";
     const finishedMacro = String(data.finished_macro ?? "").trim();
 
     if (!name) return false;
-    if (!Number.isFinite(time) || time <= 0) return false;
+    if (time === null || time <= 0) return false;
 
     const existingIndex = timers.findIndex(timer => timer.name === name);
 
@@ -98,10 +122,7 @@ export function startTimer(data: any = {}) {
         timers.push(timer);
     }
 
-    getWebsocketServer().send("notify_timer", {
-        ...getPublicTimerData(timer),
-        action: "start",
-    });
+    sendTimerUpdate(timer, "start");
 
     return true;
 }
@@ -116,19 +137,65 @@ export function activateTimer(name: string) {
     }
 
     timer.active = true;
+    sendTimerUpdate(timer, "update");
 
     return true;
 }
 
-export function deactivateTimer(name: string) {
+export function pauseTimer(name: string) {
+    const timer = timers.find(timer => timer.name === name);
+
+    if (!timer) return false;
+
+    timer.active = false;
+    sendTimerUpdate(timer, "pause");
+
+    return true;
+}
+
+export function stopTimer(name: string) {
     const timer = timers.find(timer => timer.name === name);
 
     if (!timer) return false;
 
     timer.time = timer.defaultTime;
+    timer.progress = 0;
     timer.active = false;
+    sendTimerUpdate(timer, "stop");
 
     return true;
+}
+
+export function addTimerTime(name: string, data: any = {}) {
+    const timer = timers.find(timer => timer.name === name);
+    const time = getTimerSeconds(data);
+
+    if (!timer || time === null || time <= 0) return false;
+
+    timer.time += time;
+    timer.defaultTime += time;
+    timer.progress = calcProgress(timer.time, timer.defaultTime);
+    sendTimerUpdate(timer, "update");
+
+    return true;
+}
+
+export function reduceTimerTime(name: string, data: any = {}) {
+    const timer = timers.find(timer => timer.name === name);
+    const time = getTimerSeconds(data);
+
+    if (!timer || time === null || time <= 0) return false;
+
+    timer.time = Math.max(0, timer.time - time);
+    timer.defaultTime = Math.max(timer.time, timer.defaultTime - time);
+    timer.progress = calcProgress(timer.time, timer.defaultTime);
+    sendTimerUpdate(timer, "update");
+
+    return true;
+}
+
+export function deactivateTimer(name: string) {
+    return stopTimer(name);
 }
 
 export function getTimers() {
