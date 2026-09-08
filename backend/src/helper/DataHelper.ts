@@ -39,10 +39,14 @@ export async function parsePlaceholders(content: string, additional: any = {}) {
 
 export function calcProgress(current: number, max: number) {
     const total = max ?? 0
+
     if (total <= 0) return 100
+
     const done = total - (current ?? 0)
-    const pct = Math.round((done / total) * 100)
-    return Math.max(0, Math.min(100, pct))
+    const pct = (done / total) * 100
+    const rounded = Math.round(pct * 1000) / 1000
+
+    return Math.max(0, Math.min(100, rounded))
 }
 
 function stripUnicodeEmojis(text: string): string {
