@@ -1,12 +1,19 @@
 import BaseEvent from "./BaseEvent";
-import {fetchGameInfo, getCurrentGameId, pushGameInfo,} from "../../../../helper/GameHelper";
+import {
+    fetchGameInfo,
+    getCurrentGameId,
+    pushGameInfo,
+} from "../../../../helper/GameHelper";
 import {updateTwitchData} from "../../../website/WebsiteClient";
 import {logNotice} from "../../../../helper/LogHelper";
 import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {updateAdData} from "../../../../helper/SchedulerHelper";
 import {updateSourceFilters} from "../../../../helper/SourceHelper";
 import {sleep} from "../../../../../../helper/GeneralHelper";
-import {updateTwitchCategoryData, updateTwitchStreamData,} from "../../../../helper/TwitchDataHelper";
+import {
+    updateTwitchCategoryData,
+    updateTwitchStreamData,
+} from "../../../../helper/TwitchDataHelper";
 
 export default class ChannelUpdateEvent extends BaseEvent {
     name = "ChannelUpdateEvent";
@@ -55,8 +62,13 @@ export default class ChannelUpdateEvent extends BaseEvent {
         );
 
         await updateTwitchData();
-        await updateChannelPoints(true);
+
+        // Load the new game data before recalculating channel points.
         await fetchGameInfo();
+
+        // Uses the newly loaded game's channel_points configuration.
+        await updateChannelPoints(true);
+
         pushGameInfo();
 
         await updateSourceFilters();
