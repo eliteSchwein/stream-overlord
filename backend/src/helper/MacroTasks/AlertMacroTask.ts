@@ -28,6 +28,7 @@ function mergeWledDefaults(value: any) {
 
     for (const name in controls) {
         const baseConfig = configs[name] ?? {};
+
         result[name] = {
             ...baseConfig,
             ...controls[name],
@@ -38,7 +39,7 @@ function mergeWledDefaults(value: any) {
 }
 
 export default class AlertMacroTask extends BaseMacroTask {
-    channel = "alert"
+    channel = "alert";
 
     async handle(method: string, data: any = {}, variables: any = {}) {
         const options = {
@@ -46,19 +47,14 @@ export default class AlertMacroTask extends BaseMacroTask {
             eventUuid: data.eventUuid ?? variables.eventUuid,
         };
 
-        const rawTheme = getAssetConfig(options.asset)
+        const rawTheme = getAssetConfig(options.asset);
 
         if (!rawTheme) {
-            logWarn(`no theme found for ${options.asset}`)
-            return
+            logWarn(`no theme found for ${options.asset}`);
+            return;
         }
 
-        if (!options.message) {
-            logWarn(`no message provided`)
-            return
-        }
-
-        const eventUuid = options.eventUuid ?? `macro_${uuidv4()}`
+        const eventUuid = options.eventUuid ?? `macro_${uuidv4()}`;
 
         const templateVariables = {
             ...variables,
@@ -66,22 +62,36 @@ export default class AlertMacroTask extends BaseMacroTask {
             eventUuid,
         };
 
-        const theme = interpolateObjectTemplate(rawTheme, templateVariables)
+        const theme = interpolateObjectTemplate(rawTheme, templateVariables);
 
-        let message = (options.message !== "" ? options.message : theme?.message) ?? "";
+        const messageProvided =
+            options.message !== undefined &&
+            options.message !== null;
 
-        if(options.speak) {
-            message = theme?.message ?? ""
+        let message = messageProvided
+            ? options.message
+            : theme?.message ?? "";
+
+        if (options.speak) {
+            message = theme?.message ?? "";
         }
 
-        message = interpolateTemplate(String(message), templateVariables)
+        message = interpolateTemplate(
+            String(message),
+            templateVariables,
+        );
 
-        const speakMessage = interpolateTemplate(String(options.message), templateVariables)
+        const speakMessage = messageProvided
+            ? interpolateTemplate(
+                String(options.message),
+                templateVariables,
+            )
+            : message;
 
         const duration =
             options.speak === true
                 ? calculateTTSduration(message)
-                : theme.duration ?? 15
+                : theme.duration ?? 15;
 
         addAlert({
             asset: options.asset,
@@ -92,9 +102,18 @@ export default class AlertMacroTask extends BaseMacroTask {
             message,
             "event-uuid": eventUuid,
             speak: options.speak === true,
-            speak_message: options.speak === true ? speakMessage : undefined,
-            locale: options.speak === true ? options.locale : undefined,
-            voice: options.speak === true ? options.voice : undefined,
+            speak_message:
+                options.speak === true
+                    ? speakMessage
+                    : undefined,
+            locale:
+                options.speak === true
+                    ? options.locale
+                    : undefined,
+            voice:
+                options.speak === true
+                    ? options.voice
+                    : undefined,
             video: theme.video,
             wled: mergeWledDefaults(theme.wled),
             volume: theme.volume,
