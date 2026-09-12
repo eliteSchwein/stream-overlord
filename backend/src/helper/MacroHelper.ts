@@ -722,7 +722,7 @@ export function interpolateTemplate(input: string, variables: any): string {
         .replace(/"\$\{([^}]+)\}"/g, (_, variablePath) => {
             const value = getNestedValue(variables, variablePath.trim());
 
-            if (value === undefined) {
+            if (value === undefined || value === null) {
                 return JSON.stringify("");
             }
 
@@ -735,11 +735,12 @@ export function interpolateTemplate(input: string, variables: any): string {
                 return "";
             }
 
-            if (typeof value === "object") {
-                return JSON.stringify(value);
-            }
+            const stringValue =
+                typeof value === "object"
+                    ? JSON.stringify(value)
+                    : String(value);
 
-            return String(value);
+            return JSON.stringify(stringValue).slice(1, -1);
         });
 }
 
