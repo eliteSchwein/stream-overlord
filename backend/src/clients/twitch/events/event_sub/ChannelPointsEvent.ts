@@ -216,6 +216,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                 eventUuid,
                 channelPoint: {
                     title: event.rewardTitle,
+                    userId: event.userId,
                     userName: event.userName,
                     userDisplayName: event.userDisplayName,
                     broadcasterName: event.broadcasterName,
