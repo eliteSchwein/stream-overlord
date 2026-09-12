@@ -733,7 +733,15 @@ async function syncChannelPointTwitchSettings(configuredChannelPoint: any, twitc
 export async function updateChannelPoints() {
     await fetchChannelPointData();
 
-    const gameData = await getGameInfoData();
+    let gameData: any = {};
+
+    try {
+        gameData = await getGameInfoData() ?? {};
+    } catch (error) {
+        logWarn(`failed to load game channel point data, using defaults`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    }
+
     const primaryChannel = getPrimaryChannel();
 
     gameMacros = {};
@@ -748,16 +756,16 @@ export async function updateChannelPoints() {
     /*
      * API channel_points are selectors only.
      *
-     * Example:
+     * Their metadata is ignored completely.
+     *
+     * Supported examples:
      *
      * channel_points:
      *   - Wunschspiel
      *   - name: Fail
-     *     cost: 999999
-     *     macro: whatever
      *
-     * Only "Wunschspiel" and "Fail" matter here.
-     * Any metadata supplied by the API is ignored.
+     * Both simply mean:
+     * "enable the matching locally configured channel point"
      */
     const gameChannelPoints = Array.isArray(gameData?.channel_points)
         ? gameData.channel_points
@@ -777,7 +785,9 @@ export async function updateChannelPoints() {
         .map(name => name.trim());
 
     const gameChannelPointSet = new Set(
-        gameChannelPointNames.map(normalizeChannelPointLookup),
+        gameChannelPointNames.map(
+            normalizeChannelPointLookup,
+        ),
     );
 
     logRegular(
@@ -791,91 +801,106 @@ export async function updateChannelPoints() {
     /*
      * blocked_channel_points always wins.
      *
-     * A blocked channel point stays disabled even if:
-     *
-     * - enable_default=true
-     * - it exists in channel_points
+     * Blocked points are disabled, but they are NOT removed from
+     * allChannelPoints. This keeps them visible/editable in the panel.
      */
-    const blockedChannelPoints = Array.isArray(gameData?.blocked_channel_points)
-        ? gameData.blocked_channel_points
-        : [];
+    const blockedChannelPoints =
+        Array.isArray(gameData?.blocked_channel_points)
+            ? gameData.blocked_channel_points
+            : [];
 
-    const blockedNames = blockedChannelPoints
-        .map((point: any) =>
-            typeof point === "string"
-                ? point
-                : point?.name ?? point?.label,
-        )
-        .filter(
-            (name: any): name is string =>
-                typeof name === "string" &&
-                name.trim().length > 0,
-        )
-        .map(name => name.trim());
+    const blockedChannelPointNames =
+        blockedChannelPoints
+            .map((point: any) =>
+                typeof point === "string"
+                    ? point
+                    : point?.name ?? point?.label,
+            )
+            .filter(
+                (name: any): name is string =>
+                    typeof name === "string" &&
+                    name.trim().length > 0,
+            )
+            .map(name => name.trim());
 
     const blockedSet = new Set(
-        blockedNames.map(normalizeChannelPointLookup),
+        blockedChannelPointNames.map(
+            normalizeChannelPointLookup,
+        ),
     );
 
     logRegular(
-        `blocked channel points: ${blockedNames.length}${
-            blockedNames.length
-                ? ` (${blockedNames.join(", ")})`
+        `blocked channel points: ${blockedChannelPointNames.length}${
+            blockedChannelPointNames.length
+                ? ` (${blockedChannelPointNames.join(", ")})`
                 : ""
         }`,
     );
 
     /*
-     * Build the final enabled set exclusively from local configs.
+     * Build the final enabled set.
      *
-     * A point is enabled when:
+     * Enabled when:
      *
-     *   enable_default === true
-     *
+     * - enable_default === true
      * OR
+     * - name is present in API channel_points
      *
-     *   its name is present in API channel_points
-     *
-     * AND it is NOT blocked.
+     * But blocked_channel_points always overrides both.
      */
-    const desiredEnabledNames = configuredPoints
-        .filter((point: any) => {
-            const name = point?.label ?? point?.name;
+    const desiredEnabledNames =
+        configuredPoints
+            .filter((point: any) => {
+                const name =
+                    point?.label ??
+                    point?.name;
 
-            if (
-                typeof name !== "string" ||
-                name.trim().length === 0
-            ) {
-                return false;
-            }
+                if (
+                    typeof name !== "string" ||
+                    name.trim().length === 0
+                ) {
+                    return false;
+                }
 
-            const normalizedName =
-                normalizeChannelPointLookup(name);
+                const normalizedName =
+                    normalizeChannelPointLookup(name);
 
-            if (blockedSet.has(normalizedName)) {
-                return false;
-            }
+                if (
+                    blockedSet.has(
+                        normalizedName,
+                    )
+                ) {
+                    return false;
+                }
 
-            const isEnabledByDefault =
-                point?.enable_default === true;
+                const isEnabledByDefault =
+                    point?.enable_default === true;
 
-            const isEnabledByGame =
-                gameChannelPointSet.has(normalizedName);
+                const isEnabledByGame =
+                    gameChannelPointSet.has(
+                        normalizedName,
+                    );
 
-            return isEnabledByDefault || isEnabledByGame;
-        })
-        .map(
-            (point: any) =>
-                point?.label ?? point?.name,
-        )
-        .filter(
-            (name: any): name is string =>
-                typeof name === "string" &&
-                name.trim().length > 0,
-        );
+                return (
+                    isEnabledByDefault ||
+                    isEnabledByGame
+                );
+            })
+            .map(
+                (point: any) =>
+                    point?.label ??
+                    point?.name,
+            )
+            .filter(
+                (name: any): name is string =>
+                    typeof name === "string" &&
+                    name.trim().length > 0,
+            );
 
     const desiredEnabledSet = new Set(
-        desiredEnabledNames.map(normalizeChannelPointLookup),
+        desiredEnabledNames.map(
+            normalizeChannelPointLookup,
+        ),
     );
 
     logRegular(
@@ -889,22 +914,17 @@ export async function updateChannelPoints() {
     /*
      * Macro metadata always comes from the local config.
      *
-     * API channel_points metadata is deliberately ignored.
+     * API metadata is ignored.
      */
-    for (const channelPoint of configuredPoints) {
+    for (
+        const channelPoint
+        of configuredPoints
+        ) {
         const label =
             channelPoint?.label ??
             channelPoint?.name;
 
         if (!label) continue;
-
-        if (
-            blockedSet.has(
-                normalizeChannelPointLookup(label),
-            )
-        ) {
-            continue;
-        }
 
         if (
             typeof channelPoint.macro === "string" &&
@@ -916,21 +936,27 @@ export async function updateChannelPoints() {
     }
 
     /*
-     * Apply the final desired state to Twitch.
+     * Apply desired states to existing Twitch rewards.
      */
-    const toDisable = Object.values(channelPoints).filter(
-        point =>
-            !desiredEnabledSet.has(
-                normalizeChannelPointLookup(point.title),
-            ),
-    );
+    const toDisable =
+        Object.values(channelPoints).filter(
+            point =>
+                !desiredEnabledSet.has(
+                    normalizeChannelPointLookup(
+                        point.title,
+                    ),
+                ),
+        );
 
-    const toEnable = Object.values(channelPoints).filter(
-        point =>
-            desiredEnabledSet.has(
-                normalizeChannelPointLookup(point.title),
-            ),
-    );
+    const toEnable =
+        Object.values(channelPoints).filter(
+            point =>
+                desiredEnabledSet.has(
+                    normalizeChannelPointLookup(
+                        point.title,
+                    ),
+                ),
+        );
 
     logChannelPointDiffSummary(
         "twitch channel points to enable",
@@ -959,35 +985,45 @@ export async function updateChannelPoints() {
     }
 
     /*
-     * Rebuild local active/all state.
+     * Rebuild UI state.
+     *
+     * allChannelPoints:
+     *   every configured/Twitch channel point
+     *
+     * activeChannelPoints:
+     *   enabled channel points only
      */
     activeChannelPoints = [];
     allChannelPoints = [];
 
-    const activeKeys = new Set<string>();
-    const allKeys = new Set<string>();
+    const activeKeys =
+        new Set<string>();
+
+    const allKeys =
+        new Set<string>();
 
     /*
-     * First add locally configured channel points.
+     * Locally configured channel points.
      */
-    for (const configuredChannelPoint of configuredPoints) {
+    for (
+        const configuredChannelPoint
+        of configuredPoints
+        ) {
         const label =
             configuredChannelPoint?.label ??
             configuredChannelPoint?.name;
 
         if (!label) continue;
 
-        if (
-            blockedSet.has(
-                normalizeChannelPointLookup(label),
-            )
-        ) {
-            logRegular(
-                `skipping blocked configured channel point: ${label}`,
+        const normalizedLabel =
+            normalizeChannelPointLookup(
+                label,
             );
 
-            continue;
-        }
+        const isBlocked =
+            blockedSet.has(
+                normalizedLabel,
+            );
 
         let twitchChannelPoint =
             findTwitchChannelPointForConfig(
@@ -1002,12 +1038,30 @@ export async function updateChannelPoints() {
             }`,
         );
 
+        /*
+         * Create missing reward from LOCAL metadata.
+         */
         if (!twitchChannelPoint) {
             twitchChannelPoint =
                 await createMissingTwitchChannelPoint(
                     configuredChannelPoint,
                     primaryChannel,
                 );
+
+            /*
+             * createMissingTwitchChannelPoint() uses enable_default.
+             * If the current game blocks the point, immediately disable it.
+             */
+            if (
+                twitchChannelPoint &&
+                isBlocked
+            ) {
+                await enableChannelPoint(
+                    twitchChannelPoint,
+                    primaryChannel,
+                    false,
+                );
+            }
         }
 
         await syncChannelPointTwitchSettings(
@@ -1016,26 +1070,39 @@ export async function updateChannelPoints() {
             primaryChannel,
         );
 
-        const isActive = twitchChannelPoint
-            ? desiredEnabledSet.has(
+        const isActive =
+            !isBlocked &&
+            !!twitchChannelPoint &&
+            desiredEnabledSet.has(
                 normalizeChannelPointLookup(
                     twitchChannelPoint.title,
                 ),
-            )
-            : false;
+            );
 
-        const payload = createChannelPointPayload(
-            configuredChannelPoint,
-            twitchChannelPoint,
-            isActive,
-        );
+        const payload =
+            createChannelPointPayload(
+                {
+                    ...configuredChannelPoint,
+                    blocked: isBlocked,
+                },
+                twitchChannelPoint,
+                isActive,
+            );
 
+        /*
+         * ALWAYS add to allChannelPoints.
+         *
+         * A blocked point therefore remains visible/editable.
+         */
         pushUniqueChannelPoint(
             allChannelPoints,
             allKeys,
             payload,
         );
 
+        /*
+         * Only actually enabled points go into active.
+         */
         if (
             twitchChannelPoint &&
             isActive
@@ -1049,44 +1116,46 @@ export async function updateChannelPoints() {
     }
 
     /*
-     * Add Twitch rewards that don't have a local config.
+     * Twitch rewards without a local config.
      *
-     * They will never be enabled by channel_points because enabling is based
-     * on the local configuredPoints list. This keeps the local config as the
-     * authoritative source of actual channel-point definitions.
+     * They still appear in the panel, but they are only active if they
+     * somehow exist in desiredEnabledSet.
      */
     for (
         const twitchChannelPoint
         of Object.values(channelPoints)
         ) {
-        if (
-            blockedSet.has(
-                normalizeChannelPointLookup(
-                    twitchChannelPoint.title,
-                ),
-            )
-        ) {
-            logRegular(
-                `skipping blocked twitch channel point: ${twitchChannelPoint.title}`,
+        const normalizedTitle =
+            normalizeChannelPointLookup(
+                twitchChannelPoint.title,
             );
 
-            continue;
-        }
+        const isBlocked =
+            blockedSet.has(
+                normalizedTitle,
+            );
 
         const isActive =
+            !isBlocked &&
             desiredEnabledSet.has(
-                normalizeChannelPointLookup(
-                    twitchChannelPoint.title,
-                ),
+                normalizedTitle,
             );
 
         const payload =
             createChannelPointPayload(
-                {},
+                {
+                    blocked: isBlocked,
+                },
                 twitchChannelPoint,
                 isActive,
             );
 
+        /*
+         * Do NOT skip blocked Twitch rewards.
+         *
+         * pushUniqueChannelPoint prevents duplicates for locally
+         * configured rewards that were already added above.
+         */
         pushUniqueChannelPoint(
             allChannelPoints,
             allKeys,
