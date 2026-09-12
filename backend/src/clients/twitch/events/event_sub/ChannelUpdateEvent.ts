@@ -63,11 +63,18 @@ export default class ChannelUpdateEvent extends BaseEvent {
 
         await updateTwitchData();
 
-        // Load the new game data before recalculating channel points.
+        // Load the new game's API data first.
         await fetchGameInfo();
 
-        // Uses the newly loaded game's channel_points configuration.
-        await updateChannelPoints(true);
+        // Enable:
+        // - enable_default=true
+        // - anything selected by API channel_points
+        //
+        // Disable:
+        // - anything in blocked_channel_points
+        //
+        // blocked_channel_points always wins.
+        await updateChannelPoints();
 
         pushGameInfo();
 
