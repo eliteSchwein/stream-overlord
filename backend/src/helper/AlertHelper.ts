@@ -6,13 +6,15 @@ import {speak} from "./TTShelper";
 import {logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {unlinkEvent} from "./MessageEventLinkHelper";
-import {extendInteraction, getCurrentInteractionUuid, hasInteraction, markInteractionAlertStarted} from "./InteractionHelper";
+import {beginInteractionWork, endInteractionWork, extendInteraction, getCurrentInteractionUuid, hasInteraction, markInteractionAlertStarted} from "./InteractionHelper";
 
 const alertQuery: any[] = [];
 const activeAlerts: string[] = [];
 let activeSound: string | null = null;
 let alertLoopRunning = false;
 const alertDeadlines = new WeakMap<object, number>();
+const alertIdlePromises = new WeakMap<object, Promise<void>>();
+const alertInteractionWork = new WeakMap<object, { uuid: string; label: string }>();
 
 export default function initialAlerts() {
     const websocketServer = getWebsocketServer();
@@ -110,6 +112,7 @@ export default function initialAlerts() {
             await finishAlertLifecycle(activeAlert);
 
             websocketServer.send("notify_alert", { ...activeAlert, action: "hide" });
+            completeAlertInteractionWork(activeAlert);
 
             if (activeAlert.ending) return;
 
@@ -130,7 +133,10 @@ async function startAlertLifecycle(alert: any) {
 
     if (!alert.active || alert.ending) return;
 
-    void runIdleMacros(alert);
+    const idlePromise = runIdleMacros(alert).catch(error => {
+        logWarn(`alert idle macro failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
+    alertIdlePromises.set(alert, idlePromise);
 }
 
 async function runIdleMacros(alert: any) {
@@ -154,7 +160,13 @@ async function finishAlertLifecycle(alert: any) {
         await sleep(100);
     }
 
-    removeAlert(alert);
+    const idlePromise = alertIdlePromises.get(alert);
+    if (idlePromise) {
+        await idlePromise;
+        alertIdlePromises.delete(alert);
+    }
+
+    removeAlert(alert, false);
 
     if (alertQuery.length > 0) return;
 
@@ -252,6 +264,11 @@ export function addAlert(alert: any) {
             interactionUuid,
         };
         extendInteraction(interactionUuid, Number(alert.duration ?? 0), eventUuid);
+
+        const label = `alert ${eventUuid ?? alert.asset ?? "unknown"}`;
+        if (beginInteractionWork(interactionUuid, label)) {
+            alertInteractionWork.set(alert, { uuid: interactionUuid, label });
+        }
     }
 
     alertQuery.push(alert);
@@ -259,27 +276,49 @@ export function addAlert(alert: any) {
     return alertQuery.length === 1;
 }
 
-export function removeAlert(alert: any) {
-    for (const alertIndex in alertQuery) {
-        const alertPartial = alertQuery[alertIndex];
+export function removeAlert(alert: any, releaseInteractionWork = true) {
+    const exactAlert = alertQuery.includes(alert);
+    const matchingAlerts = alertQuery.filter((alertPartial: any) =>
+        exactAlert
+            ? alertPartial === alert
+            : alert["event-uuid"] === alertPartial["event-uuid"]
+    );
 
-        if (alert["event-uuid"] !== alertPartial["event-uuid"]) continue;
+    for (const alertPartial of matchingAlerts) {
+        const alertIndex = alertQuery.indexOf(alertPartial);
+        if (alertIndex < 0) continue;
 
         alertPartial.active = false;
         alertPartial.ending = true;
         alertPartial.idleRunId = (alertPartial.idleRunId ?? 0) + 1;
         alertDeadlines.delete(alertPartial);
+        alertIdlePromises.delete(alertPartial);
 
-        alertQuery.splice(Number(alertIndex), 1);
+        alertQuery.splice(alertIndex, 1);
 
-        const activeAlertIndex = activeAlerts.indexOf(alert["event-uuid"]);
+        const activeAlertIndex = activeAlerts.indexOf(alertPartial["event-uuid"]);
         if (activeAlertIndex > -1) {
             activeAlerts.splice(activeAlertIndex, 1);
         }
 
-        removeEventFromQuery(alert["event-uuid"]);
-        unlinkEvent(alert["event-uuid"]);
+        if (releaseInteractionWork) {
+            completeAlertInteractionWork(alertPartial);
+        }
     }
+
+    const eventUuid = alert["event-uuid"];
+    if (eventUuid && !alertQuery.some((item: any) => item["event-uuid"] === eventUuid)) {
+        removeEventFromQuery(eventUuid);
+        unlinkEvent(eventUuid);
+    }
+}
+
+function completeAlertInteractionWork(alert: any) {
+    const interactionWork = alertInteractionWork.get(alert);
+    if (!interactionWork) return;
+
+    alertInteractionWork.delete(alert);
+    endInteractionWork(interactionWork.uuid, interactionWork.label);
 }
 
 export function getActiveSound() {

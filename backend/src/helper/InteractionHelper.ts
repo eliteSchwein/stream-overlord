@@ -27,6 +27,7 @@ type InternalInteraction = Interaction & {
     holdUntilMs: number;
     executionFinished: boolean;
     alertTimingStarted: boolean;
+    pendingWork: number;
     execute: (interaction: Interaction) => Promise<void> | void;
 };
 
@@ -41,7 +42,16 @@ function publicInteraction(item: InternalInteraction, now = Date.now(), queuedEt
     let etaSeconds = queuedEtaSeconds;
 
     if (item.state === "active") {
-        etaSeconds = Math.max(0, Math.floor((item.holdUntilMs - now) / 1000));
+        // A configured/added alert reserves time in the interaction queue, but
+        // that reservation must not look like elapsed progress while the asset
+        // is still being prepared. Keep the full estimate visible until the
+        // first alert is actually shown; markInteractionAlertStarted() then
+        // switches this to the real wall-clock deadline.
+        if (!item.alertTimingStarted && item.duration > 0) {
+            etaSeconds = Math.max(0, Math.ceil(item.duration));
+        } else {
+            etaSeconds = Math.max(0, Math.floor((item.holdUntilMs - now) / 1000));
+        }
     }
 
     return {
@@ -105,7 +115,13 @@ export function initInteractions() {
         const now = Date.now();
         const second = Math.floor(now / 1000);
 
-        if (active && active.executionFinished && active.holdUntilMs <= now) {
+        if (
+            active &&
+            active.executionFinished &&
+            (active.alertTimingStarted || active.duration <= 0) &&
+            active.holdUntilMs <= now &&
+            active.pendingWork === 0
+        ) {
             finishActiveInteraction("finished");
             return;
         }
@@ -151,6 +167,7 @@ export function enqueueInteraction(options: {
         holdUntilMs: 0,
         executionFinished: false,
         alertTimingStarted: false,
+        pendingWork: 0,
         execute: options.execute,
     };
 
@@ -194,7 +211,14 @@ async function processQueue() {
             return;
         }
 
-        if (active.holdUntilMs <= Date.now()) {
+        // If an alert has reserved duration but has not reached its first
+        // visible `show` yet, keep the interaction active at 0% progress. The
+        // real countdown starts in markInteractionAlertStarted().
+        if (
+            (active.alertTimingStarted || active.duration <= 0) &&
+            active.holdUntilMs <= Date.now() &&
+            active.pendingWork === 0
+        ) {
             finishActiveInteraction("finished");
         } else {
             notifyInteraction(active, "update");
@@ -219,6 +243,41 @@ function finishActiveInteraction(state: "finished" | "cancelled" | "failed") {
     active = undefined;
     notifyQueue();
     void processQueue();
+}
+
+
+export function beginInteractionWork(uuid: string | undefined, label: string = "work") {
+    const interactionUuid = uuid || getCurrentInteractionUuid();
+    if (!interactionUuid || !active || active.uuid !== interactionUuid) return false;
+
+    active.pendingWork += 1;
+    logRegular(`begin interaction work ${active.name}: ${label} (${active.pendingWork} pending)`);
+    notifyInteraction(active, "update");
+    notifyQueue();
+    return true;
+}
+
+export function endInteractionWork(uuid: string | undefined, label: string = "work") {
+    const interactionUuid = uuid || getCurrentInteractionUuid();
+    if (!interactionUuid || !active || active.uuid !== interactionUuid) return false;
+
+    if (active.pendingWork > 0) active.pendingWork -= 1;
+    logRegular(`end interaction work ${active.name}: ${label} (${active.pendingWork} pending)`);
+
+    const now = Date.now();
+    if (
+        active.executionFinished &&
+        (active.alertTimingStarted || active.duration <= 0) &&
+        active.holdUntilMs <= now &&
+        active.pendingWork === 0
+    ) {
+        finishActiveInteraction("finished");
+        return true;
+    }
+
+    notifyInteraction(active, "update");
+    notifyQueue();
+    return true;
 }
 
 export function markInteractionAlertStarted(uuid: string | undefined, remainingSeconds: number, alertUuid?: string) {
