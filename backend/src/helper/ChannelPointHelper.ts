@@ -82,6 +82,7 @@ export type ChannelPointConfig = {
     auto_accept?: boolean;
     strip_emotes?: boolean;
     input_required?: boolean;
+    bypass_interaction_queue?: boolean;
     enable_default?: boolean;
     cost?: number;
     [key: string]: any;
@@ -208,6 +209,7 @@ function normalizeChannelPointConfig(name: string, config: any = {}): ChannelPoi
         auto_accept: coerceChannelPointBoolean(config?.auto_accept),
         strip_emotes: coerceChannelPointBoolean(config?.strip_emotes),
         input_required: coerceChannelPointBoolean(config?.input_required ?? config?.inputRequired),
+        bypass_interaction_queue: coerceChannelPointBoolean(config?.bypass_interaction_queue),
     };
 }
 

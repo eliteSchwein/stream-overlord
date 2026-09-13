@@ -394,6 +394,8 @@ function loadMacrosFromFiles() {
             if (!macroName) continue;
 
             macros[macroName] = {
+                ...macroConfig,
+                name: macroName,
                 tasks: macroConfig?.tasks ?? [],
                 file: relativeMacroPath(filePath),
             };
@@ -681,6 +683,31 @@ export default function loadMacros() {
 
 export function getMacros() {
     return macros;
+}
+
+export function getMacroConfig(name: string) {
+    if (!name) return undefined;
+
+    if (macros[name] !== undefined) {
+        return macros[name];
+    }
+
+    try {
+        const filePath = findMacroFileByName(name);
+        if (!filePath) return undefined;
+
+        const macroConfig = readMacroConfigFile(filePath) as any;
+        return {
+            ...macroConfig,
+            name: macroConfig?.name ?? getMacroNameFromFile(filePath),
+            tasks: macroConfig?.tasks ?? [],
+            file: relativeMacroPath(filePath),
+        };
+    } catch (error) {
+        logWarn(`failed to read macro config ${name}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return undefined;
+    }
 }
 
 export function isMacroPresent(name: string) {

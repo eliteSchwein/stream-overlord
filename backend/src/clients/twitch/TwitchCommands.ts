@@ -410,6 +410,7 @@ function normalizeCommandConfigForSave(filePath: string, commandConfig: any) {
         )
             .map(value => normalizeUserName(value))
             .filter(Boolean),
+        bypass_interaction_queue: normalizeBoolean(cleanCommandConfig?.bypass_interaction_queue),
     };
 
     delete normalizedConfig.singleUse;
@@ -1017,6 +1018,7 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
             const paramConfig = normalizeArray(currentOption.params ?? []) as ConfigParam[];
             const macro = normalizeString(currentOption.macro);
             const assetName = normalizeString(currentOption.asset);
+            const bypassInteractionQueue = normalizeBoolean(currentOption.bypass_interaction_queue);
             const singleUse = normalizeSingleUse(currentOption.single_use ?? currentOption.singleUse);
             const userListMode = normalizeUserListMode(
                 currentOption.user_list_mode ?? currentOption.userListMode
@@ -1137,50 +1139,56 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
             }
 
             if (configuredAsset || macro) {
-                enqueueInteraction({
-                    uuid: eventUuid,
-                    name: `Command: !${command}`,
-                    source: "command",
-                    estimatedDuration: configuredAsset && !macro ? Number(configuredAsset.duration ?? 15) || 0 : 0,
-                    execute: async () => {
-                        const interactionVariables = {
-                            ...data,
-                            interactionUuid: eventUuid,
-                        };
+                const execute = async (interactionUuid?: string) => {
+                    const interactionVariables = {
+                        ...data,
+                        ...(interactionUuid ? {interactionUuid} : {}),
+                    };
 
-                        if (configuredAsset && assetName) {
-                            addAlert({
+                    if (configuredAsset && assetName) {
+                        addAlert({
+                            asset: assetName,
+                            sound: configuredAsset.sound,
+                            duration: configuredAsset.duration ?? 15,
+                            color: configuredAsset.color,
+                            icon: configuredAsset.icon,
+                            message: configuredAsset.message ?? "",
+                            "event-uuid": eventUuid,
+                            ...(interactionUuid ? {interaction_uuid: interactionUuid} : {}),
+                            speak: false,
+                            video: configuredAsset.video,
+                            wled: configuredAsset.wled,
+                            volume: configuredAsset.volume,
+                            image: configuredAsset.image,
+                            channel: configuredAsset.channel,
+                            start_macros: configuredAsset.start_macros ?? [],
+                            idle_macros: configuredAsset.idle_macros ?? [],
+                            end_macros: configuredAsset.end_macros ?? [],
+                            variables: {
+                                ...interactionVariables,
                                 asset: assetName,
-                                sound: configuredAsset.sound,
-                                duration: configuredAsset.duration ?? 15,
-                                color: configuredAsset.color,
-                                icon: configuredAsset.icon,
-                                message: configuredAsset.message ?? "",
-                                "event-uuid": eventUuid,
-                                interaction_uuid: eventUuid,
-                                speak: false,
-                                video: configuredAsset.video,
-                                wled: configuredAsset.wled,
-                                volume: configuredAsset.volume,
-                                image: configuredAsset.image,
-                                channel: configuredAsset.channel,
-                                start_macros: configuredAsset.start_macros ?? [],
-                                idle_macros: configuredAsset.idle_macros ?? [],
-                                end_macros: configuredAsset.end_macros ?? [],
-                                variables: {
-                                    ...interactionVariables,
-                                    asset: assetName,
-                                },
-                            });
+                            },
+                        });
 
-                            logRegular(`command ${command} triggered asset: ${assetName}`);
-                        }
+                        logRegular(`command ${command} triggered asset: ${assetName}`);
+                    }
 
-                        if (macro) {
-                            await triggerMacro(macro, interactionVariables);
-                        }
-                    },
-                });
+                    if (macro) {
+                        await triggerMacro(macro, interactionVariables);
+                    }
+                };
+
+                if (bypassInteractionQueue) {
+                    await execute();
+                } else {
+                    enqueueInteraction({
+                        uuid: eventUuid,
+                        name: `Command: !${command}`,
+                        source: "command",
+                        estimatedDuration: configuredAsset && !macro ? Number(configuredAsset.duration ?? 15) || 0 : 0,
+                        execute: async () => execute(eventUuid),
+                    });
+                }
             }
         } catch (error) {
             logWarn(`command ${command} failed:`);

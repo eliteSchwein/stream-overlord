@@ -1,7 +1,7 @@
 import {randomUUID} from "crypto";
 import {getAssetConfig, hasAssetConfigContent} from "./AssetHelper";
 import {addAlert} from "./AlertHelper";
-import {hasMacroTasks, interpolateTemplate, triggerMacro} from "./MacroHelper";
+import {getMacroConfig, hasMacroTasks, interpolateTemplate, triggerMacro} from "./MacroHelper";
 import getWebsocketServer from "../App";
 import {enqueueInteraction} from "./InteractionHelper";
 
@@ -37,6 +37,7 @@ export type EventEntry = {
     macro: boolean;
     asset: boolean;
     configured: boolean;
+    bypass_interaction_queue: boolean;
     simulationFields: EventSimulationField[];
 };
 
@@ -103,6 +104,7 @@ function createEventEntry(
         macro: false,
         asset: false,
         configured: false,
+        bypass_interaction_queue: false,
         simulationFields,
     };
 }
@@ -183,6 +185,30 @@ export function notifyEventsUpdate() {
     }
 }
 
+function coerceEventBoolean(value: unknown): boolean {
+    if (value === true || value === 1) return true;
+    if (typeof value === "string") {
+        return ["true", "1", "yes", "on"].includes(value.trim().toLowerCase());
+    }
+    return false;
+}
+
+export function getEventBypassInteractionQueue(configName: string): boolean {
+    const normalizedConfigName = normalizeEventConfigName(configName);
+    const macroConfig = getMacroConfig(normalizedConfigName);
+
+    if (macroConfig && Object.prototype.hasOwnProperty.call(macroConfig, "bypass_interaction_queue")) {
+        return coerceEventBoolean(macroConfig.bypass_interaction_queue);
+    }
+
+    const assetConfig = getAssetConfig(normalizedConfigName);
+    if (assetConfig && Object.prototype.hasOwnProperty.call(assetConfig, "bypass_interaction_queue")) {
+        return coerceEventBoolean(assetConfig.bypass_interaction_queue);
+    }
+
+    return false;
+}
+
 export function updateConfiguredEventIndex(): EventIndex {
     configuredEventIndex = {};
 
@@ -196,6 +222,7 @@ export function updateConfiguredEventIndex(): EventIndex {
                 macro,
                 asset,
                 configured: macro || asset,
+                bypass_interaction_queue: getEventBypassInteractionQueue(entry.configName),
             };
         });
     }
@@ -288,55 +315,63 @@ export async function triggerConfiguredEvent(
     if (!normalizedConfigName) return;
 
     const eventUuid = String(variables.eventUuid ?? `${normalizedConfigName}_${randomUUID()}`);
-    const eventVariables = {
-        ...variables,
-        eventUuid,
-        interactionUuid: eventUuid,
-    };
-
     const hasMacro = hasMacroTasks(normalizedConfigName);
     const hasAsset = hasAssetConfigContent(normalizedConfigName);
     if (!hasMacro && !hasAsset) return;
 
     const configuredAsset = hasAsset ? getAssetConfig(normalizedConfigName) : undefined;
     const estimatedDuration = configuredAsset ? Number(configuredAsset.duration ?? 0) || 0 : 0;
+    const bypassInteractionQueue = getEventBypassInteractionQueue(normalizedConfigName);
+
+    const execute = async (interactionUuid?: string) => {
+        const eventVariables = {
+            ...variables,
+            eventUuid,
+            ...(interactionUuid ? {interactionUuid} : {}),
+        };
+
+        if (hasMacro) {
+            await triggerMacro(normalizedConfigName, eventVariables);
+        }
+
+        if (hasAsset && configuredAsset) {
+            const parsedAsset = JSON.parse(interpolateTemplate(JSON.stringify({
+                sound: configuredAsset.sound,
+                duration: configuredAsset.duration,
+                color: configuredAsset.color,
+                icon: configuredAsset.icon,
+                message: configuredAsset.message,
+                video: configuredAsset.video,
+                lamp_color: configuredAsset.lamp_color,
+                volume: configuredAsset.volume,
+                image: configuredAsset.image,
+                channel: configuredAsset.channel,
+                wled: configuredAsset.wled,
+                start_macros: configuredAsset.start_macros ?? [],
+                idle_macros: configuredAsset.idle_macros ?? [],
+                end_macros: configuredAsset.end_macros ?? [],
+            }), eventVariables));
+
+            addAlert({
+                ...parsedAsset,
+                asset: normalizedConfigName,
+                variables: eventVariables,
+                ...(interactionUuid ? {interaction_uuid: interactionUuid} : {}),
+                "event-uuid": eventUuid,
+            });
+        }
+    };
+
+    if (bypassInteractionQueue) {
+        await execute();
+        return;
+    }
 
     enqueueInteraction({
         uuid: eventUuid,
         name: interactionName ?? `Event: ${normalizedConfigName.replace(/^event_/, "").replace(/_/g, " ")}`,
         source: "event",
         estimatedDuration: hasAsset && !hasMacro ? estimatedDuration : 0,
-        execute: async () => {
-            if (hasMacro) {
-                await triggerMacro(normalizedConfigName, eventVariables);
-            }
-
-            if (hasAsset && configuredAsset) {
-                const parsedAsset = JSON.parse(interpolateTemplate(JSON.stringify({
-                    sound: configuredAsset.sound,
-                    duration: configuredAsset.duration,
-                    color: configuredAsset.color,
-                    icon: configuredAsset.icon,
-                    message: configuredAsset.message,
-                    video: configuredAsset.video,
-                    lamp_color: configuredAsset.lamp_color,
-                    volume: configuredAsset.volume,
-                    image: configuredAsset.image,
-                    channel: configuredAsset.channel,
-                    wled: configuredAsset.wled,
-                    start_macros: configuredAsset.start_macros ?? [],
-                    idle_macros: configuredAsset.idle_macros ?? [],
-                    end_macros: configuredAsset.end_macros ?? [],
-                }), eventVariables));
-
-                addAlert({
-                    ...parsedAsset,
-                    asset: normalizedConfigName,
-                    variables: eventVariables,
-                    interaction_uuid: eventUuid,
-                    "event-uuid": eventUuid,
-                });
-            }
-        },
+        execute: async () => execute(eventUuid),
     });
 }

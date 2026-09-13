@@ -151,6 +151,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                 auto_accept: gameChannelPoint.auto_accept,
                 strip_emotes: gameChannelPoint.strip_emotes,
                 input_required: gameChannelPoint.input_required,
+                bypass_interaction_queue: gameChannelPoint.bypass_interaction_queue,
             }, event, eventUuid, "api");
             return;
         }
@@ -236,7 +237,6 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             const macroVariables = this.getMacroVariables(event, {
                 eventUuid,
-                interactionUuid: eventUuid,
                 channelPoint: {
                     title: event.rewardTitle,
                     userId: event.userId,
@@ -266,30 +266,41 @@ export default class ChannelPointsEvent extends BaseEvent {
                 return;
             }
 
-            enqueueInteraction({
-                uuid: eventUuid,
-                name: `Channel Point: ${event.rewardTitle}`,
-                source: "channel_point",
-                estimatedDuration: asset && !configChannelPoint.macro ? Number(asset.duration ?? 15) || 0 : 0,
-                execute: async () => {
-                    if (
-                        asset &&
-                        (asset.video || asset.sound || asset.image || asset.message)
-                    ) {
-                        addAlert({
-                            ...asset,
-                            asset: configChannelPoint.asset,
-                            variables: macroVariables,
-                            interaction_uuid: eventUuid,
-                            "event-uuid": eventUuid,
-                        });
-                    }
+            const execute = async (interactionUuid?: string) => {
+                const runtimeVariables = {
+                    ...macroVariables,
+                    ...(interactionUuid ? {interactionUuid} : {}),
+                };
 
-                    if (configChannelPoint.macro) {
-                        await triggerMacro(configChannelPoint.macro, macroVariables);
-                    }
-                },
-            });
+                if (
+                    asset &&
+                    (asset.video || asset.sound || asset.image || asset.message)
+                ) {
+                    addAlert({
+                        ...asset,
+                        asset: configChannelPoint.asset,
+                        variables: runtimeVariables,
+                        ...(interactionUuid ? {interaction_uuid: interactionUuid} : {}),
+                        "event-uuid": eventUuid,
+                    });
+                }
+
+                if (configChannelPoint.macro) {
+                    await triggerMacro(configChannelPoint.macro, runtimeVariables);
+                }
+            };
+
+            if (configChannelPoint.bypass_interaction_queue === true) {
+                await execute();
+            } else {
+                enqueueInteraction({
+                    uuid: eventUuid,
+                    name: `Channel Point: ${event.rewardTitle}`,
+                    source: "channel_point",
+                    estimatedDuration: asset && !configChannelPoint.macro ? Number(asset.duration ?? 15) || 0 : 0,
+                    execute: async () => execute(eventUuid),
+                });
+            }
 
             logRegular(
                 `channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`,

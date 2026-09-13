@@ -1,6 +1,6 @@
 import BaseApi from "../../abstracts/BaseApi";
 import {isMacroPresent, triggerMacro} from "../../helper/MacroHelper";
-import {enqueueInteraction} from "../../helper/InteractionHelper";
+import {randomUUID} from "crypto";
 
 export default class TriggerMacroApi extends BaseApi {
     restEndpoint = "macro";
@@ -11,18 +11,17 @@ export default class TriggerMacroApi extends BaseApi {
         if (!data?.macro) return {error: "missing macro"};
         if (!isMacroPresent(data.macro)) return {error: "macro not found"};
 
-        const interaction = enqueueInteraction({
-            name: String(data.name ?? `Macro: ${data.macro}`),
-            source: "api",
-            execute: async current => {
-                await triggerMacro(data.macro, {
-                    ...(data.variables ?? {}),
-                    eventUuid: current.uuid,
-                    interactionUuid: current.uuid,
-                });
-            },
+        const eventUuid = String(data?.eventUuid ?? data?.variables?.eventUuid ?? `api_macro_${randomUUID()}`);
+
+        await triggerMacro(data.macro, {
+            ...(data.variables ?? {}),
+            eventUuid,
         });
 
-        return {interaction};
+        return {
+            success: true,
+            eventUuid,
+            interaction: null,
+        };
     }
 }
