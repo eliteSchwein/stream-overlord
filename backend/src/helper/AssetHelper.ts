@@ -550,6 +550,32 @@ export function isAssetConfigPresent(name: string) {
     return false;
 }
 
+function hasNonEmptyAssetValue(value: any): boolean {
+    if (typeof value === "string") return value.trim().length > 0;
+    if (Array.isArray(value)) return value.length > 0;
+    if (value && typeof value === "object") return Object.keys(value).length > 0;
+    return false;
+}
+
+export function hasAssetConfigContent(name: string) {
+    if (!name) return false;
+
+    const config = getAssetConfig(name);
+    if (!config) return false;
+
+    // Duration, color, volume and channel are modifiers only. They should not
+    // create an interaction by themselves when the actual asset is empty.
+    for (const key of ["sound", "icon", "message", "video", "image", "speak_message"]) {
+        if (hasNonEmptyAssetValue(config[key])) return true;
+    }
+
+    for (const key of ["wled", "start_macros", "idle_macros", "end_macros"]) {
+        if (hasNonEmptyAssetValue(config[key])) return true;
+    }
+
+    return false;
+}
+
 export function requireAssetConfigPresent(name: string) {
     if (!isAssetConfigPresent(name)) {
         throw new Error(`asset config not found: ${name}`);

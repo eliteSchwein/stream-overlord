@@ -699,6 +699,27 @@ export function isMacroPresent(name: string) {
     }
 }
 
+export function hasMacroTasks(name: string) {
+    if (!name) return false;
+
+    const loadedMacro = macros[name];
+    if (loadedMacro !== undefined) {
+        return Array.isArray(loadedMacro?.tasks) && loadedMacro.tasks.length > 0;
+    }
+
+    try {
+        const filePath = findMacroFileByName(name);
+        if (!filePath) return false;
+
+        const macroConfig = readMacroConfigFile(filePath) as any;
+        return Array.isArray(macroConfig?.tasks) && macroConfig.tasks.length > 0;
+    } catch (error) {
+        logWarn(`failed to check if macro ${name} has tasks`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return false;
+    }
+}
+
 export function requireMacroPresent(name: string) {
     if (!isMacroPresent(name)) {
         throw new Error(`macro not found: ${name}`);

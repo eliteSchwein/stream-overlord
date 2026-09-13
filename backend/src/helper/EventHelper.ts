@@ -1,7 +1,7 @@
 import {randomUUID} from "crypto";
-import {getAssetConfig, isAssetConfigPresent} from "./AssetHelper";
+import {getAssetConfig, hasAssetConfigContent} from "./AssetHelper";
 import {addAlert} from "./AlertHelper";
-import {interpolateTemplate, isMacroPresent, triggerMacro} from "./MacroHelper";
+import {hasMacroTasks, interpolateTemplate, triggerMacro} from "./MacroHelper";
 import getWebsocketServer from "../App";
 import {enqueueInteraction} from "./InteractionHelper";
 
@@ -188,8 +188,8 @@ export function updateConfiguredEventIndex(): EventIndex {
 
     for (const channel in eventEntries) {
         configuredEventIndex[channel] = eventEntries[channel].map(entry => {
-            const macro = isMacroPresent(entry.configName);
-            const asset = isAssetConfigPresent(entry.configName);
+            const macro = hasMacroTasks(entry.configName);
+            const asset = hasAssetConfigContent(entry.configName);
 
             return {
                 ...entry,
@@ -259,8 +259,8 @@ export async function simulateConfiguredEvent(
     }
 
     if (!entry.configured) {
-        const macro = isMacroPresent(entry.configName);
-        const asset = isAssetConfigPresent(entry.configName);
+        const macro = hasMacroTasks(entry.configName);
+        const asset = hasAssetConfigContent(entry.configName);
         if (!macro && !asset) {
             throw new Error("event has no configured macro or asset");
         }
@@ -294,8 +294,8 @@ export async function triggerConfiguredEvent(
         interactionUuid: eventUuid,
     };
 
-    const hasMacro = isMacroPresent(normalizedConfigName);
-    const hasAsset = isAssetConfigPresent(normalizedConfigName);
+    const hasMacro = hasMacroTasks(normalizedConfigName);
+    const hasAsset = hasAssetConfigContent(normalizedConfigName);
     if (!hasMacro && !hasAsset) return;
 
     const configuredAsset = hasAsset ? getAssetConfig(normalizedConfigName) : undefined;
