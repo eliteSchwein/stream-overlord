@@ -228,10 +228,9 @@ export function markInteractionAlertStarted(uuid: string | undefined, remainingS
 
     active.alertTimingStarted = true;
 
-    // The alert loop consumes the first duration tick on the same cycle that
-    // the alert is shown. Rebase to the duration that is still left after
-    // that visible tick instead of restoring the full configured duration.
-    // This removes setup time without adding an extra second at the end.
+    // Rebase from the instant the first alert is actually shown. AlertHelper
+    // drives its own countdown from the same wall-clock deadline, so the
+    // interaction ETA cannot drift from setInterval tick timing.
     const remaining = Math.max(0, Number(remainingSeconds) || 0);
     if (remaining > 0) {
         active.holdUntilMs = Date.now() + remaining * 1000;

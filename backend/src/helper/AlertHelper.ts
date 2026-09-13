@@ -12,6 +12,7 @@ const alertQuery: any[] = [];
 const activeAlerts: string[] = [];
 let activeSound: string | null = null;
 let alertLoopRunning = false;
+const alertDeadlines = new WeakMap<object, number>();
 
 export default function initialAlerts() {
     const websocketServer = getWebsocketServer();
@@ -28,14 +29,39 @@ export default function initialAlerts() {
 
             const activeAlert = alertQuery[0];
 
-            if (activeAlert.duration > 0) {
-                if (activeAlert.active) {
-                    activeAlert.duration--;
+            if (activeAlert.active) {
+                const deadline = alertDeadlines.get(activeAlert);
+
+                if (deadline !== undefined) {
+                    const remainingMs = deadline - Date.now();
+
+                    if (remainingMs > 0) {
+                        // The alert countdown and the interaction ETA now use the
+                        // same wall-clock deadline. This avoids drift from counting
+                        // setInterval ticks, especially on longer alerts.
+                        activeAlert.duration = Math.max(1, Math.ceil(remainingMs / 1000));
+                        websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
+                        alertQuery[0] = activeAlert;
+                        return;
+                    }
+
+                    activeAlert.duration = 0;
+                } else if (activeAlert.duration > 0) {
+                    // Compatibility fallback for an alert that became active before
+                    // this timing state was created.
+                    const durationSeconds = Math.max(0, Number(activeAlert.duration) || 0);
+                    const fallbackDeadline = Date.now() + durationSeconds * 1000;
+                    alertDeadlines.set(activeAlert, fallbackDeadline);
+                    markInteractionAlertStarted(
+                        activeAlert.interaction_uuid ?? activeAlert.variables?.interactionUuid,
+                        durationSeconds,
+                        activeAlert["event-uuid"]
+                    );
                     websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
                     alertQuery[0] = activeAlert;
                     return;
                 }
-
+            } else if (activeAlert.duration > 0) {
                 activeAlert.active = true;
                 activeAlert.ending = false;
                 activeAlert.speakFinished = !activeAlert.speak;
@@ -62,17 +88,20 @@ export default function initialAlerts() {
                     return;
                 }
 
-                websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
+                const durationSeconds = Math.max(0, Number(activeAlert.duration) || 0);
+                const deadline = Date.now() + durationSeconds * 1000;
+                alertDeadlines.set(activeAlert, deadline);
 
-                startAlertSpeech(activeAlert)
-
-                activeAlert.duration--;
-
+                // Start both clocks at the same instant: immediately before the
+                // first visible alert notification is dispatched.
                 markInteractionAlertStarted(
                     activeAlert.interaction_uuid ?? activeAlert.variables?.interactionUuid,
-                    activeAlert.duration,
+                    durationSeconds,
                     activeAlert["event-uuid"]
                 );
+
+                websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
+                startAlertSpeech(activeAlert);
 
                 alertQuery[0] = activeAlert;
                 return;
@@ -239,6 +268,7 @@ export function removeAlert(alert: any) {
         alertPartial.active = false;
         alertPartial.ending = true;
         alertPartial.idleRunId = (alertPartial.idleRunId ?? 0) + 1;
+        alertDeadlines.delete(alertPartial);
 
         alertQuery.splice(Number(alertIndex), 1);
 
