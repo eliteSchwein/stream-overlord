@@ -41,7 +41,7 @@ function publicInteraction(item: InternalInteraction, now = Date.now(), queuedEt
     let etaSeconds = queuedEtaSeconds;
 
     if (item.state === "active") {
-        etaSeconds = Math.max(0, Math.ceil((item.holdUntilMs - now) / 1000));
+        etaSeconds = Math.max(0, Math.floor((item.holdUntilMs - now) / 1000));
     }
 
     return {
