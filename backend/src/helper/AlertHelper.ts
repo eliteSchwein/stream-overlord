@@ -62,16 +62,18 @@ export default function initialAlerts() {
                     return;
                 }
 
-                markInteractionAlertStarted(
-                    activeAlert.interaction_uuid ?? activeAlert.variables?.interactionUuid,
-                    activeAlert["event-uuid"]
-                );
-
                 websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
 
                 startAlertSpeech(activeAlert)
 
                 activeAlert.duration--;
+
+                markInteractionAlertStarted(
+                    activeAlert.interaction_uuid ?? activeAlert.variables?.interactionUuid,
+                    activeAlert.duration,
+                    activeAlert["event-uuid"]
+                );
+
                 alertQuery[0] = activeAlert;
                 return;
             }

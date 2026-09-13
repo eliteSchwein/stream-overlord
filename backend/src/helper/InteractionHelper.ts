@@ -221,19 +221,22 @@ function finishActiveInteraction(state: "finished" | "cancelled" | "failed") {
     void processQueue();
 }
 
-export function markInteractionAlertStarted(uuid: string | undefined, alertUuid?: string) {
+export function markInteractionAlertStarted(uuid: string | undefined, remainingSeconds: number, alertUuid?: string) {
     const interactionUuid = uuid || getCurrentInteractionUuid();
     if (!interactionUuid || !active || active.uuid !== interactionUuid) return false;
     if (active.alertTimingStarted) return false;
 
     active.alertTimingStarted = true;
 
-    // The interaction can become active before the alert is actually visible
-    // (asset setup, WLED/color changes, start macros, websocket dispatch, ...).
-    // Rebase the reserved media duration at the moment the first alert is
-    // actually shown so that setup time is not consumed by the ETA.
-    if (active.duration > 0) {
-        active.holdUntilMs = Date.now() + active.duration * 1000;
+    // The alert loop consumes the first duration tick on the same cycle that
+    // the alert is shown. Rebase to the duration that is still left after
+    // that visible tick instead of restoring the full configured duration.
+    // This removes setup time without adding an extra second at the end.
+    const remaining = Math.max(0, Number(remainingSeconds) || 0);
+    if (remaining > 0) {
+        active.holdUntilMs = Date.now() + remaining * 1000;
+    } else {
+        active.holdUntilMs = Date.now();
     }
 
     logRegular(`start interaction alert timing ${active.name}${alertUuid ? ` for alert ${alertUuid}` : ""}`);

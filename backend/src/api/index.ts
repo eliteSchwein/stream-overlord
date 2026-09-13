@@ -3,6 +3,9 @@
 
 export { default as AlertApi } from "./Alert/AlertApi";
 export { default as RemoveAlertApi } from "./Alert/RemoveAlertApi";
+export { default as InteractionListApi } from "./Interactions/InteractionListApi";
+export { default as RemoveInteractionApi } from "./Interactions/RemoveInteractionApi";
+export { default as TriggerInteractionApi } from "./Interactions/TriggerInteractionApi";
 export { default as AssetsDeleteApi } from "./Assets/AssetsDeleteApi";
 export { default as AssetsEditApi } from "./Assets/AssetsEditApi";
 export { default as AssetsListApi } from "./Assets/AssetsListApi";
@@ -51,9 +54,6 @@ export { default as SetGameApi } from "./Games/SetGameApi";
 export { default as RemoveGiveawayUserApi } from "./Giveaway/RemoveGiveawayUserApi";
 export { default as StartGiveawayApi } from "./Giveaway/StartGiveawayApi";
 export { default as StopGiveawayApi } from "./Giveaway/StopGiveawayApi";
-export { default as InteractionListApi } from "./Interactions/InteractionListApi";
-export { default as RemoveInteractionApi } from "./Interactions/RemoveInteractionApi";
-export { default as TriggerInteractionApi } from "./Interactions/TriggerInteractionApi";
 export { default as MacroCreateFolderApi } from "./Macros/MacroCreateFolderApi";
 export { default as MacroDeleteApi } from "./Macros/MacroDeleteApi";
 export { default as MacroEditApi } from "./Macros/MacroEditApi";
