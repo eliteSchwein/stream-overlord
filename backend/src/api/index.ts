@@ -128,6 +128,7 @@ export { default as RotateSceneStopApi } from "./RotatingScene/RotateSceneStopAp
 export { default as ShieldApi } from "./Security/ShieldApi";
 export { default as SettingsGetApi } from "./Settings/SettingsGetApi";
 export { default as SettingsSaveApi } from "./Settings/SettingsSaveApi";
+export { default as TouchWallpaperApi } from "./Settings/TouchWallpaperApi";
 export { default as AddSourceApi } from "./Sources/AddSourceApi";
 export { default as RefreshSourcesApi } from "./Sources/RefreshSourcesApi";
 export { default as SaveSourcesApi } from "./Sources/SaveSourcesApi";

@@ -51,6 +51,7 @@ export type CavaSettings = {
 
 type StreambotSettings = {
     language: string;
+    touch_wallpaper: string;
     asset_tune: AssetTuneSettings;
     tts: TtsSettings;
     theme: ThemeSettings;
@@ -93,6 +94,7 @@ const defaultCavaSettings: CavaSettings = {
 
 let systemConfig: StreambotSettings = {
     language: "en",
+    touch_wallpaper: "",
     asset_tune: defaultAssetTuneSettings,
     tts: defaultTtsSettings,
     theme: defaultThemeSettings,
@@ -148,10 +150,10 @@ function sameValue(left: unknown, right: unknown) {
 }
 
 function hasNonTtsChanges(previous: StreambotSettings, next: StreambotSettings) {
-    const {tts: _previousTts, ...previousWithoutTts} = previous;
-    const {tts: _nextTts, ...nextWithoutTts} = next;
+    const {tts: _previousTts, touch_wallpaper: _previousTouchWallpaper, ...previousReloadSettings} = previous;
+    const {tts: _nextTts, touch_wallpaper: _nextTouchWallpaper, ...nextReloadSettings} = next;
 
-    return !sameValue(previousWithoutTts, nextWithoutTts);
+    return !sameValue(previousReloadSettings, nextReloadSettings);
 }
 
 function applyTtsSettingsChange(previous: TtsSettings, next: TtsSettings) {
@@ -340,6 +342,7 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
 
     return {
         language,
+        touch_wallpaper: typeof rawSystemConfig.touch_wallpaper === "string" ? rawSystemConfig.touch_wallpaper.trim() : "",
         asset_tune: normalizeAssetTuneSettings(rawSystemConfig.asset_tune),
         tts: normalizeTtsSettings(rawSystemConfig.tts),
         theme: normalizeThemeSettings(rawSystemConfig.theme),
@@ -476,6 +479,16 @@ export function getSystemConfig() {
 
 export function getLanguage() {
     return systemConfig.language;
+}
+
+export function getTouchWallpaper() {
+    return systemConfig.touch_wallpaper;
+}
+
+export function setTouchWallpaper(touchWallpaper: string) {
+    return writeSystemConfig({
+        touch_wallpaper: String(touchWallpaper ?? "").trim(),
+    });
 }
 
 export function getAssetTuneSettings() {

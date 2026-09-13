@@ -7,6 +7,7 @@ import BaseApi from "../../abstracts/BaseApi";
 
 type SettingsSavePayload = {
     language?: string;
+    touch_wallpaper?: string;
     asset_tune?: Partial<AssetTuneSettings>;
 };
 
