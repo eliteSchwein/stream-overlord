@@ -26,6 +26,7 @@ type InternalInteraction = Interaction & {
     startedAtMs?: number;
     holdUntilMs: number;
     executionFinished: boolean;
+    alertTimingStarted: boolean;
     execute: (interaction: Interaction) => Promise<void> | void;
 };
 
@@ -149,6 +150,7 @@ export function enqueueInteraction(options: {
         createdAtMs,
         holdUntilMs: 0,
         executionFinished: false,
+        alertTimingStarted: false,
         execute: options.execute,
     };
 
@@ -217,6 +219,27 @@ function finishActiveInteraction(state: "finished" | "cancelled" | "failed") {
     active = undefined;
     notifyQueue();
     void processQueue();
+}
+
+export function markInteractionAlertStarted(uuid: string | undefined, alertUuid?: string) {
+    const interactionUuid = uuid || getCurrentInteractionUuid();
+    if (!interactionUuid || !active || active.uuid !== interactionUuid) return false;
+    if (active.alertTimingStarted) return false;
+
+    active.alertTimingStarted = true;
+
+    // The interaction can become active before the alert is actually visible
+    // (asset setup, WLED/color changes, start macros, websocket dispatch, ...).
+    // Rebase the reserved media duration at the moment the first alert is
+    // actually shown so that setup time is not consumed by the ETA.
+    if (active.duration > 0) {
+        active.holdUntilMs = Date.now() + active.duration * 1000;
+    }
+
+    logRegular(`start interaction alert timing ${active.name}${alertUuid ? ` for alert ${alertUuid}` : ""}`);
+    notifyInteraction(active, "update");
+    notifyQueue();
+    return true;
 }
 
 export function extendInteraction(uuid: string | undefined, seconds: number, alertUuid?: string) {

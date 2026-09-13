@@ -6,7 +6,7 @@ import {speak} from "./TTShelper";
 import {logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {unlinkEvent} from "./MessageEventLinkHelper";
-import {extendInteraction, getCurrentInteractionUuid, hasInteraction} from "./InteractionHelper";
+import {extendInteraction, getCurrentInteractionUuid, hasInteraction, markInteractionAlertStarted} from "./InteractionHelper";
 
 const alertQuery: any[] = [];
 const activeAlerts: string[] = [];
@@ -61,6 +61,11 @@ export default function initialAlerts() {
                     alertQuery[0] = activeAlert;
                     return;
                 }
+
+                markInteractionAlertStarted(
+                    activeAlert.interaction_uuid ?? activeAlert.variables?.interactionUuid,
+                    activeAlert["event-uuid"]
+                );
 
                 websocketServer.send("notify_alert", { ...activeAlert, action: "show" });
 
