@@ -684,6 +684,7 @@ async function createMissingTwitchChannelPoint(configuredChannelPoint: any, prim
     const cost = Math.max(1, Number(configuredChannelPoint?.cost) || 1);
     const isEnabled = coerceChannelPointBoolean(configuredChannelPoint?.enable_default);
     const userInputRequired = coerceChannelPointBoolean(configuredChannelPoint?.input_required);
+    const autoFulfill = coerceChannelPointBoolean(configuredChannelPoint?.auto_accept);
 
     try {
         logRegular(`create twitch channel point ${title} (cost=${cost}, enabled=${isEnabled ? "yes" : "no"}, input=${userInputRequired ? "yes" : "no"})`);
@@ -693,6 +694,7 @@ async function createMissingTwitchChannelPoint(configuredChannelPoint: any, prim
             cost,
             isEnabled,
             userInputRequired,
+            autoFulfill,
         });
 
         channelPoints[createdChannelPoint.title] = createdChannelPoint;
@@ -710,22 +712,33 @@ async function syncChannelPointTwitchSettings(configuredChannelPoint: any, twitc
 
     const desiredInputRequired = coerceChannelPointBoolean(configuredChannelPoint?.input_required);
     const currentInputRequired = getTwitchChannelPointInputRequired(twitchChannelPoint);
+    const desiredAutoFulfill = coerceChannelPointBoolean(configuredChannelPoint?.auto_accept);
+    const currentAutoFulfill = Boolean((twitchChannelPoint as any).autoFulfill);
 
-    if (currentInputRequired === desiredInputRequired) return;
+    if (
+        currentInputRequired === desiredInputRequired &&
+        currentAutoFulfill === desiredAutoFulfill
+    ) {
+        return;
+    }
 
     const bot = getTwitchClient().getBot();
 
     try {
-        logRegular(`update channel point input required ${twitchChannelPoint.title}: ${desiredInputRequired}`);
+        logRegular(
+            `update channel point settings ${twitchChannelPoint.title}: input=${desiredInputRequired}, auto_accept=${desiredAutoFulfill}`,
+        );
 
         await bot.api.channelPoints.updateCustomReward(primaryChannel, twitchChannelPoint.id, {
             userInputRequired: desiredInputRequired,
+            autoFulfill: desiredAutoFulfill,
         });
 
         (twitchChannelPoint as any).userInputRequired = desiredInputRequired;
         (twitchChannelPoint as any).isUserInputRequired = desiredInputRequired;
+        (twitchChannelPoint as any).autoFulfill = desiredAutoFulfill;
     } catch (error) {
-        logWarn(`update channel point input required ${twitchChannelPoint.title} failed:`);
+        logWarn(`update channel point settings ${twitchChannelPoint.title} failed:`);
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
 }

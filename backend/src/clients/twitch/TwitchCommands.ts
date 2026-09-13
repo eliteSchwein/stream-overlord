@@ -9,6 +9,7 @@ import SetGameCommand from "./commands/SetGameCommand";
 import GetGameCommand from "./commands/GetGameCommand";
 import ToggleErrorMessageCommand from "./commands/ToggleErrorMessageCommand";
 import {triggerMacro} from "../../helper/MacroHelper";
+import {enqueueInteraction} from "../../helper/InteractionHelper";
 import MusicCommand from "./commands/MusicCommand";
 import GiveawayEnterCommand from "./commands/GiveawayEnterCommand";
 import {hasModerator, hasVip} from "./helper/PermissionHelper";
@@ -1129,44 +1130,57 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
 
             logRegular(`command by ${context.userName} in ${context.broadcasterName}: ${command} ${rawParam.join(" ")}`);
 
-            if (assetName) {
-                const asset = getAssetConfig(assetName);
+            const configuredAsset = assetName ? getAssetConfig(assetName) : undefined;
 
-                if (!asset) {
-                    logWarn(`command ${command} asset was not found: ${assetName}`);
-                } else {
-                    const alertVariables = {
-                        ...data,
-                        asset: assetName,
-                        eventUuid,
-                    };
-
-                    addAlert({
-                        asset: assetName,
-                        sound: asset.sound,
-                        duration: asset.duration ?? 15,
-                        color: asset.color,
-                        icon: asset.icon,
-                        message: asset.message ?? "",
-                        "event-uuid": eventUuid,
-                        speak: false,
-                        video: asset.video,
-                        wled: asset.wled,
-                        volume: asset.volume,
-                        image: asset.image,
-                        channel: asset.channel,
-                        start_macros: asset.start_macros ?? [],
-                        idle_macros: asset.idle_macros ?? [],
-                        end_macros: asset.end_macros ?? [],
-                        variables: alertVariables,
-                    });
-
-                    logRegular(`command ${command} triggered asset: ${assetName}`);
-                }
+            if (assetName && !configuredAsset) {
+                logWarn(`command ${command} asset was not found: ${assetName}`);
             }
 
-            if (macro) {
-                void triggerMacro(macro, data);
+            if (configuredAsset || macro) {
+                enqueueInteraction({
+                    uuid: eventUuid,
+                    name: `Command: !${command}`,
+                    source: "command",
+                    estimatedDuration: configuredAsset && !macro ? Number(configuredAsset.duration ?? 15) || 0 : 0,
+                    execute: async () => {
+                        const interactionVariables = {
+                            ...data,
+                            interactionUuid: eventUuid,
+                        };
+
+                        if (configuredAsset && assetName) {
+                            addAlert({
+                                asset: assetName,
+                                sound: configuredAsset.sound,
+                                duration: configuredAsset.duration ?? 15,
+                                color: configuredAsset.color,
+                                icon: configuredAsset.icon,
+                                message: configuredAsset.message ?? "",
+                                "event-uuid": eventUuid,
+                                interaction_uuid: eventUuid,
+                                speak: false,
+                                video: configuredAsset.video,
+                                wled: configuredAsset.wled,
+                                volume: configuredAsset.volume,
+                                image: configuredAsset.image,
+                                channel: configuredAsset.channel,
+                                start_macros: configuredAsset.start_macros ?? [],
+                                idle_macros: configuredAsset.idle_macros ?? [],
+                                end_macros: configuredAsset.end_macros ?? [],
+                                variables: {
+                                    ...interactionVariables,
+                                    asset: assetName,
+                                },
+                            });
+
+                            logRegular(`command ${command} triggered asset: ${assetName}`);
+                        }
+
+                        if (macro) {
+                            await triggerMacro(macro, interactionVariables);
+                        }
+                    },
+                });
             }
         } catch (error) {
             logWarn(`command ${command} failed:`);

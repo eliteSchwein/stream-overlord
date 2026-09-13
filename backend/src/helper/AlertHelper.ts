@@ -6,6 +6,7 @@ import {speak} from "./TTShelper";
 import {logRegular, logWarn} from "./LogHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {unlinkEvent} from "./MessageEventLinkHelper";
+import {extendInteraction, getCurrentInteractionUuid, hasInteraction} from "./InteractionHelper";
 
 const alertQuery: any[] = [];
 const activeAlerts: string[] = [];
@@ -199,6 +200,23 @@ export function addAlert(alert: any) {
     if (alert.video) alert.video = `${alert.video}`;
     if (alert.sound) alert.sound = `${alert.sound}`;
     if (!alert.channel) alert.channel = "general";
+
+    const eventUuid = alert["event-uuid"] ?? alert.eventUuid;
+    const interactionUuid =
+        alert.interaction_uuid ??
+        alert.interactionUuid ??
+        alert.variables?.interactionUuid ??
+        getCurrentInteractionUuid() ??
+        (hasInteraction(eventUuid) ? eventUuid : undefined);
+
+    if (interactionUuid) {
+        alert.interaction_uuid = interactionUuid;
+        alert.variables = {
+            ...(alert.variables ?? {}),
+            interactionUuid,
+        };
+        extendInteraction(interactionUuid, Number(alert.duration ?? 0), eventUuid);
+    }
 
     alertQuery.push(alert);
 

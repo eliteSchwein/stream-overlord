@@ -1,5 +1,4 @@
 import {getConfig} from "../../../helper/ConfigHelper";
-import {removeAlert} from "../../../helper/AlertHelper";
 
 const activeEvents = {}
 const queriedEvents = []
@@ -41,9 +40,6 @@ export function removeEventFromQuery(randomHash: string) {
     if (index > -1) {
         queriedEvents.splice(index, 1);
     }
-    removeAlert({
-        'event-uuid': randomHash
-    })
 }
 
 export function removeEventFromCooldown(randomHash: string, name: string, channel: string) {

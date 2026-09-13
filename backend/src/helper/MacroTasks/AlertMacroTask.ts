@@ -4,20 +4,10 @@ import {addAlert} from "../AlertHelper";
 import {getAssetConfig, getWledConfigs, normalizeWledControls} from "../AssetHelper";
 import {calculateTTSduration} from "../TTShelper";
 import {logWarn} from "../LogHelper";
-import {interpolateTemplate} from "../MacroHelper";
+import {interpolateTemplate, interpolateTemplateValue} from "../MacroHelper";
 
 function interpolateObjectTemplate<T = any>(input: T, variables: any): T {
-    if (input === undefined || input === null) {
-        return input;
-    }
-
-    try {
-        return JSON.parse(interpolateTemplate(JSON.stringify(input), variables));
-    } catch (error) {
-        logWarn(`failed to interpolate object template`);
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-        return input;
-    }
+    return interpolateTemplateValue(input, variables) as T;
 }
 
 function mergeWledDefaults(value: any) {

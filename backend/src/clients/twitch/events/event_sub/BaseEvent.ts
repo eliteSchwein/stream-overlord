@@ -12,10 +12,7 @@ import {Bot} from "@twurple/easy-bot";
 import type TwitchClient from "../Client";
 import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {sleep} from "../../../../../../helper/GeneralHelper";
-import {interpolateTemplate, isMacroPresent, triggerMacro} from "../../../../helper/MacroHelper";
-import {getAssetConfig, isAssetConfigPresent} from "../../../../helper/AssetHelper";
-import {addAlert} from "../../../../helper/AlertHelper";
-import {EventSimulationField, registerEventEntry} from "../../../../helper/EventHelper";
+import {EventSimulationField, registerEventEntry, triggerConfiguredEvent as queueConfiguredEvent} from "../../../../helper/EventHelper";
 
 export default class BaseEvent {
     eventSubWs: EventSubWsListener;
@@ -181,31 +178,15 @@ export default class BaseEvent {
         if (this.configName && !configName) configName = this.configName;
         if (!configName) return;
 
-        if (isMacroPresent(configName)) {
-            void triggerMacro(configName, this.getMacroVariables(event));
-        }
+        const variables = this.getMacroVariables(event, {
+            eventUuid: this.eventUuid,
+        });
 
-        if (isAssetConfigPresent(configName)) {
-            const asset = getAssetConfig(configName);
-            const variables = this.getMacroVariables(event);
-            const parsedAsset = JSON.parse(interpolateTemplate(JSON.stringify({
-                "sound": asset.sound,
-                "duration": asset.duration,
-                "color": asset.color,
-                "icon": asset.icon,
-                "message": asset.message,
-                "video": asset.video,
-                "lamp_color": asset.lamp_color,
-                "volume": asset.volume,
-                "image": asset.image,
-                "channel": asset.channel,
-            }), variables));
-
-            addAlert({
-                ...parsedAsset,
-                "event-uuid": this.eventUuid,
-            });
-        }
+        await queueConfiguredEvent(
+            configName,
+            variables,
+            `Twitch: ${configName.replace(/^event_twitch_/, "").replace(/^event_/, "").replace(/_/g, " ")}`,
+        );
     }
 
     async handle(event: any) {}

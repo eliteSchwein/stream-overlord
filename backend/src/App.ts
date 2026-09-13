@@ -9,6 +9,7 @@ import WebServer from "./clients/webserver/WebServer";
 import {OBSClient} from "./clients/obs/OBSClient";
 import initialTimers from "./helper/TimerHelper";
 import initialAlerts from "./helper/AlertHelper";
+import {initInteractions} from "./helper/InteractionHelper";
 import initialSchedulers from "./helper/SchedulerHelper";
 import {setLedColor} from "./helper/WledHelper";
 import {initAudio} from "./helper/AudioHelper";
@@ -125,6 +126,7 @@ async function init() {
     stage = 'starting_schedulers'
     logRegular('initial schedulers')
     initialTimers()
+    initInteractions()
     initialAlerts()
     initialSchedulers()
 

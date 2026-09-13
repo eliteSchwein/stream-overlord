@@ -29,6 +29,7 @@ import {getOllamaUpdate} from "../../helper/OllamaHelper";
 import {getConfiguredEventIndex} from "../../helper/EventHelper";
 import {getDynamicData} from "../../helper/DynamicDataHelper";
 import {getSpeedtestState} from "../../helper/SpeedtestHelper";
+import {getInteractionQueue} from "../../helper/InteractionHelper";
 
 
 export default class WebsocketServer {
@@ -36,6 +37,8 @@ export default class WebsocketServer {
     validEndpoints: string[] = [
         'notify_alert',
         'notify_alert_query',
+        'notify_interaction',
+        'notify_interaction_queue',
         'notify_assets_update',
         'notify_ads',
         'notify_effect',
@@ -241,6 +244,7 @@ export default class WebsocketServer {
                 this.send("notify_auto_macros_update", getAutoMacros(), client)
                 this.send("notify_rotating_scene_update", {rotatingScenes: getRotateScenes()}, client)
                 this.send("notify_events_update", {events: getConfiguredEventIndex()}, client)
+                this.send("notify_interaction_queue", getInteractionQueue(), client)
                 this.send("notify_dynamic_data_update", {dynamic_data: getDynamicData()}, client)
                 this.send("notify_speedtest_update", getSpeedtestState(), client)
                 // this.send("notify_variables_update", getTemplateVariables(), client)

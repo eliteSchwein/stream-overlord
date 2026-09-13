@@ -745,10 +745,50 @@ export function interpolateTemplate(input: string, variables: any): string {
 }
 
 
+export function interpolateTemplateValue(input: any, variables: any): any {
+    if (input === undefined || input === null) {
+        return input;
+    }
+
+    if (Array.isArray(input)) {
+        return input.map(value => interpolateTemplateValue(value, variables));
+    }
+
+    if (typeof input === "object") {
+        return Object.fromEntries(
+            Object.entries(input).map(([key, value]) => [
+                key,
+                interpolateTemplateValue(value, variables),
+            ]),
+        );
+    }
+
+    if (typeof input !== "string") {
+        return input;
+    }
+
+    const exactVariable = input.match(/^\$\{([^}]+)}$/);
+
+    if (exactVariable) {
+        const value = getNestedValue(variables, exactVariable[1].trim());
+        return value ?? "";
+    }
+
+    return input.replace(/\$\{([^}]+)}/g, (_, variablePath) => {
+        const value = getNestedValue(variables, variablePath.trim());
+
+        if (value === undefined || value === null) {
+            return "";
+        }
+
+        return typeof value === "object"
+            ? JSON.stringify(value)
+            : String(value);
+    });
+}
+
 function interpolateMacroTask(preTask: any, variables: any) {
-    const taskString = JSON.stringify(preTask);
-    const interpolated = interpolateTemplate(taskString, variables);
-    return JSON.parse(interpolated);
+    return interpolateTemplateValue(preTask, variables);
 }
 
 async function executeMacroTask(task: any, variables: any) {

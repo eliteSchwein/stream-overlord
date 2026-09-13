@@ -6,7 +6,8 @@ import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../he
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
-import {triggerMacro} from "../../../../helper/MacroHelper";
+import {isMacroPresent, triggerMacro} from "../../../../helper/MacroHelper";
+import {enqueueInteraction} from "../../../../helper/InteractionHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
 import {
     getConfiguredChannelPoint,
@@ -22,6 +23,9 @@ export default class ChannelPointsEvent extends BaseEvent {
     eventTypes = ["onChannelRedemptionAdd"];
 
     protected channelPoints: any[] = [];
+
+    private readonly processedRedemptions = new Map<string, number>();
+    private readonly redemptionDeduplicationTtl = 30 * 60 * 1000;
 
     async handleRegister() {
         const primaryChannel = getPrimaryChannel();
@@ -60,6 +64,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                 title: channelPoint.label,
                 cost: typeof channelPoint.cost === "number" ? channelPoint.cost : 992,
                 userInputRequired: channelPoint.input_required === true,
+                autoFulfill: channelPoint.auto_accept === true,
             });
         }
 
@@ -82,6 +87,23 @@ export default class ChannelPointsEvent extends BaseEvent {
     async handle(event: EventSubChannelRedemptionAddEvent) {
         let isValid = false;
 
+        const now = Date.now();
+
+        for (const [redemptionId, processedAt] of this.processedRedemptions) {
+            if (now - processedAt > this.redemptionDeduplicationTtl) {
+                this.processedRedemptions.delete(redemptionId);
+            }
+        }
+
+        if (this.processedRedemptions.has(event.id)) {
+            logWarn(
+                `ignore duplicate channel point redemption ${event.id} (${event.rewardTitle}) from ${event.userName}`,
+            );
+            return;
+        }
+
+        this.processedRedemptions.set(event.id, now);
+
         const eventUuid = uuidv4();
 
         if (isShieldActive()) {
@@ -94,7 +116,7 @@ export default class ChannelPointsEvent extends BaseEvent {
                 );
             }
 
-            await event.updateStatus("CANCELED");
+            await this.updateRedemptionStatus(event, "CANCELED");
             return;
         }
 
@@ -107,7 +129,7 @@ export default class ChannelPointsEvent extends BaseEvent {
             }
 
             logWarn(`channel point denied for ${event.userName} because global spam protection is active!`);
-            await event.updateStatus("CANCELED");
+            await this.updateRedemptionStatus(event, "CANCELED");
             return;
         }
 
@@ -161,7 +183,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             logError(`channel point denied for ${event.userName} because of a exception:`);
             logError(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-            await event.updateStatus("CANCELED");
+            await this.updateRedemptionStatus(event, "CANCELED");
             removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
             return;
         }
@@ -214,6 +236,7 @@ export default class ChannelPointsEvent extends BaseEvent {
 
             const macroVariables = this.getMacroVariables(event, {
                 eventUuid,
+                interactionUuid: eventUuid,
                 channelPoint: {
                     title: event.rewardTitle,
                     userId: event.userId,
@@ -230,54 +253,50 @@ export default class ChannelPointsEvent extends BaseEvent {
                 },
             });
 
-            if (
-                asset &&
-                (
-                    asset.video ||
-                    asset.sound ||
-                    asset.image ||
-                    asset.message
-                )
-            ) {
-                addAlert({
-                    ...asset,
-                    asset: configChannelPoint.asset,
-                    variables: macroVariables,
-                    "event-uuid": `alert-${configChannelPoint.label}_${eventUuid}`,
-                });
+            if (configChannelPoint.macro && !isMacroPresent(configChannelPoint.macro)) {
+                if (cooldownAdded) {
+                    removeEventFromCooldown(eventUuid, this.name, event.broadcasterName);
+                    cooldownAdded = false;
+                }
+
+                await this.denyConfiguredChannelPoint(
+                    event,
+                    `${source} channel point macro was not found: ${configChannelPoint.macro}`,
+                );
+                return;
             }
 
-            if (configChannelPoint.macro) {
-                const macroTriggered = await triggerMacro(
-                    configChannelPoint.macro,
-                    macroVariables,
-                );
-
-                if (!macroTriggered) {
-                    if (cooldownAdded) {
-                        removeEventFromCooldown(
-                            eventUuid,
-                            this.name,
-                            event.broadcasterName,
-                        );
-
-                        cooldownAdded = false;
+            enqueueInteraction({
+                uuid: eventUuid,
+                name: `Channel Point: ${event.rewardTitle}`,
+                source: "channel_point",
+                estimatedDuration: asset && !configChannelPoint.macro ? Number(asset.duration ?? 15) || 0 : 0,
+                execute: async () => {
+                    if (
+                        asset &&
+                        (asset.video || asset.sound || asset.image || asset.message)
+                    ) {
+                        addAlert({
+                            ...asset,
+                            asset: configChannelPoint.asset,
+                            variables: macroVariables,
+                            interaction_uuid: eventUuid,
+                            "event-uuid": eventUuid,
+                        });
                     }
 
-                    await this.denyConfiguredChannelPoint(
-                        event,
-                        `${source} channel point macro was not found: ${configChannelPoint.macro}`,
-                    );
-                    return;
-                }
-            }
+                    if (configChannelPoint.macro) {
+                        await triggerMacro(configChannelPoint.macro, macroVariables);
+                    }
+                },
+            });
 
             logRegular(
                 `channel point redeemed by ${event.userName}: ${event.rewardTitle} ${event.input}`,
             );
 
             if (configChannelPoint.auto_accept) {
-                await event.updateStatus("FULFILLED");
+                await this.updateRedemptionStatus(event, "FULFILLED");
                 return;
             }
 
@@ -316,7 +335,51 @@ export default class ChannelPointsEvent extends BaseEvent {
                 ),
             );
 
-            await event.updateStatus("CANCELED");
+            await this.updateRedemptionStatus(event, "CANCELED");
+        }
+    }
+
+    private async updateRedemptionStatus(
+        event: EventSubChannelRedemptionAddEvent,
+        status: "FULFILLED" | "CANCELED",
+    ): Promise<boolean> {
+        const currentStatus = String((event as any).status ?? "").toUpperCase();
+
+        if (currentStatus && currentStatus !== "UNFULFILLED") {
+            logRegular(
+                `skip channel point status update ${event.rewardTitle} (${event.id}): already ${currentStatus}`,
+            );
+            return false;
+        }
+
+        try {
+            await event.updateStatus(status);
+            return true;
+        } catch (error: any) {
+            /*
+             * Twitch only permits redemption updates while the redemption is
+             * UNFULFILLED. A duplicate EventSub delivery, a reward configured
+             * to skip the request queue, or another client resolving it first
+             * can therefore legitimately make this request return 404.
+             *
+             * That must not turn an otherwise successful interaction into a
+             * failed ChannelPointsEvent.
+             */
+            const statusCode = Number(error?._statusCode ?? error?.statusCode ?? error?.status ?? 0);
+            const body = String(error?._body ?? error?.message ?? "");
+
+            if (
+                statusCode === 404 &&
+                (body.includes("weren't marked as UNFULFILLED") ||
+                    body.includes("were not found"))
+            ) {
+                logWarn(
+                    `skip channel point status update ${event.rewardTitle} (${event.id}) -> ${status}: redemption is already resolved or unavailable`,
+                );
+                return false;
+            }
+
+            throw error;
         }
     }
 
@@ -329,6 +392,6 @@ export default class ChannelPointsEvent extends BaseEvent {
         }
 
         logWarn(`channel point denied for ${event.userName} because ${reason}!`);
-        await event.updateStatus("CANCELED");
+        await this.updateRedemptionStatus(event, "CANCELED");
     }
 }

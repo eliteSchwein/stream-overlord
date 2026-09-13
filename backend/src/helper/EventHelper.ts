@@ -3,6 +3,7 @@ import {getAssetConfig, isAssetConfigPresent} from "./AssetHelper";
 import {addAlert} from "./AlertHelper";
 import {interpolateTemplate, isMacroPresent, triggerMacro} from "./MacroHelper";
 import getWebsocketServer from "../App";
+import {enqueueInteraction} from "./InteractionHelper";
 
 export type EventSimulationFieldType = "text" | "number" | "boolean" | "textarea" | "select";
 
@@ -280,6 +281,7 @@ export async function simulateConfiguredEvent(
 export async function triggerConfiguredEvent(
     configName: string,
     variables: Record<string, any> = {},
+    interactionName?: string,
 ): Promise<void> {
     const normalizedConfigName = normalizeEventConfigName(configName);
 
@@ -289,30 +291,52 @@ export async function triggerConfiguredEvent(
     const eventVariables = {
         ...variables,
         eventUuid,
+        interactionUuid: eventUuid,
     };
 
-    if (isMacroPresent(normalizedConfigName)) {
-        void triggerMacro(normalizedConfigName, eventVariables);
-    }
+    const hasMacro = isMacroPresent(normalizedConfigName);
+    const hasAsset = isAssetConfigPresent(normalizedConfigName);
+    if (!hasMacro && !hasAsset) return;
 
-    if (isAssetConfigPresent(normalizedConfigName)) {
-        const asset = getAssetConfig(normalizedConfigName);
-        const parsedAsset = JSON.parse(interpolateTemplate(JSON.stringify({
-            sound: asset.sound,
-            duration: asset.duration,
-            color: asset.color,
-            icon: asset.icon,
-            message: asset.message,
-            video: asset.video,
-            lamp_color: asset.lamp_color,
-            volume: asset.volume,
-            image: asset.image,
-            channel: asset.channel,
-        }), eventVariables));
+    const configuredAsset = hasAsset ? getAssetConfig(normalizedConfigName) : undefined;
+    const estimatedDuration = configuredAsset ? Number(configuredAsset.duration ?? 0) || 0 : 0;
 
-        addAlert({
-            ...parsedAsset,
-            "event-uuid": eventUuid,
-        });
-    }
+    enqueueInteraction({
+        uuid: eventUuid,
+        name: interactionName ?? `Event: ${normalizedConfigName.replace(/^event_/, "").replace(/_/g, " ")}`,
+        source: "event",
+        estimatedDuration: hasAsset && !hasMacro ? estimatedDuration : 0,
+        execute: async () => {
+            if (hasMacro) {
+                await triggerMacro(normalizedConfigName, eventVariables);
+            }
+
+            if (hasAsset && configuredAsset) {
+                const parsedAsset = JSON.parse(interpolateTemplate(JSON.stringify({
+                    sound: configuredAsset.sound,
+                    duration: configuredAsset.duration,
+                    color: configuredAsset.color,
+                    icon: configuredAsset.icon,
+                    message: configuredAsset.message,
+                    video: configuredAsset.video,
+                    lamp_color: configuredAsset.lamp_color,
+                    volume: configuredAsset.volume,
+                    image: configuredAsset.image,
+                    channel: configuredAsset.channel,
+                    wled: configuredAsset.wled,
+                    start_macros: configuredAsset.start_macros ?? [],
+                    idle_macros: configuredAsset.idle_macros ?? [],
+                    end_macros: configuredAsset.end_macros ?? [],
+                }), eventVariables));
+
+                addAlert({
+                    ...parsedAsset,
+                    asset: normalizedConfigName,
+                    variables: eventVariables,
+                    interaction_uuid: eventUuid,
+                    "event-uuid": eventUuid,
+                });
+            }
+        },
+    });
 }
