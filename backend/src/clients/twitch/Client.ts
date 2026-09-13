@@ -68,6 +68,9 @@ export default class TwitchClient {
     private hypeTrainId?: string;
     private hypeTrainLevel?: number;
     private connectGeneration = 0;
+    private connectPromise?: Promise<void>;
+    private registeredEventSubs = new WeakSet<object>();
+    private registeredBots = new WeakSet<object>();
 
     private warnTwitchNetworkError(context: string, error: unknown): boolean {
         const err = error as any;
@@ -281,29 +284,78 @@ export default class TwitchClient {
     }
 
     public async connect() {
+        if (this.connectPromise) {
+            logRegular("twitch connect already in progress - joining existing attempt");
+            return this.connectPromise;
+        }
+
+        const connectPromise = this.connectInternal();
+        this.connectPromise = connectPromise;
+
+        try {
+            await connectPromise;
+        } finally {
+            if (this.connectPromise === connectPromise) {
+                this.connectPromise = undefined;
+            }
+        }
+    }
+
+    private async disconnectCurrentClients() {
+        // Stop EventSub first. Its subscriptions belong to the WebSocket session and
+        // Twitch disables them when the session disconnects. Awaiting the stop also
+        // prevents a replacement connection from racing the old socket teardown.
+        const eventSub = this.eventSub;
+        this.eventSub = undefined;
+
+        if (eventSub) {
+            logRegular("disconnect eventsub");
+
+            try {
+                await Promise.resolve(eventSub.stop());
+            } catch (error) {
+                logWarn("failed to disconnect eventsub cleanly");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
+
+        const bot = this.bot;
+        this.bot = undefined;
+
+        if (bot?.chat) {
+            logRegular("disconnect twitch");
+
+            try {
+                await Promise.resolve(bot.chat.quit());
+            } catch (error) {
+                logWarn("failed to disconnect twitch chat cleanly");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
+
+        const messageBot = this.messageBot;
+        this.messageBot = undefined;
+
+        if (messageBot?.chat) {
+            logRegular("disconnect twitch message bot");
+
+            try {
+                await Promise.resolve(messageBot.chat.quit());
+            } catch (error) {
+                logWarn("failed to disconnect twitch message chat cleanly");
+                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            }
+        }
+    }
+
+    private async connectInternal() {
         const generation = ++this.connectGeneration;
         clearCommunitySubGiftState();
 
-        if (this.bot?.chat) {
-            logRegular("disconnect twitch");
-            this.bot.chat.quit();
-            this.bot = undefined;
-        }
-
-        if (this.messageBot?.chat) {
-            logRegular("disconnect twitch message bot");
-            this.messageBot.chat.quit();
-            this.messageBot = undefined;
-        }
+        await this.disconnectCurrentClients();
 
         this.controlAuthUserId = undefined;
         this.messageAuthUserId = undefined;
-
-        if (this.eventSub) {
-            logRegular("disconnect eventsub");
-            this.eventSub.stop();
-            this.eventSub = undefined;
-        }
 
         logRegular("connect twitch");
         setManagedConnection("twitch", {
@@ -319,6 +371,11 @@ export default class TwitchClient {
         const authRequired = config?.auth_required === true || config?.authRequired === true;
 
         const authProvider = await this.auth.getAuthCode(authRequired, "control" as any);
+
+        if (generation !== this.connectGeneration) {
+            logRegular(`discard stale twitch connect generation ${generation}`);
+            return;
+        }
 
         this.twitchConfig = config;
         this.controlAuthProvider = authProvider;
@@ -388,23 +445,35 @@ export default class TwitchClient {
         // must complete before EventSub registration begins.
         await primaryChannelPromise;
 
+        if (generation !== this.connectGeneration || this.bot !== bot) {
+            logRegular(`discard stale twitch connect generation ${generation} before EventSub setup`);
+            return;
+        }
+
         logRegular("connect eventsub");
 
-        this.eventSub = new EventSubWsListener({
+        const eventSub = new EventSubWsListener({
             apiClient: bot.api,
             logger: { minLevel: "ERROR" }
         });
+        this.eventSub = eventSub;
 
         // Twitch data loading and EventSub registration are independent after
         // the primary channel is known.
         await Promise.all([
             controlAuthUserPromise,
             updateTwitchData(bot),
-            this.registerEvents(),
+            this.registerEvents(bot, eventSub),
         ]);
 
+        if (generation !== this.connectGeneration || this.bot !== bot || this.eventSub !== eventSub) {
+            logRegular(`discard stale twitch connect generation ${generation} before EventSub start`);
+            await Promise.resolve(eventSub.stop());
+            return;
+        }
+
         try {
-            this.eventSub.start();
+            eventSub.start();
         } catch (error) {
             if (!this.warnTwitchNetworkError("failed to start eventsub", error)) {
                 logWarn("failed to start eventsub");
@@ -436,21 +505,30 @@ export default class TwitchClient {
     }
 
     private registerBotEvents(bot: Bot) {
+        if (this.registeredBots.has(bot as object)) {
+            logWarn("skipping duplicate Twitch bot event registration");
+            return;
+        }
+
+        this.registeredBots.add(bot as object);
         new SubEvent(bot, this).register();
         new CommunitySubEvent(bot, this).register();
         new SubGiftEvent(bot, this).register();
         new RaidEvent(bot, this).register();
     }
 
-    public async registerEvents() {
-        if (!this.bot || !this.eventSub) {
+    public async registerEvents(bot: Bot = this.bot as Bot, eventSub: EventSubWsListener = this.eventSub as EventSubWsListener) {
+        if (!bot || !eventSub) {
             logWarn("cannot register Twitch events without an active Twitch connection");
             return;
         }
 
-        const bot = this.bot;
-        const eventSub = this.eventSub;
+        if (this.registeredEventSubs.has(eventSub as object)) {
+            logWarn("skipping duplicate Twitch EventSub registration on the same listener");
+            return;
+        }
 
+        this.registeredEventSubs.add(eventSub as object);
         this.registerBotEvents(bot);
 
         const affiliateOrPartnerPromise = this.isAffiliateOrPartner();
