@@ -79,6 +79,7 @@ const CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 let updateState: UpdateManagerPayload = {};
 let checkTimer: NodeJS.Timeout | undefined;
 let initialized = false;
+let updateAllInProgress = false;
 let notifier: ((method: "notify_service_reload" | "notify_update_manager", data: any) => void) | undefined;
 
 function booleanValue(value: unknown, fallback = false): boolean {
@@ -151,7 +152,11 @@ function getUpdatingManagerNames(excludeName?: string): string[] {
         .map((manager) => manager.name);
 }
 
-function assertUpdateAllowed(name: string) {
+function assertUpdateAllowed(name: string, allowDuringUpdateAll = false) {
+    if (updateAllInProgress && !allowDuringUpdateAll) {
+        throw new Error("update blocked while update-all is in progress");
+    }
+
     const backendUpdating = updateState.backend?.updating === true;
 
     if (name !== "backend" && backendUpdating) {
@@ -655,7 +660,7 @@ async function runPostUpdateAction(config: UpdateManagerConfig) {
     await run("sudo", ["-n", "systemctl", "restart", config.service]);
 }
 
-export async function updateManager(name: string): Promise<UpdateManagerState> {
+async function updateManagerInternal(name: string, allowDuringUpdateAll = false): Promise<UpdateManagerState> {
     const managers = getUpdateManagerConfig();
     const isSystem = name === "system";
     const config = managers[name];
@@ -667,7 +672,7 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
     // Backend updates are exclusive because their post-update action restarts
     // this service. Other managers may update in parallel with each other, but
     // they cannot start while the backend itself is updating.
-    assertUpdateAllowed(name);
+    assertUpdateAllowed(name, allowDuringUpdateAll);
 
     const current = updateState[name];
     updateState[name] = {
@@ -747,6 +752,94 @@ export async function updateManager(name: string): Promise<UpdateManagerState> {
 
         logError(`update failed for ${name}: ${message}`);
         throw error;
+    }
+}
+
+export async function updateManager(name: string): Promise<UpdateManagerState> {
+    return await updateManagerInternal(name, false);
+}
+
+export type UpdateAllResult = {
+    attempted: string[];
+    updated: string[];
+    skipped: string[];
+    failed: Record<string, string>;
+    backend_last: boolean;
+};
+
+export async function updateAllManagers(): Promise<UpdateAllResult> {
+    if (updateAllInProgress) {
+        throw new Error("update-all is already in progress");
+    }
+
+    if (getUpdatingManagerNames().length > 0) {
+        throw new Error(
+            `update-all blocked while another update is in progress: ${getUpdatingManagerNames().join(", ")}`,
+        );
+    }
+
+    updateAllInProgress = true;
+
+    const result: UpdateAllResult = {
+        attempted: [],
+        updated: [],
+        skipped: [],
+        failed: {},
+        backend_last: true,
+    };
+
+    try {
+        const checked = await checkUpdates();
+        const managers = getUpdateManagerConfig();
+
+        // System and all non-backend managers are updated first. Keep this
+        // sequential because multiple managers may use apt/dpkg. Custom
+        // managers are automatically included in their configured order.
+        const orderedNames = [
+            "system",
+            ...Object.keys(managers).filter((name) => name !== "backend" && name !== "system"),
+        ];
+
+        for (const name of orderedNames) {
+            const state = checked[name];
+
+            if (!state?.update_available) {
+                result.skipped.push(name);
+                continue;
+            }
+
+            result.attempted.push(name);
+
+            try {
+                await updateManagerInternal(name, true);
+                result.updated.push(name);
+            } catch (error) {
+                result.failed[name] = errorMessage(error);
+            }
+        }
+
+        // Backend must always be the final attempted update because its
+        // post-update action restarts this service and can terminate the
+        // current API/websocket request.
+        const backend = checked.backend;
+
+        if (!backend?.update_available) {
+            result.skipped.push("backend");
+            return result;
+        }
+
+        result.attempted.push("backend");
+
+        try {
+            await updateManagerInternal("backend", true);
+            result.updated.push("backend");
+        } catch (error) {
+            result.failed.backend = errorMessage(error);
+        }
+
+        return result;
+    } finally {
+        updateAllInProgress = false;
     }
 }
 

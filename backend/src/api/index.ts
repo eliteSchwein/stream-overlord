@@ -137,6 +137,7 @@ export { default as LanguageApi } from "./System/LanguageApi";
 export { default as RestartApi } from "./System/RestartApi";
 export { default as SpeedtestApi } from "./System/SpeedtestApi";
 export { default as SystemStorageApi } from "./System/SystemStorageApi";
+export { default as UpdateAllApi } from "./System/UpdateAllApi";
 export { default as UpdateApi } from "./System/UpdateApi";
 export { default as UpdateRefreshApi } from "./System/UpdateRefreshApi";
 export { default as UpdateStateApi } from "./System/UpdateStateApi";
