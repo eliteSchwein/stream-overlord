@@ -424,18 +424,16 @@ function hasJournalEntries(content: string) {
 }
 
 async function getBackendJournal() {
-    const attempts: Array<{label: string; args: string[]}> = [];
-
-    for (const unit of ["stream-overlord.service", "streambot-backend.service"]) {
-        attempts.push({
-            label: `user unit ${unit}`,
-            args: ["--user", "-b", "-u", unit, "--no-pager", "-o", "short-iso"],
-        });
-        attempts.push({
-            label: `system unit ${unit}`,
-            args: ["-b", "-u", unit, "--no-pager", "-o", "short-iso"],
-        });
-    }
+    const attempts = [
+        {
+            label: "_SYSTEMD_USER_UNIT=stream-overlord.service",
+            args: ["_SYSTEMD_USER_UNIT=stream-overlord.service", "-b", "--no-pager"],
+        },
+        {
+            label: "_SYSTEMD_USER_UNIT=streambot-backend.service",
+            args: ["_SYSTEMD_USER_UNIT=streambot-backend.service", "-b", "--no-pager"],
+        },
+    ];
 
     for (const attempt of attempts) {
         try {
