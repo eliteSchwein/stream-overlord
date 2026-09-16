@@ -31,6 +31,7 @@ import loadRotateScenes from "./helper/RotateSceneHelper";
 import {ensureDefaultOllamaIntegration, loadIntegrationsCache} from "./helper/IntegrationsHelper";
 import {initializeUpdateManager, setUpdateManagerNotifier} from "./helper/UpdateHelper";
 import {stopOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
+import {setRestoreNotifier} from "./helper/BackupRestoreHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -61,6 +62,7 @@ async function init() {
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()
+    setRestoreNotifier((method, data) => websocketServer.send(method, data))
 
     logSuccess('websocket server is ready')
 

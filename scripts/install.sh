@@ -21,7 +21,8 @@ sudo apt install -y \
     git \
     pulseaudio-utils \
     redis-server \
-    playerctl mpv-mpris
+    playerctl mpv-mpris \
+    zip unzip
 
 sudo systemctl enable --now redis-server
 

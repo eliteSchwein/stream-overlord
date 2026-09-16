@@ -1,5 +1,5 @@
 import BaseApi from "../../abstracts/BaseApi";
-import {checkUpdates, updateManager} from "../../helper/UpdateHelper";
+import {checkUpdates, updateAllManagers, updateManager} from "../../helper/UpdateHelper";
 
 export default class UpdateApi extends BaseApi {
     restEndpoint = "system/update";
@@ -8,6 +8,10 @@ export default class UpdateApi extends BaseApi {
     async handle(data: any): Promise<any> {
         if (data?.action === "check") {
             return await checkUpdates();
+        }
+
+        if (data?.action === "all") {
+            return await updateAllManagers();
         }
 
         if (!data?.name) {

@@ -91,6 +91,9 @@ export default class WebsocketServer {
         'notify_events_update',
         'notify_dynamic_data_update',
         'notify_speedtest_update',
+        'notify_restore_ready',
+        'notify_restore_complete',
+        'notify_restore_cancelled',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []

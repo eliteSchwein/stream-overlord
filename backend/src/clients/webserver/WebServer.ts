@@ -29,6 +29,9 @@ import {
     getGeneratedFontCss,
 } from "../../helper/OverlayStyleManagementHelper";
 import FontUploadApi from "./api/Overlay/FontUploadApi";
+import SystemBackupApi from "./api/System/SystemBackupApi";
+import SystemRestoreUploadApi from "./api/System/SystemRestoreUploadApi";
+import SystemLogDownloadApi from "./api/System/SystemLogDownloadApi";
 
 export default class WebServer {
     app: Express;
@@ -215,6 +218,11 @@ export default class WebServer {
 
             await auth.handleCallbackRequest(req, res, callbackAddress);
         });
+
+        // System backup / restore / log download API
+        new SystemBackupApi().register(this.app);
+        new SystemRestoreUploadApi().register(this.app);
+        new SystemLogDownloadApi().register(this.app);
 
         // Overlay API
         new OverlaysUploadApi().register(this.app);
