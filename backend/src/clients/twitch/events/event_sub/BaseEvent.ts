@@ -165,10 +165,14 @@ export default class BaseEvent {
 
     protected getMacroVariables(event: any, variables: any = {}) {
         const {event: _event, eventUuid, ...safeVariables} = variables;
+        const sanitizedEvent = this.sanitizeMacroEvent(event) ?? {};
 
         return {
             ...safeVariables,
-            event: this.sanitizeMacroEvent(event),
+            // Expose event fields directly for template-friendly access such as
+            // ${userDisplayName}, while retaining ${event.userDisplayName}.
+            ...sanitizedEvent,
+            event: sanitizedEvent,
             eventUuid: eventUuid ?? this.eventUuid,
         };
     }

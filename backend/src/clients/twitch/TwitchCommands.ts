@@ -1140,19 +1140,23 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
 
             linkMessageToEvent(context.msg?.id, eventUuid);
 
+            const commandContext = {
+                messageId: context.msg?.id,
+                userId: context.userId,
+                userName: context.userName,
+                userDisplayName: context.userDisplayName,
+                broadcasterId: context.broadcasterId,
+                broadcasterName: context.broadcasterName,
+            };
+
             const data = {
                 eventUuid,
                 command,
                 params: parsedParams.params,
-                data: parsedParams.params,
-                context: {
-                    messageId: context.msg?.id,
-                    userId: context.userId,
-                    userName: context.userName,
-                    userDisplayName: context.userDisplayName,
-                    broadcasterId: context.broadcasterId,
-                    broadcasterName: context.broadcasterName,
-                },
+                // Keep the structured context while also exposing its common
+                // fields directly for template-friendly access.
+                ...commandContext,
+                context: commandContext,
                 ...parsedParams.params,
             };
 

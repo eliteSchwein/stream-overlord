@@ -297,6 +297,9 @@ export async function simulateConfiguredEvent(
     const eventUuid = `${entry.configName}_simulation_${randomUUID()}`;
 
     await triggerConfiguredEvent(entry.configName, {
+        // Keep simulated events aligned with live Twitch events: fields are
+        // available directly and through the structured event object.
+        ...event,
         event,
         eventUuid,
         simulation: true,

@@ -65,6 +65,7 @@ export { default as MacroExistsApi } from "./Macros/MacroExistsApi";
 export { default as MacroListApi } from "./Macros/MacroListApi";
 export { default as MacroMoveApi } from "./Macros/MacroMoveApi";
 export { default as MacroReadApi } from "./Macros/MacroReadApi";
+export { default as MacroTemplateVariablesApi } from "./Macros/MacroTemplateVariablesApi";
 export { default as ToggleAutoMacroApi } from "./Macros/ToggleAutoMacroApi";
 export { default as TriggerMacroApi } from "./Macros/TriggerMacroApi";
 export { default as MusicBackApi } from "./Music/MusicBackApi";
