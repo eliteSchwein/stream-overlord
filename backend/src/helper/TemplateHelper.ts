@@ -113,7 +113,44 @@ export function getTemplateVariables(data: any = {}) {
         query_already_present: isSongRequestQueryAlreadyPresent(songRequestUrl),
     };
 
-    const variables = getCachedVariables();
+    const passedData = data && typeof data === "object" && !Array.isArray(data)
+        ? data
+        : {};
+    const {variables: passedVariables, data: nestedData, ...directPassedData} = passedData;
+    const templateRootKeys = new Set([
+        "twitch",
+        "gameinfo",
+        "musicinfo",
+        "musictext",
+        "music",
+        "songrequest",
+        "systeminfo",
+        "giveaway",
+        "obs",
+        "yolobox",
+        "integrations",
+        "connections",
+        "timers",
+        "interactions",
+        "rotating_scenes",
+        "time",
+        "auto_macros",
+        "commands",
+        "channel_points",
+    ]);
+    const runtimeVariables = Object.fromEntries(
+        Object.entries(directPassedData).filter(([key]) => !templateRootKeys.has(key)),
+    );
+    const variables = {
+        ...getCachedVariables(),
+        ...(nestedData && typeof nestedData === "object" && !Array.isArray(nestedData)
+            ? nestedData
+            : {}),
+        ...runtimeVariables,
+        ...(passedVariables && typeof passedVariables === "object" && !Array.isArray(passedVariables)
+            ? passedVariables
+            : {}),
+    };
 
     // Load helpers lazily here. AutoMacroHelper and TwitchCommands both reach
     // MacroHelper, which itself imports TemplateHelper. Requiring them only
@@ -263,7 +300,6 @@ export function getTemplateVariables(data: any = {}) {
     };
 
     const ctx: Record<string, any> = {
-        data,
         variables,
         twitch: getCachedTwitchData(),
         gameinfo: getRawGameInfo()?.data,
