@@ -23,6 +23,12 @@ export default class InputUpdateEvent extends BaseEvent {
             case 'InputAudioBalanceChanged':
                 updateData.balance = data.inputAudioBalance
                 break
+            case 'SceneItemCreated':
+                // Scene item creation is handled by OBSClient's central scene event
+                // listener, which refreshes the scene cache via fetchItems().
+                // Acknowledge it here so it is not reported as unhandled and avoid
+                // triggering a second concurrent full scene refresh.
+                return
             default:
                 console.log('eventType', eventType)
                 console.log('data', data)
