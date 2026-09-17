@@ -265,6 +265,25 @@ export function getConfiguredChannelPoint(label: string) {
     return configuredChannelPoints[label];
 }
 
+export function isChannelPointPresent(name: string) {
+    const normalized = String(name ?? "").trim();
+    if (!normalized) return false;
+
+    if (!Object.keys(configuredChannelPoints).length) {
+        loadChannelPointConfigs();
+    }
+
+    if (configuredChannelPoints[normalized] !== undefined) {
+        return true;
+    }
+
+    try {
+        return findChannelPointConfigFileByName(normalized) !== undefined;
+    } catch {
+        return false;
+    }
+}
+
 function normalizeChannelPointConfigFileName(inputPathOrName: string = "") {
     const normalized = String(inputPathOrName || "")
         .replace(/\\/g, "/")

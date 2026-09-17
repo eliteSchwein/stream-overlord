@@ -382,6 +382,21 @@ export function getAutoMacros() {
     return autoMacros;
 }
 
+export function isAutoMacroPresent(name: string) {
+    const normalized = String(name ?? "").trim();
+    if (!normalized) return false;
+
+    if (autoMacros.some((autoMacro: any) => autoMacro?.name === normalized)) {
+        return true;
+    }
+
+    try {
+        return findAutoMacroFileByName(normalized) !== undefined;
+    } catch {
+        return false;
+    }
+}
+
 export function listAutoMacroFiles(inputPath: string = ""): AutoMacroFileEntry[] {
     const directory = resolveAutoMacroPath(inputPath);
 

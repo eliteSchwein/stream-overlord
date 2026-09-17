@@ -746,6 +746,32 @@ export function toggleConfiguredCommandRuntimeEnabled(name: string) {
     };
 }
 
+export function resolveCommandName(name: string) {
+    const normalized = String(name ?? "").trim().replace(/^!+/, "").toLowerCase();
+    if (!normalized) return undefined;
+
+    for (const commandName of Object.keys(fileCommands)) {
+        if (commandName.toLowerCase() === normalized) {
+            return commandName;
+        }
+
+        const commandConfig = getEffectiveCommandConfig(commandName) ?? fileCommands[commandName];
+        const aliases = normalizeArray(commandConfig?.alias ?? commandConfig?.aliases ?? [])
+            .map(alias => String(alias ?? "").trim().replace(/^!+/, "").toLowerCase())
+            .filter(Boolean);
+
+        if (aliases.includes(normalized)) {
+            return commandName;
+        }
+    }
+
+    return undefined;
+}
+
+export function isCommandPresent(name: string) {
+    return resolveCommandName(name) !== undefined;
+}
+
 export function getConfiguredCommands() {
     return Object.fromEntries(
         Object.entries(fileCommands).map(([name, command]) => [
