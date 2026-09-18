@@ -9,6 +9,7 @@ export type DynamicData = {
     media_targets: string[];
     animation_targets: string[];
     timer_names: string[];
+    visible_targets: string[];
 };
 
 const REDIS_KEY = "dynamic_data";
@@ -18,6 +19,7 @@ const EMPTY_DYNAMIC_DATA: DynamicData = {
     media_targets: [],
     animation_targets: [],
     timer_names: [],
+    visible_targets: [],
 };
 
 let dynamicData: DynamicData = cloneDynamicData(EMPTY_DYNAMIC_DATA);
@@ -29,6 +31,7 @@ function cloneDynamicData(data: DynamicData): DynamicData {
         media_targets: [...data.media_targets],
         animation_targets: [...data.animation_targets],
         timer_names: [...data.timer_names],
+        visible_targets: [...data.visible_targets],
     };
 }
 
@@ -53,6 +56,9 @@ function normalizeDynamicData(value: any): DynamicData {
         ),
         timer_names: normalizeValues(
             Array.isArray(value?.timer_names) ? value.timer_names : [],
+        ),
+        visible_targets: normalizeValues(
+            Array.isArray(value?.visible_targets) ? value.visible_targets : [],
         ),
     };
 }
@@ -120,6 +126,58 @@ function collectAttributeValues(
     }
 }
 
+
+function parseTagAttributes(tag: string): Record<string, string> {
+    const attributes: Record<string, string> = {};
+    const regex = /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+
+    for (const match of tag.matchAll(regex)) {
+        const name = String(match[1] ?? "").toLowerCase();
+        const value = String(match[2] ?? match[3] ?? match[4] ?? "").trim();
+
+        if (name) {
+            attributes[name] = value;
+        }
+    }
+
+    return attributes;
+}
+
+function collectVisibleControllerTargets(
+    html: string,
+    target: Set<string>,
+) {
+    // Parse complete start tags so data-visible-name/id are only associated with
+    // elements that actually use the VisibleController. A controller attribute
+    // may contain multiple Stimulus controllers separated by whitespace.
+    const tagRegex = /<[^!/?][^>]*>/g;
+
+    for (const match of html.matchAll(tagRegex)) {
+        const attributes = parseTagAttributes(match[0]);
+        const controllers = String(attributes["data-controller"] ?? "")
+            .split(/\s+/)
+            .map(value => value.trim().toLowerCase())
+            .filter(Boolean);
+
+        if (!controllers.includes("visible")) {
+            continue;
+        }
+
+        const visibleName = String(attributes["data-visible-name"] ?? "").trim();
+        const id = String(attributes.id ?? "").trim();
+
+        // data-visible-name is the explicit controller target, while id remains
+        // a supported fallback in VisibleController. Suggest both when present.
+        if (visibleName) {
+            target.add(visibleName);
+        }
+
+        if (id) {
+            target.add(id);
+        }
+    }
+}
+
 async function parseDynamicData(templateRoot: string): Promise<DynamicData> {
     const resolvedRoot = path.resolve(templateRoot);
 
@@ -127,6 +185,7 @@ async function parseDynamicData(templateRoot: string): Promise<DynamicData> {
     const mediaTargets = new Set<string>();
     const animationTargets = new Set<string>();
     const timerNames = new Set<string>();
+    const visibleTargets = new Set<string>();
 
     const files = await findHtmlFiles(resolvedRoot, resolvedRoot);
 
@@ -176,6 +235,8 @@ async function parseDynamicData(templateRoot: string): Promise<DynamicData> {
                 filePath,
                 resolvedRoot,
             );
+
+            collectVisibleControllerTargets(html, visibleTargets);
         }),
     );
 
@@ -184,6 +245,7 @@ async function parseDynamicData(templateRoot: string): Promise<DynamicData> {
         media_targets: normalizeValues(mediaTargets),
         animation_targets: normalizeValues(animationTargets),
         timer_names: normalizeValues(timerNames),
+        visible_targets: normalizeValues(visibleTargets),
     };
 
     return result;
