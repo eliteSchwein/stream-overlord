@@ -18,12 +18,23 @@ export default class OverlaysUploadApi extends BaseApi {
             },
         });
 
+        const handler = async (req: any, res: any) => {
+            const result = await this.handle(req);
+            res.status(result.status).json(result.data);
+        };
+
+        // Canonical overlay upload endpoint.
+        this.webServer.post(
+            "/api/overlay/upload",
+            upload.any(),
+            handler,
+        );
+
+        // Keep the historic plural route as an alias for compatibility.
         this.webServer.post(
             `/api/${this.endpoint}`,
             upload.any(),
-            async (req, res) => {
-                res.json(await this.handle(req as any));
-            },
+            handler,
         );
     }
 
