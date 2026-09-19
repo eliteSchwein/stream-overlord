@@ -5,6 +5,7 @@ import {Websocket, WebsocketEvent} from "websocket-ts";
 import waitUntil from "async-wait-until";
 import getWebsocketServer from "../../App";
 import {getYoloboxIntegration, setYoloboxIntegrationConnected} from "../../helper/IntegrationsHelper";
+import {triggerConfiguredEvent} from "../../helper/EventHelper";
 
 export class YoloboxClient {
     protected connected = false
@@ -82,10 +83,20 @@ export class YoloboxClient {
 
     private resetState()
     {
+        const wasConnected = this.connected
+        const previousDevice = this.connectedDevice
+
         this.connected = false
         this.connectedDevice = ''
         this.data = {}
         setYoloboxIntegrationConnected(false)
+
+        if(wasConnected) {
+            void this.emitYoloboxEvent("event_yolobox_disconnected", {
+                connected: false,
+                device: previousDevice,
+            })
+        }
 
         for(const connection of this.websocketConnections) {
             connection?.close()
@@ -150,6 +161,11 @@ export class YoloboxClient {
 
         this.connected = true
         setYoloboxIntegrationConnected(true)
+
+        void this.emitYoloboxEvent("event_yolobox_connected", {
+            connected: true,
+            device: this.connectedDevice,
+        })
     }
 
     public async checkConnection()
@@ -184,6 +200,27 @@ export class YoloboxClient {
         }
 
         return heartbeat
+    }
+
+    private async emitYoloboxEvent(configName: string, data: Record<string, any> = {}) {
+        try {
+            const event = {
+                connected: this.connected,
+                device: data.device ?? this.connectedDevice,
+                ...data,
+            }
+
+            await triggerConfiguredEvent(configName, {
+                ...event,
+                event,
+                yolobox: {
+                    connected: event.connected,
+                    device: event.device,
+                },
+            }, `Yolobox: ${configName.replace(/^event_yolobox_/, "").replace(/_/g, " ")}`)
+        } catch (error) {
+            logDebug(`failed to trigger ${configName}: ${error instanceof Error ? error.message : String(error)}`)
+        }
     }
 
     public sendCommand(data: any) {

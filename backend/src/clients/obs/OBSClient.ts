@@ -7,6 +7,7 @@ import getWebsocketServer from "../../App";
 import RotatingSceneEvent from "./events/RotatingSceneEvent";
 import InputUpdateEvent from "./events/InputUpdateEvent";
 import _ = require("lodash");
+import {triggerConfiguredEvent} from "../../helper/EventHelper";
 
 type OBSConfig = {
     ip: string
@@ -207,6 +208,10 @@ export class OBSClient {
 
         logSuccess(`obs client is ready: ${name}`)
 
+        void this.emitObsEvent("event_obs_connected", connection, {
+            connected: true,
+        })
+
         this.syncConnectionDataSafe(name)
     }
 
@@ -234,8 +239,17 @@ export class OBSClient {
         this.reconnectTimers = {}
 
         for(const connection of Object.values(this.connections)) {
+            const wasConnected = connection.connected
             connection.connected = false
             setObsIntegrationConnected(connection.name, false)
+
+            if(wasConnected) {
+                await this.emitObsEvent("event_obs_disconnected", connection, {
+                    connected: false,
+                    reason: "disconnect",
+                })
+            }
+
             await connection.obsWebsocket?.disconnect()
         }
     }
@@ -249,6 +263,124 @@ export class OBSClient {
 
         connection.obsWebsocket.on('ConnectionError', async (error: OBSWebSocketError) => {
             await this.handleOBSError(connection.name, error)
+        })
+
+        connection.obsWebsocket.on('CurrentProgramSceneChanged', (data: any) => {
+            void this.emitObsEvent("event_obs_scene_changed", connection, {
+                sceneName: data.sceneName,
+                sceneUuid: data.sceneUuid,
+            })
+        })
+
+        connection.obsWebsocket.on('RecordStateChanged', (data: any) => {
+            if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STARTED") {
+                void this.emitObsEvent("event_obs_recording_started", connection, {
+                    outputActive: true,
+                    outputState: data.outputState,
+                    outputPath: data.outputPath,
+                })
+            } else if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STOPPED") {
+                void this.emitObsEvent("event_obs_recording_stopped", connection, {
+                    outputActive: false,
+                    outputState: data.outputState,
+                    outputPath: data.outputPath,
+                })
+            }
+        })
+
+        connection.obsWebsocket.on('StreamStateChanged', (data: any) => {
+            if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STARTED") {
+                void this.emitObsEvent("event_obs_streaming_started", connection, {
+                    outputActive: true,
+                    outputState: data.outputState,
+                })
+            } else if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STOPPED") {
+                void this.emitObsEvent("event_obs_streaming_stopped", connection, {
+                    outputActive: false,
+                    outputState: data.outputState,
+                })
+            }
+        })
+
+        connection.obsWebsocket.on('ReplayBufferStateChanged', (data: any) => {
+            if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STARTED") {
+                void this.emitObsEvent("event_obs_replay_buffer_started", connection, {
+                    outputActive: true,
+                    outputState: data.outputState,
+                })
+            } else if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STOPPED") {
+                void this.emitObsEvent("event_obs_replay_buffer_stopped", connection, {
+                    outputActive: false,
+                    outputState: data.outputState,
+                })
+            }
+        })
+
+        connection.obsWebsocket.on('VirtualcamStateChanged', (data: any) => {
+            if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STARTED") {
+                void this.emitObsEvent("event_obs_virtual_camera_started", connection, {
+                    outputActive: true,
+                    outputState: data.outputState,
+                })
+            } else if(data.outputState === "OBS_WEBSOCKET_OUTPUT_STOPPED") {
+                void this.emitObsEvent("event_obs_virtual_camera_stopped", connection, {
+                    outputActive: false,
+                    outputState: data.outputState,
+                })
+            }
+        })
+
+        connection.obsWebsocket.on('StudioModeStateChanged', (data: any) => {
+            void this.emitObsEvent(
+                data.studioModeEnabled ? "event_obs_studio_mode_enabled" : "event_obs_studio_mode_disabled",
+                connection,
+                {studioModeEnabled: Boolean(data.studioModeEnabled)},
+            )
+        })
+
+        connection.obsWebsocket.on('SceneItemEnableStateChanged', (data: any) => {
+            const sceneItem = this.getSceneItemById(
+                data.sceneUuid,
+                data.sceneItemId,
+                connection.name,
+            )
+
+            void this.emitObsEvent(
+                data.sceneItemEnabled ? "event_obs_scene_item_enabled" : "event_obs_scene_item_disabled",
+                connection,
+                {
+                    sceneName: data.sceneName,
+                    sceneUuid: data.sceneUuid,
+                    sceneItemId: data.sceneItemId,
+                    sceneItemEnabled: Boolean(data.sceneItemEnabled),
+                    sourceName: sceneItem?.name ?? sceneItem?.sourceName,
+                    sourceUuid: sceneItem?.uuid ?? sceneItem?.sourceUuid,
+                },
+            )
+        })
+
+        connection.obsWebsocket.on('InputMuteStateChanged', (data: any) => {
+            void this.emitObsEvent(
+                data.inputMuted ? "event_obs_input_muted" : "event_obs_input_unmuted",
+                connection,
+                {
+                    inputName: data.inputName,
+                    inputUuid: data.inputUuid,
+                    inputMuted: Boolean(data.inputMuted),
+                },
+            )
+        })
+
+        connection.obsWebsocket.on('CurrentProfileChanged', (data: any) => {
+            void this.emitObsEvent("event_obs_profile_changed", connection, {
+                profileName: data.profileName,
+            })
+        })
+
+        connection.obsWebsocket.on('CurrentSceneCollectionChanged', (data: any) => {
+            void this.emitObsEvent("event_obs_scene_collection_changed", connection, {
+                sceneCollectionName: data.sceneCollectionName,
+            })
         })
 
         const events = [
@@ -310,6 +442,13 @@ export class OBSClient {
         connection.connected = false
         setObsIntegrationConnected(name, false)
 
+        void this.emitObsEvent("event_obs_disconnected", connection, {
+            connected: false,
+            reason: "connection_error",
+            errorCode: error.code,
+            errorMessage: error.message,
+        })
+
         this.syncDefaultConnection()
 
         this.updateSourceFiltersSafe()
@@ -317,6 +456,36 @@ export class OBSClient {
         logWarn(`reconnect obs ${name} now...`)
 
         this.reconnectSingle(name)
+    }
+
+    private async emitObsEvent(
+        configName: string,
+        connection: OBSConnection,
+        data: Record<string, any> = {},
+    ) {
+        try {
+            const obsConnection = {
+                name: connection.name,
+                connected: connection.connected,
+                ip: connection.config.ip,
+                port: connection.config.port,
+            }
+
+            const event = {
+                connectionName: connection.name,
+                connected: connection.connected,
+                ...data,
+            }
+
+            await triggerConfiguredEvent(configName, {
+                ...event,
+                event,
+                obsConnection,
+            }, `OBS ${connection.name}: ${configName.replace(/^event_obs_/, "").replace(/_/g, " ")}`)
+        } catch (error) {
+            logDebug(`failed to trigger ${configName} (${connection.name}):`)
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
     }
 
     private getDefaultConnection() {
@@ -360,6 +529,27 @@ export class OBSClient {
 
     public getAudioData(connectionName = 'default') {
         return this.getConnection(connectionName)?.audioData ?? {}
+    }
+
+    public getSceneItemById(
+        sceneUuid: string,
+        sceneItemId: number,
+        connectionName = 'default',
+    ) {
+        const canvasData = this.getSceneData(connectionName)
+
+        for (const canvas of canvasData) {
+            for (const scene of canvas.scenes ?? []) {
+                if(sceneUuid && scene.uuid !== sceneUuid) continue
+
+                for (const sceneItem of scene.items ?? []) {
+                    if(Number(sceneItem.sceneItemId ?? sceneItem.id) !== Number(sceneItemId)) continue
+                    return sceneItem
+                }
+            }
+        }
+
+        return undefined
     }
 
     public getSceneItemByUuid(

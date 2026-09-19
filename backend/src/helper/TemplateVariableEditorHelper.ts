@@ -81,22 +81,22 @@ function buildEventPayload(configName: string): ContextPayload | undefined {
         eventUuid: `${entry.configName}_editor_${randomUUID()}`,
     };
 
-    if (entry.channel === "twitch") {
-        const event: Record<string, any> = {
+    const event: Record<string, any> = entry.channel === "twitch"
+        ? {
             broadcasterId: "123456789",
             broadcasterName: "testchannel",
             broadcasterDisplayName: "TestChannel",
-        };
-
-        for (const field of entry.simulationFields ?? []) {
-            event[field.name] = getSimulationDummyValue(field);
         }
+        : {};
 
-        // Match BaseEvent.getMacroVariables(): event properties are available
-        // both directly and through the structured event object.
-        Object.assign(payload, event);
-        payload.event = event;
+    for (const field of entry.simulationFields ?? []) {
+        event[field.name] = getSimulationDummyValue(field);
     }
+
+    // Match runtime event payloads: event properties are available both
+    // directly and through the structured event object.
+    Object.assign(payload, event);
+    payload.event = event;
 
     return {
         context: "event",

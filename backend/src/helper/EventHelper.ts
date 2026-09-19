@@ -43,6 +43,23 @@ export type EventEntry = {
 
 export type EventIndex = Record<string, EventEntry[]>;
 
+function simulationField(
+    name: string,
+    type: EventSimulationFieldType = "text",
+    defaultValue?: string | number | boolean,
+): EventSimulationField {
+    return {
+        name,
+        type,
+        localeKey: `events.simulation.${name}`,
+        ...(defaultValue !== undefined ? {default: defaultValue} : {}),
+    };
+}
+
+const obsConnectionFields = () => [
+    simulationField("connectionName", "text", "default"),
+];
+
 const eventEntries: EventIndex = {
     twitch: [],
     system: [
@@ -67,6 +84,122 @@ const eventEntries: EventIndex = {
         createEventEntry("event_audio_output_volume"),
         createEventEntry("event_audio_output_link"),
         createEventEntry("event_audio_output_unlink"),
+    ],
+    obs: [
+        createEventEntry("event_obs_connected", [
+            ...obsConnectionFields(),
+            simulationField("connected", "boolean", true),
+        ]),
+        createEventEntry("event_obs_disconnected", [
+            ...obsConnectionFields(),
+            simulationField("connected", "boolean", false),
+            simulationField("reason", "text", "connection_error"),
+            simulationField("errorCode", "number", 0),
+            simulationField("errorMessage", "text", "Connection closed"),
+        ]),
+        createEventEntry("event_obs_scene_changed", [
+            ...obsConnectionFields(),
+            simulationField("sceneName", "text", "Scene"),
+            simulationField("sceneUuid", "text", "00000000-0000-0000-0000-000000000001"),
+        ]),
+        createEventEntry("event_obs_recording_started", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", true),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STARTED"),
+            simulationField("outputPath", "text", "/recordings/example.mkv"),
+        ]),
+        createEventEntry("event_obs_recording_stopped", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", false),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STOPPED"),
+            simulationField("outputPath", "text", "/recordings/example.mkv"),
+        ]),
+        createEventEntry("event_obs_streaming_started", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", true),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STARTED"),
+        ]),
+        createEventEntry("event_obs_streaming_stopped", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", false),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STOPPED"),
+        ]),
+        createEventEntry("event_obs_replay_buffer_started", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", true),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STARTED"),
+        ]),
+        createEventEntry("event_obs_replay_buffer_stopped", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", false),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STOPPED"),
+        ]),
+        createEventEntry("event_obs_virtual_camera_started", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", true),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STARTED"),
+        ]),
+        createEventEntry("event_obs_virtual_camera_stopped", [
+            ...obsConnectionFields(),
+            simulationField("outputActive", "boolean", false),
+            simulationField("outputState", "text", "OBS_WEBSOCKET_OUTPUT_STOPPED"),
+        ]),
+        createEventEntry("event_obs_studio_mode_enabled", [
+            ...obsConnectionFields(),
+            simulationField("studioModeEnabled", "boolean", true),
+        ]),
+        createEventEntry("event_obs_studio_mode_disabled", [
+            ...obsConnectionFields(),
+            simulationField("studioModeEnabled", "boolean", false),
+        ]),
+        createEventEntry("event_obs_scene_item_enabled", [
+            ...obsConnectionFields(),
+            simulationField("sceneName", "text", "Scene"),
+            simulationField("sceneUuid", "text", "00000000-0000-0000-0000-000000000001"),
+            simulationField("sceneItemId", "number", 1),
+            simulationField("sceneItemEnabled", "boolean", true),
+            simulationField("sourceName", "text", "Camera"),
+            simulationField("sourceUuid", "text", "00000000-0000-0000-0000-000000000003"),
+        ]),
+        createEventEntry("event_obs_scene_item_disabled", [
+            ...obsConnectionFields(),
+            simulationField("sceneName", "text", "Scene"),
+            simulationField("sceneUuid", "text", "00000000-0000-0000-0000-000000000001"),
+            simulationField("sceneItemId", "number", 1),
+            simulationField("sceneItemEnabled", "boolean", false),
+            simulationField("sourceName", "text", "Camera"),
+            simulationField("sourceUuid", "text", "00000000-0000-0000-0000-000000000003"),
+        ]),
+        createEventEntry("event_obs_input_muted", [
+            ...obsConnectionFields(),
+            simulationField("inputName", "text", "Mic/Aux"),
+            simulationField("inputUuid", "text", "00000000-0000-0000-0000-000000000002"),
+            simulationField("inputMuted", "boolean", true),
+        ]),
+        createEventEntry("event_obs_input_unmuted", [
+            ...obsConnectionFields(),
+            simulationField("inputName", "text", "Mic/Aux"),
+            simulationField("inputUuid", "text", "00000000-0000-0000-0000-000000000002"),
+            simulationField("inputMuted", "boolean", false),
+        ]),
+        createEventEntry("event_obs_profile_changed", [
+            ...obsConnectionFields(),
+            simulationField("profileName", "text", "Untitled"),
+        ]),
+        createEventEntry("event_obs_scene_collection_changed", [
+            ...obsConnectionFields(),
+            simulationField("sceneCollectionName", "text", "Untitled"),
+        ]),
+    ],
+    yolobox: [
+        createEventEntry("event_yolobox_connected", [
+            simulationField("connected", "boolean", true),
+            simulationField("device", "text", "192.168.1.100"),
+        ]),
+        createEventEntry("event_yolobox_disconnected", [
+            simulationField("connected", "boolean", false),
+            simulationField("device", "text", "192.168.1.100"),
+        ]),
     ],
 };
 
