@@ -13,6 +13,6 @@ export default class RemoveGiveawayUserApi extends BaseApi {
         
         const user = await getTwitchClient().getBot().api.users.getUserById(data['user'])
 
-        removeGiveawayUser(user)
+        await removeGiveawayUser(user)
     }
 }

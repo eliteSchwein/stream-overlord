@@ -36,6 +36,16 @@ export type ThemeSettings = {
     default_color: string;
 };
 
+export type GiveawaySettings = {
+    giveawayCommand: string;
+    progress_interval_seconds: number;
+    require_follower: boolean;
+    minimum_follow_seconds: number;
+    require_subscriber: boolean;
+    require_vip: boolean;
+    require_moderator: boolean;
+};
+
 export type CavaTargetSettings = Record<string, string | number | boolean>;
 
 export type CavaSettings = {
@@ -56,6 +66,7 @@ type StreambotSettings = {
     tts: TtsSettings;
     theme: ThemeSettings;
     cava: CavaSettings;
+    giveaway: GiveawaySettings;
 };
 
 const defaultAssetTuneSettings: AssetTuneSettings = {
@@ -81,6 +92,16 @@ const defaultThemeSettings: ThemeSettings = {
     default_color: "ff9800",
 };
 
+const defaultGiveawaySettings: GiveawaySettings = {
+    giveawayCommand: "ticket",
+    progress_interval_seconds: 60,
+    require_follower: false,
+    minimum_follow_seconds: 0,
+    require_subscriber: false,
+    require_vip: false,
+    require_moderator: false,
+};
+
 const defaultCavaSettings: CavaSettings = {
     bars: 36,
     input: {
@@ -99,6 +120,7 @@ let systemConfig: StreambotSettings = {
     tts: defaultTtsSettings,
     theme: defaultThemeSettings,
     cava: defaultCavaSettings,
+    giveaway: defaultGiveawaySettings,
 };
 
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
@@ -334,6 +356,34 @@ function normalizeHexColor(value: unknown, fallback: string): string {
     return fallback;
 }
 
+
+function normalizeGiveawaySettings(rawGiveawaySettings: Partial<GiveawaySettings> = {}): GiveawaySettings {
+    const giveawayCommand = String(
+        rawGiveawaySettings.giveawayCommand
+        ?? (rawGiveawaySettings as any).command
+        ?? defaultGiveawaySettings.giveawayCommand
+    )
+        .trim()
+        .replace(/^!+/, "")
+        .toLowerCase() || defaultGiveawaySettings.giveawayCommand;
+
+    return {
+        giveawayCommand,
+        progress_interval_seconds: Math.max(0, Math.floor(numberSetting(
+            rawGiveawaySettings.progress_interval_seconds,
+            defaultGiveawaySettings.progress_interval_seconds,
+        ))),
+        require_follower: booleanSetting(rawGiveawaySettings.require_follower, defaultGiveawaySettings.require_follower),
+        minimum_follow_seconds: Math.max(0, Math.floor(numberSetting(
+            rawGiveawaySettings.minimum_follow_seconds,
+            defaultGiveawaySettings.minimum_follow_seconds,
+        ))),
+        require_subscriber: booleanSetting(rawGiveawaySettings.require_subscriber, defaultGiveawaySettings.require_subscriber),
+        require_vip: booleanSetting(rawGiveawaySettings.require_vip, defaultGiveawaySettings.require_vip),
+        require_moderator: booleanSetting(rawGiveawaySettings.require_moderator, defaultGiveawaySettings.require_moderator),
+    };
+}
+
 function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
     const requestedLanguage = String(rawSystemConfig.language || "en")
         .trim()
@@ -347,6 +397,7 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
         tts: normalizeTtsSettings(rawSystemConfig.tts),
         theme: normalizeThemeSettings(rawSystemConfig.theme),
         cava: normalizeCavaSettings(rawSystemConfig.cava),
+        giveaway: normalizeGiveawaySettings(rawSystemConfig.giveaway),
     };
 }
 
@@ -428,6 +479,10 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
             ...systemConfig.theme,
             ...newSystemConfig.theme,
         },
+        giveaway: {
+            ...systemConfig.giveaway,
+            ...newSystemConfig.giveaway,
+        },
         cava: newSystemConfig.cava
             ? {
                 ...systemConfig.cava,
@@ -479,6 +534,10 @@ export function getSystemConfig() {
 
 export function getLanguage() {
     return systemConfig.language;
+}
+
+export function getGiveawaySettings() {
+    return systemConfig.giveaway;
 }
 
 export function getTouchWallpaper() {

@@ -2,6 +2,7 @@ import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
 import {getSystemInfo} from "../../../helper/SystemInfoHelper";
 import {getConfig} from "../../../helper/ConfigHelper";
+import {translate} from "../../../helper/LocaleHelper";
 
 export default class InfoCommand extends BaseCommand{
     command = 'info'
@@ -21,6 +22,6 @@ export default class InfoCommand extends BaseCommand{
             //await context.reply(systemInfoMessage)
         }
 
-        await context.reply("Der Bot wurde von eliteSCHW31N geschrieben und ist open source: https://github.com/eliteSchwein/stream-overlord/")
+        await context.reply(translate("info.about"))
     }
 }

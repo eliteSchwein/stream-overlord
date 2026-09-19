@@ -1,6 +1,7 @@
 import BaseCommand from './BaseCommand'
 import {hasModerator} from '../helper/PermissionHelper'
 import {back, getSongCmd, next, pause, play, setVolume, show, sync,} from '../../../helper/MusicHelper'
+import {translate} from '../../../helper/LocaleHelper'
 
 export default class MusicCommand extends BaseCommand {
     command = 'music'
@@ -46,22 +47,22 @@ export default class MusicCommand extends BaseCommand {
         switch (params.control) {
             case 'play':
                 await play()
-                await context.reply('Der Song wird nun fortgesetzt.')
+                await context.reply(translate('music.play'))
                 break
 
             case 'pause':
                 await pause()
-                await context.reply('Der Song wird nun pausiert.')
+                await context.reply(translate('music.pause'))
                 break
 
             case 'next':
                 await next()
-                await context.reply('Der nächste Song wird nun gespielt.')
+                await context.reply(translate('music.next'))
                 break
 
             case 'prev':
                 await back()
-                await context.reply('Der letzte Song wird nun gespielt.')
+                await context.reply(translate('music.prev'))
                 break
 
             case 'volume':
@@ -71,12 +72,12 @@ export default class MusicCommand extends BaseCommand {
                 }
 
                 if (params.volume < 0 || params.volume > 100) {
-                    await context.reply('Der Wert muss zwischen 0 und 100 liegen.')
+                    await context.reply(translate('music.volume_range'))
                     return
                 }
 
                 await setVolume(params.volume)
-                await context.reply(`Die Lautstärke der Musik wurde auf ${params.volume}% gesetzt.`)
+                await context.reply(translate('music.volume_set', {volume: params.volume}))
                 break
         }
     }

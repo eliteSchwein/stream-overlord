@@ -1,6 +1,7 @@
 import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
 import {isShowErrorMessage, setShowErrorMessage} from "../../../helper/CommandHelper";
+import {translate} from "../../../helper/LocaleHelper";
 
 export default class ToggleErrorMessageCommand extends BaseCommand {
     command = 'toggleerror'
@@ -13,10 +14,10 @@ export default class ToggleErrorMessageCommand extends BaseCommand {
         setShowErrorMessage(newState)
 
         if(newState) {
-            await context.reply("Fehlermeldungen (z.B. bei fehlender Berechtigung) werden nun wieder in den Chat gepostet.")
+            await context.reply(translate("errors.enabled"))
             return
         }
 
-        await context.reply("Fehlermeldungen (z.B. bei fehlender Berechtigung) werden nun nicht mehr in den Chat gepostet.")
+        await context.reply(translate("errors.disabled"))
     }
 }

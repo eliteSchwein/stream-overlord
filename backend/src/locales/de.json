@@ -1,0 +1,41 @@
+{
+  "commands": {
+    "shield_active": "der Schild Modus ist aktiv!",
+    "permission_denied": "du hast keine Berechtigung auf diesen Befehl!",
+    "already_used": "dieser Befehl wurde bereits verwendet!",
+    "missing_param": "der Parameter {index} wird benötigt!",
+    "invalid_param_type": "der Parameter {index} ist ein {type}!",
+    "invalid_subcommand": "der Parameter {index} ist ungültig, valide Unterbefehle sind: {subcommands}",
+    "overview": "Es gibt folgende Befehle: {commands}"
+  },
+  "giveaway": {
+    "inactive": "Es läuft derzeit keine Verlosung!",
+    "already_registered": "Du bist bereits in der Verlosung!",
+    "registered": "Du nimmst jetzt an der Verlosung teil!",
+    "follow_required": "Du musst dem Kanal folgen, um teilnehmen zu können!",
+    "follow_too_short": "Du musst dem Kanal mindestens {duration} folgen, um teilnehmen zu können!",
+    "subscriber_required": "Du musst Abonnent sein, um teilnehmen zu können!",
+    "vip_required": "Du musst VIP sein, um teilnehmen zu können!",
+    "moderator_required": "Du musst Moderator sein, um teilnehmen zu können!"
+  },
+  "info": {
+    "about": "Der Bot wurde von eliteSCHW31N geschrieben und ist open source: https://github.com/eliteSchwein/stream-overlord/"
+  },
+  "music": {
+    "play": "Der Song wird nun fortgesetzt.",
+    "pause": "Der Song wird nun pausiert.",
+    "next": "Der nächste Song wird nun gespielt.",
+    "prev": "Der letzte Song wird nun gespielt.",
+    "volume_range": "Der Wert muss zwischen 0 und 100 liegen.",
+    "volume_set": "Die Lautstärke der Musik wurde auf {volume}% gesetzt.",
+    "requests_enabled": "Ihr könnt nun Songs wünschen mit !sr",
+    "requests_disabled": "Wunschsongs sind nun deaktiviert"
+  },
+  "game": {
+    "not_found": "Dieses Spiel wurde leider nicht gefunden"
+  },
+  "errors": {
+    "enabled": "Fehlermeldungen (z.B. bei fehlender Berechtigung) werden nun wieder in den Chat gepostet.",
+    "disabled": "Fehlermeldungen (z.B. bei fehlender Berechtigung) werden nun nicht mehr in den Chat gepostet."
+  }
+}

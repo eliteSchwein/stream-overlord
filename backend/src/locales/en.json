@@ -1,0 +1,41 @@
+{
+  "commands": {
+    "shield_active": "shield mode is active!",
+    "permission_denied": "you do not have permission to use this command!",
+    "already_used": "this command has already been used!",
+    "missing_param": "parameter {index} is required!",
+    "invalid_param_type": "parameter {index} must be a {type}!",
+    "invalid_subcommand": "parameter {index} is invalid; valid subcommands are: {subcommands}",
+    "overview": "Available commands: {commands}"
+  },
+  "giveaway": {
+    "inactive": "There is currently no giveaway running!",
+    "already_registered": "You are already entered in the giveaway!",
+    "registered": "You are now entered in the giveaway!",
+    "follow_required": "You must follow the channel to enter!",
+    "follow_too_short": "You must follow the channel for at least {duration} to enter!",
+    "subscriber_required": "You must be subscribed to enter!",
+    "vip_required": "You must be a VIP to enter!",
+    "moderator_required": "You must be a moderator to enter!"
+  },
+  "info": {
+    "about": "The bot was created by eliteSCHW31N and is open source: https://github.com/eliteSchwein/stream-overlord/"
+  },
+  "music": {
+    "play": "The song is now playing.",
+    "pause": "The song is now paused.",
+    "next": "The next song is now playing.",
+    "prev": "The previous song is now playing.",
+    "volume_range": "The value must be between 0 and 100.",
+    "volume_set": "Music volume was set to {volume}%.",
+    "requests_enabled": "You can now request songs with !sr",
+    "requests_disabled": "Song requests are now disabled"
+  },
+  "game": {
+    "not_found": "This game could not be found"
+  },
+  "errors": {
+    "enabled": "Error messages (for example missing permissions) are now posted to chat again.",
+    "disabled": "Error messages (for example missing permissions) are no longer posted to chat."
+  }
+}

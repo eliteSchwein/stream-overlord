@@ -1,4 +1,4 @@
-import {getPrimaryChannel, getSystemConfigDirectory} from "../../helper/ConfigHelper";
+import {getGiveawaySettings, getPrimaryChannel, getSystemConfigDirectory} from "../../helper/ConfigHelper";
 import {Bot, BotCommandContext, createBotCommand} from "@twurple/easy-bot";
 import fs from "fs";
 import path from "path";
@@ -27,6 +27,7 @@ import TwitchClient from "./Client";
 import getWebsocketServer, {getTwitchClient, setReloadUpdate} from "../../App";
 import {getAssetConfig} from "../../helper/AssetHelper";
 import {addAlert} from "../../helper/AlertHelper";
+import {translate} from "../../helper/LocaleHelper";
 function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
     const directory = path.dirname(filePath);
     fs.mkdirSync(directory, {recursive: true});
@@ -188,7 +189,7 @@ function buildOverviewCommand(commands: any[], twitchClient?: TwitchClient) {
             .join(", ");
 
         void twitchClient?.reply(
-            `Es gibt folgende Befehle: ${commandList}`,
+            translate("commands.overview", {commands: commandList}),
             context.msg.id,
             context.broadcasterId
         );
@@ -750,6 +751,11 @@ export function resolveCommandName(name: string) {
     const normalized = String(name ?? "").trim().replace(/^!+/, "").toLowerCase();
     if (!normalized) return undefined;
 
+    const giveawayCommand = getGiveawaySettings().giveawayCommand.toLowerCase();
+    if (normalized === giveawayCommand) {
+        return getGiveawaySettings().giveawayCommand;
+    }
+
     for (const commandName of Object.keys(fileCommands)) {
         if (commandName.toLowerCase() === normalized) {
             return commandName;
@@ -1005,8 +1011,30 @@ function buildConfigCommands(commands: any[], bot: Bot, twitchClient: TwitchClie
 
     logRegular(`register configured commands: ${commandNames.length}`);
 
+    const giveawayCommand = getGiveawaySettings().giveawayCommand
+        .trim()
+        .replace(/^!+/, "")
+        .toLowerCase();
+
     for (const command of commandNames) {
         const config = getEffectiveCommandConfig(command) ?? fileCommands[command];
+        const normalizedCommand = String(command ?? "")
+            .trim()
+            .replace(/^!+/, "")
+            .toLowerCase();
+        const normalizedAliases = normalizeArray(config?.alias ?? config?.aliases ?? [])
+            .map(alias => String(alias ?? "").trim().replace(/^!+/, "").toLowerCase())
+            .filter(Boolean);
+
+        // giveawayCommand is a reserved command handled by GiveawayEnterCommand.
+        // Never register a normal configured command (or one of its aliases) on
+        // the same trigger, otherwise EasyBot dispatches both handlers.
+        if (normalizedCommand === giveawayCommand || normalizedAliases.includes(giveawayCommand)) {
+            logWarn(
+                `skip configured command ${command}: name or alias conflicts with giveaway command ${getGiveawaySettings().giveawayCommand}`
+            );
+            continue;
+        }
 
         logRegular(
             `register command file: ${command} ` +
@@ -1116,12 +1144,12 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
             ) {
                 if (twitchClient && context.msg?.id) {
                     await twitchClient.reply(
-                        "der Schild Modus ist aktiv!",
+                        translate("commands.shield_active"),
                         context.msg.id,
                         context.broadcasterId
                     );
                 } else {
-                    await context.reply("der Schild Modus ist aktiv!");
+                    await context.reply(translate("commands.shield_active"));
                 }
 
                 return;
@@ -1463,7 +1491,7 @@ async function replyCommandUnavailable(
 
     await replyWithFallback(
         context,
-        "du kannst diesen Befehl nicht verwenden!",
+        translate("commands.permission_denied"),
     );
 }
 
@@ -1475,7 +1503,7 @@ async function replyCommandAlreadyUsed(
 
     await replyWithFallback(
         context,
-        "dieser Befehl wurde bereits verwendet!",
+        translate("commands.already_used"),
     );
 }
 

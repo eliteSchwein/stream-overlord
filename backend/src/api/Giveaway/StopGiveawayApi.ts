@@ -7,6 +7,6 @@ export default class StopGiveawayApi extends BaseApi {
 
     async handle(data: any): Promise<any>
     {
-        await stopGiveaway()
+        await stopGiveaway("cancelled", false)
     }
 }

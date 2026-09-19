@@ -2,6 +2,7 @@ import BaseCommand from "./BaseCommand";
 import {BotCommandContext} from "@twurple/easy-bot";
 import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {logRegular} from "../../../helper/LogHelper";
+import {translate} from "../../../helper/LocaleHelper";
 
 export default class SetGameCommand extends BaseCommand {
     command = 'setgame'
@@ -18,7 +19,7 @@ export default class SetGameCommand extends BaseCommand {
         const game = await this.bot.api.games.getGameByName(params.gameName)
 
         if(!game) {
-            await context.reply('Dieses Spiel wurde leider nicht gefunden')
+            await context.reply(translate("game.not_found"))
             return
         }
 

@@ -32,6 +32,7 @@ import {ensureDefaultOllamaIntegration, loadIntegrationsCache} from "./helper/In
 import {initializeUpdateManager, setUpdateManagerNotifier} from "./helper/UpdateHelper";
 import {stopOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
 import {setRestoreNotifier} from "./helper/BackupRestoreHelper";
+import {initGiveaway} from "./helper/GiveawayHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -74,6 +75,7 @@ async function init() {
 
     stage = 'loading_cache'
     await redis.connect()
+    await initGiveaway()
 
     stage = 'loading_web_content'
     await webServer.initializeDynamicContent()
@@ -229,6 +231,7 @@ export async function reload() {
 
         await syncOllamaIntegration()
         await redis.connect()
+        await initGiveaway()
         await webServer?.precacheConfiguredHtmlTemplates()
 
         await getTwitchClient().connect()

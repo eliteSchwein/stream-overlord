@@ -7,6 +7,7 @@ import {isShowErrorMessage} from "../../../helper/CommandHelper";
 import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../../helper/MessageEventLinkHelper";
+import {translate} from "../../../helper/LocaleHelper";
 
 export default class BaseCommand {
     command: string;
@@ -146,7 +147,7 @@ export default class BaseCommand {
             !hasModerator(context.broadcasterName, context.userId) &&
             context.broadcasterId !== context.userId
         ) {
-            await this.commandReply(context, "der Schild Modus ist aktiv!");
+            await this.commandReply(context, translate("commands.shield_active"));
             return;
         }
 
@@ -258,17 +259,17 @@ export default class BaseCommand {
         validSubcommands: string[]
     ) {
         logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
-        await this.commandReply(context, `der Parameter ${index + 1} ist ungültig, valide Unterbefehle sind: ${validSubcommands.join(", ")}`);
+        await this.commandReply(context, translate("commands.invalid_subcommand", {index: index + 1, subcommands: validSubcommands.join(", ")}));
     }
 
     protected async replyMissingParamError(param: string[], context: BotCommandContext, index: number) {
         logWarn(`missing param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
-        await this.commandReply(context, `der Parameter ${index + 1} wird benötigt!`);
+        await this.commandReply(context, translate("commands.missing_param", {index: index + 1}));
     }
 
     protected async replyParamSyntaxError(param: string[], context: BotCommandContext, index: number, type: string) {
         logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
-        await this.commandReply(context, `der Parameter ${index + 1} ist ein ${type}!`);
+        await this.commandReply(context, translate("commands.invalid_param_type", {index: index + 1, type}));
     }
 
     protected async replyPermissionError(context: BotCommandContext) {
@@ -276,7 +277,7 @@ export default class BaseCommand {
 
         if (!isShowErrorMessage()) return;
 
-        await this.commandReply(context, "du hast keine Berechtigung auf diesen Befehl!");
+        await this.commandReply(context, translate("commands.permission_denied"));
     }
 
     protected async replyCommandError(context: BotCommandContext, message: string) {

@@ -23,6 +23,7 @@ import {
 } from './AudioHelper'
 import {logDebug, logError, logRegular, logSuccess, logWarn} from './LogHelper'
 import {triggerConfiguredEvent} from './EventHelper'
+import {translate} from './LocaleHelper'
 import https from 'https'
 
 const songRequestPath = '/tmp/songrequests'
@@ -401,9 +402,9 @@ export async function toggleSongRequest(): Promise<boolean> {
 
     try {
         if(songRequestEnabled) {
-            void getTwitchClient().announce("Ihr könnt nun Songs wünschen mit !sr")
+            void getTwitchClient().announce(translate("music.requests_enabled"))
         } else {
-            void getTwitchClient().announce("Wunschsongs sind nun deaktiviert")
+            void getTwitchClient().announce(translate("music.requests_disabled"))
         }
     } catch (error) {
 
