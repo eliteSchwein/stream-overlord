@@ -4,7 +4,7 @@ import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
-import {consumeCommunitySubGift} from "../../../helper/CommunitySubGiftHelper";
+import {waitForCommunitySubGift} from "../../../helper/CommunitySubGiftHelper";
 
 export default class SubGiftEvent extends BaseEvent {
     name = 'SubGift'
@@ -39,13 +39,13 @@ export default class SubGiftEvent extends BaseEvent {
         { name: 'months', type: 'number' as const, localeKey: 'events.simulation.fields.months', default: 1, min: 1, step: 1, required: true },
     ]
 
-    async handle(event: EasyEvent) {
-        // Community gifts also emit one SubGift event per recipient. Consume
-        // those here so only the CommunitySub event triggers assets/macros.
-        if (consumeCommunitySubGift(event)) {
-            return
-        }
+    protected async shouldHandleEvent(event: EasyEvent): Promise<boolean> {
+        // Correlate the raw Twitch event before BaseEvent creates any UUID,
+        // cooldown/query state, interaction, macro or asset work.
+        return !(await waitForCommunitySubGift(event))
+    }
 
+    async handle(event: EasyEvent) {
         let plan = event.plan
 
         if(!isNaN(Number.parseInt(plan))) {

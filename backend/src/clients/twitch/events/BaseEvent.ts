@@ -130,6 +130,11 @@ export default class BaseEvent {
     }
 
     private async handleEvent(event: any) {
+        // Give events a chance to accept/reject raw input before they enter the
+        // normal event lifecycle. This is intentionally before event UUIDs,
+        // cooldowns, interactions, macros and assets are created.
+        if (!await this.shouldHandleEvent(event)) return;
+
         if (isEventFull(this.name, event.broadcasterName, this.eventLimit)) return;
 
         this.eventUuid = `${this.name}_${uuidv4()}`;
@@ -166,6 +171,10 @@ export default class BaseEvent {
             event: sanitizedEvent,
             eventUuid: eventUuid ?? this.eventUuid,
         };
+    }
+
+    protected async shouldHandleEvent(_event: any): Promise<boolean> {
+        return true;
     }
 
     async triggerConfiguredEvent(event: any, configName: string | undefined = undefined) {

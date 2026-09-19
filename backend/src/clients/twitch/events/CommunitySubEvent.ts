@@ -31,12 +31,17 @@ export default class CommunitySubEvent extends BaseEvent {
         },
     ]
 
-    async handle(event: EasyEvent) {
-        // Twitch sends the CommunitySub event first, followed by one SubGift
-        // event for every recipient. Remember how many recipient events belong
-        // to this community gift so SubGiftEvent can suppress them.
-        registerCommunitySubGift(event)
+    protected async shouldHandleEvent(event: EasyEvent): Promise<boolean> {
+        // Register the community summary before this event itself enters the
+        // normal lifecycle, so any buffered recipient SubGift events can be
+        // released/suppressed immediately.
+        if (event.count <= 1) return false
 
+        registerCommunitySubGift(event)
+        return true
+    }
+
+    async handle(event: EasyEvent) {
         let plan = event.plan
 
         if(!isNaN(Number.parseInt(plan))) {
