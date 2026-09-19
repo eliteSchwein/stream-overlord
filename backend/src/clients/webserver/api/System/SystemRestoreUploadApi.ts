@@ -17,8 +17,13 @@ export default class SystemRestoreUploadApi extends BaseApi {
             storage: multer.diskStorage({
                 destination: os.tmpdir(),
                 filename: (_req, file, callback) => {
-                    const ext = path.extname(file.originalname).toLowerCase();
-                    callback(null, `streambot-restore-upload-${randomUUID()}${ext || ".zip"}`);
+                    const lower = file.originalname.toLowerCase();
+                    const suffix = lower.endsWith(".tar.zst") ? ".tar.zst"
+                        : lower.endsWith(".tar.gz") ? ".tar.gz"
+                            : lower.endsWith(".tar.xz") ? ".tar.xz"
+                                : lower.endsWith(".tar.bz2") ? ".tar.bz2"
+                                    : path.extname(lower) || ".archive";
+                    callback(null, `streambot-restore-upload-${randomUUID()}${suffix}`);
                 },
             }),
             limits: {
@@ -26,10 +31,17 @@ export default class SystemRestoreUploadApi extends BaseApi {
                 files: 1,
             },
             fileFilter: (_req, file, callback) => {
-                const accepted = file.originalname.toLowerCase().endsWith(".zip") ||
-                    file.mimetype === "application/zip" ||
-                    file.mimetype === "application/x-zip-compressed";
-                callback(accepted ? null : new Error("restore file must be a zip archive"), accepted);
+                const name = file.originalname.toLowerCase();
+                const accepted = [
+                    ".tar.zst", ".tzst",
+                    ".tar.gz", ".tgz",
+                    ".tar.xz", ".txz",
+                    ".tar.bz2", ".tbz2", ".tbz",
+                    ".tar", ".zip",
+                ].some((extension) => name.endsWith(extension));
+                callback(accepted ? null : new Error(
+                    "unsupported restore archive; use .tar.zst, .tar, .tar.gz/.tgz, .tar.xz, .tar.bz2, or .zip",
+                ), accepted);
             },
         });
 
@@ -38,7 +50,7 @@ export default class SystemRestoreUploadApi extends BaseApi {
             upload.single("file"),
             async (req, res) => {
                 try {
-                    if (!req.file) throw new Error("restore zip is required");
+                    if (!req.file) throw new Error("restore archive is required");
 
                     const staged = await stageRestoreArchive(req.file.path, req.file.originalname);
                     res.json({data: staged, status: 200});

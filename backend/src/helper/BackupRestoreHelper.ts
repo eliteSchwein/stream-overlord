@@ -117,17 +117,75 @@ async function commandAvailable(command: string) {
     }
 }
 
-async function requireZipTools() {
-    if (!(await commandAvailable("zip"))) {
-        throw new Error("zip is not installed; install the 'zip' package");
+async function requireBackupTools() {
+    if (!(await commandAvailable("tar"))) {
+        throw new Error("tar is not installed; install the 'tar' package");
     }
+    if (!(await commandAvailable("zstd"))) {
+        throw new Error("zstd is not installed; install the 'zstd' package");
+    }
+}
+
+async function requireZipRestoreTool() {
     if (!(await commandAvailable("unzip"))) {
         throw new Error("unzip is not installed; install the 'unzip' package");
     }
 }
 
+async function requireTarRestoreTools(format: ArchiveFormat) {
+    if (!(await commandAvailable("tar"))) {
+        throw new Error("tar is not installed; install the 'tar' package");
+    }
+
+    if (format === "tar.zst" && !(await commandAvailable("zstd"))) {
+        throw new Error("zstd is not installed; install the 'zstd' package");
+    }
+}
+
+type ArchiveFormat = "zip" | "tar" | "tar.gz" | "tar.xz" | "tar.bz2" | "tar.zst";
+
+function detectArchiveFormat(filename: string): ArchiveFormat {
+    const normalized = String(filename ?? "").trim().toLowerCase();
+
+    if (normalized.endsWith(".tar.zst") || normalized.endsWith(".tzst")) return "tar.zst";
+    if (normalized.endsWith(".tar.gz") || normalized.endsWith(".tgz")) return "tar.gz";
+    if (normalized.endsWith(".tar.xz") || normalized.endsWith(".txz")) return "tar.xz";
+    if (normalized.endsWith(".tar.bz2") || normalized.endsWith(".tbz2") || normalized.endsWith(".tbz")) return "tar.bz2";
+    if (normalized.endsWith(".tar")) return "tar";
+    if (normalized.endsWith(".zip")) return "zip";
+
+    throw new Error("unsupported restore archive; supported formats: .tar.zst, .tar, .tar.gz/.tgz, .tar.xz, .tar.bz2, .zip");
+}
+
+async function listArchiveEntries(archivePath: string, format: ArchiveFormat) {
+    if (format === "zip") {
+        await requireZipRestoreTool();
+        const {stdout} = await execFileAsync("unzip", ["-Z1", archivePath], {maxBuffer: MAX_COMMAND_BUFFER});
+        return stdout.split(/\r?\n/).filter(Boolean);
+    }
+
+    await requireTarRestoreTools(format);
+    const args = format === "tar.zst"
+        ? ["--zstd", "-tf", archivePath]
+        : ["-tf", archivePath];
+    const {stdout} = await execFileAsync("tar", args, {maxBuffer: MAX_COMMAND_BUFFER});
+    return stdout.split(/\r?\n/).filter(Boolean);
+}
+
+async function extractArchive(archivePath: string, stageRoot: string, format: ArchiveFormat) {
+    if (format === "zip") {
+        await execFileAsync("unzip", ["-q", archivePath, "-d", stageRoot], {maxBuffer: MAX_COMMAND_BUFFER});
+        return;
+    }
+
+    const args = format === "tar.zst"
+        ? ["--zstd", "-xf", archivePath, "-C", stageRoot]
+        : ["-xf", archivePath, "-C", stageRoot];
+    await execFileAsync("tar", args, {maxBuffer: MAX_COMMAND_BUFFER});
+}
+
 export async function createBotBackup(): Promise<{path: string; filename: string}> {
-    await requireZipTools();
+    await requireBackupTools();
 
     const configDir = getSystemConfigDirectory();
     await fs.mkdir(configDir, {recursive: true});
@@ -135,7 +193,7 @@ export async function createBotBackup(): Promise<{path: string; filename: string
 
     const createdAt = new Date();
     const workDir = await fs.mkdtemp(path.join(os.tmpdir(), BACKUP_PREFIX));
-    const archivePath = path.join(workDir, `streambot-backup-${timestampForFilename(createdAt)}.zip`);
+    const archivePath = path.join(workDir, `streambot-backup-${timestampForFilename(createdAt)}.tar.zst`);
     const manifestPath = path.join(workDir, BACKUP_MANIFEST);
 
     const manifest = {
@@ -151,13 +209,12 @@ export async function createBotBackup(): Promise<{path: string; filename: string
     const parent = path.dirname(configDir);
     const basename = path.basename(configDir);
 
-    await execFileAsync("zip", ["-q", "-r", archivePath, basename], {
-        cwd: parent,
-        maxBuffer: MAX_COMMAND_BUFFER,
-    });
-
-    await execFileAsync("zip", ["-q", "-j", archivePath, manifestPath], {
-        cwd: workDir,
+    await execFileAsync("tar", [
+        "--zstd",
+        "-cf", archivePath,
+        "-C", parent, basename,
+        "-C", workDir, BACKUP_MANIFEST,
+    ], {
         maxBuffer: MAX_COMMAND_BUFFER,
     });
 
@@ -248,19 +305,15 @@ function flattenRestoreOptions(options: RestoreOption[]): RestoreOption[] {
     return flat;
 }
 
-export async function stageRestoreArchive(archivePath: string, archiveName = "backup.zip") {
-    await requireZipTools();
+export async function stageRestoreArchive(archivePath: string, archiveName = "backup.tar.zst") {
+    const format = detectArchiveFormat(archiveName);
 
     const restoreId = randomUUID();
     const stageRoot = path.join(os.tmpdir(), `${RESTORE_PREFIX}${restoreId}`);
     await fs.mkdir(stageRoot, {recursive: true});
 
     try {
-        const {stdout: listOutput} = await execFileAsync("unzip", ["-Z1", archivePath], {
-            maxBuffer: MAX_COMMAND_BUFFER,
-        });
-
-        const entries = listOutput.split(/\r?\n/).filter(Boolean);
+        const entries = await listArchiveEntries(archivePath, format);
         if (!entries.length) {
             throw new Error("restore archive is empty");
         }
@@ -271,9 +324,7 @@ export async function stageRestoreArchive(archivePath: string, archiveName = "ba
             }
         }
 
-        await execFileAsync("unzip", ["-q", archivePath, "-d", stageRoot], {
-            maxBuffer: MAX_COMMAND_BUFFER,
-        });
+        await extractArchive(archivePath, stageRoot, format);
 
         await assertNoSymlinks(stageRoot);
 
