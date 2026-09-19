@@ -1,11 +1,20 @@
 type GiftIdentity = {
+    broadcasterId?: string | null;
+    broadcasterName?: string | null;
     gifterId?: string | null;
     gifterDisplayName?: string | null;
+    plan?: string | null;
 };
 
 type PendingSubGift = {
     resolve: (isCommunityGift: boolean) => void;
-    timer: ReturnType<typeof setTimeout>;
+    timer?: ReturnType<typeof setTimeout>;
+};
+
+type PendingGiftBatch = {
+    gifts: PendingSubGift[];
+    isBurst: boolean;
+    fallbackTimer?: ReturnType<typeof setTimeout>;
 };
 
 type ReservedCommunityGift = {
@@ -13,25 +22,75 @@ type ReservedCommunityGift = {
     timer: ReturnType<typeof setTimeout>;
 };
 
-const pendingSubGifts = new Map<string, PendingSubGift[]>();
+const pendingSubGiftBatches = new Map<string, PendingGiftBatch>();
 const reservedCommunitySubGifts = new Map<string, ReservedCommunityGift>();
 
-// Twitch does not guarantee whether the per-recipient SubGift events or the
-// CommunitySub summary arrives first. Keep individual gifts around briefly so
-// both event orderings can be correlated without firing duplicate macros.
-const COMMUNITY_GIFT_GRACE_MS = 650;
-const COMMUNITY_GIFT_RESERVATION_MS = 5000;
+// A real single gift should only be delayed very briefly. Community gift bombs
+// produce multiple per-recipient SubGift events in a tight burst, so seeing a
+// second matching gift upgrades the pending entry into a community candidate.
+const SINGLE_GIFT_GRACE_MS = 250;
+
+// Once a burst is detected, keep it outside the normal event/interaction
+// lifecycle while waiting for Twitch's CommunitySub summary. This timeout is
+// only a safety fallback for a missing summary; it does not delay real singles.
+const COMMUNITY_BURST_FALLBACK_MS = 2000;
+
+// Needed only for the opposite ordering where CommunitySub arrives before some
+// or all recipient SubGift events. Keep it deliberately short so stale state
+// cannot leak into a later, separate gift bomb from the same gifter.
+const COMMUNITY_RESERVATION_MS = 1000;
+
+function normalize(value: string | null | undefined): string {
+    return String(value ?? '').trim().toLowerCase();
+}
 
 function getGifterKey(event: GiftIdentity): string {
-    if (event.gifterId) {
-        return `id:${event.gifterId}`;
+    const broadcaster = event.broadcasterId
+        ? `broadcaster-id:${event.broadcasterId}`
+        : `broadcaster-name:${normalize(event.broadcasterName) || 'unknown'}`;
+
+    const gifter = event.gifterId
+        ? `gifter-id:${event.gifterId}`
+        : `gifter-name:${normalize(event.gifterDisplayName) || 'anonymous'}`;
+
+    // A gifter can theoretically create adjacent gift batches on different
+    // tiers. Including the plan avoids correlating those together.
+    const plan = `plan:${normalize(event.plan) || 'unknown'}`;
+
+    return `${broadcaster}|${gifter}|${plan}`;
+}
+
+function clearPendingGiftTimer(gift: PendingSubGift) {
+    if (!gift.timer) return;
+    clearTimeout(gift.timer);
+    gift.timer = undefined;
+}
+
+function clearBatchFallback(batch: PendingGiftBatch) {
+    if (!batch.fallbackTimer) return;
+    clearTimeout(batch.fallbackTimer);
+    batch.fallbackTimer = undefined;
+}
+
+function releaseBatchAsIndividual(key: string, batch: PendingGiftBatch) {
+    if (pendingSubGiftBatches.get(key) !== batch) return;
+
+    pendingSubGiftBatches.delete(key);
+    clearBatchFallback(batch);
+
+    for (const gift of batch.gifts) {
+        clearPendingGiftTimer(gift);
+        gift.resolve(false);
     }
 
-    if (event.gifterDisplayName) {
-        return `name:${event.gifterDisplayName.toLowerCase()}`;
-    }
+    batch.gifts.length = 0;
+}
 
-    return 'anonymous';
+function armBurstFallback(key: string, batch: PendingGiftBatch) {
+    clearBatchFallback(batch);
+    batch.fallbackTimer = setTimeout(() => {
+        releaseBatchAsIndividual(key, batch);
+    }, COMMUNITY_BURST_FALLBACK_MS);
 }
 
 function consumeReservedCommunitySubGift(key: string): boolean {
@@ -54,112 +113,152 @@ function consumeReservedCommunitySubGift(key: string): boolean {
 function reserveCommunitySubGifts(key: string, count: number) {
     if (count <= 0) return;
 
+    // Do not accumulate old reservations. A CommunitySub summary represents
+    // one concrete batch, and replacing the reservation prevents stale counts
+    // from a previous batch suppressing a later standalone gift.
     const current = reservedCommunitySubGifts.get(key);
-
     if (current) {
         clearTimeout(current.timer);
-        current.count += count;
-        current.timer = setTimeout(() => {
-            reservedCommunitySubGifts.delete(key);
-        }, COMMUNITY_GIFT_RESERVATION_MS);
-        return;
+        reservedCommunitySubGifts.delete(key);
     }
 
     const reservation: ReservedCommunityGift = {
         count,
         timer: setTimeout(() => {
-            reservedCommunitySubGifts.delete(key);
-        }, COMMUNITY_GIFT_RESERVATION_MS),
+            const active = reservedCommunitySubGifts.get(key);
+            if (active === reservation) {
+                reservedCommunitySubGifts.delete(key);
+            }
+        }, COMMUNITY_RESERVATION_MS),
     };
 
     reservedCommunitySubGifts.set(key, reservation);
 }
 
 /**
- * Briefly buffer a raw individual SubGift before it enters the event
- * lifecycle, to determine whether it belongs to a CommunitySub gift bomb.
+ * Buffer a raw SubGift before it enters BaseEvent's normal lifecycle.
  *
- * Returns true when the individual event must be suppressed because the
- * matching CommunitySub event owns it. Returns false for a genuine one-off
- * gift and the caller may trigger the normal SubGift event.
+ * A single gift waits only SINGLE_GIFT_GRACE_MS. If another matching gift
+ * arrives during that tiny window, the whole burst remains buffered until the
+ * CommunitySub summary arrives. This keeps single gifts responsive while gift
+ * bombs never create per-recipient interactions/macros first.
+ *
+ * Returns true when this individual SubGift belongs to a CommunitySub batch
+ * and must be suppressed. Returns false when it should proceed normally.
  */
 export function waitForCommunitySubGift(event: GiftIdentity): Promise<boolean> {
     const key = getGifterKey(event);
 
-    // Handles the CommunitySub-first ordering.
+    // CommunitySub-first ordering: consume one recipient from the exact
+    // outstanding summary reservation without creating any pending state.
     if (consumeReservedCommunitySubGift(key)) {
         return Promise.resolve(true);
     }
 
     return new Promise<boolean>(resolve => {
-        const pending: PendingSubGift = {
-            resolve,
-            timer: undefined as any,
-        };
+        const gift: PendingSubGift = {resolve};
+        const existing = pendingSubGiftBatches.get(key);
 
-        pending.timer = setTimeout(() => {
-            const gifts = pendingSubGifts.get(key) ?? [];
-            const index = gifts.indexOf(pending);
+        if (!existing) {
+            const batch: PendingGiftBatch = {
+                gifts: [gift],
+                isBurst: false,
+            };
 
-            if (index !== -1) {
-                gifts.splice(index, 1);
+            gift.timer = setTimeout(() => {
+                // Still a lone gift: let it enter the normal event lifecycle.
+                if (pendingSubGiftBatches.get(key) !== batch || batch.isBurst) {
+                    return;
+                }
+
+                releaseBatchAsIndividual(key, batch);
+            }, SINGLE_GIFT_GRACE_MS);
+
+            pendingSubGiftBatches.set(key, batch);
+            return;
+        }
+
+        // A second matching recipient arriving inside the single-gift grace
+        // window identifies this as a burst. Stop the individual timers and
+        // hold every recipient until CommunitySub claims the batch.
+        if (!existing.isBurst) {
+            existing.isBurst = true;
+
+            for (const pendingGift of existing.gifts) {
+                clearPendingGiftTimer(pendingGift);
             }
 
-            if (gifts.length === 0) {
-                pendingSubGifts.delete(key);
-            } else {
-                pendingSubGifts.set(key, gifts);
-            }
+            armBurstFallback(key, existing);
+        }
 
-            resolve(false);
-        }, COMMUNITY_GIFT_GRACE_MS);
-
-        const gifts = pendingSubGifts.get(key) ?? [];
-        gifts.push(pending);
-        pendingSubGifts.set(key, gifts);
+        existing.gifts.push(gift);
     });
 }
 
 /**
- * Register a CommunitySub summary and claim its per-recipient SubGift events.
+ * Register a CommunitySub summary and claim the matching buffered recipient
+ * SubGift events. Matching pending gifts are resolved and removed immediately;
+ * when the full batch was already present there is no leftover buffer state.
+ *
  * Returns how many already-buffered SubGift events were suppressed.
  */
 export function registerCommunitySubGift(event: GiftIdentity & { count: number }): number {
-    // A count of one is treated as a regular single gift. This keeps the two
-    // configured events mutually exclusive as requested.
     if (event.count <= 1) {
         return 0;
     }
 
     const key = getGifterKey(event);
-    const pending = pendingSubGifts.get(key) ?? [];
-    const matchedCount = Math.min(event.count, pending.length);
+    const batch = pendingSubGiftBatches.get(key);
+    let matchedCount = 0;
 
-    for (let index = 0; index < matchedCount; index += 1) {
-        const gift = pending.shift();
-        if (!gift) break;
+    if (batch) {
+        matchedCount = Math.min(event.count, batch.gifts.length);
 
-        clearTimeout(gift.timer);
-        gift.resolve(true);
+        for (let index = 0; index < matchedCount; index += 1) {
+            const gift = batch.gifts.shift();
+            if (!gift) break;
+
+            clearPendingGiftTimer(gift);
+            gift.resolve(true);
+        }
+
+        if (batch.gifts.length === 0) {
+            // This is the important purge: once CommunitySub owns the complete
+            // buffered batch, remove every bit of pending state immediately.
+            clearBatchFallback(batch);
+            pendingSubGiftBatches.delete(key);
+        } else {
+            // More gifts are already waiting than this summary claims. Keep
+            // only the remainder for a possible immediately-following batch.
+            batch.isBurst = true;
+            armBurstFallback(key, batch);
+        }
     }
 
-    if (pending.length === 0) {
-        pendingSubGifts.delete(key);
+    // CommunitySub can also arrive before all recipient events. Reserve only
+    // the exact unmatched remainder, and auto-purge it quickly if Twitch never
+    // sends those recipient events.
+    const remaining = Math.max(0, event.count - matchedCount);
+
+    if (remaining > 0) {
+        reserveCommunitySubGifts(key, remaining);
     } else {
-        pendingSubGifts.set(key, pending);
+        const reserved = reservedCommunitySubGifts.get(key);
+        if (reserved) {
+            clearTimeout(reserved.timer);
+            reservedCommunitySubGifts.delete(key);
+        }
     }
-
-    // Handles the CommunitySub-first ordering, or recipient SubGift events
-    // that arrive shortly after the summary.
-    reserveCommunitySubGifts(key, event.count - matchedCount);
 
     return matchedCount;
 }
 
 export function clearCommunitySubGiftState() {
-    for (const gifts of pendingSubGifts.values()) {
-        for (const gift of gifts) {
-            clearTimeout(gift.timer);
+    for (const batch of pendingSubGiftBatches.values()) {
+        clearBatchFallback(batch);
+
+        for (const gift of batch.gifts) {
+            clearPendingGiftTimer(gift);
             gift.resolve(false);
         }
     }
@@ -168,6 +267,6 @@ export function clearCommunitySubGiftState() {
         clearTimeout(reserved.timer);
     }
 
-    pendingSubGifts.clear();
+    pendingSubGiftBatches.clear();
     reservedCommunitySubGifts.clear();
 }
