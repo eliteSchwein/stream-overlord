@@ -159,21 +159,39 @@ export default class TwitchClient {
         }
     }
 
-    private getOutgoingBots() {
-        return [
-            {name: "message", bot: this.messageBot},
-            {name: "control", bot: this.bot},
-        ].filter(entry => !!entry.bot) as {name: "message" | "control"; bot: Bot}[];
+    private getOutgoingBots(account: "message" | "streamer" = "message") {
+        const bots = account === "streamer"
+            ? [
+                {name: "control" as const, bot: this.bot},
+            ]
+            : [
+                {name: "message" as const, bot: this.messageBot},
+                {name: "control" as const, bot: this.bot},
+            ];
+
+        return bots.filter(entry => !!entry.bot) as {name: "message" | "control"; bot: Bot}[];
+    }
+
+    private normalizeOutgoingAccount(account?: string): "message" | "streamer" {
+        const normalized = String(account ?? "").trim().toLowerCase();
+
+        if (normalized === "streamer" || normalized === "control") {
+            return "streamer";
+        }
+
+        return "message";
     }
 
     private async withMessageFallback(
         actionName: string,
-        action: (bot: Bot, authName: "message" | "control") => Promise<void>
+        action: (bot: Bot, authName: "message" | "control") => Promise<void>,
+        account?: string
     ) {
-        const bots = this.getOutgoingBots();
+        const preferredAccount = this.normalizeOutgoingAccount(account);
+        const bots = this.getOutgoingBots(preferredAccount);
 
         if (!bots.length) {
-            logWarn(`twitch ${actionName} skipped: twitch is not connected`);
+            logWarn(`twitch ${actionName} skipped: ${preferredAccount} auth is not connected`);
             return;
         }
 
@@ -677,29 +695,23 @@ export default class TwitchClient {
         this.hypeTrainLevel = level;
     }
 
-    public async announce(message: string, color: TwitchMessageColor = "primary") {
+    public async announce(
+        message: string,
+        color: TwitchMessageColor = "primary",
+        account?: string
+    ) {
         const primaryChannel = getPrimaryChannel();
 
-        if (!this.bot) {
-            logWarn("twitch announce skipped: control auth is not connected");
-            return;
-        }
-
-        try {
-            await this.bot.api.chat.sendAnnouncement(primaryChannel.id, {
+        await this.withMessageFallback("announce", async (bot) => {
+            await bot.api.chat.sendAnnouncement(primaryChannel.id, {
                 message,
                 // @ts-ignore
                 color,
             });
-        } catch (error) {
-            if (!this.warnTwitchNetworkError("twitch announce failed", error)) {
-                logWarn("twitch announce failed:");
-                logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-            }
-        }
+        }, account);
     }
 
-    public async sendMessage(message: string, channelId?: string) {
+    public async sendMessage(message: string, channelId?: string, account?: string) {
         const primaryChannel = getPrimaryChannel();
         const broadcasterId = channelId ?? primaryChannel.id;
 
@@ -708,7 +720,7 @@ export default class TwitchClient {
             if (!senderId) throw new Error(`missing ${authName} auth user id`);
 
             await bot.api.chat.sendChatMessageAsApp(senderId, broadcasterId, message);
-        });
+        }, account);
     }
 
     public async reply(message: string, replyParentMessageId: string, channelId?: string) {
@@ -725,7 +737,7 @@ export default class TwitchClient {
         });
     }
 
-    public async sendDm(user: string, message: string) {
+    public async sendDm(user: string, message: string, account?: string) {
         const userInput = String(user ?? "").trim().replace(/^@/, "");
 
         if (!userInput) {
@@ -733,7 +745,8 @@ export default class TwitchClient {
             return;
         }
 
-        const lookupBot = this.getOutgoingBots()[0]?.bot;
+        const preferredAccount = this.normalizeOutgoingAccount(account);
+        const lookupBot = this.getOutgoingBots(preferredAccount)[0]?.bot;
 
         if (!lookupBot) {
             logWarn("twitch send dm skipped: twitch is not connected");
@@ -755,7 +768,7 @@ export default class TwitchClient {
                 if (!senderId) throw new Error(`missing ${authName} auth user id`);
 
                 await bot.api.whispers.sendWhisper(senderId, twitchUser.id, message);
-            });
+            }, account);
         } catch (error) {
             if (!this.warnTwitchNetworkError("twitch send dm user lookup failed", error)) {
                 logWarn(`twitch send dm user lookup failed for ${userInput}`);

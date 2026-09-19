@@ -149,7 +149,8 @@ export default class FunctionMacroTask extends BaseMacroTask {
 
                 await twitchClient.sendMessage(
                     fillTemplate(data.content, variables),
-                    data.channel_id ?? data.channelId
+                    data.channel_id ?? data.channelId,
+                    data.account
                 );
 
                 break;
@@ -175,7 +176,8 @@ export default class FunctionMacroTask extends BaseMacroTask {
 
                 await twitchClient.sendDm(
                     fillTemplate(String(data.user), variables),
-                    fillTemplate(data.content, variables)
+                    fillTemplate(data.content, variables),
+                    data.account
                 );
 
                 break;
@@ -230,7 +232,8 @@ export default class FunctionMacroTask extends BaseMacroTask {
 
                 await twitchClient.announce(
                     fillTemplate(data.content, variables),
-                    data.color ?? "primary"
+                    data.color ?? "primary",
+                    data.account
                 );
 
                 break;

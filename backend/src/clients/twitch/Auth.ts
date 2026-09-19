@@ -106,6 +106,7 @@ export default class TwitchAuth {
     protected readonly messageScopes = [
         "chat:read",
         "chat:edit",
+        "moderator:manage:announcements",
         "user:read:chat",
         "user:write:chat",
         "user:manage:whispers",
