@@ -35,7 +35,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/lodash": "^4.17.25",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.6.2",
     "@types/readline-sync": "^1.4.8",
     "@types/ws": "^8.18.1",
     "async-wait-until": "^2.0.31",
@@ -77,7 +77,7 @@
     "redis": "^6.2.1",
     "sass": "^1.104.1",
     "sharp": "^0.35.4",
-    "systeminformation": "^5.33.10",
+    "systeminformation": "^5.33.12",
     "tesmart-api": "^1.0.0"
   },
   "allowScripts": {

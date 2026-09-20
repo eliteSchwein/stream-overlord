@@ -82,6 +82,14 @@ const eventEntries: EventIndex = {
             simulationField("totalEntries", "number", 0),
             simulationField("giveawayCommand", "text", "ticket"),
         ]),
+        createEventEntry("event_giveaway_register", [
+            simulationField("userId", "text", "123456"),
+            simulationField("userName", "text", "viewer"),
+            simulationField("userDisplayName", "text", "Viewer"),
+            simulationField("giveawayText", "text", "Example prize"),
+            simulationField("giveawayCommand", "text", "ticket"),
+            simulationField("totalEntries", "number", 1),
+        ]),
         createEventEntry("event_giveaway_progress", [
             simulationField("giveawayText", "text", "Example prize"),
             simulationField("remainingSeconds", "number", 300),
@@ -90,14 +98,6 @@ const eventEntries: EventIndex = {
             simulationField("totalEntries", "number", 5),
             simulationField("endsAt", "number", 0),
             simulationField("giveawayCommand", "text", "ticket"),
-        ]),
-        createEventEntry("event_giveaway_register", [
-            simulationField("userId", "text", "123456"),
-            simulationField("userName", "text", "viewer"),
-            simulationField("userDisplayName", "text", "Viewer"),
-            simulationField("giveawayText", "text", "Example prize"),
-            simulationField("giveawayCommand", "text", "ticket"),
-            simulationField("totalEntries", "number", 1),
         ]),
         createEventEntry("event_giveaway_end", [
             simulationField("reason", "select", "finished"),
