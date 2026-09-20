@@ -207,6 +207,11 @@ export function listCustomStyles(): CustomStyleEntry[] {
         }));
 }
 
+export function isCustomStylePresent(fileName: string): boolean {
+    const normalizedName = sanitizeStyleFileName(fileName);
+    return fs.existsSync(resolveStylePath(normalizedName));
+}
+
 export function readCustomStyle(fileName?: string) {
     ensureDirectories();
 

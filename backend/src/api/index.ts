@@ -108,6 +108,7 @@ export { default as FontDeleteApi } from "./Overlay/FontDeleteApi";
 export { default as FontListApi } from "./Overlay/FontListApi";
 export { default as OverlayCreateFolderApi } from "./Overlay/OverlayCreateFolderApi";
 export { default as OverlayCustomStyleDeleteApi } from "./Overlay/OverlayCustomStyleDeleteApi";
+export { default as OverlayCustomStyleExistsApi } from "./Overlay/OverlayCustomStyleExistsApi";
 export { default as OverlayCustomStyleGetApi } from "./Overlay/OverlayCustomStyleGetApi";
 export { default as OverlayCustomStyleListApi } from "./Overlay/OverlayCustomStyleListApi";
 export { default as OverlayCustomStyleSaveApi } from "./Overlay/OverlayCustomStyleSaveApi";
