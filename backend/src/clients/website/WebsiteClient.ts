@@ -70,9 +70,6 @@ export async function updateGameState(state: string) {
     return await requestApi(`updateGame&state=${state}`)
 }
 
-export async function updateTwitchData() {
-    return await requestApi(`updateTwitch`)
-}
 
 export async function getSources() {
     return await requestApi(`source&mode=getSources`)

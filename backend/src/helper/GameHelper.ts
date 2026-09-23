@@ -1,9 +1,8 @@
 import {logRegular} from "./LogHelper";
 import getWebsocketServer from "../App";
-import {getThemeSettings} from "./ConfigHelper";
+import {getThemeSettings, readSystemConfig} from "./ConfigHelper";
 import {setLedColor} from "./WledHelper";
-import {getGameInfoData} from "../clients/website/WebsiteClient";
-import RemoteCacheHelper from "./RemoteCacheHelper";
+import {getCachedTwitchCategory} from "./TwitchDataHelper";
 
 const gameInfo = {
     data: {
@@ -59,15 +58,37 @@ export function getCurrentGameId() {
 }
 
 export async function fetchGameInfo() {
-    logRegular('fetch theme from website')
-    const newGameInfo = await getGameInfoData()
+    logRegular('fetch theme from category library')
 
-    if(newGameInfo) {
-        rawGameInfo.data = structuredClone(newGameInfo)
-        gameInfo.data = await RemoteCacheHelper.cacheGameInfo(structuredClone(newGameInfo))
+    const twitchCategory = getCachedTwitchCategory()
+    const settings = readSystemConfig().category_library
+    let entry: any = null
+
+    if (settings.enabled) {
+        const {getActiveCategoryEntry} = await import("./CategoryLibraryHelper")
+        entry = getActiveCategoryEntry()
     }
 
-    currentGameId = gameInfo.data?.game_id
+    const categoryId = String(entry?.category_id ?? twitchCategory?.id ?? '').trim()
+    const categoryName = String(entry?.name ?? twitchCategory?.name ?? '').trim()
+    const color = entry?.theme_color ? `#${String(entry.theme_color).replace(/^#/, '')}` : ''
+
+    const localInfo = {
+        game_id: categoryId ? Number(categoryId) : 0,
+        game_name: categoryName,
+        theme: {
+            color,
+            style: settings.enabled ? String(entry?.custom_css ?? '') : '',
+        },
+        color,
+        media: settings.enabled ? {
+            cover: entry?.cover_path ?? null,
+        } : {},
+    }
+
+    rawGameInfo.data = structuredClone(localInfo)
+    gameInfo.data = structuredClone(localInfo)
+    currentGameId = Number(localInfo.game_id || 0)
 }
 
 export function pushGameInfo(websocket?: WebSocket) {

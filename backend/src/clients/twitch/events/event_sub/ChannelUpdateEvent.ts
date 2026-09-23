@@ -1,19 +1,14 @@
 import BaseEvent from "./BaseEvent";
 import {
-    fetchGameInfo,
     getCurrentGameId,
-    pushGameInfo,
 } from "../../../../helper/GameHelper";
-import {updateTwitchData} from "../../../website/WebsiteClient";
 import {logNotice} from "../../../../helper/LogHelper";
-import {updateChannelPoints} from "../../../../helper/ChannelPointHelper";
 import {updateAdData} from "../../../../helper/SchedulerHelper";
-import {updateSourceFilters} from "../../../../helper/SourceHelper";
-import {sleep} from "../../../../../../helper/GeneralHelper";
 import {
     updateTwitchCategoryData,
     updateTwitchStreamData,
 } from "../../../../helper/TwitchDataHelper";
+import {syncTwitchCategory} from "../../../../helper/CategoryLibraryHelper";
 
 export default class ChannelUpdateEvent extends BaseEvent {
     name = "ChannelUpdateEvent";
@@ -61,31 +56,35 @@ export default class ChannelUpdateEvent extends BaseEvent {
             `game change (${oldGameId} -> ${event.categoryId}) detected, load assets for ${event.categoryName}`
         );
 
-        await updateTwitchData();
 
-        // Load the new game's API data first.
-        await fetchGameInfo();
+        // Twurple EventSub event fields such as categoryId/categoryName are
+        // exposed via getters and are not guaranteed to be enumerable. Spreading
+        // the event therefore drops the exact values the Category Library needs.
+        // Copy the public channel-update fields explicitly before enriching it.
+        const normalizedEvent = {
+            broadcasterId: event?.broadcasterId,
+            broadcasterName: event?.broadcasterName,
+            broadcasterDisplayName: event?.broadcasterDisplayName,
+            categoryId: event?.categoryId,
+            categoryName: event?.categoryName,
+            streamTitle: event?.streamTitle,
+            streamLanguage: event?.streamLanguage,
+            isMature: event?.isMature,
+            previousCategoryId: oldGameId || undefined,
+        };
 
-        // Enable:
-        // - enable_default=true
-        // - anything selected by API channel_points
-        //
-        // Disable:
-        // - anything in blocked_channel_points
-        //
-        // blocked_channel_points always wins.
-        await updateChannelPoints();
+        const enrichedEvent = await this.enrichCategoryEvent(normalizedEvent);
 
-        pushGameInfo();
+        // Category library is the local source of truth for theme/media/OBS data.
+        // Activate/sync it before rebuilding game/theme state.
+        await syncTwitchCategory(this.bot, enrichedEvent);
 
-        await updateSourceFilters();
+        // Category activation owns theme/media/Channel Points/OBS application and
+        // the corresponding websocket notifications. Only fire the macro event
+        // after the local category state is fully settled.
 
-        // idk why but this is needed
-        await sleep(1_000);
-        await updateSourceFilters();
-
-        const enrichedEvent = await this.enrichCategoryEvent(event);
-
+        // Keep the old event for compatibility.
         await this.triggerConfiguredEvent(enrichedEvent);
+
     }
 }

@@ -33,6 +33,7 @@ import {initializeUpdateManager, setUpdateManagerNotifier} from "./helper/Update
 import {stopOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
 import {setRestoreNotifier} from "./helper/BackupRestoreHelper";
 import {initGiveaway} from "./helper/GiveawayHelper";
+import {initCategoryLibrary} from "./helper/CategoryLibraryHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -99,6 +100,7 @@ async function init() {
 
     twitchClient = new TwitchClient()
     await twitchClient.connect()
+    await initCategoryLibrary(twitchClient.getBot())
     await registerPermissions(twitchClient.getBot())
     registerPermissionInterval(twitchClient.getBot())
 

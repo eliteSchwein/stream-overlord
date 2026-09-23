@@ -30,6 +30,7 @@ import {getConfiguredEventIndex} from "../../helper/EventHelper";
 import {getDynamicData} from "../../helper/DynamicDataHelper";
 import {getSpeedtestState} from "../../helper/SpeedtestHelper";
 import {getInteractionQueue} from "../../helper/InteractionHelper";
+import {getActiveCategoryMediaNotifications, getActiveCategoryPayload, getActiveCategoryStylePayload, getCategoryLibrary} from "../../helper/CategoryLibraryHelper";
 
 
 export default class WebsocketServer {
@@ -94,6 +95,9 @@ export default class WebsocketServer {
         'notify_restore_ready',
         'notify_restore_complete',
         'notify_restore_cancelled',
+        'notify_category_library_update',
+        'notify_category_active',
+        'notify_category_style_update',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -125,6 +129,7 @@ export default class WebsocketServer {
 
         // @ts-ignore
         const targets = connection  ? [connection] : [...this.websocket.clients]
+        let delivered = 0
 
         targets.forEach((client) => {
             try {
@@ -139,11 +144,14 @@ export default class WebsocketServer {
                     params: data,
                     id: getRandomInt(10_000)
                 }))
+                delivered++
             } catch (error) {
                 logError("request to a websocket client failed!")
                 logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             }
         })
+
+        return delivered
     }
 
     public addConnection(connection: WebSocket, endpoints: string[]): string[] {
@@ -263,6 +271,12 @@ export default class WebsocketServer {
                 this.send("notify_service_reload", {}, client)
                 this.send("notify_update_manager", getUpdateManagerStatus(), client)
                 this.send("notify_ollama_update", getOllamaUpdate(), client)
+                this.send("notify_category_library_update", getCategoryLibrary(), client)
+                this.send("notify_category_active", getActiveCategoryPayload(), client)
+                this.send("notify_category_style_update", getActiveCategoryStylePayload(), client)
+                for (const media of getActiveCategoryMediaNotifications()) {
+                    this.send("notify_media_update", media, client)
+                }
 
                 void emitVariablesUpdate(client)
 

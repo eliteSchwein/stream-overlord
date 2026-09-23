@@ -61,7 +61,6 @@ const obsConnectionFields = () => [
 ];
 
 const eventEntries: EventIndex = {
-    twitch: [],
     system: [
         createEventEntry("event_system_poweron"),
         createEventEntry("event_system_poweroff"),

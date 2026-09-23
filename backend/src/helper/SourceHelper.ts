@@ -1,13 +1,9 @@
-import getGameInfo from "./GameHelper";
-import {fetchSourceFilters, generateBaseUrl, getSources} from "../clients/website/WebsiteClient";
 import {logDebug, logRegular, logWarn} from "./LogHelper";
-import RemoteCacheHelper from "./RemoteCacheHelper";
+import {readSystemConfig} from "./ConfigHelper";
 import getWebsocketServer, {getOBSClient} from "../App";
 
 let currentSourceFilters = {
-    background: null,
-    backgrounds: [],
-    sources: []
+    sources: {} as Record<string, any>
 }
 
 function getSourceObsId(source: any): string {
@@ -22,27 +18,46 @@ function parseFilterConfig(config: any) {
     return config ?? {}
 }
 
+async function getCategorySourceFilters() {
+    const {getActiveCategoryEntry, findObsFilterSource} = await import("./CategoryLibraryHelper");
+    const entry = getActiveCategoryEntry();
+    if (!entry) return null;
+
+    const source = findObsFilterSource(entry);
+    if (source && source.entry.category_id !== entry.category_id) {
+        logRegular(`category library OBS filters: ${entry.name} has no filters, using fallback ${source.entry.name} (${source.entry.category_id})`);
+    }
+
+    return {
+        sources: structuredClone(source?.filters ?? {}),
+    };
+}
+
+async function saveCategorySourceFilters(filters: Record<string, any>) {
+    const {setActiveCategoryObsFilters} = await import("./CategoryLibraryHelper");
+    return setActiveCategoryObsFilters(filters);
+}
+
 export async function updateSourceFilters() {
     try {
         logDebug("update source filters")
-        const gameInfo = getGameInfo()
         const obsClient = getOBSClient()
+        const categorySettings = readSystemConfig().category_library
 
-        const response = await fetchSourceFilters(gameInfo.data?.game_id)
-
-        if (!response?.data) {
-            logWarn("source filter update skipped: website returned no data")
-            currentSourceFilters = {
-                background: null,
-                backgrounds: [],
-                sources: []
-            }
-
+        if (!categorySettings.enabled) {
+            currentSourceFilters = {sources: {}}
             getWebsocketServer().send('notify_source_update', currentSourceFilters)
             return
         }
 
-        currentSourceFilters = await RemoteCacheHelper.cacheSourceUpdate(response.data)
+        const categoryFilters = await getCategorySourceFilters()
+        if (!categoryFilters) {
+            logWarn("source filter update skipped: category library has no active category")
+            currentSourceFilters = {sources: {}}
+            getWebsocketServer().send('notify_source_update', currentSourceFilters)
+            return
+        }
+        currentSourceFilters = categoryFilters
 
         getWebsocketServer().send('notify_source_update', currentSourceFilters)
 
@@ -109,39 +124,29 @@ export async function updateSourceFilters() {
 }
 
 export async function addSource(name: string, uuid: string, obsId = 'default') {
-    logRegular(`add source: ${name} [${uuid}] (${obsId})`)
+    logRegular(`add source locally: ${name} [${uuid}] (${obsId})`)
 
-    const gameInfo = getGameInfo()
-    const url = generateBaseUrl(`source&game_id=${gameInfo.data?.game_id}&mode=addSource`)
-
-    if(!url) return
-
-    logDebug(`request website post api: ${url}`)
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            name,
-            uuid,
-            obs_id: obsId,
-        })
-    })
-
-    try {
-        return await response.json()
-    } catch (error) {
-        return undefined
+    if (!readSystemConfig().category_library.enabled) {
+        return {success: false, error: 'category library is disabled'}
     }
+
+    const {getActiveCategoryEntry, setActiveCategoryObsFilters} = await import("./CategoryLibraryHelper");
+    const entry = getActiveCategoryEntry();
+    if (!entry) return {success: false, error: 'no active category'};
+
+    const filters = structuredClone(entry.obs_filters ?? {});
+    filters[uuid] ??= {name, obs_id: obsId, filters: {}};
+    filters[uuid].name = name;
+    filters[uuid].obs_id = obsId;
+    filters[uuid].filters ??= {};
+    await setActiveCategoryObsFilters(filters);
+
+    return {success: true, local: true};
 }
 
 export async function saveSourceFilters() {
     logDebug("save source filters")
-    const gameInfo = getGameInfo()
-    const sources = (await getSources()).data
-    const newSourceFilters = {}
+    const newSourceFilters: Record<string, any> = {}
     const obsClient = getOBSClient()
 
     if(!obsClient?.connected) return
@@ -151,6 +156,36 @@ export async function saveSourceFilters() {
     for(const connectionName of connectionNames) {
         await obsClient.fetchItems(connectionName)
     }
+
+    if (!readSystemConfig().category_library.enabled) {
+        logWarn("save source filters skipped: category library is disabled")
+        return
+    }
+
+    const byUuid = new Map<string, any>()
+
+    for (const connectionName of connectionNames) {
+        for (const canvas of obsClient.getSceneData(connectionName) ?? []) {
+            for (const scene of canvas.scenes ?? []) {
+                const collect = (items: any[]) => {
+                    for (const item of items ?? []) {
+                        const uuid = String(item?.uuid ?? item?.sourceUuid ?? '').trim()
+                        if (uuid && !byUuid.has(uuid)) {
+                            byUuid.set(uuid, {
+                                uuid,
+                                name: item?.name ?? item?.sourceName ?? uuid,
+                                obs_id: connectionName,
+                            })
+                        }
+                        if (Array.isArray(item?.children) && item.children.length) collect(item.children)
+                    }
+                }
+                collect(scene.items ?? [])
+            }
+        }
+    }
+
+    const sources: any[] = [...byUuid.values()]
 
     for (const source of sources) {
         const preferredObsId = source?.obs_id ? String(source.obs_id) : undefined
@@ -166,35 +201,31 @@ export async function saveSourceFilters() {
         if(!obsWebsocket || !sourceItemData) continue
 
         newSourceFilters[source.uuid] = {
+            name: source.name ?? source.uuid,
             obs_id: obsId,
+            filters: {},
         }
 
         const sourceFilters = (await obsWebsocket.call('GetSourceFilterList', {sourceUuid: source.uuid})).filters
 
         for(const filter of sourceFilters) {
-            newSourceFilters[source.uuid][filter.filterName] = {
+            newSourceFilters[source.uuid].filters[filter.filterName] = {
                 config: filter.filterSettings,
                 sourceIndex: filter.filterIndex
             }
         }
 
-        newSourceFilters[source.uuid]["Source|Transform"] = {
+        newSourceFilters[source.uuid].filters["Source|Transform"] = {
             config: sourceItemData.transform,
             sourceIndex: 0
         }
     }
 
-    const url = generateBaseUrl(`source&game_id=${gameInfo.data?.game_id}&mode=updateFilters`)
-    if(!url) return
-    logDebug(`request website post api: ${url}`)
-
-    await fetch(url, {
-        method: 'POST',
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newSourceFilters)
-    })
+    await saveCategorySourceFilters(newSourceFilters)
+    currentSourceFilters = {
+        sources: structuredClone(newSourceFilters),
+    }
+    getWebsocketServer().send('notify_source_update', currentSourceFilters)
 }
 
 export function getSourceFilters() {

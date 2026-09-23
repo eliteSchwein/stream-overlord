@@ -1,11 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as yaml from "js-yaml";
-import {getPrimaryChannel, getSystemConfigDirectory} from "./ConfigHelper";
+import {readSystemConfig, getPrimaryChannel, getSystemConfigDirectory} from "./ConfigHelper";
 import getWebsocketServer, {getTwitchClient, setReloadUpdate} from "../App";
 import {HelixCustomReward, HelixUser} from "@twurple/api";
 import {logError, logRegular, logWarn} from "./LogHelper";
-import {getGameInfoData} from "../clients/website/WebsiteClient";
+import {getActiveCategoryEntry} from "./CategoryLibraryHelper";
 import {emitSystemStorageUpdate} from "./SystemStorageHelper";
 function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
     const directory = path.dirname(filePath);
@@ -767,14 +767,11 @@ async function syncChannelPointTwitchSettings(configuredChannelPoint: any, twitc
 export async function updateChannelPoints() {
     await fetchChannelPointData();
 
-    let gameData: any = {};
-
-    try {
-        gameData = await getGameInfoData() ?? {};
-    } catch (error) {
-        logWarn(`failed to load game channel point data, using defaults`);
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
-    }
+    const categorySettings = readSystemConfig().category_library;
+    const activeCategory = categorySettings.enabled && categorySettings.apply_channel_points
+        ? getActiveCategoryEntry()
+        : null;
+    const gameData: any = activeCategory ?? {};
 
     const primaryChannel = getPrimaryChannel();
 
@@ -788,7 +785,7 @@ export async function updateChannelPoints() {
     );
 
     /*
-     * API channel_points are selectors only.
+     * Per-category channel_points are selectors only.
      *
      * Their metadata is ignored completely.
      *

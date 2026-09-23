@@ -36,6 +36,29 @@ export type ThemeSettings = {
     default_color: string;
 };
 
+export type CategoryLibraryMediaSlot = {
+    name: string;
+    target?: string;
+    orientation: "horizontal" | "vertical" | "any";
+    autoplay: boolean;
+    loop: boolean;
+    muted: boolean;
+};
+
+export type CategoryLibrarySettings = {
+    enabled: boolean;
+    auto_create: boolean;
+    fetch_cover: boolean;
+    fetch_steam_wallpaper: boolean;
+    auto_theme_color: boolean;
+    apply_theme_color: boolean;
+    apply_media: boolean;
+    apply_custom_css: boolean;
+    apply_obs_filters: boolean;
+    apply_channel_points: boolean;
+    media_slots: CategoryLibraryMediaSlot[];
+};
+
 export type GiveawaySettings = {
     giveawayCommand: string;
     progress_interval_seconds: number;
@@ -67,6 +90,7 @@ type StreambotSettings = {
     theme: ThemeSettings;
     cava: CavaSettings;
     giveaway: GiveawaySettings;
+    category_library: CategoryLibrarySettings;
 };
 
 const defaultAssetTuneSettings: AssetTuneSettings = {
@@ -90,6 +114,23 @@ const defaultTtsSettings: TtsSettings = {
 
 const defaultThemeSettings: ThemeSettings = {
     default_color: "ff9800",
+};
+
+const defaultCategoryLibrarySettings: CategoryLibrarySettings = {
+    enabled: false,
+    auto_create: true,
+    fetch_cover: true,
+    fetch_steam_wallpaper: true,
+    auto_theme_color: true,
+    apply_theme_color: true,
+    apply_media: true,
+    apply_custom_css: true,
+    apply_obs_filters: true,
+    apply_channel_points: true,
+    media_slots: [
+        {name: "horizontal", target: "horizontal", orientation: "horizontal", autoplay: true, loop: true, muted: true},
+        {name: "vertical", target: "vertical", orientation: "vertical", autoplay: true, loop: true, muted: true},
+    ],
 };
 
 const defaultGiveawaySettings: GiveawaySettings = {
@@ -121,6 +162,7 @@ let systemConfig: StreambotSettings = {
     theme: defaultThemeSettings,
     cava: defaultCavaSettings,
     giveaway: defaultGiveawaySettings,
+    category_library: defaultCategoryLibrarySettings,
 };
 
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
@@ -357,6 +399,52 @@ function normalizeHexColor(value: unknown, fallback: string): string {
 }
 
 
+
+function normalizeCategoryLibraryMediaSlots(value: unknown): CategoryLibraryMediaSlot[] {
+    const source = Array.isArray(value) && value.length
+        ? value
+        : defaultCategoryLibrarySettings.media_slots;
+    const seen = new Set<string>();
+    const result: CategoryLibraryMediaSlot[] = [];
+
+    for (const raw of source as any[]) {
+        const name = String(raw?.name ?? "").trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+
+        const orientation = ["horizontal", "vertical", "any"].includes(String(raw?.orientation))
+            ? raw.orientation as CategoryLibraryMediaSlot["orientation"]
+            : "any";
+
+        result.push({
+            name,
+            target: String(raw?.target ?? "").trim() || undefined,
+            orientation,
+            autoplay: raw?.autoplay !== false,
+            loop: raw?.loop !== false,
+            muted: raw?.muted !== false,
+        });
+    }
+
+    return result.length ? result : defaultCategoryLibrarySettings.media_slots.map(slot => ({...slot}));
+}
+
+function normalizeCategoryLibrarySettings(raw: Partial<CategoryLibrarySettings> = {}): CategoryLibrarySettings {
+    return {
+        enabled: booleanSetting(raw.enabled, defaultCategoryLibrarySettings.enabled),
+        auto_create: booleanSetting(raw.auto_create, defaultCategoryLibrarySettings.auto_create),
+        fetch_cover: booleanSetting(raw.fetch_cover, defaultCategoryLibrarySettings.fetch_cover),
+        fetch_steam_wallpaper: booleanSetting(raw.fetch_steam_wallpaper, defaultCategoryLibrarySettings.fetch_steam_wallpaper),
+        auto_theme_color: booleanSetting(raw.auto_theme_color, defaultCategoryLibrarySettings.auto_theme_color),
+        apply_theme_color: booleanSetting(raw.apply_theme_color, defaultCategoryLibrarySettings.apply_theme_color),
+        apply_media: booleanSetting(raw.apply_media, defaultCategoryLibrarySettings.apply_media),
+        apply_custom_css: booleanSetting(raw.apply_custom_css, defaultCategoryLibrarySettings.apply_custom_css),
+        apply_obs_filters: booleanSetting((raw as any).apply_obs_filters, defaultCategoryLibrarySettings.apply_obs_filters),
+        apply_channel_points: booleanSetting((raw as any).apply_channel_points, defaultCategoryLibrarySettings.apply_channel_points),
+        media_slots: normalizeCategoryLibraryMediaSlots((raw as any).media_slots ?? (raw as any).custom_media),
+    };
+}
+
 function normalizeGiveawaySettings(rawGiveawaySettings: Partial<GiveawaySettings> = {}): GiveawaySettings {
     const giveawayCommand = String(
         rawGiveawaySettings.giveawayCommand
@@ -390,6 +478,20 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
         .toLowerCase();
     const language = requestedLanguage === "de" ? "de" : "en";
 
+    const rawCategoryLibraryValue: any = (rawSystemConfig as any).category_library
+        ?? (rawSystemConfig as any).categoryLibrary;
+    const rawCategoryLibrary: Partial<CategoryLibrarySettings> = typeof rawCategoryLibraryValue === "boolean"
+        ? {enabled: rawCategoryLibraryValue}
+        : {
+            ...(rawCategoryLibraryValue && typeof rawCategoryLibraryValue === "object" ? rawCategoryLibraryValue : {}),
+            ...((rawSystemConfig as any).category_library_enabled !== undefined
+                ? {enabled: (rawSystemConfig as any).category_library_enabled}
+                : {}),
+            ...((rawSystemConfig as any).categoryLibraryEnabled !== undefined
+                ? {enabled: (rawSystemConfig as any).categoryLibraryEnabled}
+                : {}),
+        };
+
     return {
         language,
         touch_wallpaper: typeof rawSystemConfig.touch_wallpaper === "string" ? rawSystemConfig.touch_wallpaper.trim() : "",
@@ -398,6 +500,7 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
         theme: normalizeThemeSettings(rawSystemConfig.theme),
         cava: normalizeCavaSettings(rawSystemConfig.cava),
         giveaway: normalizeGiveawaySettings(rawSystemConfig.giveaway),
+        category_library: normalizeCategoryLibrarySettings(rawCategoryLibrary),
     };
 }
 
@@ -482,6 +585,10 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
         giveaway: {
             ...systemConfig.giveaway,
             ...newSystemConfig.giveaway,
+        },
+        category_library: {
+            ...systemConfig.category_library,
+            ...newSystemConfig.category_library,
         },
         cava: newSystemConfig.cava
             ? {
@@ -569,6 +676,19 @@ export function updateTtsSettings(newTtsSettings: Partial<TtsSettings>) {
         tts: {
             ...systemConfig.tts,
             ...newTtsSettings,
+        },
+    });
+}
+
+export function getCategoryLibrarySettings() {
+    return systemConfig.category_library;
+}
+
+export function updateCategoryLibrarySettings(newSettings: Partial<CategoryLibrarySettings>) {
+    return writeSystemConfig({
+        category_library: {
+            ...systemConfig.category_library,
+            ...newSettings,
         },
     });
 }

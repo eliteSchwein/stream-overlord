@@ -3,6 +3,7 @@ import {
     updateSystemConfig,
     type AssetTuneSettings,
     type GiveawaySettings,
+    type CategoryLibrarySettings,
 } from "../../helper/ConfigHelper";
 import BaseApi from "../../abstracts/BaseApi";
 
@@ -11,6 +12,7 @@ type SettingsSavePayload = {
     touch_wallpaper?: string;
     asset_tune?: Partial<AssetTuneSettings>;
     giveaway?: Partial<GiveawaySettings>;
+    category_library?: Partial<CategoryLibrarySettings>;
 };
 
 export default class SettingsSaveApi extends BaseApi {
@@ -22,12 +24,19 @@ export default class SettingsSaveApi extends BaseApi {
         const currentSettings = readSystemConfig();
         const payload = data || {};
 
-        return updateSystemConfig({
+        const result = updateSystemConfig({
             ...payload,
             asset_tune: {
                 ...currentSettings.asset_tune,
                 ...(payload.asset_tune || {}),
             },
         });
+
+        if (payload.category_library) {
+            const {emitCategoryLibraryUpdate} = await import("../../helper/CategoryLibraryHelper");
+            emitCategoryLibraryUpdate();
+        }
+
+        return result;
     }
 }

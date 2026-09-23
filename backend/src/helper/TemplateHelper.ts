@@ -15,6 +15,7 @@ import {
 import {getCachedVariables} from "./VariableHelper";
 import {getCachedTwitchData} from "./TwitchDataHelper";
 import {getIntegrationsSafe} from "./IntegrationsHelper";
+import {getCategoryLibrary, getActiveCategoryEntry} from "./CategoryLibraryHelper";
 
 export default function fillTemplate(tpl: string, data: any) {
     const ctx = getTemplateVariables(data);
@@ -137,6 +138,7 @@ export function getTemplateVariables(data: any = {}) {
         "auto_macros",
         "commands",
         "channel_points",
+        "category_library",
     ]);
     const runtimeVariables = Object.fromEntries(
         Object.entries(directPassedData).filter(([key]) => !templateRootKeys.has(key)),
@@ -320,6 +322,10 @@ export function getTemplateVariables(data: any = {}) {
 
         systeminfo: getSystemComponents(),
         giveaway: getGiveaway(),
+        category_library: {
+            ...getCategoryLibrary(),
+            active: getActiveCategoryEntry(),
+        },
 
         obs,
         yolobox,

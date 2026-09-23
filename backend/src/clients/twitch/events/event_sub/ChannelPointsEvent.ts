@@ -14,7 +14,6 @@ import {
     getConfiguredChannelPoints,
     updateChannelPoints
 } from "../../../../helper/ChannelPointHelper";
-import {getGameInfoData} from "../../../website/WebsiteClient";
 import {stripEmotes} from "../../../../helper/DataHelper";
 import {getAssetConfig} from "../../../../helper/AssetHelper";
 
@@ -33,8 +32,6 @@ export default class ChannelPointsEvent extends BaseEvent {
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id);
         const rewardNames = presentChannelPoints.map(reward => reward.title);
         const configChannelPoints = getConfiguredChannelPoints();
-        const gameData = await getGameInfoData();
-        const gameChannelPoints = gameData?.channel_points ?? [];
 
         for (const channelPoint of this.channelPoints) {
             if (typeof channelPoint.getTitle !== "function") continue;
@@ -65,19 +62,6 @@ export default class ChannelPointsEvent extends BaseEvent {
                 cost: typeof channelPoint.cost === "number" ? channelPoint.cost : 992,
                 userInputRequired: channelPoint.input_required === true,
                 autoFulfill: channelPoint.auto_accept === true,
-            });
-        }
-
-        for (const channelPoint of gameChannelPoints) {
-            if (!channelPoint?.name) continue;
-            if (rewardNames.includes(channelPoint.name)) continue;
-
-            logNotice(`create website channel point: ${channelPoint.name}`);
-
-            await this.bot.api.channelPoints.createCustomReward(primaryChannel.id, {
-                title: channelPoint.name,
-                cost: typeof channelPoint.cost === "number" ? channelPoint.cost : 993,
-                userInputRequired: channelPoint.input_required === true,
             });
         }
 
@@ -137,22 +121,6 @@ export default class ChannelPointsEvent extends BaseEvent {
 
         if (configChannelPoint) {
             await this.handleConfiguredChannelPoint(configChannelPoint, event, eventUuid, "file");
-            return;
-        }
-
-        const gameData = await getGameInfoData();
-        const gameChannelPoint = (gameData?.channel_points ?? []).find(channelPoint => channelPoint?.name === event.rewardTitle);
-
-        if (gameChannelPoint) {
-            await this.handleConfiguredChannelPoint({
-                label: gameChannelPoint.name,
-                asset: gameChannelPoint.asset,
-                macro: gameChannelPoint.macro,
-                auto_accept: gameChannelPoint.auto_accept,
-                strip_emotes: gameChannelPoint.strip_emotes,
-                input_required: gameChannelPoint.input_required,
-                bypass_interaction_queue: gameChannelPoint.bypass_interaction_queue,
-            }, event, eventUuid, "api");
             return;
         }
 

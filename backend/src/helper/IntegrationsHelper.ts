@@ -76,6 +76,10 @@ export type NeopixelIntegration = {
     heartbeat_index?: number;
 };
 
+export type SteamIntegration = {
+    api_key?: string;
+};
+
 export type TwitchIntegration = {
     client_id?: string;
     client_secret?: string;
@@ -123,6 +127,7 @@ export type Integrations = {
     yolobox?: YoloboxIntegration;
     neopixel?: Record<string, NeopixelIntegration>;
     ollama?: OllamaIntegration;
+    steam?: SteamIntegration;
 };
 
 export type SafeObsIntegration = Omit<ObsIntegration, "password" | "connected"> & {
@@ -146,6 +151,9 @@ export type SafeIntegrations = {
     obs: Record<string, SafeObsIntegration>;
     yolobox: SafeYoloboxIntegration;
     neopixel: Record<string, NeopixelIntegration>;
+    steam: {
+        has_api_key: boolean;
+    };
     ollama: {
         enabled: boolean;
         model: string;
@@ -278,6 +286,9 @@ export function getIntegrationsSafe(): SafeIntegrations {
             connected: runtimeState.yoloboxConnected,
         },
         neopixel: safeNeopixel,
+        steam: {
+            has_api_key: Boolean(integrations.steam?.api_key),
+        },
         ollama: (() => {
             const integration = getOllamaIntegration();
             const provider = integration.external_provider ?? "ollama";
@@ -313,6 +324,24 @@ export function emitIntegrationsUpdate() {
     getWebsocketServer().send("notify_integrations_update", getIntegrationsSafe());
 }
 
+
+
+export function getSteamIntegration(): SteamIntegration {
+    return readIntegrations().steam ?? {};
+}
+
+export function setSteamApiKey(apiKey: string) {
+    const integrations = readIntegrations();
+    const normalized = String(apiKey ?? "").trim();
+
+    integrations.steam ??= {};
+    if (normalized) integrations.steam.api_key = normalized;
+    else delete integrations.steam.api_key;
+
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+    return getIntegrationsSafe().steam;
+}
 
 export function getTwitchIntegration() {
     return readIntegrations().twitch ?? {};
