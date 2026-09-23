@@ -15,7 +15,7 @@ import {
 import {getCachedVariables} from "./VariableHelper";
 import {getCachedTwitchData} from "./TwitchDataHelper";
 import {getIntegrationsSafe} from "./IntegrationsHelper";
-import {getCategoryLibrary, getActiveCategoryEntry} from "./CategoryLibraryHelper";
+import {getCategoryLibrary, getActiveCategoryEntry, getActiveCategoryPayload} from "./CategoryLibraryHelper";
 
 export default function fillTemplate(tpl: string, data: any) {
     const ctx = getTemplateVariables(data);
@@ -139,6 +139,7 @@ export function getTemplateVariables(data: any = {}) {
         "commands",
         "channel_points",
         "category_library",
+        "category",
     ]);
     const runtimeVariables = Object.fromEntries(
         Object.entries(directPassedData).filter(([key]) => !templateRootKeys.has(key)),
@@ -326,6 +327,18 @@ export function getTemplateVariables(data: any = {}) {
             ...getCategoryLibrary(),
             active: getActiveCategoryEntry(),
         },
+        category: (() => {
+            const activePayload = getActiveCategoryPayload();
+            const active = activePayload.category;
+            if (!active) return null;
+
+            return {
+                ...active,
+                effective_media: activePayload.effective_media,
+                effective_obs_filters: activePayload.effective_obs_filters,
+                active_channel_points: activePayload.active_channel_points,
+            };
+        })(),
 
         obs,
         yolobox,
