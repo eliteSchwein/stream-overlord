@@ -30,7 +30,7 @@ import {getConfiguredEventIndex} from "../../helper/EventHelper";
 import {getDynamicData} from "../../helper/DynamicDataHelper";
 import {getSpeedtestState} from "../../helper/SpeedtestHelper";
 import {getInteractionQueue} from "../../helper/InteractionHelper";
-import {getActiveCategoryMediaNotifications, getActiveCategoryPayload, getActiveCategoryStylePayload, getCategoryLibrary} from "../../helper/CategoryLibraryHelper";
+import {getActiveCategoryMediaReplayNotifications, getActiveCategoryPayload, getActiveCategoryStylePayload, getCategoryLibrary} from "../../helper/CategoryLibraryHelper";
 
 
 export default class WebsocketServer {
@@ -274,7 +274,9 @@ export default class WebsocketServer {
                 this.send("notify_category_library_update", getCategoryLibrary(), client)
                 this.send("notify_category_active", getActiveCategoryPayload(), client)
                 this.send("notify_category_style_update", getActiveCategoryStylePayload(), client)
-                for (const media of getActiveCategoryMediaNotifications()) {
+                // Fresh overlays receive an authoritative category-media snapshot:
+                // clear all category-owned targets first, then replay the active/fallback media.
+                for (const media of getActiveCategoryMediaReplayNotifications()) {
                     this.send("notify_media_update", media, client)
                 }
 

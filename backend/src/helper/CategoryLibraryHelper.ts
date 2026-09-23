@@ -809,6 +809,33 @@ export function getActiveCategoryMediaNotifications() {
     }));
 }
 
+/**
+ * Full, authoritative media state for a freshly registered websocket client.
+ * Clear every category-owned target first, then replay the currently effective
+ * category media. This prevents stale media surviving an overlay reconnect.
+ */
+export function getActiveCategoryMediaReplayNotifications() {
+    const settings = currentCategoryLibrarySettings();
+    const targets = new Set<string>(["category-background"]);
+
+    for (const slot of settings.media_slots ?? []) {
+        const target = slot.target || slot.orientation || slot.name || "default";
+        targets.add(`category-${target}`);
+    }
+
+    for (const media of getActiveCategoryMediaNotifications()) {
+        if (media?.target) targets.add(media.target);
+    }
+
+    const clears = [...targets].map(target => ({
+        media: "clear_media",
+        target,
+    }));
+
+    if (!settings.enabled || !settings.apply_media) return clears;
+    return [...clears, ...getActiveCategoryMediaNotifications()];
+}
+
 export async function activateCategory(categoryId: string | number) {
     const id = safeCategoryId(categoryId);
     const entry = markCategoryActive(id);
