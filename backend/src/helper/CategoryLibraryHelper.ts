@@ -628,31 +628,55 @@ async function ensureThemeColor(entry: CategoryLibraryEntry) {
 }
 
 function findMediaSource(entry: CategoryLibraryEntry): {entry: CategoryLibraryEntry; media: ResolvedCategoryMediaEntry[]} | null {
-    const ownMedia = resolvedCustomMedia(entry);
-    if (ownMedia.length) return {entry, media: ownMedia};
+    const media: ResolvedCategoryMediaEntry[] = [];
 
-    const fallback = Object.values(readLibrary().categories)
-        .find(item => item.use_as_media_fallback && resolvedCustomMedia(item).length > 0);
-    if (fallback) return {entry: fallback, media: resolvedCustomMedia(fallback)};
-
-    const wallpaperPath = entry.wallpaper_path || entry.steam_wallpaper_path;
-    if (wallpaperPath) {
-        return {
-            entry,
-            media: [{
-                name: entry.wallpaper_path ? "wallpaper" : "steam-wallpaper",
-                path: wallpaperPath,
-                target: "background",
-                orientation: "horizontal",
-                type: videoRegex.test(wallpaperPath) ? "video" : "image",
-                autoplay: true,
-                loop: true,
-                muted: true,
-            }],
-        };
+    // Cover is its own media target so overlays can explicitly show the
+    // category/box art separately from the wallpaper and slot media.
+    if (entry.cover_path) {
+        media.push({
+            name: "cover",
+            path: entry.cover_path,
+            target: "cover",
+            orientation: "vertical",
+            type: videoRegex.test(entry.cover_path) ? "video" : "image",
+            autoplay: true,
+            loop: true,
+            muted: true,
+        });
     }
 
-    return null;
+    // Wallpaper is an independent category media target. Do not make it
+    // mutually exclusive with custom slots such as horizontal/vertical.
+    const wallpaperPath = entry.wallpaper_path || entry.steam_wallpaper_path;
+    if (wallpaperPath) {
+        media.push({
+            name: entry.wallpaper_path ? "wallpaper" : "steam-wallpaper",
+            path: wallpaperPath,
+            target: "background",
+            orientation: "horizontal",
+            type: videoRegex.test(wallpaperPath) ? "video" : "image",
+            autoplay: true,
+            loop: true,
+            muted: true,
+        });
+    }
+
+    const ownMedia = resolvedCustomMedia(entry);
+    if (ownMedia.length) {
+        media.push(...ownMedia);
+        return media.length ? {entry, media} : null;
+    }
+
+    // If the active category has no custom slot media, inherit those slots
+    // from the configured fallback category while keeping its own wallpaper.
+    const fallback = Object.values(readLibrary().categories)
+        .find(item => item.use_as_media_fallback && resolvedCustomMedia(item).length > 0);
+    if (fallback) {
+        media.push(...resolvedCustomMedia(fallback));
+        return {entry: fallback, media};
+    }
+
+    return media.length ? {entry, media} : null;
 }
 
 function clearActiveMedia() {
@@ -816,7 +840,7 @@ export function getActiveCategoryMediaNotifications() {
  */
 export function getActiveCategoryMediaReplayNotifications() {
     const settings = currentCategoryLibrarySettings();
-    const targets = new Set<string>(["category-background"]);
+    const targets = new Set<string>(["category-background", "category-cover"]);
 
     for (const slot of settings.media_slots ?? []) {
         const target = slot.target || slot.orientation || slot.name || "default";
