@@ -65,7 +65,7 @@
     "stacktrace-js": "^2.0.2",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2",
-    "undici": "8.10.2",
+    "undici": "8.11.0",
     "uuid": "^14.0.2",
     "websocket-ts": "^2.3.0",
     "ws": "^8.21.3"
@@ -75,9 +75,9 @@
     "js-yaml": "^5.4.2",
     "multer": "^2.4.0",
     "redis": "^6.2.1",
-    "sass": "^1.104.1",
+    "sass": "^1.105.0",
     "sharp": "^0.35.4",
-    "systeminformation": "^5.33.12",
+    "systeminformation": "^5.33.13",
     "tesmart-api": "^1.0.0"
   },
   "allowScripts": {

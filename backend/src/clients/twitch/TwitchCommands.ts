@@ -88,6 +88,8 @@ function atomicWriteFileSync(filePath: string, content: string | Buffer, encodin
 
 type ConfigParam = {
     name: string;
+    label?: string;
+    displayName?: string;
     type: "number" | "string" | "subcommand" | "user" | "all";
     required?: boolean;
     subcommands?: { name: string }[];
@@ -1298,7 +1300,7 @@ async function parseConfigParams(
     const requiredParams = paramConfig.filter((p) => p.required);
 
     if (rawParam.length < requiredParams.length) {
-        await replyMissingParamError(command, rawParam, context, rawParam.length);
+        await replyMissingParamError(command, rawParam, context, rawParam.length, paramConfig[rawParam.length]);
         return { ok: false };
     }
 
@@ -1308,7 +1310,7 @@ async function parseConfigParams(
         const data = rawParam.join(" ");
 
         if (firstParamOptions.required !== false && data.trim() === "") {
-            await replyParamSyntaxError(command, rawParam, context, 0, "Text");
+            await replyParamSyntaxError(command, rawParam, context, 0, firstParamOptions);
             return { ok: false };
         }
 
@@ -1327,7 +1329,7 @@ async function parseConfigParams(
             const number = Number(paramPartial);
 
             if (isNaN(number)) {
-                await replyParamSyntaxError(command, rawParam, context, paramIndex, "Nummer");
+                await replyParamSyntaxError(command, rawParam, context, paramIndex, paramOptions);
                 return { ok: false };
             }
 
@@ -1343,7 +1345,7 @@ async function parseConfigParams(
             const user = await bot.api.users.getUserByName(userName);
 
             if (!user) {
-                await replyParamSyntaxError(command, rawParam, context, paramIndex, "Benutzer");
+                await replyParamSyntaxError(command, rawParam, context, paramIndex, paramOptions);
                 return { ok: false };
             }
 
@@ -1375,7 +1377,7 @@ async function parseConfigParams(
             const validSubcommands = (paramOptions.subcommands ?? []).map((s) => s.name);
 
             if (!validSubcommands.includes(paramPartial)) {
-                await replyInvalidSubcommand(command, rawParam, context, paramIndex, validSubcommands);
+                await replyInvalidSubcommand(command, rawParam, context, paramIndex, validSubcommands, paramOptions);
                 return { ok: false };
             }
 
@@ -1425,18 +1427,40 @@ function normalizeArray(value: any): any[] {
     return [];
 }
 
+function getConfigParamDisplayName(paramOptions: ConfigParam | undefined, index: number) {
+    return String(paramOptions?.label ?? paramOptions?.displayName ?? paramOptions?.name ?? `param${index + 1}`);
+}
+
+function getConfigParamRequirement(paramOptions: ConfigParam | undefined) {
+    const type = String(paramOptions?.type ?? "string");
+
+    if (type === "user") return translate("commands.param_requirement_user");
+    if (type === "number") return translate("commands.param_requirement_number");
+    if (type === "subcommand") {
+        const subcommands = (paramOptions?.subcommands ?? []).map((entry) => entry.name).join(", ");
+        return translate("commands.param_requirement_subcommand", {subcommands});
+    }
+
+    return translate("commands.param_requirement_text");
+}
+
 async function replyInvalidSubcommand(
     command: string,
     param: string[],
     context: BotCommandContext,
     index: number,
-    validSubcommands: string[]
+    validSubcommands: string[],
+    paramOptions?: ConfigParam,
 ) {
     logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${command} ${param.join(" ")}`);
 
     await replyWithFallback(
         context,
-        `der Parameter ${index + 1} ist ungültig, valide Unterbefehle sind: ${validSubcommands.join(", ")}`
+        translate("commands.invalid_param_detail", {
+            command,
+            name: getConfigParamDisplayName(paramOptions, index),
+            requirement: translate("commands.param_requirement_subcommand", {subcommands: validSubcommands.join(", ")}),
+        }),
     );
 }
 
@@ -1445,12 +1469,17 @@ async function replyMissingParamError(
     param: string[],
     context: BotCommandContext,
     index: number,
+    paramOptions?: ConfigParam,
 ) {
     logWarn(`missing param at ${index} by ${context.userName} in ${context.broadcasterName}: ${command} ${param.join(" ")}`);
 
     await replyWithFallback(
         context,
-        `der Parameter ${index + 1} wird benötigt!`
+        translate("commands.missing_param_detail", {
+            command,
+            name: getConfigParamDisplayName(paramOptions, index),
+            requirement: getConfigParamRequirement(paramOptions),
+        }),
     );
 }
 
@@ -1459,13 +1488,17 @@ async function replyParamSyntaxError(
     param: string[],
     context: BotCommandContext,
     index: number,
-    type: string,
+    paramOptions?: ConfigParam,
 ) {
     logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${command} ${param.join(" ")}`);
 
     await replyWithFallback(
         context,
-        `der Parameter ${index + 1} ist ein ${type}!`
+        translate("commands.invalid_param_detail", {
+            command,
+            name: getConfigParamDisplayName(paramOptions, index),
+            requirement: getConfigParamRequirement(paramOptions),
+        }),
     );
 }
 

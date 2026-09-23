@@ -11,6 +11,7 @@ export default class SetGameCommand extends BaseCommand {
     params = [
         {
             name: 'gameName',
+            label: 'game',
             type: 'all'
         },
     ]

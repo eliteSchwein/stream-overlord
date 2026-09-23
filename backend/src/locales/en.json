@@ -6,7 +6,13 @@
     "missing_param": "parameter {index} is required!",
     "invalid_param_type": "parameter {index} must be a {type}!",
     "invalid_subcommand": "parameter {index} is invalid; valid subcommands are: {subcommands}",
-    "overview": "Available commands: {commands}"
+    "overview": "Available commands: {commands}",
+    "missing_param_detail": "!{command}: <{name}> is required — {requirement}",
+    "invalid_param_detail": "!{command}: <{name}> is invalid — {requirement}",
+    "param_requirement_text": "enter text.",
+    "param_requirement_user": "enter a Twitch user; @ at the beginning is optional.",
+    "param_requirement_number": "enter a number.",
+    "param_requirement_subcommand": "use one of: {subcommands}."
   },
   "giveaway": {
     "inactive": "There is currently no giveaway running!",

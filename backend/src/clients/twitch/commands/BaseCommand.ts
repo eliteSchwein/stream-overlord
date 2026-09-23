@@ -252,6 +252,27 @@ export default class BaseCommand {
         }
     }
 
+    private getParamDisplayName(index: number) {
+        const paramOptions: any = this.params[index] ?? {};
+        return String(paramOptions.label ?? paramOptions.displayName ?? paramOptions.name ?? `param${index + 1}`);
+    }
+
+    private getParamRequirement(index: number) {
+        const paramOptions: any = this.params[index] ?? {};
+        const type = String(paramOptions.type ?? "string");
+
+        if (type === "user") return translate("commands.param_requirement_user");
+        if (type === "number") return translate("commands.param_requirement_number");
+        if (type === "subcommand") {
+            const values = Array.isArray(paramOptions.subcommands)
+                ? paramOptions.subcommands.map((entry: any) => entry?.name).filter(Boolean).join(", ")
+                : "";
+            return translate("commands.param_requirement_subcommand", {subcommands: values});
+        }
+
+        return translate("commands.param_requirement_text");
+    }
+
     protected async replyInvalidSubcommand(
         param: string[],
         context: BotCommandContext,
@@ -259,17 +280,29 @@ export default class BaseCommand {
         validSubcommands: string[]
     ) {
         logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
-        await this.commandReply(context, translate("commands.invalid_subcommand", {index: index + 1, subcommands: validSubcommands.join(", ")}));
+        await this.commandReply(context, translate("commands.invalid_param_detail", {
+            command: this.command,
+            name: this.getParamDisplayName(index),
+            requirement: translate("commands.param_requirement_subcommand", {subcommands: validSubcommands.join(", ")}),
+        }));
     }
 
     protected async replyMissingParamError(param: string[], context: BotCommandContext, index: number) {
         logWarn(`missing param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
-        await this.commandReply(context, translate("commands.missing_param", {index: index + 1}));
+        await this.commandReply(context, translate("commands.missing_param_detail", {
+            command: this.command,
+            name: this.getParamDisplayName(index),
+            requirement: this.getParamRequirement(index),
+        }));
     }
 
     protected async replyParamSyntaxError(param: string[], context: BotCommandContext, index: number, type: string) {
         logWarn(`invalid param at ${index} by ${context.userName} in ${context.broadcasterName}: ${this.command} ${param.join(" ")}`);
-        await this.commandReply(context, translate("commands.invalid_param_type", {index: index + 1, type}));
+        await this.commandReply(context, translate("commands.invalid_param_detail", {
+            command: this.command,
+            name: this.getParamDisplayName(index),
+            requirement: this.getParamRequirement(index),
+        }));
     }
 
     protected async replyPermissionError(context: BotCommandContext) {
