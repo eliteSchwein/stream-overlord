@@ -160,6 +160,7 @@ export { default as UpdateAllApi } from "./System/UpdateAllApi";
 export { default as UpdateApi } from "./System/UpdateApi";
 export { default as UpdateRefreshApi } from "./System/UpdateRefreshApi";
 export { default as UpdateStateApi } from "./System/UpdateStateApi";
+export { default as RandomClipsMediaApi } from "./Twitch/RandomClipsMediaApi";
 export { default as VariableDeleteApi } from "./Variables/VariableDeleteApi";
 export { default as VariableGetApi } from "./Variables/VariableGetApi";
 export { default as VariableListApi } from "./Variables/VariableListApi";

@@ -4,6 +4,7 @@ import {getPrimaryChannel} from "../ConfigHelper";
 import {logRegular, logWarn} from "../LogHelper";
 import fillTemplate from "../TemplateHelper";
 import {sleep} from "../../../../helper/GeneralHelper";
+import {disableRandomClips, enableRandomClips} from "../RandomClipsHelper";
 
 export default class TwitchMacroTask extends BaseMacroTask {
     channel = "twitch";
@@ -210,42 +211,93 @@ export default class TwitchMacroTask extends BaseMacroTask {
 
                 case "enable_random_clip": {
                     const channel = text(data.channel)
-                        || String(primaryChannel.name ?? primaryChannel.displayName ?? primaryChannel.login ?? "");
+                        || String(
+                            primaryChannel.name
+                            ?? primaryChannel.displayName
+                            ?? primaryChannel.login
+                            ?? ""
+                        );
 
                     if (!channel) {
                         logWarn("twitch enable_random_clip requires a channel");
                         return;
                     }
 
-                    const params = new URLSearchParams({
-                        mode: data.mode === "top" ? "top" : "random",
-                        info: String(data.info === true),
-                        volume: String(Math.min(100, Math.max(0, number(data.volume, 50) ?? 50))),
-                        max_length: String(Math.min(60, Math.max(5, number(data.max_length, 60) ?? 60))),
-                        filter_long_videos: String(data.filter_long_videos === true),
-                        show_timer: String(data.show_timer === true),
-                        recent_clips: String(Math.max(0, number(data.recent_clips, 0) ?? 0)),
-                        channel,
-                    });
+                    const result = await enableRandomClips(
+                        api,
+                        this.websocket,
+                        {
+                            channel,
 
-                    const url = `https://streamgood.gg/clips/player?${params.toString()}`;
+                            // New option. Defaults to rotate for backwards
+                            // compatibility with the old enable_random_clip task.
+                            playbackMode:
+                                data.playback_mode === "single"
+                                    ? "single"
+                                    : "rotate",
 
-                    this.websocket.send("notify_random_clips", {
-                        action: "enable",
-                        url,
-                    });
+                            // Keep the existing `mode` field as clip selection.
+                            selectionMode:
+                                data.mode === "top"
+                                    ? "top"
+                                    : "random",
 
-                    storeResult({
-                        url,
-                        channel,
-                    });
+                            volume:
+                                Math.min(
+                                    100,
+                                    Math.max(
+                                        0,
+                                        number(data.volume, 50) ?? 50
+                                    )
+                                ),
+
+                            maxLength:
+                                Math.min(
+                                    60,
+                                    Math.max(
+                                        5,
+                                        number(data.max_length, 60) ?? 60
+                                    )
+                                ),
+
+                            filterLongVideos:
+                                data.filter_long_videos === true,
+
+                            showInfo:
+                                data.info === true,
+
+                            showTimer:
+                                data.show_timer === true,
+
+                            // 0 = all time, otherwise number of days.
+                            recentClipsDays:
+                                Math.max(
+                                    0,
+                                    number(data.recent_clips, 0) ?? 0
+                                ),
+                        }
+                    );
+
+                    if (result) {
+                        storeResult({
+                            ...result,
+                            channel,
+                            playback_mode:
+                                data.playback_mode === "single"
+                                    ? "single"
+                                    : "rotate",
+                            selection:
+                                data.mode === "top"
+                                    ? "top"
+                                    : "random",
+                        });
+                    }
+
                     break;
                 }
 
                 case "disable_random_clip": {
-                    this.websocket.send("notify_random_clips", {
-                        action: "disable",
-                    });
+                    disableRandomClips(this.websocket);
                     break;
                 }
 
