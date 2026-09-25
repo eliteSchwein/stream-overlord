@@ -210,23 +210,28 @@ function sendPcmChunk(runtime: CableRuntime, chunk: Buffer) {
 }
 
 function processCaptureBytes(runtime: CableRuntime, data: Buffer) {
-    const buffer = runtime.captureRemainder.length ? Buffer.concat([runtime.captureRemainder, data]) : data;
-    const alignedLength = buffer.length - (buffer.length % bytesPerFrame);
-    if (alignedLength <= 0) {
-        runtime.captureRemainder = buffer;
-        return;
-    }
+    // stdout chunk boundaries from ffmpeg are arbitrary and often arrive in large
+    // bursts.  Do NOT forward those boundaries to the WebSocket client: doing so
+    // causes a burst/gap pattern that repeatedly underruns/overruns the browser's
+    // audio jitter buffer.
+    //
+    // Keep all bytes until we have a complete, fixed-duration PCM packet.  With
+    // 48 kHz, stereo, signed 16-bit PCM and 20 ms packets this is exactly 3840
+    // bytes (960 stereo frames).
+    runtime.captureRemainder = runtime.captureRemainder.length
+        ? Buffer.concat([runtime.captureRemainder, data])
+        : Buffer.from(data);
 
-    const aligned = buffer.subarray(0, alignedLength);
-    runtime.captureRemainder = buffer.subarray(alignedLength);
+    while (runtime.captureRemainder.length >= targetChunkBytes) {
+        const chunk = runtime.captureRemainder.subarray(0, targetChunkBytes);
+        sendPcmChunk(runtime, chunk);
 
-    let offset = 0;
-    while (offset < aligned.length) {
-        let end = Math.min(aligned.length, offset + targetChunkBytes);
-        end -= (end - offset) % bytesPerFrame;
-        if (end <= offset) break;
-        sendPcmChunk(runtime, aligned.subarray(offset, end));
-        offset = end;
+        // Keep a copy of the remainder. A subarray would retain the complete
+        // previous allocation and can make long-running streams unnecessarily
+        // hold large ffmpeg stdout buffers in memory.
+        runtime.captureRemainder = Buffer.from(
+            runtime.captureRemainder.subarray(targetChunkBytes)
+        );
     }
 }
 
