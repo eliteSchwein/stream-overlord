@@ -1,0 +1,21 @@
+logLevel: info
+
+# RTSP publisher input
+rtsp: yes
+rtspAddress: 0.0.0.0:8554
+
+# WebRTC / WHEP
+webrtc: yes
+webrtcAddress: 0.0.0.0:8889
+
+# UDP media listener used by WebRTC
+webrtcLocalUDPAddress: 0.0.0.0:8189
+
+# Allow browser/OBS access from other hosts.
+webrtcAllowOrigins: ['*']
+
+# Streambot publishes dynamic paths such as:
+#   rtsp://127.0.0.1:8554/streambot/overlay-1
+paths:
+  all:
+    source: publisher
