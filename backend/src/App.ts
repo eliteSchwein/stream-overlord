@@ -34,6 +34,7 @@ import {stopOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
 import {setRestoreNotifier} from "./helper/BackupRestoreHelper";
 import {initGiveaway} from "./helper/GiveawayHelper";
 import {initCategoryLibrary} from "./helper/CategoryLibraryHelper";
+import {initVirtualAudioCable} from "./helper/VirtualAudioCableHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -145,6 +146,9 @@ async function init() {
 
     stage = 'starting_audio'
     logRegular('load audio outputs')
+    // Virtual cable sinks must exist before the normal audio routing is restored,
+    // because alert/tts/music may be linked to them just like physical outputs.
+    await initVirtualAudioCable(websocketServer)
     await initAudio()
 
     stage = 'updating_system_information'

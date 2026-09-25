@@ -1,13 +1,24 @@
 import {execFile, spawn} from "child_process";
 import {existsSync, readFileSync, writeFileSync} from "fs";
 import path from "path";
-import {getConfig, getSystemConfigDirectory} from "./ConfigHelper";
+import {
+    getConfig,
+    getSystemConfigDirectory,
+    getVirtualAudioCableSettings,
+    updateVirtualAudioCableSettings,
+    type VirtualAudioCableSettings,
+} from "./ConfigHelper";
 import getWebsocketServer from "../App";
 import {execute} from "./CommandHelper";
 import {logRegular, logWarn} from "./LogHelper";
 import {updateMusicVolumeFromAudio} from "./MusicHelper";
 import {sleep} from "../../../helper/GeneralHelper";
 import {triggerConfiguredEvent} from "./EventHelper";
+import {
+    getVirtualAudioCableSinkName,
+    isVirtualAudioCableSink,
+    syncVirtualAudioCableConfiguration,
+} from "./VirtualAudioCableHelper";
 
 const audioVolumeSavePath = path.join(getSystemConfigDirectory(), "streambot-audio.json");
 const audioPresetSavePath = path.join(getSystemConfigDirectory(), "streambot-audio-presets.json");
@@ -85,6 +96,58 @@ function getAudioConfigWithDefaults(): Record<string, any> {
     return mergedConfig;
 }
 
+function applyConfiguredVirtualCableRouting(
+    audioInterface: string,
+    linkedOutputs: string[],
+): string[] {
+    let result = normalizeLinkedOutputs(linkedOutputs);
+
+    for (const cable of getVirtualAudioCableSettings()) {
+        if (!Array.isArray(cable.channels)) continue;
+
+        const sinkName = getVirtualAudioCableSinkName(cable.id);
+        result = result.filter(output => output !== sinkName);
+
+        if (cable.enabled && cable.channels.includes(audioInterface)) {
+            result.push(sinkName);
+        }
+    }
+
+    return normalizeLinkedOutputs(result);
+}
+
+export async function syncVirtualAudioCableRouting(): Promise<void> {
+    const tasks: Promise<void>[] = [];
+
+    for (const key of Object.keys(audioData)) {
+        const current = audioData[key];
+        if (!current || !isEnabled(current.pipewire_sink)) continue;
+
+        const previousOutputs = normalizeLinkedOutputs(
+            current.linked_outputs ?? current.linked_output
+        );
+        const linkedOutputs = applyConfiguredVirtualCableRouting(key, previousOutputs);
+
+        if (JSON.stringify(previousOutputs) === JSON.stringify(linkedOutputs)) continue;
+
+        current.linked_outputs = linkedOutputs;
+        current.linked_output = linkedOutputs[0] ?? null;
+        audioData[key] = current;
+
+        const wantedVolume = Number(current.current_volume ?? current.default_volume ?? 0.2);
+        tasks.push((async () => {
+            await setupPipewireAudioSink(key, linkedOutputs, false);
+            await setPipewireSinkOutputVolume(key, wantedVolume);
+        })());
+    }
+
+    await Promise.all(tasks);
+    saveAudioVolumes();
+    getWebsocketServer()?.send("notify_audio_update", audioData);
+    await refreshAudioOutputs(true);
+    getWebsocketServer()?.send("notify_audio_outputs_update", audioOutputs);
+}
+
 export async function initAudio() {
     const config = getAudioConfigWithDefaults();
     const savedVolumes = loadSavedAudioVolumes();
@@ -104,6 +167,8 @@ export async function initAudio() {
             config[key]?.linked_output ??
             null,
         );
+
+        linkedOutputs = applyConfiguredVirtualCableRouting(key, linkedOutputs);
 
         if (
             isEnabled(config[key]?.pipewire_sink) &&
@@ -456,6 +521,7 @@ type AudioPreset = {
     interface_states?: Record<string, AudioPresetVolumeState>;
     physical_outputs?: Record<string, AudioPresetVolumeState>;
     outputs?: Record<string, string[]>;
+    virtual_audio_cables?: VirtualAudioCableSettings[];
 };
 
 function loadAudioPresets(): Record<string, AudioPreset> {
@@ -583,6 +649,10 @@ export async function saveAudioPreset(
 
     if (includeOutputs) {
         preset.outputs = {};
+        preset.virtual_audio_cables = getVirtualAudioCableSettings().map(cable => ({
+            ...cable,
+            ...(Array.isArray(cable.channels) ? {channels: [...cable.channels]} : {}),
+        }));
 
         const selectedOutputInterfaces = outputInterfaces.length > 0
             ? Array.from(new Set(outputInterfaces.map(value => String(value).trim()).filter(Boolean)))
@@ -632,6 +702,11 @@ export async function applyAudioPreset(name: string) {
     const preset = audioPresets[presetName];
 
     if (!preset) return {error: "unknown preset"};
+
+    if (Array.isArray(preset.virtual_audio_cables)) {
+        updateVirtualAudioCableSettings(preset.virtual_audio_cables);
+        await syncVirtualAudioCableConfiguration();
+    }
 
     const interfaces = new Set<string>([
         ...Object.keys(preset.outputs ?? {}),
@@ -1103,11 +1178,15 @@ export async function getAvailableAudioOutputs() {
             const detail = details[name] ?? {};
 
             if (!name) continue;
-            if (isStreambotAudioSink(name, detail.description)) continue;
+            if (isStreambotAudioSink(name, detail.description) && !isVirtualAudioCableSink(name)) continue;
 
             const isDefault = defaultSink === name;
             const state = detail.state ?? null;
             const active = isDefault && String(state ?? "").toUpperCase() === "RUNNING";
+
+            const virtualCable = getVirtualAudioCableSettings().find(
+                cable => getVirtualAudioCableSinkName(cable.id) === name
+            );
 
             outputs.push({
                 id,
@@ -1123,6 +1202,12 @@ export async function getAvailableAudioOutputs() {
                 is_active_default: active,
                 active,
                 linked_interfaces: getLinkedInterfacesForOutput(name, activePipewireLinks),
+                virtual_audio_cable: Boolean(virtualCable),
+                virtual_audio_cable_id: virtualCable?.id ?? null,
+                virtual_audio_cable_name: virtualCable?.name ?? null,
+                virtual_audio_cable_channels: Array.isArray(virtualCable?.channels)
+                    ? [...virtualCable.channels]
+                    : null,
             });
         }
     } catch (error) {

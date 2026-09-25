@@ -4,6 +4,7 @@ import {
     type AssetTuneSettings,
     type GiveawaySettings,
     type CategoryLibrarySettings,
+    type VirtualAudioCableSettings,
 } from "../../helper/ConfigHelper";
 import BaseApi from "../../abstracts/BaseApi";
 
@@ -13,6 +14,7 @@ type SettingsSavePayload = {
     asset_tune?: Partial<AssetTuneSettings>;
     giveaway?: Partial<GiveawaySettings>;
     category_library?: Partial<CategoryLibrarySettings>;
+    virtual_audio_cables?: VirtualAudioCableSettings[];
 };
 
 export default class SettingsSaveApi extends BaseApi {
@@ -35,6 +37,14 @@ export default class SettingsSaveApi extends BaseApi {
         if (payload.category_library) {
             const {emitCategoryLibraryUpdate} = await import("../../helper/CategoryLibraryHelper");
             emitCategoryLibraryUpdate();
+        }
+
+        if (payload.virtual_audio_cables) {
+            const {syncVirtualAudioCableConfiguration} = await import("../../helper/VirtualAudioCableHelper");
+            const {syncVirtualAudioCableRouting} = await import("../../helper/AudioHelper");
+
+            await syncVirtualAudioCableConfiguration();
+            await syncVirtualAudioCableRouting();
         }
 
         return result;

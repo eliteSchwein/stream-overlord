@@ -59,6 +59,16 @@ export type CategoryLibrarySettings = {
     media_slots: CategoryLibraryMediaSlot[];
 };
 
+export type VirtualAudioCableSettings = {
+    id: string;
+    name: string;
+    enabled: boolean;
+    /** Audio interfaces routed to this cable, e.g. alert/tts/music. */
+    channels?: string[];
+};
+
+const defaultVirtualAudioCableChannels = ["alert", "tts", "music"];
+
 export type GiveawaySettings = {
     giveawayCommand: string;
     progress_interval_seconds: number;
@@ -91,6 +101,7 @@ type StreambotSettings = {
     cava: CavaSettings;
     giveaway: GiveawaySettings;
     category_library: CategoryLibrarySettings;
+    virtual_audio_cables: VirtualAudioCableSettings[];
 };
 
 const defaultAssetTuneSettings: AssetTuneSettings = {
@@ -133,6 +144,15 @@ const defaultCategoryLibrarySettings: CategoryLibrarySettings = {
     ],
 };
 
+const defaultVirtualAudioCableSettings: VirtualAudioCableSettings[] = [
+    {
+        id: "overlay",
+        name: "Streambot Overlay Cable",
+        enabled: true,
+        channels: [...defaultVirtualAudioCableChannels],
+    },
+];
+
 const defaultGiveawaySettings: GiveawaySettings = {
     giveawayCommand: "ticket",
     progress_interval_seconds: 60,
@@ -163,6 +183,7 @@ let systemConfig: StreambotSettings = {
     cava: defaultCavaSettings,
     giveaway: defaultGiveawaySettings,
     category_library: defaultCategoryLibrarySettings,
+    virtual_audio_cables: defaultVirtualAudioCableSettings,
 };
 
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
@@ -214,8 +235,18 @@ function sameValue(left: unknown, right: unknown) {
 }
 
 function hasNonTtsChanges(previous: StreambotSettings, next: StreambotSettings) {
-    const {tts: _previousTts, touch_wallpaper: _previousTouchWallpaper, ...previousReloadSettings} = previous;
-    const {tts: _nextTts, touch_wallpaper: _nextTouchWallpaper, ...nextReloadSettings} = next;
+    const {
+        tts: _previousTts,
+        touch_wallpaper: _previousTouchWallpaper,
+        virtual_audio_cables: _previousVirtualAudioCables,
+        ...previousReloadSettings
+    } = previous;
+    const {
+        tts: _nextTts,
+        touch_wallpaper: _nextTouchWallpaper,
+        virtual_audio_cables: _nextVirtualAudioCables,
+        ...nextReloadSettings
+    } = next;
 
     return !sameValue(previousReloadSettings, nextReloadSettings);
 }
@@ -445,6 +476,42 @@ function normalizeCategoryLibrarySettings(raw: Partial<CategoryLibrarySettings> 
     };
 }
 
+
+function normalizeVirtualAudioCableSettings(raw: unknown): VirtualAudioCableSettings[] {
+    const source = Array.isArray(raw) ? raw : defaultVirtualAudioCableSettings;
+    const result: VirtualAudioCableSettings[] = [];
+    const used = new Set<string>();
+
+    for (const item of source) {
+        if (!item || typeof item !== "object") continue;
+        const rawItem: any = item;
+        const id = String(rawItem.id ?? rawItem.name ?? "")
+            .trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+        if (!id || used.has(id)) continue;
+        used.add(id);
+        // Migration behavior: cable definitions from the first virtual-audio
+        // implementation had no `channels` field. Those cables were intended
+        // to carry the normal Streambot mix, so migrate a missing field to all
+        // built-in audio channels. An explicitly configured [] still means
+        // "route nothing".
+        const channels: string[] = Array.isArray(rawItem.channels)
+            ? Array.from(new Set<string>(
+                rawItem.channels
+                    .map((channel: unknown) => String(channel ?? "").trim())
+                    .filter((channel: string) => Boolean(channel))
+            ))
+            : [...defaultVirtualAudioCableChannels];
+
+        result.push({
+            id,
+            name: String(rawItem.name ?? id).trim() || id,
+            enabled: booleanSetting(rawItem.enabled, true),
+            channels,
+        });
+    }
+
+    return result;
+}
 function normalizeGiveawaySettings(rawGiveawaySettings: Partial<GiveawaySettings> = {}): GiveawaySettings {
     const giveawayCommand = String(
         rawGiveawaySettings.giveawayCommand
@@ -501,6 +568,7 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
         cava: normalizeCavaSettings(rawSystemConfig.cava),
         giveaway: normalizeGiveawaySettings(rawSystemConfig.giveaway),
         category_library: normalizeCategoryLibrarySettings(rawCategoryLibrary),
+        virtual_audio_cables: normalizeVirtualAudioCableSettings((rawSystemConfig as any).virtual_audio_cables),
     };
 }
 
@@ -590,6 +658,9 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
             ...systemConfig.category_library,
             ...newSystemConfig.category_library,
         },
+        virtual_audio_cables: newSystemConfig.virtual_audio_cables !== undefined
+            ? newSystemConfig.virtual_audio_cables
+            : systemConfig.virtual_audio_cables,
         cava: newSystemConfig.cava
             ? {
                 ...systemConfig.cava,
@@ -678,6 +749,14 @@ export function updateTtsSettings(newTtsSettings: Partial<TtsSettings>) {
             ...newTtsSettings,
         },
     });
+}
+
+export function getVirtualAudioCableSettings() {
+    return systemConfig.virtual_audio_cables;
+}
+
+export function updateVirtualAudioCableSettings(cables: VirtualAudioCableSettings[]) {
+    return writeSystemConfig({virtual_audio_cables: cables});
 }
 
 export function getCategoryLibrarySettings() {

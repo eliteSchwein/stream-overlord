@@ -3,6 +3,7 @@ import {logDebug, logNotice, logWarn} from "../../../helper/LogHelper";
 import {getRandomInt, sleep} from "../../../../../helper/GeneralHelper";
 import RegisterMessage from "./messages/RegisterMessage";
 import DisconnectConnectionMessage from "./messages/DisconnectConnectionMessage";
+import RegisterVirtualAudioCableMessage from "./messages/RegisterVirtualAudioCableMessage";
 import {getUnreadyMessage, isBackendReady} from "../../../App";
 
 export default class ConnectEvent extends BaseEvent{
@@ -24,9 +25,22 @@ export default class ConnectEvent extends BaseEvent{
 
         event.on('message', async (message: any) => {
             try {
-                const data = JSON.parse(`${message}`);
+                const rawData = JSON.parse(`${message}`);
+
+                // Compatibility for the dedicated overlay audio client.
+                // It historically sends { type: "register_virtual_audio_cable", cable: "..." }
+                // instead of the regular JSON-RPC register_endpoints message.
+                const data = rawData?.type === 'register_virtual_audio_cable' && !rawData?.method
+                    ? {
+                        jsonrpc: '2.0',
+                        method: 'register_virtual_audio_cable',
+                        params: {cable: rawData.cable},
+                        id: rawData.id,
+                    }
+                    : rawData;
 
                 await new RegisterMessage(this.webSocketServer, event, this.client).handleMessage(data)
+                await new RegisterVirtualAudioCableMessage(this.webSocketServer, event, this.client).handleMessage(data)
                 await new DisconnectConnectionMessage(this.webSocketServer, event, this.client).handleMessage(data)
 
                 for(const websocketMessage of this.client.getMessageEvents()) {
