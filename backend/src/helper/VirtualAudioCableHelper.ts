@@ -1,27 +1,29 @@
 import {spawn, execFile} from "child_process";
 import {promisify} from "util";
 import type WebsocketServer from "../clients/websocket/WebsocketServer";
+import type {WebSocket} from "ws";
 import {getAssetTuneSettings, getVirtualAudioCableSettings, type VirtualAudioCableSettings} from "./ConfigHelper";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 
 const execFileAsync = promisify(execFile);
 const sampleRate = 48_000;
 const channels = 2;
-const bytesPerSample = 2;
-const bytesPerFrame = channels * bytesPerSample;
-const targetChunkMs = 20;
-const targetChunkBytes = Math.max(bytesPerFrame, Math.floor(sampleRate * (targetChunkMs / 1000)) * bytesPerFrame);
+const opusBitrate = 320_000;
+
+const mediamtxRtspBase = (process.env.STREAMBOT_MEDIAMTX_RTSP_URL || "rtsp://127.0.0.1:8554").replace(/\/+$/, "");
+const mediamtxWebRtcPort = Math.max(1, Number(process.env.STREAMBOT_MEDIAMTX_WEBRTC_PORT || 8889));
+const mediamtxPathPrefix = String(process.env.STREAMBOT_MEDIAMTX_PATH_PREFIX || "streambot")
+    .trim()
+    .replace(/^\/+|\/+$/g, "") || "streambot";
 
 type CableRuntime = {
     config: VirtualAudioCableSettings;
     sinkName: string;
-    captureProcess: ReturnType<typeof spawn> | null;
-    captureRemainder: Buffer;
-    sequence: number;
+    publisherProcess: ReturnType<typeof spawn> | null;
     restartTimer: ReturnType<typeof setTimeout> | null;
     stopping: boolean;
     sinkReady: boolean;
-    captureWanted: boolean;
+    published: boolean;
 };
 
 let websocketServer: WebsocketServer | null = null;
@@ -33,6 +35,14 @@ function sanitizeCableId(value: string): string {
         .toLowerCase()
         .replace(/[^a-z0-9_-]+/g, "-")
         .replace(/^-+|-+$/g, "") || "cable";
+}
+
+function mediaPath(id: string): string {
+    return `${mediamtxPathPrefix}/${sanitizeCableId(id)}`;
+}
+
+function publishUrl(id: string): string {
+    return `${mediamtxRtspBase}/${mediaPath(id)}`;
 }
 
 export function getVirtualAudioCableSinkName(id: string): string {
@@ -48,34 +58,60 @@ function getEnabledConfigs(): VirtualAudioCableSettings[] {
     return getVirtualAudioCableSettings().filter(cable => cable.enabled);
 }
 
+function runtimePayload(runtime: CableRuntime) {
+    return {
+        cable: runtime.config.id,
+        device: runtime.config.name,
+        sink_name: runtime.sinkName,
+        active: runtime.published,
+        sink_ready: runtime.sinkReady,
+        transport: "webrtc",
+        codec: "opus",
+        sample_rate: sampleRate,
+        channels,
+        bitrate: opusBitrate,
+        whep: {
+            port: mediamtxWebRtcPort,
+            path: `/${mediaPath(runtime.config.id)}/whep`,
+        },
+    };
+}
+
+function emitState(connection?: WebSocket) {
+    if (!websocketServer) return;
+    websocketServer.send("notify_virtual_audio_cables", {
+        cables: [...runtimes.values()].map(runtimePayload),
+    }, connection);
+}
+
 function syncRuntimeDefinitions() {
     const configs = getEnabledConfigs();
     const wanted = new Set(configs.map(config => config.id));
 
     for (const [id, runtime] of runtimes) {
         if (wanted.has(id)) continue;
-        stopCapture(runtime, "cable_removed");
+        stopPublisher(runtime, "cable_removed");
         runtimes.delete(id);
     }
 
     for (const config of configs) {
         const existing = runtimes.get(config.id);
         if (existing) {
+            const nameChanged = existing.config.name !== config.name;
             existing.config = config;
             existing.sinkName = getVirtualAudioCableSinkName(config.id);
+            if (nameChanged) existing.sinkReady = false;
             continue;
         }
 
         runtimes.set(config.id, {
             config,
             sinkName: getVirtualAudioCableSinkName(config.id),
-            captureProcess: null,
-            captureRemainder: Buffer.alloc(0),
-            sequence: 0,
+            publisherProcess: null,
             restartTimer: null,
             stopping: false,
             sinkReady: false,
-            captureWanted: false,
+            published: false,
         });
     }
 }
@@ -95,13 +131,10 @@ async function sinkExists(sinkName: string): Promise<boolean> {
 }
 
 async function cleanupRemovedVirtualSinks(): Promise<void> {
-    const wanted = new Set(
-        getEnabledConfigs().map(config => getVirtualAudioCableSinkName(config.id))
-    );
+    const wanted = new Set(getEnabledConfigs().map(config => getVirtualAudioCableSinkName(config.id)));
 
     try {
         const output = await runPactl(["list", "modules", "short"]);
-
         for (const line of output.split(/\r?\n/)) {
             const trimmed = line.trim();
             if (!trimmed || !trimmed.includes("module-null-sink")) continue;
@@ -109,7 +142,6 @@ async function cleanupRemovedVirtualSinks(): Promise<void> {
             const moduleId = trimmed.split(/\s+/)[0];
             const match = trimmed.match(/(?:^|\s)sink_name=([^\s]+)/);
             const sinkName = match?.[1]?.replace(/^['"]|['"]$/g, "");
-
             if (!moduleId || !sinkName?.startsWith("streambot_virtual_")) continue;
             if (wanted.has(sinkName)) continue;
 
@@ -170,81 +202,16 @@ async function ensureVirtualSink(runtime: CableRuntime): Promise<void> {
     logNotice(`virtual audio output ready: ${description} (${runtime.sinkName})`);
 }
 
-function notifyStart(runtime: CableRuntime) {
-    if (!websocketServer) return 0;
-    return websocketServer.send("notify_audio_stream", {
-        action: "start",
-        cable: runtime.config.id,
-        device: runtime.config.name,
-        sink_name: runtime.sinkName,
-        codec: "pcm_s16le",
-        sample_rate: sampleRate,
-        channels,
-        bytes_per_sample: bytesPerSample,
-        sequence: runtime.sequence,
-    });
-}
-
-function notifyStop(runtime: CableRuntime, reason: string) {
-    if (!websocketServer) return 0;
-    return websocketServer.send("notify_audio_stream", {
-        action: "stop",
-        cable: runtime.config.id,
-        sequence: runtime.sequence,
-        reason,
-    });
-}
-
-function sendPcmChunk(runtime: CableRuntime, chunk: Buffer) {
-    if (!websocketServer || chunk.length === 0) return;
-    runtime.sequence += 1;
-    websocketServer.send("notify_audio_stream", {
-        action: "data",
-        cable: runtime.config.id,
-        codec: "pcm_s16le",
-        sample_rate: sampleRate,
-        channels,
-        sequence: runtime.sequence,
-        data: chunk.toString("base64"),
-    });
-}
-
-function processCaptureBytes(runtime: CableRuntime, data: Buffer) {
-    // stdout chunk boundaries from ffmpeg are arbitrary and often arrive in large
-    // bursts.  Do NOT forward those boundaries to the WebSocket client: doing so
-    // causes a burst/gap pattern that repeatedly underruns/overruns the browser's
-    // audio jitter buffer.
-    //
-    // Keep all bytes until we have a complete, fixed-duration PCM packet.  With
-    // 48 kHz, stereo, signed 16-bit PCM and 20 ms packets this is exactly 3840
-    // bytes (960 stereo frames).
-    runtime.captureRemainder = runtime.captureRemainder.length
-        ? Buffer.concat([runtime.captureRemainder, data])
-        : Buffer.from(data);
-
-    while (runtime.captureRemainder.length >= targetChunkBytes) {
-        const chunk = runtime.captureRemainder.subarray(0, targetChunkBytes);
-        sendPcmChunk(runtime, chunk);
-
-        // Keep a copy of the remainder. A subarray would retain the complete
-        // previous allocation and can make long-running streams unnecessarily
-        // hold large ffmpeg stdout buffers in memory.
-        runtime.captureRemainder = Buffer.from(
-            runtime.captureRemainder.subarray(targetChunkBytes)
-        );
-    }
-}
-
 function scheduleRestart(runtime: CableRuntime) {
-    if (!runtime.captureWanted || runtime.restartTimer) return;
+    if (runtime.stopping || runtime.restartTimer) return;
     runtime.restartTimer = setTimeout(() => {
         runtime.restartTimer = null;
-        if (runtime.captureWanted) void startCapture(runtime);
-    }, 1000);
+        if (!runtime.stopping) void startPublisher(runtime);
+    }, 1500);
 }
 
-async function startCapture(runtime: CableRuntime) {
-    if (runtime.captureProcess || !runtime.captureWanted) return;
+async function startPublisher(runtime: CableRuntime) {
+    if (runtime.publisherProcess) return;
 
     try {
         await ensureVirtualSink(runtime);
@@ -255,51 +222,63 @@ async function startCapture(runtime: CableRuntime) {
     }
 
     const ffmpeg = getAssetTuneSettings().ffmpeg_bin || "ffmpeg";
+    const outputUrl = publishUrl(runtime.config.id);
     const proc = spawn(ffmpeg, [
         "-hide_banner", "-loglevel", "warning",
         "-f", "pulse", "-i", `${runtime.sinkName}.monitor`,
-        "-vn", "-ac", String(channels), "-ar", String(sampleRate),
-        "-f", "s16le", "pipe:1",
-    ], {stdio: ["ignore", "pipe", "pipe"], env: process.env});
+        "-vn",
+        "-ac", String(channels),
+        "-ar", String(sampleRate),
+        "-c:a", "libopus",
+        "-b:a", String(opusBitrate),
+        "-vbr", "on",
+        "-compression_level", "10",
+        "-application", "audio",
+        "-frame_duration", "20",
+        "-f", "rtsp",
+        "-rtsp_transport", "tcp",
+        outputUrl,
+    ], {stdio: ["ignore", "ignore", "pipe"], env: process.env});
 
     runtime.stopping = false;
-    runtime.captureRemainder = Buffer.alloc(0);
-    runtime.sequence = 0;
-    runtime.captureProcess = proc;
+    runtime.publisherProcess = proc;
+    runtime.published = true;
+    emitState();
 
-    proc.stdout?.on("data", (chunk: Buffer) => processCaptureBytes(runtime, chunk));
     proc.stderr?.on("data", (chunk: Buffer) => {
         const message = chunk.toString("utf8").trim();
-        if (message) logWarn(`virtual audio ${runtime.config.id} ffmpeg: ${message}`);
+        if (message) logWarn(`virtual audio ${runtime.config.id} publisher: ${message}`);
     });
-    proc.on("error", error => logWarn(`virtual audio ${runtime.config.id} capture failed: ${error.message}`));
+    proc.on("error", error => logWarn(`virtual audio ${runtime.config.id} publisher failed: ${error.message}`));
     proc.on("close", (code, signal) => {
-        if (runtime.captureProcess === proc) runtime.captureProcess = null;
-        runtime.captureRemainder = Buffer.alloc(0);
-        if (!runtime.stopping && runtime.captureWanted) {
-            logWarn(`virtual audio ${runtime.config.id} capture exited code=${code ?? "none"} signal=${signal ?? "none"}; restarting`);
+        if (runtime.publisherProcess === proc) runtime.publisherProcess = null;
+        runtime.published = false;
+        emitState();
+
+        if (!runtime.stopping) {
+            logWarn(`virtual audio ${runtime.config.id} publisher exited code=${code ?? "none"} signal=${signal ?? "none"}; restarting`);
             scheduleRestart(runtime);
         }
     });
 
-    const listeners = notifyStart(runtime);
-    logNotice(`virtual audio stream started: ${runtime.config.name} (${runtime.config.id}), listeners=${listeners}`);
+    logNotice(`virtual audio WebRTC publisher started: ${runtime.config.name} -> ${outputUrl}`);
 }
 
-function stopCapture(runtime: CableRuntime, reason = "no_listeners") {
-    runtime.captureWanted = false;
+function stopPublisher(runtime: CableRuntime, reason = "stopped") {
+    runtime.stopping = true;
     if (runtime.restartTimer) {
         clearTimeout(runtime.restartTimer);
         runtime.restartTimer = null;
     }
-    const proc = runtime.captureProcess;
-    if (!proc) return;
-    runtime.stopping = true;
-    runtime.captureProcess = null;
-    runtime.captureRemainder = Buffer.alloc(0);
-    notifyStop(runtime, reason);
-    try { proc.kill("SIGTERM"); } catch {}
-    logRegular(`virtual audio stream stopped: ${runtime.config.id} (${reason})`);
+
+    const proc = runtime.publisherProcess;
+    runtime.publisherProcess = null;
+    runtime.published = false;
+    if (proc) {
+        try { proc.kill("SIGTERM"); } catch {}
+    }
+    logRegular(`virtual audio WebRTC publisher stopped: ${runtime.config.id} (${reason})`);
+    emitState();
 }
 
 export async function setVirtualAudioCableState(cableId: string, volume: number, muted: boolean): Promise<void> {
@@ -319,70 +298,51 @@ export async function syncVirtualAudioCableConfiguration(): Promise<void> {
     await Promise.all([...runtimes.values()].map(async runtime => {
         try {
             await ensureVirtualSink(runtime);
+            if (!runtime.publisherProcess) await startPublisher(runtime);
         } catch (error: any) {
             logWarn(`synchronizing virtual audio cable ${runtime.config.id} failed: ${error?.message ?? error}`);
         }
     }));
 
-    if (websocketServer) {
-        await syncVirtualAudioCableStreaming(websocketServer);
-    }
+    emitState();
 }
 
 export async function initVirtualAudioCable(server: WebsocketServer) {
     websocketServer = server;
     syncRuntimeDefinitions();
-    await Promise.all([...runtimes.values()].map(async runtime => {
-        try { await ensureVirtualSink(runtime); }
-        catch (error: any) { logWarn(`initializing virtual audio cable ${runtime.config.id} failed: ${error?.message ?? error}`); }
-    }));
-    await syncVirtualAudioCableStreaming(server);
-}
-
-export async function syncVirtualAudioCableStreaming(server: WebsocketServer) {
-    websocketServer = server;
-    syncRuntimeDefinitions();
-    const listeners = server.getEndpointSubscriberCount("notify_audio_stream");
+    await cleanupRemovedVirtualSinks();
 
     await Promise.all([...runtimes.values()].map(async runtime => {
-        if (listeners > 0) {
-            runtime.captureWanted = true;
-            if (!runtime.captureProcess) await startCapture(runtime);
-        } else {
-            stopCapture(runtime, "no_listeners");
+        try {
+            await ensureVirtualSink(runtime);
+            await startPublisher(runtime);
+        } catch (error: any) {
+            logWarn(`initializing virtual audio cable ${runtime.config.id} failed: ${error?.message ?? error}`);
         }
     }));
+
+    emitState();
+}
+
+/**
+ * Compatibility no-op for old call sites. Streaming is no longer tied to
+ * WebSocket listeners; MediaMTX is the media plane and WebSocket is signaling only.
+ */
+export async function syncVirtualAudioCableStreaming(server: WebsocketServer) {
+    websocketServer = server;
+    emitState();
 }
 
 export function getVirtualAudioCableReplayNotifications(): Record<string, any>[] {
-    syncRuntimeDefinitions();
-    return [...runtimes.values()]
-        .filter(runtime => Boolean(runtime.captureProcess))
-        .map(runtime => ({
-            action: "start",
-            cable: runtime.config.id,
-            device: runtime.config.name,
-            sink_name: runtime.sinkName,
-            codec: "pcm_s16le",
-            sample_rate: sampleRate,
-            channels,
-            bytes_per_sample: bytesPerSample,
-            sequence: runtime.sequence,
-            replay: true,
-        }));
+    return [];
 }
 
 export function getVirtualAudioCables() {
     syncRuntimeDefinitions();
-    return [...runtimes.values()].map(runtime => ({
-        cable: runtime.config.id,
-        sink_name: runtime.sinkName,
-        device: runtime.config.name,
-        codec: "pcm_s16le",
-        sample_rate: sampleRate,
-        channels,
-        active: Boolean(runtime.captureProcess),
-        sink_ready: runtime.sinkReady,
-        listeners: websocketServer?.getEndpointSubscriberCount("notify_audio_stream") ?? 0,
-    }));
+    return [...runtimes.values()].map(runtimePayload);
+}
+
+export function sendVirtualAudioCableState(connection?: WebSocket) {
+    syncRuntimeDefinitions();
+    emitState(connection);
 }

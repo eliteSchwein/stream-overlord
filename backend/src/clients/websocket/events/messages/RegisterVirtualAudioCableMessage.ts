@@ -1,25 +1,25 @@
 import BaseMessage from "./BaseMessage";
 import {logDebug} from "../../../../helper/LogHelper";
+import {sendVirtualAudioCableState} from "../../../../helper/VirtualAudioCableHelper";
 
 /**
- * Registers a websocket connection as a virtual-audio stream listener.
+ * Registers an audio-only overlay for virtual-cable signaling/state.
  *
- * This is intentionally just an alias for subscribing to notify_audio_stream.
- * The cable id remains part of the stream payload and is filtered by the
- * overlay client, so one websocket endpoint can carry all configured cables.
+ * Actual media is NOT transported through this WebSocket. The client receives
+ * MediaMTX/WHEP metadata via notify_virtual_audio_cables and opens WebRTC itself.
  */
 export default class RegisterVirtualAudioCableMessage extends BaseMessage {
     method = 'register_virtual_audio_cable'
 
     async handle(data: any) {
-        // Registering the notify endpoint is what keeps an audio-only websocket
-        // alive in ConnectEvent's "registered in time" check.
-        this.client.addConnection(this.webSocket, ['notify_audio_stream'])
+        this.client.addConnection(this.webSocket, ['notify_virtual_audio_cables'])
 
         const cable = String(data?.cable ?? '').trim()
         logDebug(
-            `virtual audio websocket registered: ${this.webSocket._socket.remoteAddress}:${this.webSocket._socket.remotePort}`
+            `virtual audio signaling registered: ${this.webSocket._socket.remoteAddress}:${this.webSocket._socket.remotePort}`
             + (cable ? ` cable=${cable}` : '')
         )
+
+        sendVirtualAudioCableState(this.webSocket)
     }
 }

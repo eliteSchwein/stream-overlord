@@ -31,7 +31,7 @@ import {getDynamicData} from "../../helper/DynamicDataHelper";
 import {getSpeedtestState} from "../../helper/SpeedtestHelper";
 import {getInteractionQueue} from "../../helper/InteractionHelper";
 import {getActiveCategoryMediaReplayNotifications, getActiveCategoryPayload, getActiveCategoryStylePayload, getCategoryLibrary} from "../../helper/CategoryLibraryHelper";
-import {getVirtualAudioCableReplayNotifications, syncVirtualAudioCableStreaming} from "../../helper/VirtualAudioCableHelper";
+import {getVirtualAudioCables} from "../../helper/VirtualAudioCableHelper";
 
 
 export default class WebsocketServer {
@@ -49,7 +49,7 @@ export default class WebsocketServer {
         'notify_source_update',
         'notify_system_info',
         'notify_audio_update',
-        'notify_audio_stream',
+        'notify_virtual_audio_cables',
         'notify_channel_point_update',
         'notify_shield_mode',
         'notify_game_update',
@@ -184,7 +184,6 @@ export default class WebsocketServer {
             }
         }
 
-        void syncVirtualAudioCableStreaming(this)
         this.sendUpdate(connection)
 
         this.send("notify_connection", this.getConnections())
@@ -209,7 +208,6 @@ export default class WebsocketServer {
     public removeConnection(client: string) {
         delete this.connectionEndpoints[client];
 
-        void syncVirtualAudioCableStreaming(this)
         this.send("notify_connection", this.getConnections())
     }
 
@@ -284,11 +282,9 @@ export default class WebsocketServer {
                 this.send("notify_category_library_update", getCategoryLibrary(), client)
                 this.send("notify_category_active", getActiveCategoryPayload(), client)
                 this.send("notify_category_style_update", getActiveCategoryStylePayload(), client)
-                // Fresh audio-stream listeners receive the current cable metadata/init
-                // segment so they can join streams that were already active.
-                for (const audioStream of getVirtualAudioCableReplayNotifications()) {
-                    this.send("notify_audio_stream", audioStream, client)
-                }
+                // Virtual audio media is transported via MediaMTX/WebRTC.
+                // WebSocket carries signaling/state only.
+                this.send("notify_virtual_audio_cables", {cables: getVirtualAudioCables()}, client)
                 // Fresh overlays receive an authoritative category-media snapshot:
                 // clear all category-owned targets first, then replay the active/fallback media.
                 for (const media of getActiveCategoryMediaReplayNotifications()) {
