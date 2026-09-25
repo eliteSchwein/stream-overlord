@@ -5,7 +5,7 @@ ARCH="$(dpkg --print-architecture)"
 
 case "${ARCH}" in
   amd64) MTX_ARCH="linux_amd64" ;;
-  arm64) MTX_ARCH="linux_arm64v8" ;;
+  arm64) MTX_ARCH="linux_arm64" ;;
   armhf) MTX_ARCH="linux_armv7" ;;
   *)
     echo "Unsupported Debian architecture: ${ARCH}" >&2
