@@ -1,6 +1,7 @@
 import {Bot} from "@twurple/easy-bot";
 import {getConfig} from "../../../helper/ConfigHelper";
 import {getTwitchClient} from "../../../App";
+import {logWarn} from "../../../helper/LogHelper";
 
 const moderators: any = {}
 const vips: any = {}
@@ -69,7 +70,10 @@ export async function addModeratorsToChannelFromExternal(channel: string, fromCh
 
 export function registerPermissionInterval(bot: Bot|undefined) {
     setInterval(() => {
-        void registerPermissions(bot)
+        void registerPermissions(bot).catch(error => {
+            logWarn("twitch permission refresh failed:")
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        })
     }, 60 * 1000)
 }
 
