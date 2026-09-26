@@ -519,6 +519,37 @@ export class OBSClient {
         return Object.keys(this.connections)
     }
 
+    public getConnectedConnectionNames() {
+        return Object.values(this.connections)
+            .filter(connection =>
+                connection.connected &&
+                connection.obsWebsocket
+            )
+            .map(connection => connection.name)
+    }
+
+    public getAllSceneData() {
+        return Object.fromEntries(
+            Object.entries(this.connections).map(
+                ([name, connection]) => [
+                    name,
+                    connection.sceneData,
+                ]
+            )
+        )
+    }
+
+    public getAllAudioData() {
+        return Object.fromEntries(
+            Object.entries(this.connections).map(
+                ([name, connection]) => [
+                    name,
+                    connection.audioData,
+                ]
+            )
+        )
+    }
+
     public getSceneData(connectionName = 'default') {
         return this.getConnection(connectionName)?.sceneData ?? []
     }
@@ -1034,14 +1065,27 @@ export class OBSClient {
 
         connection.sceneData = sceneData
 
+        // Keep the legacy/default event for existing clients.
         if(connectionName === 'default') {
             // @ts-ignore
             this.sceneData = connection.sceneData
+
             getWebsocketServer().send(
                 'notify_obs_scene_update',
                 connection.sceneData
             )
         }
+
+        // Always publish the indexed scene data for the concrete OBS
+        // connection. This allows secondary OBS instances to be indexed and
+        // consumed even when the default OBS connection is offline.
+        getWebsocketServer().send(
+            'notify_obs_scene_update_named',
+            {
+                connection: connectionName,
+                scenes: connection.sceneData,
+            }
+        )
 
         if(fullObsLog) {
             logNotice(`dump all obs audio sources (${connectionName}):`)
