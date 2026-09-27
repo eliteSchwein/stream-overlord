@@ -42,6 +42,8 @@ export type CategoryLibraryEntry = {
     obs_filters: Record<string, any>;
     channel_points: string[];
     blocked_channel_points: string[];
+    macros_on_active: string[];
+    macros_on_inactive: string[];
     custom_media: CategoryMediaEntry[];
     use_as_media_fallback: boolean;
     active: boolean;
@@ -96,6 +98,31 @@ function normalizeChannelPointNames(value: unknown): string[] {
         seen.add(key);
         result.push(name);
     }
+    return result;
+}
+
+function normalizeMacroNames(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+
+    const result: string[] = [];
+    const seen = new Set<string>();
+
+    for (const item of value) {
+        const name = String(
+            typeof item === "string"
+                ? item
+                : (item as any)?.name ?? "",
+        ).trim();
+
+        if (!name) continue;
+
+        const key = name.toLowerCase();
+        if (seen.has(key)) continue;
+
+        seen.add(key);
+        result.push(name);
+    }
+
     return result;
 }
 
@@ -174,6 +201,12 @@ function normalizeEntry(value: any, existing?: CategoryLibraryEntry): CategoryLi
         blocked_channel_points: value?.blocked_channel_points !== undefined
             ? normalizeChannelPointNames(value.blocked_channel_points)
             : structuredClone(existing?.blocked_channel_points ?? []),
+        macros_on_active: value?.macros_on_active !== undefined
+            ? normalizeMacroNames(value.macros_on_active)
+            : structuredClone(existing?.macros_on_active ?? []),
+        macros_on_inactive: value?.macros_on_inactive !== undefined
+            ? normalizeMacroNames(value.macros_on_inactive)
+            : structuredClone(existing?.macros_on_inactive ?? []),
         custom_media: Array.isArray(value?.custom_media)
             ? value.custom_media.map(item => sanitizeMediaEntry(item, !existing))
             : (existing?.custom_media ?? []),
@@ -536,10 +569,82 @@ async function getSteamApps(apiKey: string) {
     return apps;
 }
 
-async function resolveSteamApp(name: string, apiKey: string) {
-    const apps = await getSteamApps(apiKey);
+async function fetchWithRetry(
+    input: string | URL,
+    init: RequestInit = {},
+    attempts = 3,
+    delayMs = 750,
+) {
+    let lastError: any = null;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+            const response = await fetch(input, init);
+            if (response.ok || response.status < 500) return response;
+            lastError = new Error(`HTTP ${response.status}`);
+        } catch (error) {
+            lastError = error;
+        }
+
+        if (attempt < attempts) {
+            await new Promise(resolve => setTimeout(resolve, delayMs * attempt));
+        }
+    }
+
+    throw lastError ?? new Error("request failed");
+}
+
+async function searchSteamStore(name: string) {
+    const url = new URL("https://store.steampowered.com/api/storesearch/");
+    url.searchParams.set("term", name);
+    url.searchParams.set("l", "english");
+    url.searchParams.set("cc", "us");
+
+    const response = await fetchWithRetry(url, {
+        headers: {"User-Agent": "stream-overlord/1.0"},
+    });
+    if (!response.ok) return null;
+
+    const payload: any = await response.json();
+    const items = Array.isArray(payload?.items) ? payload.items : [];
     const wanted = normalizeSteamName(name);
-    return apps.find(app => normalizeSteamName(String(app.name ?? "")) === wanted) ?? null;
+
+    const exact = items.find((item: any) =>
+        normalizeSteamName(String(item?.name ?? "")) === wanted
+    );
+    if (exact?.id) {
+        return {appid: Number(exact.id), name: String(exact.name ?? name)};
+    }
+
+    const close = items.find((item: any) => {
+        const candidate = normalizeSteamName(String(item?.name ?? ""));
+        return candidate && wanted && (candidate.includes(wanted) || wanted.includes(candidate));
+    });
+
+    if (close?.id) {
+        return {appid: Number(close.id), name: String(close.name ?? name)};
+    }
+
+    return null;
+}
+
+async function resolveSteamApp(name: string, apiKey: string) {
+    const wanted = normalizeSteamName(name);
+
+    try {
+        const apps = await getSteamApps(apiKey);
+        const exact = apps.find(app => normalizeSteamName(String(app.name ?? "")) === wanted);
+        if (exact) return exact;
+    } catch (error: any) {
+        logNotice(`category library Steam app list lookup failed for ${name}: ${error?.message ?? error}`);
+    }
+
+    try {
+        return await searchSteamStore(name);
+    } catch (error: any) {
+        logNotice(`category library Steam store search failed for ${name}: ${error?.message ?? error}`);
+        return null;
+    }
 }
 
 async function ensureSteamWallpaper(entry: CategoryLibraryEntry) {
@@ -556,9 +661,15 @@ async function ensureSteamWallpaper(entry: CategoryLibraryEntry) {
             appId = Number(app?.appid || 0) || undefined;
             if (appId) entry.steam_app_id = appId;
         }
-        if (!appId) return;
+        if (!appId) {
+            logNotice(`category library Steam app not found for ${entry.name}`);
+            return;
+        }
 
-        const response = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`);
+        const response = await fetchWithRetry(
+            `https://store.steampowered.com/api/appdetails?appids=${appId}&l=english`,
+            {headers: {"User-Agent": "stream-overlord/1.0"}},
+        );
         if (!response.ok) throw new Error(`Steam app details failed (${response.status})`);
         const payload: any = await response.json();
         const data = payload?.[String(appId)]?.data;
@@ -568,6 +679,14 @@ async function ensureSteamWallpaper(entry: CategoryLibraryEntry) {
         const relative = `category_library/${entry.category_id}/wallpaper.jpg`;
         entry.steam_wallpaper_path = await downloadToAsset(source, relative);
         entry.steam_wallpaper_url = source;
+        entry.updated_at = nowIso();
+
+        // Persist immediately so a newly-created category cannot lose the
+        // downloaded wallpaper if a later enrichment/apply step fails.
+        writeCategoryFile(entry);
+        emitAssetUpdate();
+
+        logRegular(`category library Steam wallpaper downloaded for ${entry.name} (${entry.category_id})`);
     } catch (error: any) {
         logNotice(`category library Steam wallpaper lookup failed for ${entry.name}: ${error?.message ?? error}`);
     }
@@ -756,6 +875,83 @@ async function applyActiveCategory(entry: CategoryLibraryEntry) {
 }
 
 
+async function runCategoryMacros(
+    entry: CategoryLibraryEntry | null | undefined,
+    phase: "active" | "inactive",
+    previousCategory: CategoryLibraryEntry | null,
+    nextCategory: CategoryLibraryEntry | null,
+) {
+    if (!entry) return;
+
+    const macros = phase === "active"
+        ? entry.macros_on_active
+        : entry.macros_on_inactive;
+
+    if (!Array.isArray(macros) || macros.length === 0) return;
+
+    const {triggerMacro} = await import("./MacroHelper");
+
+    const variables = {
+        category: entry,
+        category_phase: phase,
+        category_id: entry.category_id,
+        category_name: entry.name,
+        previous_category: previousCategory,
+        next_category: nextCategory,
+    };
+
+    for (const macro of macros) {
+        const macroName = String(macro ?? "").trim();
+        if (!macroName) continue;
+
+        try {
+            logRegular(
+                `category library trigger ${phase} macro: ${macroName} `
+                + `(${entry.name}/${entry.category_id})`
+            );
+
+            await triggerMacro(
+                macroName,
+                variables,
+            );
+        } catch (error: any) {
+            logWarn(
+                `category library ${phase} macro failed `
+                + `${macroName} (${entry.name}/${entry.category_id}): `
+                + `${error?.message ?? error}`
+            );
+        }
+    }
+}
+
+async function runCategoryTransitionMacros(
+    previousCategory: CategoryLibraryEntry | null,
+    nextCategory: CategoryLibraryEntry | null,
+) {
+    const previousId = previousCategory?.category_id ?? "";
+    const nextId = nextCategory?.category_id ?? "";
+
+    if (previousId === nextId) return;
+
+    if (previousCategory) {
+        await runCategoryMacros(
+            previousCategory,
+            "inactive",
+            previousCategory,
+            nextCategory,
+        );
+    }
+
+    if (nextCategory) {
+        await runCategoryMacros(
+            nextCategory,
+            "active",
+            previousCategory,
+            nextCategory,
+        );
+    }
+}
+
 export function getActiveCategoryEntry() {
     const library = readLibrary();
 
@@ -862,11 +1058,17 @@ export function getActiveCategoryMediaReplayNotifications() {
 
 export async function activateCategory(categoryId: string | number) {
     const id = safeCategoryId(categoryId);
+    const previousCategory = getActiveCategoryEntry();
     const entry = markCategoryActive(id);
 
     // Publish the active category immediately so stores and all category-aware
     // helpers see the new category before presentation state is applied.
     emitCategoryLibraryUpdate();
+
+    await runCategoryTransitionMacros(
+        previousCategory,
+        entry,
+    );
 
     await applyActiveCategory(entry);
     emitCategoryLibraryUpdateSettled();
@@ -886,6 +1088,7 @@ export async function syncTwitchCategory(bot: any, event: any) {
         return null;
     }
     const categoryId = safeCategoryId(event.categoryId);
+    const previousCategory = getActiveCategoryEntry();
     const library = readLibrary();
     let entry = library.categories[categoryId];
 
@@ -905,6 +1108,8 @@ export async function syncTwitchCategory(bot: any, event: any) {
             custom_media: [],
             channel_points: [],
             blocked_channel_points: [],
+            macros_on_active: [],
+            macros_on_inactive: [],
             use_as_media_fallback: false,
         });
         library.categories[categoryId] = entry;
@@ -923,6 +1128,11 @@ export async function syncTwitchCategory(bot: any, event: any) {
     writeCategoryFile(entry);
     logRegular(`category library active: ${entry.name} (${entry.category_id}); total=${Object.keys(readLibrary().categories).length}`);
     emitCategoryLibraryUpdate();
+
+    await runCategoryTransitionMacros(
+        previousCategory,
+        entry,
+    );
 
     await ensureCover(entry, game);
     await ensureSteamWallpaper(entry);
