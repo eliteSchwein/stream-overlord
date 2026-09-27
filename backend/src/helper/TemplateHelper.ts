@@ -121,6 +121,7 @@ export function getTemplateVariables(data: any = {}) {
     const templateRootKeys = new Set([
         "twitch",
         "gameinfo",
+        "theme",
         "musicinfo",
         "musictext",
         "music",
@@ -302,10 +303,64 @@ export function getTemplateVariables(data: any = {}) {
         weekday: now.getDay(),
     };
 
+    const rawGameInfo = getRawGameInfo();
+    const gameInfoData = rawGameInfo?.data ?? {};
+    const activeCategoryEntry = getActiveCategoryEntry();
+
+    const effectiveThemeColor = String(
+        gameInfoData?.theme?.color
+        ?? gameInfoData?.color
+        ?? "",
+    ).trim();
+
+    const normalizedThemeColor = effectiveThemeColor
+        ? `#${effectiveThemeColor.replace(/^#/, "")}`
+        : "";
+
+    const manualThemeColor = String(
+        rawGameInfo?.manual
+        ?? "",
+    ).trim();
+
+    const categoryThemeColor = String(
+        activeCategoryEntry?.theme_color
+        ?? "",
+    ).trim();
+
+    const themeSource = manualThemeColor
+        ? "manual"
+        : categoryThemeColor
+            ? "category"
+            : "default";
+
+    const theme = {
+        color: normalizedThemeColor,
+        color_hex: normalizedThemeColor.replace(/^#/, ""),
+        style: String(gameInfoData?.theme?.style ?? ""),
+        css: String(gameInfoData?.theme?.style ?? ""),
+        source: themeSource,
+
+        manual: manualThemeColor
+            ? `#${manualThemeColor.replace(/^#/, "")}`
+            : "",
+        manual_hex: manualThemeColor.replace(/^#/, ""),
+        manual_active: manualThemeColor !== "",
+
+        category: categoryThemeColor
+            ? `#${categoryThemeColor.replace(/^#/, "")}`
+            : "",
+        category_hex: categoryThemeColor.replace(/^#/, ""),
+        category_active: categoryThemeColor !== "",
+
+        game_id: gameInfoData?.game_id ?? 0,
+        game_name: gameInfoData?.game_name ?? "",
+    };
+
     const ctx: Record<string, any> = {
         variables,
         twitch: getCachedTwitchData(),
-        gameinfo: getRawGameInfo()?.data,
+        gameinfo: gameInfoData,
+        theme,
 
         musicinfo: musicStatus,
         musictext: musicText,

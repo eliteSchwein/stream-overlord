@@ -37,6 +37,23 @@ export default class FunctionMacroTask extends BaseMacroTask {
                 break;
             }
 
+            case "random_color": {
+                if (!data.key) {
+                    logWarn(`random_color requires key`);
+                    break;
+                }
+
+                const value = `#${Math.floor(Math.random() * 0x1000000)
+                    .toString(16)
+                    .padStart(6, "0")
+                    .toUpperCase()}`;
+
+                variables[data.key] = value;
+
+                logRegular(`random_color ${data.key}=${value}`);
+                break;
+            }
+
             case "dump_variables": {
                 fs.mkdirSync(
                     assetRoot,
