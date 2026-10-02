@@ -35,6 +35,7 @@ import {getVirtualAudioCables} from "../../helper/VirtualAudioCableHelper";
 
 
 export default class WebsocketServer {
+    private externalMessageSink?: (method: string, data: any) => void;
     websocket: WebSocketServer
     validEndpoints: string[] = [
         'notify_alert',
@@ -120,6 +121,10 @@ export default class WebsocketServer {
         void new ConnectEvent(this.websocket, this).register()
     }
 
+    public setExternalMessageSink(callback?: (method: string, data: any) => void) {
+        this.externalMessageSink = callback;
+    }
+
     public getWebsocket() {
         return this.websocket
     }
@@ -127,6 +132,15 @@ export default class WebsocketServer {
     public send(method: string, data: any = {}, connection?: WebSocket) {
         if(method === 'notify_visible_element') {
             toggleElementVisiblity(data.target, data.state)
+        }
+
+        if (!connection && this.externalMessageSink) {
+            try {
+                this.externalMessageSink(method, data);
+            } catch (error) {
+                logError("external websocket message sink failed")
+                logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            }
         }
 
         // @ts-ignore
@@ -315,6 +329,33 @@ export default class WebsocketServer {
 
     public getMessageEvents(): BaseApi[] {
         return this.messageEvents
+    }
+
+    /**
+     * Execute one of the already-registered websocket API methods internally.
+     * This deliberately calls BaseApi.handle(params) directly so non-websocket
+     * transports (for example the optional cloud integration) reuse the exact
+     * same backend implementation as Commander without creating a fake socket.
+     */
+    public async dispatchApiMethod(method: string, params: any = {}) {
+        const normalizedMethod = String(method ?? '').trim()
+        if (!normalizedMethod) throw new Error('websocket API method is required')
+
+        const endpoint = this.messageEvents.find(
+            event => event.getWebsocketMethod() === normalizedMethod
+        )
+
+        if (!endpoint) {
+            throw new Error(`unknown websocket API method: ${normalizedMethod}`)
+        }
+
+        const result = await endpoint.handle(params ?? {})
+
+        if (result?.error) {
+            throw new Error(String(result.error))
+        }
+
+        return result ?? {status: 'okay'}
     }
 
     public clearMessageEvents() {

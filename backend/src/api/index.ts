@@ -35,6 +35,13 @@ export { default as ChannelPointMoveApi } from "./ChannelPoints/ChannelPointMove
 export { default as ChannelPointReadApi } from "./ChannelPoints/ChannelPointReadApi";
 export { default as GetChannePointsApi } from "./ChannelPoints/GetChannePointsApi";
 export { default as ToggleChannelPointApi } from "./ChannelPoints/ToggleChannelPointApi";
+export { default as CloudReconnectApi } from "./Cloud/CloudReconnectApi";
+export { default as CloudRegistrationClaimApi } from "./Cloud/CloudRegistrationClaimApi";
+export { default as CloudRegistrationStartApi } from "./Cloud/CloudRegistrationStartApi";
+export { default as CloudRegistrationVerifyApi } from "./Cloud/CloudRegistrationVerifyApi";
+export { default as CloudRemoveApi } from "./Cloud/CloudRemoveApi";
+export { default as CloudStatusApi } from "./Cloud/CloudStatusApi";
+export { default as CloudToggleApi } from "./Cloud/CloudToggleApi";
 export { default as CommandDeleteApi } from "./Command/CommandDeleteApi";
 export { default as CommandEditApi } from "./Command/CommandEditApi";
 export { default as CommandExistsApi } from "./Command/CommandExistsApi";

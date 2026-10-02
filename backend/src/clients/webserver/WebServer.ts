@@ -196,17 +196,19 @@ export default class WebServer {
         this.app.get("/api/auth/twitch", async (req: Request, res: Response) => {
             const host = req.get("host") ?? `localhost:${config?.port ?? 8105}`;
             const protocol = req.protocol ?? "http";
-            const callbackAddress = `${protocol}://${host}/api/auth/twitch`;
-
             const type = req.query.type === "message" ? "message" : "control";
             const returnTo =
                 typeof req.query.returnTo === "string" && req.query.returnTo.length
                     ? req.query.returnTo
                     : `${protocol}://${host}/commander/`;
+            const callbackUrl = new URL(`${protocol}://${host}/api/auth/twitch`);
+            callbackUrl.searchParams.set("type", type);
+            callbackUrl.searchParams.set("returnTo", returnTo);
+            const callbackAddress = callbackUrl.toString();
 
             const auth = new TwitchAuth();
 
-            if (!req.query.code) {
+            if (!req.query.code && !req.query.exchange_code && !req.query.auth_code) {
                 try {
                     res.redirect(auth.buildConfiguredAuthUrl(callbackAddress, returnTo, type));
                 } catch (error) {

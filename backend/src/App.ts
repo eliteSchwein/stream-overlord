@@ -2,7 +2,7 @@ import readConfig, {getRawConfig, watchConfig} from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
 import {logNotice, logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
-import registerPermissions, {registerPermissionInterval} from "./clients/twitch/helper/PermissionHelper";
+import registerPermissions, {registerPermissionInterval, setModeratorUpdateNotifier} from "./clients/twitch/helper/PermissionHelper";
 import WebsocketServer from "./clients/websocket/WebsocketServer";
 import {fetchGameInfo} from "./helper/GameHelper";
 import WebServer from "./clients/webserver/WebServer";
@@ -35,12 +35,14 @@ import {setRestoreNotifier} from "./helper/BackupRestoreHelper";
 import {initGiveaway} from "./helper/GiveawayHelper";
 import {initCategoryLibrary} from "./helper/CategoryLibraryHelper";
 import {initVirtualAudioCable} from "./helper/VirtualAudioCableHelper";
+import CloudClient from "./clients/cloud/CloudClient";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
 let webServer: WebServer
 let obsClient: OBSClient
 let yoloboxClient: YoloboxClient
+let cloudClient: CloudClient
 
 
 let ready = false
@@ -74,6 +76,9 @@ async function init() {
     stage = 'loading_integrations'
     loadIntegrationsCache()
     ensureDefaultOllamaIntegration()
+    cloudClient = new CloudClient()
+    websocketServer.setExternalMessageSink((method, data) => cloudClient?.handleLocalUpdate(method, data))
+    setModeratorUpdateNotifier(() => cloudClient?.syncModerators())
 
     stage = 'loading_cache'
     await redis.connect()
@@ -104,6 +109,14 @@ async function init() {
     await initCategoryLibrary(twitchClient.getBot())
     await registerPermissions(twitchClient.getBot())
     registerPermissionInterval(twitchClient.getBot())
+
+    try {
+        stage = 'connecting_cloud'
+        await cloudClient.connect()
+    } catch (error) {
+        logWarn('cloud integration failed:')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
 
     try {
         stage = 'connecting_obs'
@@ -206,6 +219,10 @@ export function getTwitchClient() {
     return twitchClient
 }
 
+export function getCloudClient() {
+    return cloudClient
+}
+
 export function getWebServer() {
     return webServer
 }
@@ -235,6 +252,10 @@ export async function reload() {
         loadIntegrationsCache(true)
         ensureDefaultOllamaIntegration()
 
+        if (!cloudClient) cloudClient = new CloudClient()
+        websocketServer?.setExternalMessageSink((method, data) => cloudClient?.handleLocalUpdate(method, data))
+        setModeratorUpdateNotifier(() => cloudClient?.syncModerators())
+
         await syncOllamaIntegration()
         await redis.connect()
         await initGiveaway()
@@ -242,6 +263,12 @@ export async function reload() {
 
         await getTwitchClient().connect()
         await registerPermissions(getTwitchClient()?.getBot())
+        try {
+            await cloudClient.connect()
+        } catch (error) {
+            logWarn('cloud integration reload failed:')
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
         loadMacros()
         await fetchGameInfo()
 

@@ -37,9 +37,14 @@ export default class ConnectionAuthApi extends BaseApi {
 
             try {
                 const auth = new TwitchAuth();
-                const callbackAddress = this.getCallbackAddress(req);
+                const authType = req.query.account === "message" || req.query.auth === "message"
+                    ? "message"
+                    : "control";
                 const returnTo = this.getReturnTo(req);
-                const authUrl = auth.buildConfiguredAuthUrl(callbackAddress, returnTo);
+                const callbackUrl = new URL(this.getCallbackAddress(req));
+                callbackUrl.searchParams.set("type", authType);
+                callbackUrl.searchParams.set("returnTo", returnTo);
+                const authUrl = auth.buildCloudAuthUrl(callbackUrl.toString(), authType);
 
                 setManagedConnection("twitch", {
                     enabled: true,

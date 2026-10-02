@@ -1,6 +1,6 @@
 import {logWarn} from "./LogHelper";
 
-export type ConnectionName = "twitch";
+export type ConnectionName = "twitch" | "cloud";
 export type ConnectionState = "connected" | "connecting" | "disconnected" | "auth_required" | "error";
 
 export interface ManagedConnection {
@@ -19,6 +19,13 @@ let notifier: ConnectionUpdateNotifier | undefined;
 const connections: Record<ConnectionName, ManagedConnection> = {
     twitch: {
         name: "twitch",
+        state: "disconnected",
+        enabled: false,
+        connected: false,
+        updatedAt: Date.now()
+    },
+    cloud: {
+        name: "cloud",
         state: "disconnected",
         enabled: false,
         connected: false,

@@ -80,6 +80,15 @@ export type SteamIntegration = {
     api_key?: string;
 };
 
+export type CloudIntegration = {
+    enabled?: boolean;
+    instance_id?: string;
+    instance_token?: string;
+    streamer_id?: string;
+    name?: string;
+    websocket_url?: string;
+};
+
 export type TwitchIntegration = {
     client_id?: string;
     client_secret?: string;
@@ -128,6 +137,7 @@ export type Integrations = {
     neopixel?: Record<string, NeopixelIntegration>;
     ollama?: OllamaIntegration;
     steam?: SteamIntegration;
+    cloud?: CloudIntegration;
 };
 
 export type SafeObsIntegration = Omit<ObsIntegration, "password" | "connected"> & {
@@ -153,6 +163,14 @@ export type SafeIntegrations = {
     neopixel: Record<string, NeopixelIntegration>;
     steam: {
         has_api_key: boolean;
+    };
+    cloud: {
+        enabled: boolean;
+        registered: boolean;
+        instance_id: string;
+        streamer_id: string;
+        name: string;
+        websocket_url: string;
     };
     ollama: {
         enabled: boolean;
@@ -289,6 +307,14 @@ export function getIntegrationsSafe(): SafeIntegrations {
         steam: {
             has_api_key: Boolean(integrations.steam?.api_key),
         },
+        cloud: {
+            enabled: Boolean(integrations.cloud?.enabled),
+            registered: Boolean(integrations.cloud?.instance_token),
+            instance_id: String(integrations.cloud?.instance_id ?? ""),
+            streamer_id: String(integrations.cloud?.streamer_id ?? ""),
+            name: String(integrations.cloud?.name ?? ""),
+            websocket_url: String(integrations.cloud?.websocket_url ?? ""),
+        },
         ollama: (() => {
             const integration = getOllamaIntegration();
             const provider = integration.external_provider ?? "ollama";
@@ -325,6 +351,40 @@ export function emitIntegrationsUpdate() {
 }
 
 
+
+
+export function getCloudIntegration(): CloudIntegration {
+    return readIntegrations().cloud ?? {};
+}
+
+export function setCloudIntegrationEnabled(enabled: boolean) {
+    const integrations = readIntegrations();
+    integrations.cloud ??= {};
+    integrations.cloud.enabled = Boolean(enabled);
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+    return getIntegrationsSafe().cloud;
+}
+
+export function setCloudIntegrationRegistration(data: CloudIntegration) {
+    const integrations = readIntegrations();
+    integrations.cloud = {
+        ...(integrations.cloud ?? {}),
+        ...data,
+        enabled: data.enabled ?? true,
+    };
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+    return getIntegrationsSafe().cloud;
+}
+
+export function clearCloudIntegrationRegistration() {
+    const integrations = readIntegrations();
+    integrations.cloud = {enabled: false};
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+    return getIntegrationsSafe().cloud;
+}
 
 export function getSteamIntegration(): SteamIntegration {
     return readIntegrations().steam ?? {};

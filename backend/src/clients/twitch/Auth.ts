@@ -1,15 +1,11 @@
-import {RefreshingAuthProvider} from "@twurple/auth";
+import {RefreshingAuthProvider, StaticAuthProvider} from "@twurple/auth";
 import {promises as fs} from "fs";
 import {existsSync} from "node:fs";
-import express, {Request, Response} from "express";
+import {Request, Response} from "express";
 import axios from "axios";
-import * as querystring from "node:querystring";
-import crypto from "crypto";
 import * as path from "node:path";
-import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {getConfig, getSystemConfigDirectory} from "../../helper/ConfigHelper";
-import {logEmpty, logError, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
-import {getWebServer, setUnreadyMessage} from "../../App";
+import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 
 export type TwitchAuthType = "control" | "message";
 
@@ -37,12 +33,31 @@ type IntegrationsFile = {
     [key: string]: any;
 };
 
+const DEFAULT_CLOUD_URL = "https://cloud.streamding.dev";
+
+function firstString(...values: unknown[]) {
+    for (const value of values) {
+        if (typeof value !== "string") continue;
+        const trimmed = value.trim();
+        if (trimmed) return trimmed;
+    }
+    return "";
+}
+
+function trimTrailingSlash(value: string) {
+    return value.replace(/\/+$/, "");
+}
+
+function env(name: string) {
+    return String(process.env[name] ?? "").trim();
+}
+
 export default class TwitchAuth {
     private static integrationsWriteQueue: Promise<void> = Promise.resolve();
 
     protected integrationsPath = path.join(getSystemConfigDirectory(), "integrations.json");
     protected tempTokenData: TwitchTokenData | null = null;
-    protected authProvider!: RefreshingAuthProvider;
+    protected authProvider!: RefreshingAuthProvider | StaticAuthProvider;
 
     protected readonly controlScopes = [
         "bits:read",
@@ -132,55 +147,65 @@ export default class TwitchAuth {
     }
 
     public async getAuthCode(required = false, type: TwitchAuthType = "control") {
-        const {clientId, clientSecret} = this.getConfiguredClient();
+        // Normal startup always uses the credentials already persisted locally.
+        // The cloud is only the OAuth broker that creates/replaces these tokens.
+        const tokenData = await this.getStoredToken(type);
 
-        if (!clientId || !clientSecret) {
-            if (required) throw new Error("missing twitch client_id/client_secret");
-            logWarn("twitch auth skipped: missing client_id/client_secret");
+        if (!tokenData?.accessToken) {
+            if (required) {
+                throw new Error(`Twitch ${type} auth is not configured in integrations.json`);
+            }
+
             return null;
         }
 
-        const tokenData = await this.readToken(clientId, clientSecret, required, type);
-        if (!tokenData) return null;
-
         const enrichedTokenData = await this.ensureTokenUser(type, tokenData);
+        const {clientId, clientSecret} = this.getConfiguredClient();
 
-        this.authProvider = new RefreshingAuthProvider({clientId, clientSecret});
-
-        this.authProvider.onRefresh(async (_clientId, newTokenData) => {
-            await this.writeToken(type, newTokenData as TwitchTokenData);
-        });
-
-        await this.authProvider.addUserForToken(
-            enrichedTokenData,
-            this.getIntents(type),
-            enrichedTokenData.userId
+        const effectiveClientId = firstString(
+            (enrichedTokenData as any).clientId,
+            (enrichedTokenData as any).client_id,
+            clientId,
         );
-        return this.authProvider;
-    }
 
-    public getAuthProvider() {
-        return this.authProvider;
-    }
+        if (!effectiveClientId) {
+            throw new Error(`Twitch ${type} auth has no client_id`);
+        }
 
-    private async readToken(
-        clientId: string,
-        clientSecret: string,
-        required: boolean,
-        type: TwitchAuthType
-    ) {
-        const integrations = await this.readIntegrations();
-        const token = integrations.twitch?.[type];
+        if (clientSecret) {
+            const provider = new RefreshingAuthProvider({
+                clientId: effectiveClientId,
+                clientSecret,
+            });
 
-        if (token) return this.normalizeStoredTokenData(token);
+            provider.onRefresh(async (_clientId, newTokenData) => {
+                await this.writeToken(type, {
+                    ...(newTokenData as TwitchTokenData),
+                    clientId: effectiveClientId,
+                } as any);
+            });
 
-        if (!required) return null;
+            await provider.addUserForToken(
+                enrichedTokenData,
+                this.getIntents(type),
+                enrichedTokenData.userId,
+            );
 
-        await this.startAuthapp(clientId, clientSecret, type);
-        await waitUntil(() => this.tempTokenData !== null, {timeout: WAIT_FOREVER});
+            this.authProvider = provider;
+            return provider;
+        }
 
-        await this.writeToken(type, this.tempTokenData!);
-        return this.tempTokenData;
+        // New cloud-broker auth does not require a Twitch client secret locally.
+        // StaticAuthProvider keeps the returned access token usable immediately.
+        // Re-auth through the cloud broker replaces it when needed.
+        const provider = new StaticAuthProvider(
+            effectiveClientId,
+            enrichedTokenData.accessToken,
+            enrichedTokenData.scope ?? this.getScopes(type),
+        );
+
+        this.authProvider = provider;
+        return provider;
     }
 
     private async readIntegrations(): Promise<IntegrationsFile> {
@@ -228,7 +253,8 @@ export default class TwitchAuth {
             scope: data.scope,
             userId: data.userId ?? data.user_id,
             login: data.login,
-        };
+            clientId: data.clientId ?? data.client_id,
+        } as TwitchTokenData;
     }
 
     private async ensureTokenUser(type: TwitchAuthType, tokenData: TwitchTokenData): Promise<TwitchTokenData> {
@@ -278,208 +304,196 @@ export default class TwitchAuth {
         };
     }
 
-    public buildAuthUrl(
-        clientId: string,
-        callbackAddress: string,
-        returnTo: string,
-        type: TwitchAuthType = "control"
-    ) {
-        const statePayload = {
-            returnTo,
-            type,
-            nonce: crypto.randomBytes(16).toString("hex"),
+    public getCloudConfig() {
+        const cloud = getConfig(/cloud/g)[0] ?? {};
+        const baseUrl = trimTrailingSlash(firstString(
+            env("STREAMBOT_CLOUD_URL"),
+            cloud.url,
+            cloud.base_url,
+            DEFAULT_CLOUD_URL,
+        ));
+
+        return {
+            baseUrl,
+            controlAuthUrl: firstString(
+                env("STREAMBOT_CLOUD_TWITCH_AUTH_URL"),
+                cloud.twitch_auth_url,
+                cloud.control_auth_url,
+                `${baseUrl}/auth/bot`,
+            ),
+            messageAuthUrl: firstString(
+                env("STREAMBOT_CLOUD_TWITCH_MESSAGE_AUTH_URL"),
+                cloud.twitch_message_auth_url,
+                cloud.message_auth_url,
+                `${baseUrl}/auth/message-bot`,
+            ),
+            exchangeUrl: firstString(
+                env("STREAMBOT_CLOUD_TWITCH_EXCHANGE_URL"),
+                cloud.twitch_exchange_url,
+                cloud.exchange_url,
+                `${baseUrl}/api/v1/twitch/exchange`,
+            ),
         };
+    }
 
-        const state = Buffer.from(JSON.stringify(statePayload)).toString("base64url");
+    public buildCloudAuthUrl(
+        callbackAddress: string,
+        type: TwitchAuthType = "control",
+    ) {
+        const cloud = this.getCloudConfig();
+        const url = new URL(
+            type === "message" ? cloud.messageAuthUrl : cloud.controlAuthUrl,
+        );
 
-        const url = new URL("https://id.twitch.tv/oauth2/authorize");
-        url.searchParams.set("client_id", clientId);
-        url.searchParams.set("redirect_uri", callbackAddress);
-        url.searchParams.set("response_type", "code");
-        url.searchParams.set("scope", this.getScopes(type).join(" "));
-        url.searchParams.set("state", state);
+        // Current cloud backend expects return_url.
+        url.searchParams.set("return_url", callbackAddress);
 
         return url.toString();
     }
 
-    public buildConfiguredAuthUrl(callbackAddress: string, returnTo: string, type: TwitchAuthType = "control") {
-        const {clientId, clientSecret} = this.getConfiguredClient();
+    // Compatibility for the old WebServer.ts route and older callers.
+    public buildConfiguredAuthUrl(
+        callbackAddress: string,
+        _returnTo: string,
+        type: TwitchAuthType = "control",
+    ) {
+        return this.buildCloudAuthUrl(callbackAddress, type);
+    }
 
-        if (!clientId || !clientSecret) {
-            throw new Error("missing twitch client_id/client_secret");
+    private callbackAuthType(req: Request): TwitchAuthType {
+        if (req.query.type === "message") return "message";
+        if (req.query.cloud_auth === "message" || req.query.cloud_auth === "message-bot") return "message";
+        return "control";
+    }
+
+    private callbackCode(req: Request) {
+        return firstString(
+            req.query.code,
+            req.query.exchange_code,
+            req.query.auth_code,
+        );
+    }
+
+    private normalizeExchangeToken(data: any): TwitchTokenData {
+        const root = data?.data ?? data ?? {};
+        const token = root?.token ?? root?.twitch ?? root;
+        const accessToken = firstString(token.accessToken, token.access_token);
+        const refreshToken = firstString(token.refreshToken, token.refresh_token);
+        const clientId = firstString(token.clientId, token.client_id, root.clientId, root.client_id);
+
+        if (!accessToken) {
+            throw new Error("cloud Twitch exchange response is missing access_token");
         }
 
-        return this.buildAuthUrl(clientId, callbackAddress, returnTo, type);
-    }
-
-    private safeState(state: unknown): { returnTo: string; type: TwitchAuthType } {
-        const fallback = {
-            returnTo: "http://localhost:8105/commander/",
-            type: "control" as TwitchAuthType,
-        };
-
-        if (typeof state !== "string" || !state.length) return fallback;
-
-        try {
-            const decoded = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
-
-            return {
-                returnTo: typeof decoded?.returnTo === "string" && decoded.returnTo.length
-                    ? new URL(decoded.returnTo).toString()
-                    : fallback.returnTo,
-                type: decoded?.type === "message" ? "message" : "control",
-            };
-        } catch {
-            return fallback;
+        if (!clientId) {
+            throw new Error("cloud Twitch exchange response is missing client_id");
         }
-    }
 
-    private async getTokenUser(accessToken: string) {
-        const response = await axios.get("https://id.twitch.tv/oauth2/validate", {
-            headers: {
-                Authorization: `OAuth ${accessToken}`,
-            },
-        });
+        const scopes = Array.isArray(token.scope)
+            ? token.scope.map(String)
+            : Array.isArray(token.scopes)
+                ? token.scopes.map(String)
+                : typeof token.scope === "string"
+                    ? token.scope.split(/\s+/).filter(Boolean)
+                    : [];
 
         return {
-            userId: response.data.user_id,
-            login: response.data.login,
-        };
-    }
-
-    private normalizeTokenData(data: any): TwitchTokenData {
-        return {
-            ...data,
-            obtainmentTimestamp: Date.now(),
-            expiresIn: data["expires_in"],
-            accessToken: data["access_token"],
-            refreshToken: data["refresh_token"],
-        };
+            accessToken,
+            refreshToken,
+            expiresIn: Number(token.expiresIn ?? token.expires_in ?? 0),
+            obtainmentTimestamp: Number(
+                token.obtainmentTimestamp
+                ?? token.obtainment_timestamp
+                ?? root.obtainmentTimestamp
+                ?? root.obtainment_timestamp
+                ?? Date.now(),
+            ),
+            scope: scopes,
+            userId: firstString(token.userId, token.user_id, root.userId, root.user_id) || undefined,
+            login: firstString(token.login, root.login) || undefined,
+            clientId,
+        } as TwitchTokenData;
     }
 
     public async handleCallbackRequest(
         req: Request,
         res: Response,
-        callbackAddress: string,
-        onSuccess?: () => Promise<void> | void
+        _callbackAddress: string,
+        onSuccess?: () => Promise<void> | void,
     ) {
-        const {clientId, clientSecret} = this.getConfiguredClient();
+        const status = String(req.query.status ?? "success").toLowerCase();
+        const error = firstString(req.query.error, req.query.error_description);
 
-        if (!clientId || !clientSecret) {
-            res.status(500).send("Twitch auth is not configured!");
+        if (status !== "success" || error) {
+            res.status(400).send(`Twitch cloud auth failed: ${error || status}`);
             return;
         }
 
-        const code = req.query.code as string | undefined;
-        const error = req.query.error as string | undefined;
-        const errorDescription = req.query.error_description as string | undefined;
-        const state = this.safeState(req.query.state);
-        const type = (req.query.type === "message" || req.query.type === "control")
-            ? req.query.type as TwitchAuthType
-            : state.type;
-
+        const code = this.callbackCode(req);
         if (!code) {
-            logError(`OAuth callback without code. error=${error ?? "none"} error_description=${errorDescription ?? "none"}`);
-            res.status(400).send(`OAuth failed: ${errorDescription ?? error ?? "unknown error"}`);
+            res.status(400).send("Twitch cloud auth callback did not contain an exchange code");
             return;
         }
+
+        const type = this.callbackAuthType(req);
+        const cloud = this.getCloudConfig();
 
         try {
             const response = await axios.post(
-                "https://id.twitch.tv/oauth2/token",
-                querystring.stringify({
-                    client_id: clientId,
-                    client_secret: clientSecret,
-                    code,
-                    grant_type: "authorization_code",
-                    redirect_uri: callbackAddress,
-                }),
+                cloud.exchangeUrl,
+                {code},
                 {
                     headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
+                        "Content-Type": "application/json",
                     },
-                }
+                    timeout: 10_000,
+                },
             );
 
-            this.tempTokenData = this.normalizeTokenData(response.data);
+            const tokenData = this.normalizeExchangeToken(response.data);
+            this.tempTokenData = tokenData;
 
-            const tokenUser = await this.getTokenUser(this.tempTokenData.accessToken);
+            if (!tokenData.userId) {
+                const user = await this.getTokenUser(tokenData.accessToken);
+                tokenData.userId = user.userId;
+                tokenData.login = tokenData.login ?? user.login;
+            }
 
-            this.tempTokenData.userId = tokenUser.userId;
-            this.tempTokenData.login = tokenUser.login;
+            await this.writeToken(type, tokenData);
 
-            await this.writeToken(type, this.tempTokenData);
+            logRegular(
+                `stored Twitch ${type} cloud auth in integrations.json `
+                + `for ${tokenData.login ?? tokenData.userId ?? "unknown user"}`,
+            );
 
-            res.on("finish", async () => {
-                if (!onSuccess) return;
-
+            if (onSuccess) {
                 try {
                     await onSuccess();
-                } catch (e) {
-                    logError(`Failed to run Twitch auth success hook: ${JSON.stringify(e, null, 2)}`);
+                } catch (hookError) {
+                    logError(
+                        `failed to run Twitch auth success hook: `
+                        + JSON.stringify(hookError, Object.getOwnPropertyNames(hookError)),
+                    );
                 }
-            });
+            }
 
-            res.status(200).send(`
-<!doctype html>
-<html>
-<body>
-<p>Twitch ${type} auth successful. Returning to app…</p>
-<script>window.location.replace(${JSON.stringify(state.returnTo)});</script>
-</body>
-</html>
-`);
-        } catch (error) {
-            logError(`Auth Error: ${JSON.stringify(error, null, 4)}`);
-            res.status(500).send("Auth Error!");
-        }
-    }
+            const returnTo = firstString(
+                req.query.returnTo,
+                req.query.return_to,
+                req.query.return_url,
+            );
 
-    private async startAuthapp(clientId: string, clientSecret: string, type: TwitchAuthType) {
-        const config = getConfig(/webserver/g)[0];
-        const address = "localhost";
-        const port = config.port;
-        const app = express();
-
-        const hostAddress = `http://${address}:${port}`;
-        const callbackAddress = `${hostAddress}/api/auth/twitch`;
-        const authAddress = `${hostAddress}/api/auth/twitch?type=${type}`;
-
-        logEmpty();
-        logWarn(`please configure ${callbackAddress} in your twitch application`);
-        logEmpty();
-
-        setUnreadyMessage("auth in progress");
-        getWebServer().getExpressServer().close();
-
-        const server = app.listen(port, () => {
-            logRegular(`please open ${authAddress} in your web browser`);
-        });
-
-        app.get("/api/auth/twitch", async (req: Request, res: Response) => {
-            const requestedType = req.query.type === "message" ? "message" : type;
-
-            if (!req.query.code) {
-                const returnTo = typeof req.query.returnTo === "string" && req.query.returnTo.length
-                    ? req.query.returnTo
-                    : "http://localhost:1420/";
-
-                res.redirect(this.buildAuthUrl(clientId, callbackAddress, returnTo, requestedType));
+            if (returnTo) {
+                res.redirect(303, returnTo);
                 return;
             }
 
-            await this.handleCallbackRequest(req, res, callbackAddress, async () => {
-                setUnreadyMessage("backend loading");
-
-                server.close(async () => {
-                    try {
-                        await getWebServer().initial();
-                        logSuccess(`twitch ${requestedType} auth successfully!`);
-                    } catch (e) {
-                        logError(`Failed to restart normal server: ${JSON.stringify(e, null, 2)}`);
-                    }
-                });
-            });
-        });
+            res.status(200).send(`Twitch ${type} auth successful. You can close this window.`);
+        } catch (exchangeError) {
+            logError("Twitch cloud auth exchange failed");
+            logError(JSON.stringify(exchangeError, Object.getOwnPropertyNames(exchangeError)));
+            res.status(500).send("Twitch cloud auth exchange failed");
+        }
     }
+
 }
