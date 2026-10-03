@@ -10,10 +10,11 @@ import {
     isOllamaIntegrationEnabled,
     setOllamaIntegrationModel,
 } from "./IntegrationsHelper";
-import {logRegular, logSuccess, logWarn} from "./LogHelper";
+import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
 
 const OLLAMA_API_URL = "http://127.0.0.1:11434";
 const OLLAMA_HOST = "127.0.0.1:11434";
+const OLLAMA_NON_CHAT_TIMEOUT = 5_000;
 
 function isExternalAiEnabled() {
     return Boolean(getOllamaIntegration().external);
@@ -367,7 +368,7 @@ function logChildOutput(
 
     for (const line of lines) {
         if (warn) {
-            logWarn(`${prefix}: ${line}`);
+            logNotice(`${prefix}: ${line}`);
         } else {
             logRegular(`${prefix}: ${line}`);
         }
@@ -545,7 +546,6 @@ async function startOllamaInternal() {
             logChildOutput(
                 "ollama",
                 chunk,
-                true,
             ),
     );
 
@@ -653,7 +653,7 @@ async function unloadConfiguredExternalOllamaModel() {
                 keep_alive: 0,
             },
             {
-                timeout: 30_000,
+                timeout: OLLAMA_NON_CHAT_TIMEOUT,
             },
         );
 
@@ -922,7 +922,9 @@ async function preloadConfiguredOllamaModel() {
                 keep_alive: -1,
             },
             {
-                timeout: 0,
+                timeout: isExternalOllamaEnabled()
+                    ? OLLAMA_NON_CHAT_TIMEOUT
+                    : 0,
             },
         );
 
@@ -943,8 +945,8 @@ async function preloadConfiguredOllamaModel() {
             runtimeState.running = false;
         }
 
-        logWarn(
-            `failed to preload ${isExternalOllamaEnabled() ? "external" : "internal"} ollama model ${model}: ${normalizedError.message}`,
+        logNotice(
+            `ollama preload skipped for ${isExternalOllamaEnabled() ? "external" : "internal"} model ${model}: ${normalizedError.message}`,
         );
 
         emitOllamaUpdate();
@@ -1139,17 +1141,21 @@ export async function directOllamaRequest(
             };
         }
 
+        const requestedTimeout = Number(data?.timeout ?? 0);
+        const isChatRequest = requestPath === "/api/chat";
+        const timeout = Number.isFinite(requestedTimeout) && requestedTimeout > 0
+            ? requestedTimeout
+            : isChatRequest
+                ? 0
+                : OLLAMA_NON_CHAT_TIMEOUT;
+
         const response =
             await getOllamaApi().request({
                 method,
                 url: requestPath,
                 params: data?.params,
                 data: requestData,
-                timeout:
-                    Number(
-                        data?.timeout ??
-                        0,
-                    ) || 0,
+                timeout,
             });
 
         return response.data;

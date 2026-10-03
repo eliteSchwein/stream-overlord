@@ -1,6 +1,6 @@
 import type {Bot} from "@twurple/easy-bot";
 import {getConfig} from "./ConfigHelper";
-import {logRegular, logWarn} from "./LogHelper";
+import {logNotice, logRegular} from "./LogHelper";
 
 type TwitchDataCache = {
     channel?: any;
@@ -79,7 +79,7 @@ export async function updateTwitchChannelData(bot: Bot) {
     const channelName = getConfig(/twitch/g)[0]?.channels?.[0];
 
     if (!channelName) {
-        logWarn("twitch channel update skipped: no primary channel configured");
+        logNotice("twitch channel update skipped: no primary channel configured");
         return twitchData.channel;
     }
 
@@ -97,7 +97,7 @@ export async function updateTwitchStreamData(bot: Bot) {
     }
 
     if (!twitchData.channel?.id) {
-        logWarn("twitch stream update skipped: no cached channel");
+        logNotice("twitch stream update skipped: no cached channel");
         return undefined;
     }
 

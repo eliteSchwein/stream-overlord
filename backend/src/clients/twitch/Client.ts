@@ -3,7 +3,7 @@ import {getConfig, getPrimaryChannel, loadPrimaryChannel} from "../../helper/Con
 import {Bot} from "@twurple/easy-bot";
 import buildCommands from "./TwitchCommands";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
-import {logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {setManagedConnection} from "../../helper/ConnectionHelper";
 
 // regular EasyBot events
@@ -136,7 +136,7 @@ export default class TwitchClient {
             const messageAuthProvider = await this.messageAuth.getAuthCode(false, "message" as any);
 
             if (!messageAuthProvider) {
-                logWarn("twitch message auth is not configured - outgoing messages use control auth");
+                logNotice("twitch message auth is not configured - outgoing messages use control auth");
                 return;
             }
 
@@ -524,7 +524,7 @@ export default class TwitchClient {
 
     private registerBotEvents(bot: Bot) {
         if (this.registeredBots.has(bot as object)) {
-            logWarn("skipping duplicate Twitch bot event registration");
+            logNotice("skipping duplicate Twitch bot event registration");
             return;
         }
 
@@ -542,7 +542,7 @@ export default class TwitchClient {
         }
 
         if (this.registeredEventSubs.has(eventSub as object)) {
-            logWarn("skipping duplicate Twitch EventSub registration on the same listener");
+            logNotice("skipping duplicate Twitch EventSub registration on the same listener");
             return;
         }
 
@@ -578,8 +578,8 @@ export default class TwitchClient {
         const affiliateOrPartner = await affiliateOrPartnerPromise;
 
         if (!affiliateOrPartner) {
-            logWarn("primary channel is not affiliate/partner - skipping monetization-related Twitch features");
-            logWarn("Skipped: Channel Points, reward updates, Bits cheers, polls/predictions, hype trains, goals, ads and charity EventSub");
+            logNotice("primary channel is not affiliate/partner - skipping monetization-related Twitch features");
+            logNotice("Skipped: Channel Points, reward updates, Bits cheers, polls/predictions, hype trains, goals, ads and charity EventSub");
             return;
         }
 
@@ -616,7 +616,7 @@ export default class TwitchClient {
         clearCommunitySubGiftState();
 
         if (!this.bot || !this.controlAuthProvider || !this.twitchConfig) {
-            logWarn("cannot reload twitch commands without an active control bot");
+            logNotice("cannot reload twitch commands without an active control bot");
             return;
         }
 

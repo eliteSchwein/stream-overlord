@@ -2,7 +2,7 @@ import {getConfig, getPrimaryChannel} from "./ConfigHelper";
 import {triggerMacro} from "./MacroHelper";
 import getWebsocketServer, {getTwitchClient} from "../App";
 import {pushGameInfo, setManualColor} from "./GameHelper";
-import {logWarn} from "./LogHelper";
+import {logNotice} from "./LogHelper";
 
 let shieldActive = false;
 
@@ -16,7 +16,7 @@ export async function enableShield() {
     const websocketServer = getWebsocketServer()
     const twitchClient = getTwitchClient()
 
-    logWarn("Shield Mode is active!")
+    logNotice("Shield Mode is active!")
 
     shieldActive = true
 
@@ -43,7 +43,7 @@ export async function disableShield() {
     const websocketServer = getWebsocketServer()
     const twitchClient = getTwitchClient()
 
-    logWarn("Shield Mode is inactive!")
+    logNotice("Shield Mode is inactive!")
 
     shieldActive = false
 

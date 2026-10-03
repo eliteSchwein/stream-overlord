@@ -59,7 +59,7 @@ function runInstaller(script: string): Promise<void> {
         })
         child.stderr?.on("data", (chunk: any) => {
             for (const line of String(chunk ?? "").split(/\r?\n/).map((v) => v.trim()).filter(Boolean)) {
-                logWarn(`tts install: ${line}`)
+                logNotice(`tts install: ${line}`)
             }
         })
         child.once("error", reject)
@@ -223,7 +223,7 @@ export async function downloadVoice(locale?: string) {
     try {
         if (!(getTtsSettings() as any)?.enabled) return
         if (!isTtsInstalled()) {
-            logWarn(`TTS voice download skipped: TTS is not installed`)
+            logNotice(`TTS voice download skipped: TTS is not installed`)
             return
         }
         mkdirSync(getModelsDirectory(), {recursive: true})
@@ -397,7 +397,7 @@ export async function speak(
 ) {
     const settings = getTtsSettings() as any
     if (!settings?.enabled) {
-        logWarn(`TTS failed: TTS is disabled`)
+        logNotice(`TTS skipped: TTS is disabled`)
         return
     }
 
@@ -407,7 +407,7 @@ export async function speak(
         return
     }
     if (audioData.muted) {
-        logWarn(`TTS failed: muted`)
+        logNotice(`TTS skipped: muted`)
         return
     }
 

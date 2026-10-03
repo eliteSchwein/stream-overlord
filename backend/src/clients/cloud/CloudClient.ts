@@ -18,10 +18,11 @@ import {
 } from "../../helper/IntegrationsHelper";
 import {getConfig} from "../../helper/ConfigHelper";
 import {getModeratorsForCloud} from "../twitch/helper/PermissionHelper";
-import {logError, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {logError, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 
 const DEFAULT_CLOUD_URL = "https://cloud.streamding.dev";
 const RECONNECT_DELAY = 5_000;
+const MAX_RECONNECT_FAILURES = 5;
 type PendingRegistration = {
     pairingId: string;
     status: string;
@@ -222,6 +223,7 @@ export default class CloudClient {
     private lastState: Record<string, any> = {};
     private snapshotTimer?: NodeJS.Timeout;
     private registrationVerifyInFlight = false;
+    private reconnectFailures = 0;
 
     public getConfig() {
         const config = getConfig(/cloud/g)[0] ?? {};
@@ -458,9 +460,13 @@ export default class CloudClient {
         return this.getState();
     }
 
-    public async connect() {
+    public async connect(resetReconnectFailures: boolean = true) {
         this.clearReconnect();
         this.manualDisconnect = false;
+
+        if (resetReconnectFailures) {
+            this.reconnectFailures = 0;
+        }
 
         const integration = getCloudIntegration();
         if (!integration.enabled) {
@@ -502,6 +508,7 @@ export default class CloudClient {
 
         socket.on("open", () => {
             if (this.socket !== socket) return;
+            this.reconnectFailures = 0;
             setManagedConnection("cloud", {
                 enabled: true,
                 connected: true,
@@ -536,8 +543,22 @@ export default class CloudClient {
             });
 
             if (!this.manualDisconnect && getCloudIntegration().enabled) {
+                this.reconnectFailures += 1;
+
+                if (this.reconnectFailures >= MAX_RECONNECT_FAILURES) {
+                    setManagedConnection("cloud", {
+                        enabled: true,
+                        connected: false,
+                        state: "error",
+                        message: `reconnect failed ${this.reconnectFailures}/${MAX_RECONNECT_FAILURES}; stopped`,
+                    });
+                    logWarn(`cloud reconnect failed ${this.reconnectFailures}/${MAX_RECONNECT_FAILURES}; stopping reconnect attempts`);
+                    return;
+                }
+
+                logNotice(`cloud reconnect ${this.reconnectFailures}/${MAX_RECONNECT_FAILURES}`);
                 this.reconnectTimer = setTimeout(() => {
-                    void this.connect().catch(error => {
+                    void this.connect(false).catch(error => {
                         logWarn("cloud reconnect failed");
                         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
                     });
@@ -548,6 +569,7 @@ export default class CloudClient {
 
     public disconnect() {
         this.manualDisconnect = true;
+        this.reconnectFailures = 0;
         this.clearReconnect();
         this.closeSocket();
         setManagedConnection("cloud", {

@@ -66,7 +66,7 @@ export async function compressAssets(
     const ffmpeg = await initFfmpeg();
     const { ffmpegBin, ffprobeBin } = ffmpeg;
 
-    if (force) logWarn("Force compressing assets");
+    if (force) logNotice("Force compressing assets");
     if (file) force = true;
 
     const imageQuality = numberArg(config?.image_compress_percent, 75);
@@ -86,7 +86,7 @@ export async function compressAssets(
             if (stat.size > 0) return;
 
             fs.unlinkSync(outPath);
-            logWarn(`Deleted empty compressed asset: ${outPath}`);
+            logNotice(`Deleted empty compressed asset: ${outPath}`);
         } catch (error: any) {
             logWarn(`Failed to delete empty compressed asset ${outPath}: ${error?.message || String(error)}`);
         }
