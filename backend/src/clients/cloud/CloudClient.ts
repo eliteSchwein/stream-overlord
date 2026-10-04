@@ -23,6 +23,8 @@ import {logError, logNotice, logRegular, logSuccess, logWarn} from "../../helper
 const DEFAULT_CLOUD_URL = "https://cloud.streamding.dev";
 const RECONNECT_DELAY = 5_000;
 const MAX_RECONNECT_FAILURES = 5;
+const HEARTBEAT_WATCHDOG_INTERVAL = 10_000;
+const HEARTBEAT_STALE_AFTER = 30_000;
 type PendingRegistration = {
     pairingId: string;
     status: string;
@@ -224,6 +226,8 @@ export default class CloudClient {
     private snapshotTimer?: NodeJS.Timeout;
     private registrationVerifyInFlight = false;
     private reconnectFailures = 0;
+    private heartbeatWatchdog?: NodeJS.Timeout;
+    private lastCloudActivityAt = 0;
 
     public getConfig() {
         const config = getConfig(/cloud/g)[0] ?? {};
@@ -509,6 +513,8 @@ export default class CloudClient {
         socket.on("open", () => {
             if (this.socket !== socket) return;
             this.reconnectFailures = 0;
+            this.lastCloudActivityAt = Date.now();
+            this.startHeartbeatWatchdog(socket);
             setManagedConnection("cloud", {
                 enabled: true,
                 connected: true,
@@ -521,10 +527,21 @@ export default class CloudClient {
         });
 
         socket.on("message", raw => {
+            this.markCloudActivity();
             void this.handleMessage(raw.toString()).catch(error => {
                 logWarn("cloud message failed");
                 logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
             });
+        });
+
+        socket.on("ping", () => {
+            // ws automatically replies with pong. Tracking the ping keeps the local
+            // watchdog aligned with the cloud heartbeat without sending duplicate pongs.
+            this.markCloudActivity();
+        });
+
+        socket.on("pong", () => {
+            this.markCloudActivity();
         });
 
         socket.on("error", error => {
@@ -535,6 +552,7 @@ export default class CloudClient {
 
         socket.on("close", (code, reason) => {
             if (this.socket === socket) this.socket = undefined;
+            this.stopHeartbeatWatchdog();
             setManagedConnection("cloud", {
                 enabled: Boolean(getCloudIntegration().enabled),
                 connected: false,
@@ -569,6 +587,7 @@ export default class CloudClient {
 
     public disconnect() {
         this.manualDisconnect = true;
+        this.stopHeartbeatWatchdog();
         this.reconnectFailures = 0;
         this.clearReconnect();
         this.closeSocket();
@@ -709,7 +728,35 @@ export default class CloudClient {
         }
     }
 
+
+    private markCloudActivity() {
+        this.lastCloudActivityAt = Date.now();
+    }
+
+    private startHeartbeatWatchdog(socket: WebSocket) {
+        this.stopHeartbeatWatchdog();
+        this.heartbeatWatchdog = setInterval(() => {
+            if (this.socket !== socket || socket.readyState !== WebSocket.OPEN) return;
+
+            const inactiveFor = Date.now() - this.lastCloudActivityAt;
+            if (inactiveFor <= HEARTBEAT_STALE_AFTER) return;
+
+            logWarn(`cloud websocket heartbeat stale for ${Math.round(inactiveFor / 1000)}s; reconnecting`);
+            // terminate() is intentional here: for a half-open TCP connection close()
+            // can wait indefinitely and would not trigger the normal reconnect path.
+            socket.terminate();
+        }, HEARTBEAT_WATCHDOG_INTERVAL);
+        this.heartbeatWatchdog.unref?.();
+    }
+
+    private stopHeartbeatWatchdog() {
+        if (!this.heartbeatWatchdog) return;
+        clearInterval(this.heartbeatWatchdog);
+        this.heartbeatWatchdog = undefined;
+    }
+
     private closeSocket() {
+        this.stopHeartbeatWatchdog();
         const socket = this.socket;
         this.socket = undefined;
         if (!socket) return;

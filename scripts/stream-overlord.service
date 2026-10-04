@@ -1,20 +1,14 @@
 [Unit]
 Description=Stream Controller for eliteSCHW31N
-#Wants=moonraker.service
-#After=moonraker.service
-StartLimitIntervalSec=500
-#StartLimitBurst=5
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-Restart=on-failure
-RestartSec=5s
-#User=pi
 WorkingDirectory=%h/stream-overlord
 ExecStart=/usr/bin/npm run start:backend
 
-#StandardOutput=append:%h/.config/streambot/stream-overlord.log
-#StandardError=append:%h/.config/streambot/stream-overlord.log
+Restart=always
+RestartSec=5s
 
 [Install]
 WantedBy=default.target
