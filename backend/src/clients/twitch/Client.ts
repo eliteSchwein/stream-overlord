@@ -38,6 +38,7 @@ import ChannelVipRemoveEvent from "./events/event_sub/ChannelVipRemoveEvent";
 import CheerEvent from "./events/event_sub/CheerEvent";
 import FollowEvent from "./events/event_sub/FollowEvent";
 import MessageDeleteEvent from "./events/event_sub/MessageDeleteEvent";
+import MessageEvent from "./events/event_sub/MessageEvent";
 import PollPredictionEvent from "./events/event_sub/PollPredictionEvent";
 import PollProgressEvent from "./events/event_sub/PollProgressEvent";
 import PredictionLockEvent from "./events/event_sub/PredictionLockEvent";
@@ -558,6 +559,7 @@ export default class TwitchClient {
             ["stream online event", () => new StreamOnlineEvent(eventSub, bot).register()],
             ["stream offline event", () => new StreamOfflineEvent(eventSub, bot).register()],
             ["shield event", () => new ShieldEvent(eventSub, bot).register()],
+            ["message event", () => new MessageEvent(eventSub, bot).register()],
             ["message delete event", () => new MessageDeleteEvent(eventSub, bot).register()],
             ["channel ban event", () => new ChannelBanEvent(eventSub, bot).register()],
             ["channel unban event", () => new ChannelUnbanEvent(eventSub, bot).register()],

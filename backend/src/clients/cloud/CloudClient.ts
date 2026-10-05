@@ -19,6 +19,7 @@ import {
 import {getConfig} from "../../helper/ConfigHelper";
 import {getModeratorsForCloud} from "../twitch/helper/PermissionHelper";
 import {logError, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
+import {triggerConfiguredEvent} from "../../helper/EventHelper";
 
 const DEFAULT_CLOUD_URL = "https://cloud.streamding.dev";
 const RECONNECT_DELAY = 5_000;
@@ -666,6 +667,12 @@ export default class CloudClient {
         }
 
         const topType = String(message?.type ?? "").trim().toLowerCase();
+
+        if (topType === "notify_kofi_event") {
+            await this.handleKofiEvent(message);
+            return;
+        }
+
         if (["snapshot_request", "snapshot.request"].includes(topType)) {
             this.sendSnapshot();
             return;
@@ -728,6 +735,47 @@ export default class CloudClient {
         }
     }
 
+
+    private async handleKofiEvent(message: any) {
+        const data = message?.data && typeof message.data === "object" && !Array.isArray(message.data)
+            ? message.data
+            : {};
+
+        const eventType = firstString(data.type, "Ko-fi");
+        const fromName = firstString(data.from_name, data.fromName, data.name, "anonymous");
+        const amount = firstString(data.amount);
+        const currency = firstString(data.currency);
+
+        logRegular(
+            `Ko-fi event: ${eventType} from ${fromName}` +
+            (amount ? ` (${amount}${currency ? ` ${currency}` : ""})` : ""),
+        );
+
+        const eventUuid = `event_kofi_${firstString(data.message_id, data.messageId, data.kofi_transaction_id, data.transaction_id) || Date.now()}`;
+        const eventPayload = {
+            ...data,
+            event: data,
+            eventUuid,
+            streamer_id: firstString(message?.streamer_id, message?.streamerId),
+            received_at: firstString(message?.received_at, message?.receivedAt),
+        };
+        const eventLabel = `Ko-fi: ${eventType}${fromName ? ` from ${fromName}` : ""}`;
+
+        // Keep the generic Ko-fi event for backwards compatibility / catch-all use.
+        await triggerConfiguredEvent("event_kofi", eventPayload, eventLabel);
+
+        const normalizedType = eventType.trim().toLowerCase().replace(/[\s_-]+/g, " ");
+        const typedEvent = ({
+            donation: "event_kofi_donation",
+            subscription: "event_kofi_subscription",
+            "shop order": "event_kofi_shop_order",
+            commission: "event_kofi_commission",
+        } as Record<string, string>)[normalizedType];
+
+        if (typedEvent) {
+            await triggerConfiguredEvent(typedEvent, eventPayload, eventLabel);
+        }
+    }
 
     private markCloudActivity() {
         this.lastCloudActivityAt = Date.now();

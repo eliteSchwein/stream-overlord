@@ -72,6 +72,43 @@ const eventEntries: EventIndex = {
         createEventEntry("event_music_next"),
         createEventEntry("event_music_prev"),
     ],
+    kofi: [
+        createEventEntry("event_kofi", [
+            simulationField("type", "text", "Donation"),
+            simulationField("from_name", "text", "Test Supporter"),
+            simulationField("amount", "text", "5.00"),
+            simulationField("currency", "text", "EUR"),
+            simulationField("message", "textarea", "Thanks for the stream!"),
+        ]),
+        createEventEntry("event_kofi_donation", [
+            simulationField("type", "text", "Donation"),
+            simulationField("from_name", "text", "Test Supporter"),
+            simulationField("amount", "text", "5.00"),
+            simulationField("currency", "text", "EUR"),
+            simulationField("message", "textarea", "Thanks for the stream!"),
+        ]),
+        createEventEntry("event_kofi_subscription", [
+            simulationField("type", "text", "Subscription"),
+            simulationField("from_name", "text", "Test Supporter"),
+            simulationField("amount", "text", "5.00"),
+            simulationField("currency", "text", "EUR"),
+            simulationField("message", "textarea", "Thanks for the stream!"),
+        ]),
+        createEventEntry("event_kofi_shop_order", [
+            simulationField("type", "text", "Shop Order"),
+            simulationField("from_name", "text", "Test Customer"),
+            simulationField("amount", "text", "12.00"),
+            simulationField("currency", "text", "EUR"),
+            simulationField("message", "textarea", "Test shop order"),
+        ]),
+        createEventEntry("event_kofi_commission", [
+            simulationField("type", "text", "Commission"),
+            simulationField("from_name", "text", "Test Customer"),
+            simulationField("amount", "text", "25.00"),
+            simulationField("currency", "text", "EUR"),
+            simulationField("message", "textarea", "Test commission"),
+        ]),
+    ],
     giveaway: [
         createEventEntry("event_giveaway_start", [
             simulationField("giveawayText", "text", "Example prize"),
