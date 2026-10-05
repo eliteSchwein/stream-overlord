@@ -10,7 +10,7 @@ const sampleRate = 48_000;
 const channels = 2;
 const opusBitrate = 320_000;
 const publisherRestartDelayMs = 1_500;
-const publisherMaxFailures = 5;
+const publisherMaxFailures = 25;
 const publisherStableMs = 10_000;
 
 const mediamtxRtspBase = (process.env.STREAMBOT_MEDIAMTX_RTSP_URL || "rtsp://127.0.0.1:8554").replace(/\/+$/, "");
