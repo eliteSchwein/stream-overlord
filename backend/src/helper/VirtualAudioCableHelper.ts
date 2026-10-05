@@ -10,8 +10,7 @@ const sampleRate = 48_000;
 const channels = 2;
 const opusBitrate = 320_000;
 const publisherRestartDelayMs = 1_500;
-const publisherMaxFailures = 25;
-const publisherStableMs = 10_000;
+const publisherRestartLogIntervalMs = 30_000;
 
 const mediamtxRtspBase = (process.env.STREAMBOT_MEDIAMTX_RTSP_URL || "rtsp://127.0.0.1:8554").replace(/\/+$/, "");
 const mediamtxWebRtcPort = Math.max(1, Number(process.env.STREAMBOT_MEDIAMTX_WEBRTC_PORT || 8889));
@@ -27,8 +26,7 @@ type CableRuntime = {
     stopping: boolean;
     sinkReady: boolean;
     published: boolean;
-    publisherFailures: number;
-    publisherStartedAt: number | null;
+    lastRestartLogAt: number;
 };
 
 let websocketServer: WebsocketServer | null = null;
@@ -117,8 +115,7 @@ function syncRuntimeDefinitions() {
             stopping: false,
             sinkReady: false,
             published: false,
-            publisherFailures: 0,
-            publisherStartedAt: null,
+            lastRestartLogAt: 0,
         });
     }
 }
@@ -212,16 +209,6 @@ async function ensureVirtualSink(runtime: CableRuntime): Promise<void> {
 function scheduleRestart(runtime: CableRuntime) {
     if (runtime.stopping || runtime.restartTimer) return;
 
-    if (runtime.publisherFailures >= publisherMaxFailures) {
-        runtime.stopping = true;
-        runtime.published = false;
-        logWarn(
-            `virtual audio ${runtime.config.id} MediaMTX publisher failed ${runtime.publisherFailures} times; stopping integration`,
-        );
-        emitState();
-        return;
-    }
-
     runtime.restartTimer = setTimeout(() => {
         runtime.restartTimer = null;
         if (!runtime.stopping) void startPublisher(runtime);
@@ -260,7 +247,6 @@ async function startPublisher(runtime: CableRuntime) {
 
     runtime.stopping = false;
     runtime.publisherProcess = proc;
-    runtime.publisherStartedAt = Date.now();
     runtime.published = true;
     emitState();
 
@@ -272,32 +258,18 @@ async function startPublisher(runtime: CableRuntime) {
     proc.on("close", (code, signal) => {
         if (runtime.publisherProcess === proc) runtime.publisherProcess = null;
         runtime.published = false;
-
-        const startedAt = runtime.publisherStartedAt;
-        runtime.publisherStartedAt = null;
-        const ranFor = startedAt ? Date.now() - startedAt : 0;
-
-        if (!runtime.stopping) {
-            runtime.publisherFailures = ranFor >= publisherStableMs
-                ? 1
-                : runtime.publisherFailures + 1;
-
-            if (runtime.publisherFailures >= publisherMaxFailures) {
-                logWarn(
-                    `virtual audio ${runtime.config.id} publisher exited code=${code ?? "none"} signal=${signal ?? "none"}; ` +
-                    `MediaMTX reconnect failed ${runtime.publisherFailures}/${publisherMaxFailures}, stopping`,
-                );
-            } else {
-                logNotice(
-                    `virtual audio ${runtime.config.id} publisher exited code=${code ?? "none"} signal=${signal ?? "none"}; ` +
-                    `MediaMTX reconnect ${runtime.publisherFailures}/${publisherMaxFailures}`,
-                );
-            }
-        }
-
         emitState();
 
-        if (!runtime.stopping) scheduleRestart(runtime);
+        if (!runtime.stopping) {
+            const now = Date.now();
+            if (now - runtime.lastRestartLogAt >= publisherRestartLogIntervalMs) {
+                runtime.lastRestartLogAt = now;
+                logNotice(
+                    `virtual audio ${runtime.config.id} publisher exited code=${code ?? "none"} signal=${signal ?? "none"}; restarting`,
+                );
+            }
+            scheduleRestart(runtime);
+        }
     });
 
     logNotice(`virtual audio WebRTC publisher started: ${runtime.config.name} -> ${outputUrl}`);
@@ -312,7 +284,6 @@ function stopPublisher(runtime: CableRuntime, reason = "stopped") {
 
     const proc = runtime.publisherProcess;
     runtime.publisherProcess = null;
-    runtime.publisherStartedAt = null;
     runtime.published = false;
     if (proc) {
         try { proc.kill("SIGTERM"); } catch {}
@@ -339,7 +310,6 @@ export async function syncVirtualAudioCableConfiguration(): Promise<void> {
         try {
             if (runtime.stopping && !runtime.publisherProcess) {
                 runtime.stopping = false;
-                runtime.publisherFailures = 0;
             }
             await ensureVirtualSink(runtime);
             if (!runtime.publisherProcess) await startPublisher(runtime);
