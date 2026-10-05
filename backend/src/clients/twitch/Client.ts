@@ -130,6 +130,13 @@ export default class TwitchClient {
             : this.controlAuthUserId;
     }
 
+    public isOwnAuthUserId(userId: string | undefined | null) {
+        const id = String(userId ?? "").trim();
+        if (!id) return false;
+
+        return id === this.controlAuthUserId || id === this.messageAuthUserId;
+    }
+
     private async tryMessageAuth(config: any) {
         this.messageAuth = new TwitchAuth();
 
@@ -559,7 +566,7 @@ export default class TwitchClient {
             ["stream online event", () => new StreamOnlineEvent(eventSub, bot).register()],
             ["stream offline event", () => new StreamOfflineEvent(eventSub, bot).register()],
             ["shield event", () => new ShieldEvent(eventSub, bot).register()],
-            ["message event", () => new MessageEvent(eventSub, bot).register()],
+            ["message event", () => new MessageEvent(eventSub, bot, this).register()],
             ["message delete event", () => new MessageDeleteEvent(eventSub, bot).register()],
             ["channel ban event", () => new ChannelBanEvent(eventSub, bot).register()],
             ["channel unban event", () => new ChannelUnbanEvent(eventSub, bot).register()],
