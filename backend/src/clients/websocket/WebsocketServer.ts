@@ -36,6 +36,7 @@ import {getVirtualAudioCables} from "../../helper/VirtualAudioCableHelper";
 
 export default class WebsocketServer {
     private externalMessageSink?: (method: string, data: any) => void;
+    private cavaConnections = new Map<string, Set<any>>();
     websocket: WebSocketServer
     validEndpoints: string[] = [
         'notify_alert',
@@ -78,7 +79,6 @@ export default class WebsocketServer {
         'notify_yolobox_update',
         'notify_music_show',
         'notify_music_update',
-        'notify_music_cava',
         'notify_animation_update',
         'notify_audio_outputs_update',
         'notify_audio_presets_update',
@@ -112,6 +112,17 @@ export default class WebsocketServer {
 
         this.websocket = new WebSocketServer({port: config?.port ?? 8100, host: '0.0.0.0', maxPayload: 512 * 1024 * 1024})
 
+        // Dedicated high-frequency CAVA sockets share the same listener/port but
+        // use their own WebSocket connection per feed: /cava/<target>.
+        // They intentionally bypass the regular endpoint registration/state sync.
+        this.websocket.on('connection', (socket: any, request: any) => {
+            const target = this.getCavaTargetFromUrl(request?.url)
+            if (!target) return
+
+            socket.__streambotCavaTarget = target
+            this.addCavaConnection(target, socket)
+        })
+
         setConnectionUpdateNotifier((connections) => {
             this.send("notify_connection_update", connections)
         })
@@ -119,6 +130,75 @@ export default class WebsocketServer {
 
     public registerEvents() {
         void new ConnectEvent(this.websocket, this).register()
+    }
+
+    private getCavaTargetFromUrl(rawUrl: unknown): string | null {
+        const pathname = String(rawUrl ?? '').split('?', 1)[0]
+        const match = pathname.match(/^\/cava\/([^/]+)\/?$/)
+        if (!match) return null
+
+        try {
+            return decodeURIComponent(match[1]).trim() || null
+        } catch {
+            return null
+        }
+    }
+
+    private addCavaConnection(target: string, connection: any) {
+        if (!this.cavaConnections.has(target)) {
+            this.cavaConnections.set(target, new Set())
+        }
+
+        this.cavaConnections.get(target)!.add(connection)
+        logRegular(`cava websocket connected: ${target}`)
+
+        connection.on('close', () => {
+            const connections = this.cavaConnections.get(target)
+            connections?.delete(connection)
+            if (connections?.size === 0) this.cavaConnections.delete(target)
+        })
+    }
+
+    public isCavaConnection(connection: any): boolean {
+        return typeof connection?.__streambotCavaTarget === 'string'
+    }
+
+    public sendCava(target: string, raw: string): number {
+        const connections = this.cavaConnections.get(target)
+        if (!connections?.size) return 0
+
+        const payload = JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'notify_music_cava',
+            params: {target, raw},
+            id: getRandomInt(10_000),
+        })
+
+        let delivered = 0
+        for (const connection of Array.from(connections)) {
+            try {
+                if (connection.readyState !== 1) {
+                    connections.delete(connection)
+                    continue
+                }
+
+                connection.send(payload)
+                delivered++
+            } catch (error) {
+                connections.delete(connection)
+                logError(`cava websocket send failed: ${target}`)
+                logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+            }
+        }
+
+        if (connections.size === 0) this.cavaConnections.delete(target)
+        return delivered
+    }
+
+    public getCavaConnections() {
+        return Object.fromEntries(
+            Array.from(this.cavaConnections.entries()).map(([target, connections]) => [target, connections.size])
+        )
     }
 
     public setExternalMessageSink(callback?: (method: string, data: any) => void) {

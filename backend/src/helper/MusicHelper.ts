@@ -1511,10 +1511,7 @@ export function startCavaFeed() {
         logDebug(`cava ${config.target} values: ${JSON.stringify(config.values)}`)
 
         process.stdout.on('data', data => {
-            getWebsocketServer().send('notify_music_cava', {
-                target: config.target,
-                raw: data.toString(),
-            })
+            getWebsocketServer().sendCava(config.target, data.toString())
         })
 
         process.stderr.on('data', data => {

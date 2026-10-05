@@ -13,6 +13,13 @@ export default class ConnectEvent extends BaseEvent{
     async handle(event: any) {
         const client = `${event._socket.remoteAddress}:${event._socket.remotePort}`
 
+        // /cava/<target> sockets are dedicated high-frequency feeds. They are
+        // registered by WebsocketServer itself and deliberately skip the regular
+        // endpoint registration and initial state burst.
+        if (this.client.isCavaConnection(event)) {
+            return
+        }
+
         if(!isBackendReady()) {
             await sleep(25)
             event.send(JSON.stringify({jsonrpc: "2.0", method: 'notify_disconnect', params: {reason: getUnreadyMessage()}, id: getRandomInt(10_000)}))
