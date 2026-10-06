@@ -6,6 +6,18 @@ import * as path from "node:path";
 import fillTemplate from "../TemplateHelper";
 import {emitAssetUpdate, resolveAssetPath} from "../AssetManagementHelper";
 
+
+function normalizePickerValue(value: unknown): string {
+    if (typeof value === "string") return value.trim();
+
+    if (value && typeof value === "object") {
+        const candidate = (value as any).value ?? (value as any).path ?? (value as any).title;
+        if (typeof candidate === "string") return candidate.trim();
+    }
+
+    return "";
+}
+
 function parseFfmpegArguments(value: string): string[] {
     const input = String(value ?? "").trim();
     if (!input) return [];
@@ -106,20 +118,21 @@ export default class MediaMacroTask extends BaseMacroTask {
 
         switch (method) {
             case "show_media": {
-                if (!data.path) {
-                    logWarn(`media show_media requires path`);
-                    break;
-                }
-
                 const options = data.options && typeof data.options === "object"
                     ? data.options
                     : {};
+                const mediaPath = normalizePickerValue(data.path ?? options.path);
+
+                if (!mediaPath) {
+                    logWarn(`media show_media requires path`);
+                    break;
+                }
 
                 this.websocket.send("notify_media_update", {
                     media: method,
                     ...options,
                     target: data.target ?? options.target ?? "default",
-                    path: data.path,
+                    path: mediaPath,
                     type: data.type ?? options.type,
                     clearOnEmpty: data.clearOnEmpty ?? options.clearOnEmpty,
                     autoplay: data.autoplay ?? options.autoplay,
