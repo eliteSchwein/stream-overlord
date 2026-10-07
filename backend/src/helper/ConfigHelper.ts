@@ -79,6 +79,8 @@ export type GiveawaySettings = {
     require_moderator: boolean;
 };
 
+export type UiConfiguration = Record<string, unknown>;
+
 export type CavaTargetSettings = Record<string, string | number | boolean>;
 
 export type CavaSettings = {
@@ -102,6 +104,8 @@ type StreambotSettings = {
     giveaway: GiveawaySettings;
     category_library: CategoryLibrarySettings;
     virtual_audio_cables: VirtualAudioCableSettings[];
+    touch_dashboard: UiConfiguration;
+    local_admin_panel: UiConfiguration;
 };
 
 const defaultAssetTuneSettings: AssetTuneSettings = {
@@ -184,6 +188,8 @@ let systemConfig: StreambotSettings = {
     giveaway: defaultGiveawaySettings,
     category_library: defaultCategoryLibrarySettings,
     virtual_audio_cables: defaultVirtualAudioCableSettings,
+    touch_dashboard: {},
+    local_admin_panel: {},
 };
 
 const systemConfigDir = path.resolve(os.homedir(), ".config/streambot");
@@ -239,12 +245,16 @@ function hasNonTtsChanges(previous: StreambotSettings, next: StreambotSettings) 
         tts: _previousTts,
         touch_wallpaper: _previousTouchWallpaper,
         virtual_audio_cables: _previousVirtualAudioCables,
+        touch_dashboard: _previousTouchDashboard,
+        local_admin_panel: _previousLocalAdminPanel,
         ...previousReloadSettings
     } = previous;
     const {
         tts: _nextTts,
         touch_wallpaper: _nextTouchWallpaper,
         virtual_audio_cables: _nextVirtualAudioCables,
+        touch_dashboard: _nextTouchDashboard,
+        local_admin_panel: _nextLocalAdminPanel,
         ...nextReloadSettings
     } = next;
 
@@ -539,6 +549,11 @@ function normalizeGiveawaySettings(rawGiveawaySettings: Partial<GiveawaySettings
     };
 }
 
+function normalizeUiConfiguration(value: unknown): UiConfiguration {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return {...(value as Record<string, unknown>)};
+}
+
 function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
     const requestedLanguage = String(rawSystemConfig.language || "en")
         .trim()
@@ -569,6 +584,8 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
         giveaway: normalizeGiveawaySettings(rawSystemConfig.giveaway),
         category_library: normalizeCategoryLibrarySettings(rawCategoryLibrary),
         virtual_audio_cables: normalizeVirtualAudioCableSettings((rawSystemConfig as any).virtual_audio_cables),
+        touch_dashboard: normalizeUiConfiguration((rawSystemConfig as any).touch_dashboard),
+        local_admin_panel: normalizeUiConfiguration((rawSystemConfig as any).local_admin_panel),
     };
 }
 
@@ -661,6 +678,18 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
         virtual_audio_cables: newSystemConfig.virtual_audio_cables !== undefined
             ? newSystemConfig.virtual_audio_cables
             : systemConfig.virtual_audio_cables,
+        touch_dashboard: newSystemConfig.touch_dashboard
+            ? {
+                ...systemConfig.touch_dashboard,
+                ...newSystemConfig.touch_dashboard,
+            }
+            : systemConfig.touch_dashboard,
+        local_admin_panel: newSystemConfig.local_admin_panel
+            ? {
+                ...systemConfig.local_admin_panel,
+                ...newSystemConfig.local_admin_panel,
+            }
+            : systemConfig.local_admin_panel,
         cava: newSystemConfig.cava
             ? {
                 ...systemConfig.cava,
@@ -720,6 +749,22 @@ export function getGiveawaySettings() {
 
 export function getTouchWallpaper() {
     return systemConfig.touch_wallpaper;
+}
+
+export function getTouchDashboardSettings() {
+    return systemConfig.touch_dashboard;
+}
+
+export function updateTouchDashboardSettings(settings: UiConfiguration) {
+    return writeSystemConfig({touch_dashboard: settings});
+}
+
+export function getLocalAdminPanelSettings() {
+    return systemConfig.local_admin_panel;
+}
+
+export function updateLocalAdminPanelSettings(settings: UiConfiguration) {
+    return writeSystemConfig({local_admin_panel: settings});
 }
 
 export function setTouchWallpaper(touchWallpaper: string) {

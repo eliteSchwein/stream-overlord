@@ -5,6 +5,7 @@ import {
     type GiveawaySettings,
     type CategoryLibrarySettings,
     type VirtualAudioCableSettings,
+    type UiConfiguration,
 } from "../../helper/ConfigHelper";
 import BaseApi from "../../abstracts/BaseApi";
 
@@ -15,6 +16,8 @@ type SettingsSavePayload = {
     giveaway?: Partial<GiveawaySettings>;
     category_library?: Partial<CategoryLibrarySettings>;
     virtual_audio_cables?: VirtualAudioCableSettings[];
+    touch_dashboard?: UiConfiguration;
+    local_admin_panel?: UiConfiguration;
 };
 
 export default class SettingsSaveApi extends BaseApi {
@@ -32,6 +35,12 @@ export default class SettingsSaveApi extends BaseApi {
                 ...currentSettings.asset_tune,
                 ...(payload.asset_tune || {}),
             },
+            touch_dashboard: payload.touch_dashboard
+                ? {...currentSettings.touch_dashboard, ...payload.touch_dashboard}
+                : currentSettings.touch_dashboard,
+            local_admin_panel: payload.local_admin_panel
+                ? {...currentSettings.local_admin_panel, ...payload.local_admin_panel}
+                : currentSettings.local_admin_panel,
         });
 
         if (payload.category_library) {
