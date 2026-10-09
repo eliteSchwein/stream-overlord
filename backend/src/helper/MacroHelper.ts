@@ -5,6 +5,7 @@ import * as yaml from "js-yaml";
 import getWebsocketServer from "../App";
 import {logNotice, logRegular, logWarn} from "./LogHelper";
 import {getTemplateVariables} from "./TemplateHelper";
+import {getCachedVariables} from "./VariableHelper";
 import {redis} from "../clients/redis/Redis";
 import {updateConfiguredEventIndex} from "./EventHelper";
 import BaseMacroTask from "../abstracts/BaseMacroTask";
@@ -970,6 +971,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
     variables = {
         ...getTemplateVariables(),
+        ...getCachedVariables(),
         ...variables,
     }
 
