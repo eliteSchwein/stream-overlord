@@ -35,6 +35,12 @@ export default class MessageEvent extends BaseEvent {
         const chatterName = String(messageEvent.chatterName ?? "");
         const chatterDisplayName = String(messageEvent.chatterDisplayName ?? chatterName ?? "");
 
+        // Commands are handled by the dedicated command system and must not also
+        // trigger the generic Twitch message event.
+        if (messageText.startsWith("!")) {
+            return;
+        }
+
         // Ignore messages authored by either authenticated bot account.
         // Use Twitch user IDs instead of login/display names so renames and casing
         // differences cannot accidentally make bot messages trigger this event.
