@@ -3,7 +3,7 @@ import {getGameInfoData} from "../clients/website/WebsiteClient";
 import {getTwitchClient} from "../App";
 import {getPrimaryChannel} from "./ConfigHelper";
 import {BotCommandContext} from "@twurple/easy-bot";
-import {stripLikelyThirdPartyEmotes, stripUnicodeEmojis} from "./EmojiHelper";
+import {stripLikelyThirdPartyEmotes, stripTextEmoticons, stripUnicodeEmojis} from "./EmojiHelper";
 
 
 export async function parsePlaceholders(content: string, additional: any = {}) {
@@ -103,7 +103,7 @@ function stripTwitchEmotesByName(text: string, context: BotCommandContext): stri
 
 export function stripEmotes(text: string, context: BotCommandContext): string {
     return stripLikelyThirdPartyEmotes(
-        stripUnicodeEmojis(stripTwitchEmotesByName(text, context))
+        stripTextEmoticons(stripUnicodeEmojis(stripTwitchEmotesByName(text, context)))
     )
         .replace(/\s+/g, " ")
         .trim();

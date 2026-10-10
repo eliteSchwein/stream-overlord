@@ -16,11 +16,14 @@ export default function registerEventCooldown(name: string) {
 }
 
 export function isEventFull(name: string, channel: string, limit: number): boolean {
-    return activeEvents[name][channel].length > limit
+    const active = activeEvents[name]?.[channel] ?? [];
+    return active.length >= limit;
 }
 
 export function addEventToCooldown(randomHash: string, name: string, channel: string) {
-    activeEvents[name][channel].push(randomHash)
+    if (!activeEvents[name]) activeEvents[name] = {};
+    if (!activeEvents[name][channel]) activeEvents[name][channel] = [];
+    activeEvents[name][channel].push(randomHash);
 }
 
 export function hasEventHash(randomHash: string, name: string, channel: string) {
@@ -43,7 +46,8 @@ export function removeEventFromQuery(randomHash: string) {
 }
 
 export function removeEventFromCooldown(randomHash: string, name: string, channel: string) {
-    const array = activeEvents[name][channel]
+    const array = activeEvents[name]?.[channel];
+    if (!array) return;
 
     const index = array.indexOf(randomHash)
     if (index > -1) {

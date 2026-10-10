@@ -34,6 +34,16 @@ export function stripUnicodeEmojis(text: string): string {
 }
 
 
+
+export function stripTextEmoticons(text: string): string {
+    if (!text) return text;
+
+    return text
+        // Common ASCII heart emoticon. Keep this intentionally conservative so
+        // comparison operators or arbitrary punctuation are not stripped.
+        .replace(/(^|\s)<3(?=\s|$)/g, "$1");
+}
+
 function isLikelyThirdPartyEmote(word: string): boolean {
     const cleaned = word.replace(/[.,!?;:()[\]{}"']/g, "");
 
@@ -62,7 +72,7 @@ export function stripLikelyThirdPartyEmotes(text: string): string {
 }
 
 export function stripUnicodeEmojisAndNormalizeWhitespace(text: string): string {
-    return stripUnicodeEmojis(text)
+    return stripTextEmoticons(stripUnicodeEmojis(text))
         .replace(/[ \t]{2,}/g, " ")
         .trim();
 }
