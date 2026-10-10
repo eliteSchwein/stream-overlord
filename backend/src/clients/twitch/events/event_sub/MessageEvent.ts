@@ -8,6 +8,8 @@ export default class MessageEvent extends BaseEvent {
     name = "Message";
     configName = "event_twitch_message";
     eventTypes = [];
+    eventLimit = 50;
+    eventCooldown = 0;
 
     simulationFields = [
         { name: "messageId", type: "text" as const, localeKey: "events.simulation.fields.messageId", default: "00000000-0000-0000-0000-000000000001", required: true },
