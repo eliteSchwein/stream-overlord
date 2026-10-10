@@ -41,6 +41,12 @@ export default class MessageEvent extends BaseEvent {
             return;
         }
 
+        // Replies are handled as part of their conversation thread and should not
+        // trigger the generic standalone Twitch message event.
+        if (messageEvent.parentMessageId) {
+            return;
+        }
+
         // Ignore messages authored by either authenticated bot account.
         // Use Twitch user IDs instead of login/display names so renames and casing
         // differences cannot accidentally make bot messages trigger this event.
