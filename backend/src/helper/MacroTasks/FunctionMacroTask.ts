@@ -8,7 +8,7 @@ import {addSongRequest, toggleSongRequest} from "../MusicHelper";
 import {getTwitchClient} from "../../App";
 import {logRegular, logWarn} from "../LogHelper";
 import {assetRoot} from "../AssetManagementHelper";
-import {stripUnicodeEmojisAndNormalizeWhitespace} from "../EmojiHelper";
+import {stripLikelyThirdPartyEmotes, stripUnicodeEmojisAndNormalizeWhitespace} from "../EmojiHelper";
 
 export default class FunctionMacroTask extends BaseMacroTask {
     channel = "function";
@@ -133,7 +133,11 @@ export default class FunctionMacroTask extends BaseMacroTask {
 
                 const content = fillTemplate(String(data.content), variables);
 
-                const stripped = stripUnicodeEmojisAndNormalizeWhitespace(content);
+                const stripped = stripLikelyThirdPartyEmotes(
+                    stripUnicodeEmojisAndNormalizeWhitespace(content),
+                )
+                    .replace(/\s+/g, " ")
+                    .trim();
 
                 variables[data.key] = stripped;
 

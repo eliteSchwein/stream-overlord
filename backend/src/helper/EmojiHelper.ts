@@ -33,6 +33,34 @@ export function stripUnicodeEmojis(text: string): string {
         .replace(/[\p{Emoji_Modifier}\u200D\uFE0E\uFE0F]/gu, "");
 }
 
+
+function isLikelyThirdPartyEmote(word: string): boolean {
+    const cleaned = word.replace(/[.,!?;:()[\]{}"']/g, "");
+
+    if (!cleaned) return false;
+
+    // LUL, KEKW, OMEGALUL, etc.
+    if (/^[A-Z0-9]{3,}$/.test(cleaned)) return true;
+
+    // LuL, PoG, etc.
+    if (/^[A-Z][a-z]?[A-Z]$/.test(cleaned)) return true;
+
+    // sillyp3Shy, elites64Note, widepeepoHappy, monkaS, etc.
+    return (
+        /^[a-zA-Z0-9_]{4,}$/.test(cleaned) &&
+        /[a-z]/.test(cleaned) &&
+        /[A-Z]/.test(cleaned) &&
+        (/\d/.test(cleaned) || /[a-z][A-Z]/.test(cleaned))
+    );
+}
+
+export function stripLikelyThirdPartyEmotes(text: string): string {
+    return text
+        .split(/\s+/)
+        .filter((word) => !isLikelyThirdPartyEmote(word))
+        .join(" ");
+}
+
 export function stripUnicodeEmojisAndNormalizeWhitespace(text: string): string {
     return stripUnicodeEmojis(text)
         .replace(/[ \t]{2,}/g, " ")

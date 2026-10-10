@@ -3,7 +3,7 @@ import {getGameInfoData} from "../clients/website/WebsiteClient";
 import {getTwitchClient} from "../App";
 import {getPrimaryChannel} from "./ConfigHelper";
 import {BotCommandContext} from "@twurple/easy-bot";
-import {stripUnicodeEmojis} from "./EmojiHelper";
+import {stripLikelyThirdPartyEmotes, stripUnicodeEmojis} from "./EmojiHelper";
 
 
 export async function parsePlaceholders(content: string, additional: any = {}) {
@@ -99,33 +99,6 @@ function stripTwitchEmotesByName(text: string, context: BotCommandContext): stri
     }
 
     return cleaned;
-}
-
-function isLikelyThirdPartyEmote(word: string): boolean {
-    const cleaned = word.replace(/[.,!?;:()[\]{}"']/g, "");
-
-    if (!cleaned) return false;
-
-    // LUL, KEKW, OMEGALUL, etc.
-    if (/^[A-Z0-9]{3,}$/.test(cleaned)) return true;
-
-    // LuL, PoG, etc.
-    if (/^[A-Z][a-z]?[A-Z]$/.test(cleaned)) return true;
-
-    // sillyp3Shy, elites64Note, widepeepoHappy, monkaS, etc.
-    return (
-        /^[a-zA-Z0-9_]{4,}$/.test(cleaned) &&
-        /[a-z]/.test(cleaned) &&
-        /[A-Z]/.test(cleaned) &&
-        (/\d/.test(cleaned) || /[a-z][A-Z]/.test(cleaned))
-    );
-}
-
-function stripLikelyThirdPartyEmotes(text: string): string {
-    return text
-        .split(/\s+/)
-        .filter((word) => !isLikelyThirdPartyEmote(word))
-        .join(" ");
 }
 
 export function stripEmotes(text: string, context: BotCommandContext): string {
