@@ -3,6 +3,7 @@ import {getGameInfoData} from "../clients/website/WebsiteClient";
 import {getTwitchClient} from "../App";
 import {getPrimaryChannel} from "./ConfigHelper";
 import {BotCommandContext} from "@twurple/easy-bot";
+import {stripUnicodeEmojis} from "./EmojiHelper";
 
 
 export async function parsePlaceholders(content: string, additional: any = {}) {
@@ -47,13 +48,6 @@ export function calcProgress(current: number, max: number) {
     const rounded = Math.round(pct * 1000) / 1000
 
     return Math.max(0, Math.min(100, rounded))
-}
-
-function stripUnicodeEmojis(text: string): string {
-    return text
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
-        .replace(/[\u{2600}-\u{27BF}]/gu, "")
-        .replace(/[\u200D\uFE0E\uFE0F\u{1F3FB}-\u{1F3FF}]/gu, "");
 }
 
 function escapeRegExp(text: string): string {

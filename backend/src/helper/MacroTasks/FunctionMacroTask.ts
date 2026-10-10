@@ -8,6 +8,7 @@ import {addSongRequest, toggleSongRequest} from "../MusicHelper";
 import {getTwitchClient} from "../../App";
 import {logRegular, logWarn} from "../LogHelper";
 import {assetRoot} from "../AssetManagementHelper";
+import {stripUnicodeEmojisAndNormalizeWhitespace} from "../EmojiHelper";
 
 export default class FunctionMacroTask extends BaseMacroTask {
     channel = "function";
@@ -132,18 +133,7 @@ export default class FunctionMacroTask extends BaseMacroTask {
 
                 const content = fillTemplate(String(data.content), variables);
 
-                const stripped = content
-                    // Keycap emoji sequences, e.g. 1️⃣
-                    .replace(/[#*0-9]\uFE0F?\u20E3/gu, "")
-                    // Flags are made from regional indicator symbols.
-                    .replace(/\p{Regional_Indicator}+/gu, "")
-                    // Normal pictographic emoji and skin-tone modifiers.
-                    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, "")
-                    // Remove selectors/joiners left over from emoji sequences.
-                    .replace(/[\uFE0E\uFE0F\u200D]/gu, "")
-                    // Clean whitespace left behind by removed emoji.
-                    .replace(/[ \t]{2,}/g, " ")
-                    .trim();
+                const stripped = stripUnicodeEmojisAndNormalizeWhitespace(content);
 
                 variables[data.key] = stripped;
 

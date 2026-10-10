@@ -2,6 +2,7 @@ import BaseMacroTask from "../../abstracts/BaseMacroTask";
 import {aiChatRequest} from "../OllamaHelper";
 import {getOllamaIntegration} from "../IntegrationsHelper";
 import {logRegular, logWarn} from "../LogHelper";
+import {stripUnicodeEmojisAndNormalizeWhitespace} from "../EmojiHelper";
 
 type OllamaChatRole = "system" | "user" | "assistant" | "tool";
 
@@ -60,7 +61,7 @@ export default class OllamaMacroTask extends BaseMacroTask {
         const stripEmojis = data.strip_emojis === true || data.stripEmojis === true;
 
         if (stripEmojis) {
-            content = this.stripEmojis(content);
+            content = stripUnicodeEmojisAndNormalizeWhitespace(content);
         }
 
         if (resultKey) {
@@ -70,20 +71,6 @@ export default class OllamaMacroTask extends BaseMacroTask {
         return content;
     }
 
-    private stripEmojis(content: string): string {
-        return content
-            // Keycap emoji sequences, e.g. 1️⃣
-            .replace(/[#*0-9]\uFE0F?\u20E3/gu, "")
-            // Flags are made from regional indicator symbols.
-            .replace(/\p{Regional_Indicator}+/gu, "")
-            // Normal pictographic emoji and skin-tone modifiers.
-            .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}]/gu, "")
-            // Remove selectors/joiners left over from emoji sequences.
-            .replace(/[\uFE0E\uFE0F\u200D]/gu, "")
-            // Clean whitespace left behind by removed emoji.
-            .replace(/[ \t]{2,}/g, " ")
-            .trim();
-    }
 
     private normalizeMessages(value: any): OllamaChatMessage[] {
         if (!Array.isArray(value)) return [];
