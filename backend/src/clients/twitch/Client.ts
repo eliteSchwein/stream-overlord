@@ -14,6 +14,7 @@ import RaidEvent from "./events/RaidEvent";
 
 // EventSub events
 import ChannelAdBreakBeginEvent from "./events/event_sub/ChannelAdBreakBeginEvent";
+import AnnouncementEvent from "./events/event_sub/AnnouncementEvent";
 import ChannelBanEvent from "./events/event_sub/ChannelBanEvent";
 import ChannelCharityCampaignProgressEvent from "./events/event_sub/ChannelCharityCampaignProgressEvent";
 import ChannelCharityCampaignStartEvent from "./events/event_sub/ChannelCharityCampaignStartEvent";
@@ -567,7 +568,8 @@ export default class TwitchClient {
             ["stream offline event", () => new StreamOfflineEvent(eventSub, bot).register()],
             ["shield event", () => new ShieldEvent(eventSub, bot).register()],
             ["message event", () => new MessageEvent(eventSub, bot, this).register()],
-            ["message delete event", () => new MessageDeleteEvent(eventSub, bot).register()],
+            ["announcement event", () => new AnnouncementEvent(eventSub, bot, this).register()],
+            ["message delete event", () => new MessageDeleteEvent(eventSub, bot, this).register()],
             ["channel ban event", () => new ChannelBanEvent(eventSub, bot).register()],
             ["channel unban event", () => new ChannelUnbanEvent(eventSub, bot).register()],
             ["channel moderator add event", () => new ChannelModeratorAddEvent(eventSub, bot).register()],
