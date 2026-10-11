@@ -731,8 +731,8 @@ export function hasMacroTasks(name: string) {
     if (!name) return false;
 
     const loadedMacro = macros[name];
-    if (loadedMacro !== undefined) {
-        return Array.isArray(loadedMacro?.tasks) && loadedMacro.tasks.length > 0;
+    if (loadedMacro !== undefined && Array.isArray(loadedMacro?.tasks) && loadedMacro.tasks.length > 0) {
+        return true;
     }
 
     try {
@@ -740,7 +740,28 @@ export function hasMacroTasks(name: string) {
         if (!filePath) return false;
 
         const macroConfig = readMacroConfigFile(filePath) as any;
-        return Array.isArray(macroConfig?.tasks) && macroConfig.tasks.length > 0;
+        const tasks = Array.isArray(macroConfig?.tasks) ? macroConfig.tasks : [];
+
+        // A macro can already exist in memory with an empty/stale task list while
+        // its file on disk has since been populated. Refresh that exact entry
+        // before configured events decide there is nothing to execute.
+        if (tasks.length > 0 && (!loadedMacro || !Array.isArray(loadedMacro?.tasks) || loadedMacro.tasks.length === 0)) {
+            const macroName = macroConfig?.name ?? getMacroNameFromFile(filePath);
+            macros[macroName] = {
+                ...macroConfig,
+                name: macroName,
+                tasks,
+                file: relativeMacroPath(filePath),
+            };
+
+            // Keep exact event-name lookup working when the filename matched the
+            // requested key but an explicit macro name differs.
+            if (macroName !== name) {
+                macros[name] = macros[macroName];
+            }
+        }
+
+        return tasks.length > 0;
     } catch (error) {
         logWarn(`failed to check if macro ${name} has tasks`);
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));

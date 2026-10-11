@@ -1,4 +1,5 @@
 import {getConfig} from "../../../helper/ConfigHelper";
+import {logWarn} from "../../../helper/LogHelper";
 
 const activeEvents = {}
 const queriedEvents = []
@@ -17,7 +18,13 @@ export default function registerEventCooldown(name: string) {
 
 export function isEventFull(name: string, channel: string, limit: number): boolean {
     const active = activeEvents[name]?.[channel] ?? [];
-    return active.length >= limit;
+    const full = active.length >= limit;
+
+    if (full) {
+        logWarn(`event limit reached: ${name} channel=${channel} active=${active.length} limit=${limit}`);
+    }
+
+    return full;
 }
 
 export function addEventToCooldown(randomHash: string, name: string, channel: string) {

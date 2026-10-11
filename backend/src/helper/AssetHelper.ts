@@ -517,11 +517,47 @@ export function loadAssetConfigs() {
 }
 
 export function getAssetConfig(name: string) {
+    if (!name) return undefined;
+
     if (!Object.keys(assetConfigs).length) {
         loadAssetConfigs();
     }
 
-    return assetConfigs[name];
+    if (assetConfigs[name] !== undefined) {
+        return assetConfigs[name];
+    }
+
+    // The asset cache can already be populated when a new event asset is added
+    // or renamed later. Resolve a missing named asset directly from disk instead
+    // of treating a non-empty cache as authoritative forever.
+    const filePath = findAssetConfigFileByName(name);
+    if (!filePath) return undefined;
+
+    try {
+        const assetConfig = readAssetConfigFile(filePath) as any;
+        const assetName = assetConfig?.name ?? getAssetNameFromConfigFile(filePath);
+
+        if (!assetName) return undefined;
+
+        const normalized = {
+            ...normalizeAssetConfig(assetName, assetConfig),
+            file: path.relative(getAssetConfigDirectory(), filePath).replace(/\\/g, "/"),
+        };
+
+        assetConfigs[assetName] = normalized;
+
+        // Also cache it under the requested name when the filename matched but
+        // an explicit `name` field differs. This keeps exact event lookups stable.
+        if (assetName !== name) {
+            assetConfigs[name] = normalized;
+        }
+
+        return normalized;
+    } catch (error) {
+        logWarn(`failed to load asset config ${name}`);
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        return undefined;
+    }
 }
 
 export function getAssetConfigs() {

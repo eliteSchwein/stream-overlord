@@ -33,12 +33,14 @@ const SINGLE_GIFT_GRACE_MS = 250;
 // Once a burst is detected, keep it outside the normal event/interaction
 // lifecycle while waiting for Twitch's CommunitySub summary. This timeout is
 // only a safety fallback for a missing summary; it does not delay real singles.
-const COMMUNITY_BURST_FALLBACK_MS = 2000;
+// Twitch can deliver the CommunitySub summary several seconds after recipients.
+const COMMUNITY_BURST_FALLBACK_MS = 15000;
 
-// Needed only for the opposite ordering where CommunitySub arrives before some
-// or all recipient SubGift events. Keep it deliberately short so stale state
-// cannot leak into a later, separate gift bomb from the same gifter.
-const COMMUNITY_RESERVATION_MS = 1000;
+// Needed for the opposite ordering where CommunitySub arrives before some or
+// all recipient SubGift events. Twitch can deliver recipient events several
+// seconds after the summary, so keep the reservation long enough to correlate
+// a real batch while still auto-expiring stale state.
+const COMMUNITY_RESERVATION_MS = 15000;
 
 function normalize(value: string | null | undefined): string {
     return String(value ?? '').trim().toLowerCase();

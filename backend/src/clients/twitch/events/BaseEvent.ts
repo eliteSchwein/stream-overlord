@@ -12,6 +12,7 @@ import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../helper/GeneralHelper";
 import {EventSimulationField, registerEventEntry, triggerConfiguredEvent as queueConfiguredEvent} from "../../../helper/EventHelper";
 import {getPrimaryChannel} from "../../../helper/ConfigHelper";
+import {AsyncLocalStorage} from "node:async_hooks";
 
 export default class BaseEvent {
     bot: Bot;
@@ -21,7 +22,16 @@ export default class BaseEvent {
     eventTypes = [];
     eventLimit = 25;
     eventCooldown = 5;
-    eventUuid: string;
+    private readonly eventContext = new AsyncLocalStorage<{eventUuid: string}>();
+    private fallbackEventUuid: string | undefined = undefined;
+
+    get eventUuid(): string | undefined {
+        return this.eventContext.getStore()?.eventUuid ?? this.fallbackEventUuid;
+    }
+
+    set eventUuid(value: string | undefined) {
+        this.fallbackEventUuid = value;
+    }
     configName: string | undefined = undefined;
     simulationFields: EventSimulationField[] = [];
 
@@ -135,24 +145,35 @@ export default class BaseEvent {
         // cooldowns, interactions, macros and assets are created.
         if (!await this.shouldHandleEvent(event)) return;
 
-        if (isEventFull(this.name, event.broadcasterName, this.eventLimit)) return;
+        const channel = event.broadcasterName;
+        if (isEventFull(this.name, channel, this.eventLimit)) return;
 
-        this.eventUuid = `${this.name}_${uuidv4()}`;
+        const eventUuid = `${this.name}_${uuidv4()}`;
+        this.fallbackEventUuid = eventUuid;
 
-        queryEvent(this.eventUuid);
-        addEventToCooldown(this.eventUuid, this.name, event.broadcasterName);
+        queryEvent(eventUuid);
+        addEventToCooldown(eventUuid, this.name, channel);
 
         try {
-            await this.handle(event);
-        } catch (error) {
-            logError(`event ${this.name} failed:`);
-            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            await this.eventContext.run({eventUuid}, async () => {
+                try {
+                    await this.handle(event);
+                } catch (error) {
+                    logError(`event ${this.name} failed:`);
+                    logError(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                }
+
+                if (this.eventCooldown > 0) {
+                    await sleep(this.eventCooldown * 1000);
+                }
+            });
+        } finally {
+            // Clean up the UUID that belongs to this exact invocation.
+            // CommunitySub/SubGift bursts can overlap and must not remove each
+            // other's cooldown/query state.
+            removeEventFromCooldown(eventUuid, this.name, channel);
+            removeEventFromQuery(eventUuid);
         }
-
-        await sleep(this.eventCooldown * 1000);
-
-        removeEventFromCooldown(this.eventUuid, this.name, event.broadcasterName);
-        removeEventFromQuery(this.eventUuid);
     }
 
     protected sanitizeMacroEvent(event: any): any {

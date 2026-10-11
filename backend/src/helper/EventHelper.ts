@@ -4,6 +4,7 @@ import {addAlert} from "./AlertHelper";
 import {getMacroConfig, hasMacroTasks, interpolateTemplate, triggerMacro} from "./MacroHelper";
 import getWebsocketServer from "../App";
 import {enqueueInteraction} from "./InteractionHelper";
+import {logRegular} from "./LogHelper";
 
 export type EventSimulationFieldType = "text" | "number" | "boolean" | "textarea" | "select";
 
@@ -521,7 +522,10 @@ export async function triggerConfiguredEvent(
     const eventUuid = String(variables.eventUuid ?? `${normalizedConfigName}_${randomUUID()}`);
     const hasMacro = hasMacroTasks(normalizedConfigName);
     const hasAsset = hasAssetConfigContent(normalizedConfigName);
-    if (!hasMacro && !hasAsset) return;
+    if (!hasMacro && !hasAsset) {
+        logRegular(`configured event ${normalizedConfigName} has no macro or asset; skipping`);
+        return;
+    }
 
     const configuredAsset = hasAsset ? getAssetConfig(normalizedConfigName) : undefined;
     const estimatedDuration = configuredAsset ? Number(configuredAsset.duration ?? 0) || 0 : 0;

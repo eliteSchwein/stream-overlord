@@ -48,6 +48,7 @@ export default class ChannelHypeTrainEndEvent extends BaseEvent {
             return
         }
 
+        logRegular(`dispatch hype train end -> ${this.configName}`)
         await this.triggerConfiguredEvent(event)
 
         await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})
