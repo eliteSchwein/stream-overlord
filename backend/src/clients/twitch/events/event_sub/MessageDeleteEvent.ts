@@ -7,6 +7,7 @@ import {cancelMacroEvent} from "../../../../helper/MacroHelper";
 import {removeAlertByEventUuid} from "../../../../helper/AlertHelper";
 import {removeEventFromQuery} from "../../helper/CooldownHelper";
 import {interruptSpeechByEventUuid} from "../../../../helper/TTShelper";
+import {cancelInteraction} from "../../../../helper/InteractionHelper";
 
 export default class MessageDeleteEvent extends BaseEvent {
     name = "MessageDelete";
@@ -45,21 +46,24 @@ export default class MessageDeleteEvent extends BaseEvent {
 
         logRegular(`chat message deleted from ${event.userDisplayName || event.userName || event.userId}: ${event.messageId}`);
 
+        // A deleted chat message must immediately cancel the interaction that
+        // belongs to the original Message event. Do this before dispatching the
+        // separate message-delete event so the delete event itself is not queued
+        // behind work that should already be gone.
+        const linkedEventUuid = getEventUuidByMessageId(event.messageId);
+        if (linkedEventUuid) {
+            logRegular(`message deleted, cancel linked interaction/event: ${linkedEventUuid}`);
+
+            cancelInteraction(linkedEventUuid);
+            cancelMacroEvent(linkedEventUuid);
+            removeAlertByEventUuid(linkedEventUuid);
+            interruptSpeechByEventUuid(linkedEventUuid);
+            removeEventFromQuery(linkedEventUuid);
+            unlinkMessage(event.messageId);
+        }
+
         // Fire the configured delete event even when the deleted message was not
         // originally linked to a Streambot message event.
         await this.triggerConfiguredEvent(payload);
-
-        // Preserve the existing behaviour: if the deleted message started a
-        // Streambot event, cancel its macro/alert/TTS work as well.
-        const linkedEventUuid = getEventUuidByMessageId(event.messageId);
-        if (!linkedEventUuid) return;
-
-        logRegular(`message deleted, cancel event: ${linkedEventUuid}`);
-
-        cancelMacroEvent(linkedEventUuid);
-        removeAlertByEventUuid(linkedEventUuid);
-        interruptSpeechByEventUuid(linkedEventUuid);
-        removeEventFromQuery(linkedEventUuid);
-        unlinkMessage(event.messageId);
     }
 }
