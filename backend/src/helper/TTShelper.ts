@@ -2,7 +2,7 @@ import {getTtsSettings} from "./ConfigHelper"
 import {executeProcess} from "./CommandHelper"
 import {logDebug, logError, logNotice, logSuccess, logWarn} from "./LogHelper"
 import {getAudioData, getStreambotSinkName} from "./AudioHelper"
-import {createWriteStream, existsSync, mkdirSync, readdirSync, rmSync} from "node:fs"
+import {createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync} from "node:fs"
 import {execFileSync, spawn} from "node:child_process"
 import {promisify} from "node:util"
 import * as stream from "node:stream"
@@ -13,7 +13,8 @@ import getWebsocketServer from "../App"
 
 const HF_REPO = "rhasspy/piper-voices"
 const HF_REV = "main"
-const DEFAULT_PLAY_COMMAND = "pw-play --raw --rate 22050 --channels 1 --format s16 --target ${sink} -"
+const DEFAULT_SAMPLE_RATE = 22050
+const DEFAULT_PLAY_COMMAND = "pw-play --raw --rate ${sample_rate} --channels 1 --format s16 --target ${sink} -"
 
 let voices: Record<string, string[]> = {}
 
@@ -80,6 +81,28 @@ function getPiperBinary() {
 
 function getModelsDirectory() {
     return path.join(getTtsRoot(), "models")
+}
+
+function getModelSampleRate(modelPath: string): number {
+    const configPath = `${modelPath}.json`
+
+    if (!existsSync(configPath)) {
+        logWarn(`TTS model config missing for ${path.basename(modelPath)}; using ${DEFAULT_SAMPLE_RATE} Hz`)
+        return DEFAULT_SAMPLE_RATE
+    }
+
+    try {
+        const config = JSON.parse(readFileSync(configPath, "utf8"))
+        const sampleRate = Number(config?.audio?.sample_rate)
+
+        if (Number.isFinite(sampleRate) && sampleRate > 0) return Math.round(sampleRate)
+
+        logWarn(`TTS model config has no valid audio.sample_rate for ${path.basename(modelPath)}; using ${DEFAULT_SAMPLE_RATE} Hz`)
+    } catch (error: any) {
+        logWarn(`TTS model config could not be read for ${path.basename(modelPath)}: ${error?.message ?? error}; using ${DEFAULT_SAMPLE_RATE} Hz`)
+    }
+
+    return DEFAULT_SAMPLE_RATE
 }
 
 export function isTtsInstalled() {
@@ -446,7 +469,9 @@ export async function speak(
 
     try {
         const sinkName = getStreambotSinkName("tts")
+        const sampleRate = getModelSampleRate(modelPath)
         const playCommand = DEFAULT_PLAY_COMMAND
+            .replace(/\$\{sample_rate}/g, String(sampleRate))
             .replace(/\$\{sink}/g, shellEscape(sinkName))
             .replace(/\$\{audio_sink}/g, shellEscape(sinkName))
             .replace(/\$\{audio_device}/g, shellEscape(sinkName))
@@ -454,7 +479,7 @@ export async function speak(
         const encodedMessage = Buffer.from(String(message), "utf8").toString("base64")
         const command = `bash -o pipefail -c "printf '%s' '${encodedMessage}' | base64 -d | ${shellEscape(getPiperBinary())} ${piperAttributes} --model ${shellEscape(modelPath)} --output-raw | ${playCommand}"`
 
-        logDebug(`TTS locale=${selectedLocale} voice=${voice}`)
+        logDebug(`TTS locale=${selectedLocale} voice=${voice} sample_rate=${sampleRate}`)
         const execution = await executeProcess(command)
 
         if (eventUuid) activeSpeechProcesses[eventUuid] = execution.process
