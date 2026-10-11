@@ -35,6 +35,20 @@ export function stripUnicodeEmojis(text: string): string {
 
 
 
+
+export function stripSpecialSymbols(text: string): string {
+    if (!text) return text;
+
+    return text
+        // Currency symbols: ¥, €, $, £, ₿, etc.
+        .replace(/\p{Sc}+/gu, "")
+        // Common legal / typographic / decorative symbols.
+        .replace(/[©®™℠§¶°†‡•·…‰‱№℗℞]+/gu, "")
+        // Common standalone mathematical/decorative symbols seen in chat.
+        // Deliberately do not remove basic operators such as + - = < >.
+        .replace(/[√∛∜×÷±∞≈≠≤≥∑∏∫∂∆∇∴∵]+/gu, "");
+}
+
 export function stripTextEmoticons(text: string): string {
     if (!text) return text;
 
@@ -72,7 +86,7 @@ export function stripLikelyThirdPartyEmotes(text: string): string {
 }
 
 export function stripUnicodeEmojisAndNormalizeWhitespace(text: string): string {
-    return stripTextEmoticons(stripUnicodeEmojis(text))
+    return stripSpecialSymbols(stripTextEmoticons(stripUnicodeEmojis(text)))
         .replace(/[ \t]{2,}/g, " ")
         .trim();
 }
