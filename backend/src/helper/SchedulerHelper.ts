@@ -8,6 +8,8 @@ import {updateAutoMacros} from "./AutoMacroHelper";
 import {updateGiveaway} from "./GiveawayHelper";
 import {pulseHeartbeatLeds} from "./NeopixelHelper";
 import {sync} from "./MusicHelper";
+import {getTwitchClient} from "../App";
+import {getCachedTwitchStream, updateTwitchStreamData} from "./TwitchDataHelper";
 
 export default function initialSchedulers() {
     void updateAdData()
@@ -25,6 +27,18 @@ export default function initialSchedulers() {
     setInterval(async () => {
         // updateTemplateVariables()
         void pulseHeartbeatLeds()
+
+        // EventSub does not publish viewer-count changes. Refresh the current
+        // stream snapshot while live so notify_twitch_data stays current.
+        if (getCachedTwitchStream()) {
+            const bot = getTwitchClient()?.getBot?.()
+            if (bot) {
+                void updateTwitchStreamData(bot).catch((error) => {
+                    logWarn('twitch live data refresh failed:')
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                })
+            }
+        }
     }, 15_000)
 
     // fast scheduler (1 sec)

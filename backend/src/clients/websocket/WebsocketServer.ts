@@ -32,6 +32,7 @@ import {getSpeedtestState} from "../../helper/SpeedtestHelper";
 import {getInteractionQueue} from "../../helper/InteractionHelper";
 import {getActiveCategoryMediaReplayNotifications, getActiveCategoryPayload, getActiveCategoryStylePayload, getCategoryLibrary} from "../../helper/CategoryLibraryHelper";
 import {getVirtualAudioCables} from "../../helper/VirtualAudioCableHelper";
+import {getTwitchDataPayload, setTwitchDataNotifier} from "../../helper/TwitchDataHelper";
 
 
 export default class WebsocketServer {
@@ -101,6 +102,7 @@ export default class WebsocketServer {
         'notify_category_library_update',
         'notify_category_active',
         'notify_category_style_update',
+        'notify_twitch_data',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -109,6 +111,8 @@ export default class WebsocketServer {
         const config = getConfig(/websocket/g)[0]
 
         logRegular(`initial websocket server`)
+
+        setTwitchDataNotifier((payload) => this.send("notify_twitch_data", payload))
 
         this.websocket = new WebSocketServer({port: config?.port ?? 8100, host: '0.0.0.0', maxPayload: 512 * 1024 * 1024})
 
@@ -327,6 +331,7 @@ export default class WebsocketServer {
 
                 this.send("notify_game_update", getGameInfo(), client)
                 this.send("notify_channel_point_update", getChannelPointUpdatePayload(), client)
+                this.send("notify_twitch_data", getTwitchDataPayload(), client)
                 this.send("notify_audio_update", getAudioData(), client)
                 this.send("notify_system_info", getSystemInfo(), client)
                 this.send("notify_source_update", getSourceFilters(), client)

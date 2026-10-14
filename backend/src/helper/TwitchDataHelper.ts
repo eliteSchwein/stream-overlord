@@ -9,6 +9,37 @@ type TwitchDataCache = {
 };
 
 const twitchData: TwitchDataCache = {};
+let twitchDataNotifier: ((payload: any) => void) | undefined;
+let lastNotifiedPayload = "";
+
+export function setTwitchDataNotifier(notifier?: (payload: any) => void) {
+    twitchDataNotifier = notifier;
+}
+
+export function getTwitchDataPayload() {
+    const stream = twitchData.stream;
+
+    return {
+        channel: twitchData.channel ?? null,
+        category: twitchData.category ?? null,
+        live: stream ? {
+            ...stream,
+            viewer_count: stream.viewers ?? 0,
+            started_at: stream.start_date ?? null,
+        } : null,
+    };
+}
+
+export function notifyTwitchData(force = false) {
+    if (!twitchDataNotifier) return;
+
+    const payload = getTwitchDataPayload();
+    const serialized = JSON.stringify(payload);
+    if (!force && serialized === lastNotifiedPayload) return;
+
+    lastNotifiedPayload = serialized;
+    twitchDataNotifier(payload);
+}
 
 function parseUser(user: any) {
     if (!user) return undefined;
@@ -85,6 +116,7 @@ export async function updateTwitchChannelData(bot: Bot) {
 
     const user = await bot.api.users.getUserByName(channelName);
     twitchData.channel = parseUser(user);
+    notifyTwitchData();
 
     return twitchData.channel;
 }
@@ -103,6 +135,7 @@ export async function updateTwitchStreamData(bot: Bot) {
 
     const stream = await bot.api.streams.getStreamByUserId(twitchData.channel.id);
     twitchData.stream = parseStream(stream);
+    notifyTwitchData();
 
     return twitchData.stream;
 }
@@ -116,11 +149,13 @@ export async function updateTwitchCategoryData(bot: Bot) {
 
     if (!twitchData.stream?.game_id) {
         twitchData.category = undefined;
+        notifyTwitchData();
         return undefined;
     }
 
     const category = await bot.api.games.getGameById(twitchData.stream.game_id);
     twitchData.category = parseCategory(category);
+    notifyTwitchData();
 
     return twitchData.category;
 }
@@ -129,6 +164,7 @@ export async function updateTwitchData(bot: Bot) {
     await updateTwitchChannelData(bot);
     await updateTwitchStreamData(bot);
     await updateTwitchCategoryData(bot);
+    notifyTwitchData(true);
 
     return twitchData;
 }
