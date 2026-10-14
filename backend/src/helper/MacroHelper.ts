@@ -37,6 +37,7 @@ import SystemMacroTask from "./MacroTasks/SystemMacroTask";
 import ThemeTask from "./MacroTasks/ThemeTask";
 import OllamaMacroTask from "./MacroTasks/OllamaMacroTask";
 import CommandMacroTask from "./MacroTasks/CommandMacroTask";
+import ColorConverterMacroTask from "./MacroTasks/ColorConverterMacroTask";
 
 let macros: any = {};
 
@@ -674,7 +675,8 @@ export default function loadMacros() {
         new SystemMacroTask(),
         new ThemeTask(),
         new OllamaMacroTask(),
-        new CommandMacroTask()
+        new CommandMacroTask(),
+        new ColorConverterMacroTask()
     )
 
     loadMacrosFromFiles();
