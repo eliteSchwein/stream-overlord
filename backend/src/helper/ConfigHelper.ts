@@ -79,6 +79,18 @@ export type GiveawaySettings = {
     require_moderator: boolean;
 };
 
+export type TopNavbarItem = {
+    key: string;
+    enabled: boolean;
+    order: number;
+    label?: string;
+    icon?: string;
+};
+
+export type LocalAdminPanelSettings = UiConfiguration & {
+    top_navbar?: TopNavbarItem[];
+};
+
 export type UiConfiguration = Record<string, unknown>;
 
 export type CavaTargetSettings = Record<string, string | number | boolean>;
@@ -105,7 +117,7 @@ type StreambotSettings = {
     category_library: CategoryLibrarySettings;
     virtual_audio_cables: VirtualAudioCableSettings[];
     touch_dashboard: UiConfiguration;
-    local_admin_panel: UiConfiguration;
+    local_admin_panel: LocalAdminPanelSettings;
 };
 
 const defaultAssetTuneSettings: AssetTuneSettings = {
@@ -554,6 +566,48 @@ function normalizeUiConfiguration(value: unknown): UiConfiguration {
     return {...(value as Record<string, unknown>)};
 }
 
+function normalizeTopNavbarItems(value: unknown): TopNavbarItem[] {
+    if (!Array.isArray(value)) return [];
+
+    const seen = new Set<string>();
+    const items: TopNavbarItem[] = [];
+
+    for (const rawItem of value) {
+        if (!rawItem || typeof rawItem !== "object" || Array.isArray(rawItem)) continue;
+
+        const raw = rawItem as Record<string, unknown>;
+        const key = String(raw.key ?? raw.id ?? raw.value ?? "").trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+
+        const parsedOrder = Number(raw.order);
+        const order = Number.isFinite(parsedOrder) ? Math.max(0, Math.floor(parsedOrder)) : items.length;
+        const label = typeof raw.label === "string" && raw.label.trim() ? raw.label.trim() : undefined;
+        const icon = typeof raw.icon === "string" && raw.icon.trim() ? raw.icon.trim() : undefined;
+
+        items.push({
+            key,
+            enabled: booleanSetting(raw.enabled, true),
+            order,
+            ...(label ? {label} : {}),
+            ...(icon ? {icon} : {}),
+        });
+    }
+
+    return items
+        .sort((left, right) => left.order - right.order)
+        .map((item, order) => ({...item, order}));
+}
+
+function normalizeLocalAdminPanelSettings(value: unknown): LocalAdminPanelSettings {
+    const base = normalizeUiConfiguration(value) as LocalAdminPanelSettings;
+
+    return {
+        ...base,
+        top_navbar: normalizeTopNavbarItems(base.top_navbar),
+    };
+}
+
 function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {}): StreambotSettings {
     const requestedLanguage = String(rawSystemConfig.language || "en")
         .trim()
@@ -585,7 +639,7 @@ function normalizeSystemConfig(rawSystemConfig: Partial<StreambotSettings> = {})
         category_library: normalizeCategoryLibrarySettings(rawCategoryLibrary),
         virtual_audio_cables: normalizeVirtualAudioCableSettings((rawSystemConfig as any).virtual_audio_cables),
         touch_dashboard: normalizeUiConfiguration((rawSystemConfig as any).touch_dashboard),
-        local_admin_panel: normalizeUiConfiguration((rawSystemConfig as any).local_admin_panel),
+        local_admin_panel: normalizeLocalAdminPanelSettings((rawSystemConfig as any).local_admin_panel),
     };
 }
 
@@ -755,6 +809,10 @@ export function getTouchDashboardSettings() {
     return systemConfig.touch_dashboard;
 }
 
+export function getTopNavbarSettings() {
+    return systemConfig.local_admin_panel.top_navbar ?? [];
+}
+
 export function updateTouchDashboardSettings(settings: UiConfiguration) {
     return writeSystemConfig({touch_dashboard: settings});
 }
@@ -763,7 +821,7 @@ export function getLocalAdminPanelSettings() {
     return systemConfig.local_admin_panel;
 }
 
-export function updateLocalAdminPanelSettings(settings: UiConfiguration) {
+export function updateLocalAdminPanelSettings(settings: LocalAdminPanelSettings) {
     return writeSystemConfig({local_admin_panel: settings});
 }
 

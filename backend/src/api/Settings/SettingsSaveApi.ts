@@ -6,6 +6,7 @@ import {
     type CategoryLibrarySettings,
     type VirtualAudioCableSettings,
     type UiConfiguration,
+    type LocalAdminPanelSettings,
 } from "../../helper/ConfigHelper";
 import BaseApi from "../../abstracts/BaseApi";
 
@@ -17,7 +18,7 @@ type SettingsSavePayload = {
     category_library?: Partial<CategoryLibrarySettings>;
     virtual_audio_cables?: VirtualAudioCableSettings[];
     touch_dashboard?: UiConfiguration;
-    local_admin_panel?: UiConfiguration;
+    local_admin_panel?: LocalAdminPanelSettings;
 };
 
 export default class SettingsSaveApi extends BaseApi {

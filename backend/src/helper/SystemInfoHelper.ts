@@ -36,14 +36,62 @@ const defaultSystemInfoConfig = {
 }
 
 let currentSystemInfo = []
-const systemInformations = {
+const systemInformations: any = {
     cpu: {
         temp: undefined
     },
     gpu: {
         controllers: []
     },
-    load: {}
+    load: {},
+    memory: {
+        total: 0,
+        used: 0,
+        available: 0,
+        usage_percent: 0
+    },
+    storage: {
+        internal: null,
+        external: []
+    }
+}
+
+function toUsagePercent(used: number, total: number) {
+    if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
+        return 0
+    }
+
+    return Number.parseFloat(((used / total) * 100).toFixed(1))
+}
+
+function normalizeFilesystem(filesystem: any) {
+    const total = Number(filesystem?.size ?? 0) || 0
+    const used = Number(filesystem?.used ?? 0) || 0
+    const available = Math.max(0, total - used)
+
+    return {
+        fs: filesystem?.fs ?? '',
+        type: filesystem?.type ?? '',
+        mount: filesystem?.mount ?? '',
+        total,
+        used,
+        available,
+        usage_percent: Number.isFinite(Number(filesystem?.use))
+            ? Number.parseFloat(Number(filesystem.use).toFixed(1))
+            : toUsagePercent(used, total)
+    }
+}
+
+function isExternalMount(filesystem: any) {
+    const mount = String(filesystem?.mount ?? '')
+    if (!mount || mount === '/') return false
+
+    return mount === '/mnt'
+        || mount.startsWith('/mnt/')
+        || mount === '/media'
+        || mount.startsWith('/media/')
+        || mount === '/run/media'
+        || mount.startsWith('/run/media/')
 }
 
 export async function updateSystemInfo() {
@@ -124,6 +172,23 @@ export async function updateSystemComponents() {
     systemInformations.cpu.temp = await si.cpuTemperature()
 
     systemInformations.load = await si.currentLoad()
+
+    const memory = await si.mem()
+    systemInformations.memory = {
+        total: Number(memory.total ?? 0) || 0,
+        used: Number(memory.used ?? 0) || 0,
+        available: Number(memory.available ?? 0) || 0,
+        usage_percent: toUsagePercent(Number(memory.used ?? 0), Number(memory.total ?? 0))
+    }
+
+    const filesystems = await si.fsSize()
+    const rootFilesystem = filesystems.find((filesystem: any) => filesystem.mount === '/')
+    systemInformations.storage = {
+        internal: rootFilesystem ? normalizeFilesystem(rootFilesystem) : null,
+        external: filesystems
+            .filter((filesystem: any) => isExternalMount(filesystem) && Number(filesystem.size ?? 0) > 0)
+            .map((filesystem: any) => normalizeFilesystem(filesystem))
+    }
 
     delete systemInformations.cpu['flags']
     delete systemInformations.load['cpus']
