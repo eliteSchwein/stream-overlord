@@ -307,17 +307,49 @@ export default class TwitchMacroTask extends BaseMacroTask {
                         createAfterDelay: data.create_after_delay === true,
                     });
 
-                    const waitSeconds = number(data.wait_seconds, 35) ?? 35;
-                    if (waitSeconds > 0) {
-                        await sleep(waitSeconds * 1000);
-                    }
+                    // Twitch clip creation is asynchronous. The ID returned by
+                    // createClip only means the request was accepted; the clip is
+                    // not valid until Get Clips can actually resolve that ID.
+                    const waitSeconds = Math.max(0, number(data.wait_seconds, 60) ?? 60);
+                    const pollIntervalMs = Math.max(
+                        500,
+                        Math.min(5000, (number(data.poll_interval_ms, 2000) ?? 2000)),
+                    );
+                    const deadline = Date.now() + (waitSeconds * 1000);
 
-                    const clip = await api.clips.getClipById(clipId);
+                    let clip: any = null;
+                    let lastLookupError: unknown = null;
+
+                    do {
+                        try {
+                            clip = await api.clips.getClipById(clipId);
+                            lastLookupError = null;
+                        } catch (error) {
+                            lastLookupError = error;
+                        }
+
+                        if (clip || Date.now() >= deadline) {
+                            break;
+                        }
+
+                        await sleep(Math.min(pollIntervalMs, Math.max(1, deadline - Date.now())));
+                    } while (Date.now() < deadline);
 
                     if (!clip) {
+                        logWarn(
+                            `twitch clip creation failed: clip ${clipId} was not published after ${waitSeconds}s`,
+                        );
+
+                        if (lastLookupError) {
+                            logWarn(JSON.stringify(lastLookupError, Object.getOwnPropertyNames(lastLookupError)));
+                        }
+
+                        // Keep url empty on failure. This is important for macros
+                        // that branch on ${clip_url} / result.url.
                         storeResult({
                             id: clipId,
-                            url: `https://clips.twitch.tv/${clipId}`,
+                            url: "",
+                            success: false,
                         });
                         break;
                     }
@@ -325,6 +357,7 @@ export default class TwitchMacroTask extends BaseMacroTask {
                     storeResult({
                         id: clip.id,
                         url: clip.url,
+                        success: true,
                         embed_url: clip.embedUrl,
                         title: clip.title,
                         broadcaster_id: clip.broadcasterId,
