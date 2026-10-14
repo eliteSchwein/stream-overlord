@@ -22,7 +22,7 @@ import {
     setPipewireSinkOutputVolume,
 } from './AudioHelper'
 import {logDebug, logError, logRegular, logSuccess, logWarn} from './LogHelper'
-import {triggerConfiguredEvent} from './EventHelper'
+import {emitMusicEvent} from './MusicEventHelper'
 import {translate} from './LocaleHelper'
 import https from 'https'
 
@@ -52,6 +52,7 @@ let suppressMusicStateWrite = true
 let overlayDuration = 15_000
 let musicOverlayTimeout: ReturnType<typeof setTimeout> | null = null
 let lastThumbnailTrackKey: string | null = null
+let lastThumbnailPayload: any = null
 let musicShuffleEnabled = false
 let lastObservedPlaylistPos: number | null = null
 let lastObservedPlaylistLength: number | null = null
@@ -545,7 +546,7 @@ export async function show() {
     }
 
     if (!overlayAlreadyActive) {
-        void triggerConfiguredEvent('event_music_start', {
+        emitMusicEvent('start', {
             music: getStatus(),
         })
     }
@@ -553,7 +554,7 @@ export async function show() {
     musicOverlayTimeout = setTimeout(() => {
         musicOverlayTimeout = null
 
-        void triggerConfiguredEvent('event_music_end', {
+        emitMusicEvent('end', {
             music: getStatus(),
         })
     }, overlayDuration)
@@ -868,6 +869,7 @@ async function getMusicThumbnailUpdate(trackPath: string | null) {
 
     if (!trackPath || !existsSync(trackPath)) {
         lastThumbnailTrackKey = null
+        lastThumbnailPayload = null
 
         if (existsSync(musicThumbnailPath)) {
             rmSync(musicThumbnailPath, { force: true })
@@ -879,7 +881,7 @@ async function getMusicThumbnailUpdate(trackPath: string | null) {
     const trackKey = getThumbnailTrackKey(trackPath)
 
     if (trackKey === lastThumbnailTrackKey) {
-        return null
+        return lastThumbnailPayload
     }
 
     lastThumbnailTrackKey = trackKey
@@ -891,17 +893,20 @@ async function getMusicThumbnailUpdate(trackPath: string | null) {
     const extracted = await extractMusicThumbnail(trackPath)
 
     if (!extracted || !existsSync(musicThumbnailPath)) {
+        lastThumbnailPayload = null
         return null
     }
 
     const base64 = readFileSync(musicThumbnailPath).toString('base64')
 
-    return {
+    lastThumbnailPayload = {
         path: musicThumbnailPath,
         mime: 'image/png',
         base64,
         data_url: `data:image/png;base64,${base64}`,
     }
+
+    return lastThumbnailPayload
 }
 
 function getThumbnailTrackKey(trackPath: string): string {
@@ -1217,9 +1222,7 @@ async function handlePlaylistPosChanged(value: any) {
     await notifyPlaylistUpdate()
     void show()
 
-    const eventName = direction === 'next' ? 'event_music_next' : 'event_music_prev'
-
-    void triggerConfiguredEvent(eventName, {
+    emitMusicEvent(direction, {
         music: getStatus(),
         direction,
         previous_index: previous,

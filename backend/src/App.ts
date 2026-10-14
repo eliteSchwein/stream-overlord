@@ -24,6 +24,7 @@ import {YoloboxClient} from "./clients/yolobox/YoloboxClient";
 import {initAssetWatcher, readAssetFolder} from "./helper/AssetHelper";
 import {initNeopixels} from "./helper/NeopixelHelper";
 import {loadMusicConfig, startCavaFeed, startMusicPlayer, stopMusicPlayer} from "./helper/MusicHelper";
+import {initMusicEventBridge} from "./helper/MusicEventBridge";
 import {redis} from "./clients/redis/Redis";
 import {initVariables} from "./helper/VariableHelper";
 import {updateConfiguredEventIndex} from "./helper/EventHelper";
@@ -194,6 +195,7 @@ async function init() {
     loadRotateScenes()
 
     stage = 'starting_music_player'
+    initMusicEventBridge()
     loadMusicConfig()
     await startMusicPlayer()
 
