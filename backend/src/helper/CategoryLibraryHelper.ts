@@ -18,12 +18,17 @@ export type CategoryMediaEntry = {
 };
 
 type ResolvedCategoryMediaEntry = CategoryMediaEntry & {
+    base64?: string;
+    data_url?: string;
     target?: string;
     orientation: CategoryMediaOrientation;
     type: "image" | "video";
     autoplay: boolean;
     loop: boolean;
     muted: boolean;
+    source_category_id?: string;
+    source_category_name?: string;
+    fallback?: boolean;
 };
 
 export type CategoryLibraryEntry = {
@@ -64,6 +69,58 @@ let cache: CategoryLibraryFile | null = null;
 let activeCategoryId = "";
 let activeMediaTargets = new Set<string>();
 let steamAppCache: {expires: number; apps: Array<{appid: number; name: string}>} | null = null;
+
+const encodedImageCache = new Map<string, {mtimeMs: number; size: number; base64: string; data_url: string}>();
+
+function imageMimeType(filePath: string): string {
+    switch (path.extname(filePath).toLowerCase()) {
+        case ".png": return "image/png";
+        case ".jpg":
+        case ".jpeg": return "image/jpeg";
+        case ".webp": return "image/webp";
+        case ".gif": return "image/gif";
+        case ".bmp": return "image/bmp";
+        case ".avif": return "image/avif";
+        case ".svg": return "image/svg+xml";
+        default: return "application/octet-stream";
+    }
+}
+
+function encodeImageAsset(assetPath: string): {base64: string; data_url: string} | null {
+    if (!assetPath || videoRegex.test(assetPath) || !imageRegex.test(assetPath)) return null;
+
+    try {
+        const resolved = resolveAssetPath(assetPath);
+        const stat = fs.statSync(resolved);
+        if (!stat.isFile()) return null;
+
+        const cached = encodedImageCache.get(resolved);
+        if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+            return {base64: cached.base64, data_url: cached.data_url};
+        }
+
+        const base64 = fs.readFileSync(resolved).toString("base64");
+        const data_url = `data:${imageMimeType(resolved)};base64,${base64}`;
+        encodedImageCache.set(resolved, {mtimeMs: stat.mtimeMs, size: stat.size, base64, data_url});
+        return {base64, data_url};
+    } catch (error: any) {
+        logWarn(`category library image encode failed for ${assetPath}: ${error?.message ?? error}`);
+        return null;
+    }
+}
+
+function withEncodedImage(media: ResolvedCategoryMediaEntry): ResolvedCategoryMediaEntry {
+    if (media.type === "video") {
+        return {...media, base64: "", data_url: ""};
+    }
+
+    const encoded = encodeImageAsset(media.path);
+    return {
+        ...media,
+        base64: encoded?.base64 ?? "",
+        data_url: encoded?.data_url ?? "",
+    };
+}
 
 
 function currentCategoryLibrarySettings() {
@@ -343,7 +400,10 @@ export function getCategoryLibrary() {
             configured: Boolean(String(getSteamIntegration().api_key ?? "").trim()),
         },
         active_category_id: activeCategoryId || null,
-        active_category: activeCategory,
+        active_category: activeCategory ? {
+            ...activeCategory,
+            media: getActiveCategoryTemplateMedia(),
+        } : null,
         effective_media: activeCategory ? findMediaSource(activeCategory) : null,
         effective_obs_filters: getActiveCategoryObsFilterPayload(),
         active_channel_points: getActiveCategoryChannelPointState(),
@@ -746,30 +806,44 @@ async function ensureThemeColor(entry: CategoryLibraryEntry) {
     }
 }
 
+function withMediaSource(media: ResolvedCategoryMediaEntry, source: CategoryLibraryEntry, active: CategoryLibraryEntry): ResolvedCategoryMediaEntry {
+    return {
+        ...media,
+        source_category_id: source.category_id,
+        source_category_name: source.name,
+        fallback: source.category_id !== active.category_id,
+    };
+}
+
 function findMediaSource(entry: CategoryLibraryEntry): {entry: CategoryLibraryEntry; media: ResolvedCategoryMediaEntry[]} | null {
     const media: ResolvedCategoryMediaEntry[] = [];
+    const fallback = Object.values(readLibrary().categories)
+        .find(item => item.use_as_media_fallback && item.category_id !== entry.category_id);
 
-    // Cover is its own media target so overlays can explicitly show the
-    // category/box art separately from the wallpaper and slot media.
-    if (entry.cover_path) {
-        media.push({
+    const ownCover = entry.cover_path;
+    const fallbackCover = fallback?.cover_path;
+    const coverPath = ownCover || fallbackCover;
+    const coverSource = ownCover ? entry : fallbackCover ? fallback : undefined;
+    if (coverPath && coverSource) {
+        media.push(withMediaSource({
             name: "cover",
-            path: entry.cover_path,
+            path: coverPath,
             target: "cover",
             orientation: "vertical",
-            type: videoRegex.test(entry.cover_path) ? "video" : "image",
+            type: videoRegex.test(coverPath) ? "video" : "image",
             autoplay: true,
             loop: true,
             muted: true,
-        });
+        }, coverSource, entry));
     }
 
-    // Wallpaper is an independent category media target. Do not make it
-    // mutually exclusive with custom slots such as horizontal/vertical.
-    const wallpaperPath = entry.wallpaper_path || entry.steam_wallpaper_path;
-    if (wallpaperPath) {
-        media.push({
-            name: entry.wallpaper_path ? "wallpaper" : "steam-wallpaper",
+    const ownWallpaper = entry.wallpaper_path || entry.steam_wallpaper_path;
+    const fallbackWallpaper = fallback ? (fallback.wallpaper_path || fallback.steam_wallpaper_path) : undefined;
+    const wallpaperPath = ownWallpaper || fallbackWallpaper;
+    const wallpaperSource = ownWallpaper ? entry : fallbackWallpaper ? fallback : undefined;
+    if (wallpaperPath && wallpaperSource) {
+        media.push(withMediaSource({
+            name: "background",
             path: wallpaperPath,
             target: "background",
             orientation: "horizontal",
@@ -777,25 +851,61 @@ function findMediaSource(entry: CategoryLibraryEntry): {entry: CategoryLibraryEn
             autoplay: true,
             loop: true,
             muted: true,
-        });
+        }, wallpaperSource, entry));
     }
 
-    const ownMedia = resolvedCustomMedia(entry);
-    if (ownMedia.length) {
-        media.push(...ownMedia);
-        return media.length ? {entry, media} : null;
-    }
+    const ownByName = new Map(resolvedCustomMedia(entry).map(item => [item.name, item]));
+    const fallbackByName = new Map((fallback ? resolvedCustomMedia(fallback) : []).map(item => [item.name, item]));
 
-    // If the active category has no custom slot media, inherit those slots
-    // from the configured fallback category while keeping its own wallpaper.
-    const fallback = Object.values(readLibrary().categories)
-        .find(item => item.use_as_media_fallback && resolvedCustomMedia(item).length > 0);
-    if (fallback) {
-        media.push(...resolvedCustomMedia(fallback));
-        return {entry: fallback, media};
+    for (const slot of currentCategoryLibrarySettings().media_slots) {
+        const own = ownByName.get(slot.name);
+        const inherited = fallbackByName.get(slot.name);
+        const selected = own || inherited;
+        const source = own ? entry : inherited ? fallback : undefined;
+        if (!selected || !source) continue;
+        media.push(withMediaSource(selected, source, entry));
     }
 
     return media.length ? {entry, media} : null;
+}
+
+export function getActiveCategoryTemplateMedia() {
+    const entry = getActiveCategoryEntry();
+    const settings = currentCategoryLibrarySettings();
+    const slots = settings.media_slots ?? [];
+    const source = entry ? findMediaSource(entry) : null;
+    const byName = new Map((source?.media ?? []).map(item => [item.name, withEncodedImage(item)]));
+
+    const emptyMedia = (name: string, target: string, orientation: CategoryMediaOrientation) => ({
+        name,
+        path: "",
+        target,
+        orientation,
+        type: "image" as const,
+        autoplay: true,
+        loop: true,
+        muted: true,
+        source_category_id: null,
+        source_category_name: null,
+        fallback: false,
+        base64: "",
+        data_url: "",
+    });
+
+    const result: Record<string, any> = {
+        cover: byName.get("cover") ?? emptyMedia("cover", "cover", "vertical"),
+        background: byName.get("background") ?? emptyMedia("background", "background", "horizontal"),
+    };
+
+    for (const slot of slots) {
+        result[slot.name] = byName.get(slot.name) ?? emptyMedia(
+            slot.name,
+            slot.target || slot.orientation || slot.name || "default",
+            slot.orientation,
+        );
+    }
+
+    return result;
 }
 
 function clearActiveMedia() {
@@ -844,7 +954,9 @@ async function applyActiveCategory(entry: CategoryLibraryEntry) {
                     muted: media.muted,
                     orientation: media.orientation,
                     category_id: entry.category_id,
-                    media_category_id: source.entry.category_id,
+                    media_category_id: media.source_category_id ?? source.entry.category_id,
+        media_category_name: media.source_category_name ?? source.entry.name,
+        fallback: media.fallback === true,
                 });
             }
         }
@@ -998,6 +1110,43 @@ export function getActiveCategoryPayload() {
     };
 }
 
+
+export function getResolvedActiveCategoryTemplateEntry() {
+    const entry = getActiveCategoryEntry();
+    if (!entry) return null;
+
+    const media = getActiveCategoryTemplateMedia();
+    const background = media.background ?? null;
+
+    return {
+        ...structuredClone(entry),
+        // Effective wallpaper follows the same per-slot fallback resolution as media.background.
+        wallpaper_path: background?.path || entry.wallpaper_path || entry.steam_wallpaper_path || "",
+        wallpaper_base64: background?.type === "image" ? background?.base64 ?? "" : "",
+        wallpaper_data_url: background?.type === "image" ? background?.data_url ?? "" : "",
+        media,
+        effective_obs_filters: getActiveCategoryObsFilterPayload(),
+        active_channel_points: getActiveCategoryChannelPointState(),
+    };
+}
+
+export function getCategoryLibraryTemplateContext() {
+    const settings = currentCategoryLibrarySettings();
+    const active = getResolvedActiveCategoryTemplateEntry();
+    const fallback = Object.values(readLibrary().categories)
+        .find(item => item.use_as_media_fallback) ?? null;
+
+    return {
+        enabled: settings.enabled,
+        active_category_id: active?.category_id ?? null,
+        active_category: active,
+        active,
+        media: active?.media ?? getActiveCategoryTemplateMedia(),
+        fallback_category_id: fallback?.category_id ?? null,
+        fallback_category_name: fallback?.name ?? null,
+    };
+}
+
 export function getActiveCategoryStylePayload() {
     const entry = getActiveCategoryEntry();
     return {
@@ -1025,7 +1174,9 @@ export function getActiveCategoryMediaNotifications() {
         muted: media.muted,
         orientation: media.orientation,
         category_id: entry.category_id,
-        media_category_id: source.entry.category_id,
+        media_category_id: media.source_category_id ?? source.entry.category_id,
+        media_category_name: media.source_category_name ?? source.entry.name,
+        fallback: media.fallback === true,
     }));
 }
 

@@ -19,7 +19,7 @@ let assetFiles = []
 const assetPath = join(getSystemConfigDirectory(), "assets")
 const compressedPath = join(getSystemConfigDirectory(), "compressed_assets")
 
-export const imageRegex = /\.(jpe?g|png)$/i
+export const imageRegex = /\.(jpe?g|png|webp|gif|bmp|avif|svg)$/i
 export const videoRegex = /\.(mp4|webm)$/i
 export const audioRegex = /\.(mp3)$/i
 
