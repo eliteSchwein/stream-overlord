@@ -45,9 +45,14 @@ export default function initialSchedulers() {
     setInterval(async () => {
         void updateSystemInfo()
         void checkThrottle()
-        void updateAutoMacros()
         void updateGiveaway()
     }, 1_000)
+
+    // auto macro scheduler (50 ms)
+    // Auto macros can explicitly use interval_ms with a minimum of 50 ms.
+    setInterval(() => {
+        void updateAutoMacros()
+    }, 50)
 
     // faster scheduler (500 ms)
     setInterval(async () => {

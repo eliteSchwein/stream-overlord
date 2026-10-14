@@ -69,8 +69,16 @@ type AutoMacroRuntime = {
     name: string;
     enabled: boolean;
     default_enabled: boolean;
+    // Seconds, kept for backwards compatibility with existing frontends/configs.
     interval: number;
     current_interval: number;
+    // Millisecond-native values for fast auto macros. Minimum interval is 50 ms.
+    interval_ms: number;
+    current_interval_ms: number;
+    // Runtime-only interval override. Never persisted to the auto macro file.
+    temporary_interval_ms?: number;
+    temporary_interval_until?: number;
+    next_run_at: number;
     macros: string[];
     file?: string;
 };
@@ -202,20 +210,59 @@ function normalizeMacroList(macros: any): string[] {
     return [];
 }
 
-function normalizeIntervalSeconds(interval: any, interval_minutes?: any) {
-    const rawInterval = interval ?? interval_minutes;
-    const parsedInterval = Number(rawInterval);
+export const MIN_AUTO_MACRO_INTERVAL_MS = 50;
+const DEFAULT_AUTO_MACRO_INTERVAL_MS = 10 * 60 * 1000;
 
-    if (!Number.isFinite(parsedInterval) || parsedInterval <= 0) {
-        return 10 * 60;
+function getEffectiveAutoMacroIntervalMs(autoMacro: AutoMacroRuntime) {
+    return autoMacro.temporary_interval_ms ?? autoMacro.interval_ms;
+}
+
+function clearExpiredTemporaryInterval(autoMacro: AutoMacroRuntime, now: number) {
+    if (autoMacro.temporary_interval_until === undefined || autoMacro.temporary_interval_until > now) {
+        return false;
     }
 
-    // Backwards compatibility: old config interval was minutes.
-    if (interval === undefined && interval_minutes !== undefined) {
-        return Math.round(parsedInterval * 60);
+    autoMacro.temporary_interval_ms = undefined;
+    autoMacro.temporary_interval_until = undefined;
+    autoMacro.next_run_at = now + autoMacro.interval_ms;
+    autoMacro.current_interval_ms = autoMacro.interval_ms;
+    autoMacro.current_interval = autoMacro.interval;
+    logRegular(`temporary interval expired for auto macro ${autoMacro.name}; restored ${autoMacro.interval_ms}ms`);
+    return true;
+}
+
+function normalizeIntervalMilliseconds(intervalMs: any, interval: any, intervalMinutes?: any) {
+    if (intervalMs !== undefined && intervalMs !== null && intervalMs !== "") {
+        const parsedIntervalMs = Number(intervalMs);
+
+        if (!Number.isFinite(parsedIntervalMs) || parsedIntervalMs <= 0) {
+            return DEFAULT_AUTO_MACRO_INTERVAL_MS;
+        }
+
+        return Math.max(MIN_AUTO_MACRO_INTERVAL_MS, Math.round(parsedIntervalMs));
     }
 
-    return Math.round(parsedInterval);
+    if (interval !== undefined && interval !== null && interval !== "") {
+        const parsedIntervalSeconds = Number(interval);
+
+        if (!Number.isFinite(parsedIntervalSeconds) || parsedIntervalSeconds <= 0) {
+            return DEFAULT_AUTO_MACRO_INTERVAL_MS;
+        }
+
+        return Math.max(MIN_AUTO_MACRO_INTERVAL_MS, Math.round(parsedIntervalSeconds * 1000));
+    }
+
+    if (intervalMinutes !== undefined && intervalMinutes !== null && intervalMinutes !== "") {
+        const parsedIntervalMinutes = Number(intervalMinutes);
+
+        if (!Number.isFinite(parsedIntervalMinutes) || parsedIntervalMinutes <= 0) {
+            return DEFAULT_AUTO_MACRO_INTERVAL_MS;
+        }
+
+        return Math.max(MIN_AUTO_MACRO_INTERVAL_MS, Math.round(parsedIntervalMinutes * 60_000));
+    }
+
+    return DEFAULT_AUTO_MACRO_INTERVAL_MS;
 }
 
 function normalizeAutoMacroConfig(config: any, fallbackName: string, file?: string): AutoMacroRuntime | undefined {
@@ -226,14 +273,30 @@ function normalizeAutoMacroConfig(config: any, fallbackName: string, file?: stri
         return undefined;
     }
 
-    const interval = normalizeIntervalSeconds(config?.interval, config?.interval_minutes);
+    const intervalMs = normalizeIntervalMilliseconds(
+        config?.interval_ms,
+        config?.interval,
+        config?.interval_minutes,
+    );
+    const interval = intervalMs / 1000;
+    const configuredCurrentMs = config?.current_interval_ms !== undefined
+        ? Number(config.current_interval_ms)
+        : config?.current_interval !== undefined
+            ? Number(config.current_interval) * 1000
+            : intervalMs;
+    const currentIntervalMs = Number.isFinite(configuredCurrentMs) && configuredCurrentMs > 0
+        ? Math.min(intervalMs, Math.max(0, Math.round(configuredCurrentMs)))
+        : intervalMs;
 
     return {
         name: config?.name ?? fallbackName,
         enabled: config?.enabled ?? config?.default_enabled ?? false,
         default_enabled: config?.default_enabled ?? false,
         interval,
-        current_interval: config?.current_interval ?? interval,
+        current_interval: currentIntervalMs / 1000,
+        interval_ms: intervalMs,
+        current_interval_ms: currentIntervalMs,
+        next_run_at: Date.now() + currentIntervalMs,
         macros,
         file,
     };
@@ -343,25 +406,42 @@ export function initAutoMacros() {
     notifyAutoMacrosUpdate();
 }
 
+let lastAutoMacroNotifyAt = 0;
+const AUTO_MACRO_NOTIFY_INTERVAL_MS = 250;
+
 export async function updateAutoMacros() {
+    const now = Date.now();
+
     for (const autoMacro of autoMacros) {
+        clearExpiredTemporaryInterval(autoMacro, now);
+
         if (!autoMacro.enabled) continue;
 
-        autoMacro.current_interval--;
+        const effectiveIntervalMs = getEffectiveAutoMacroIntervalMs(autoMacro);
+        const remainingMs = Math.max(0, autoMacro.next_run_at - now);
+        autoMacro.current_interval_ms = remainingMs;
+        autoMacro.current_interval = remainingMs / 1000;
 
-        logDebug(`update auto macro ${autoMacro.name} interval: ${autoMacro.current_interval} / ${autoMacro.interval}`);
+        logDebug(`update auto macro ${autoMacro.name} interval: ${autoMacro.current_interval_ms}ms / ${effectiveIntervalMs}ms`);
 
-        if (autoMacro.current_interval <= 0) {
-            autoMacro.current_interval = autoMacro.interval;
-            logRegular(`trigger auto macro ${autoMacro.name}`);
+        if (remainingMs > 0) continue;
 
-            for (const macro of autoMacro.macros) {
-                await triggerMacro(macro);
-            }
+        // Schedule from the current wall-clock time. This intentionally avoids
+        // burst catch-up if the event loop was blocked for a while.
+        autoMacro.next_run_at = now + effectiveIntervalMs;
+        autoMacro.current_interval_ms = effectiveIntervalMs;
+        autoMacro.current_interval = effectiveIntervalMs / 1000;
+        logRegular(`trigger auto macro ${autoMacro.name}`);
+
+        for (const macro of autoMacro.macros) {
+            await triggerMacro(macro);
         }
     }
 
-    notifyAutoMacrosUpdate();
+    if (now - lastAutoMacroNotifyAt >= AUTO_MACRO_NOTIFY_INTERVAL_MS) {
+        lastAutoMacroNotifyAt = now;
+        notifyAutoMacrosUpdate();
+    }
 }
 
 export function toggleAutoMacro(name: string, enabled: boolean) {
@@ -370,12 +450,89 @@ export function toggleAutoMacro(name: string, enabled: boolean) {
 
         autoMacro.enabled = enabled;
 
+        const effectiveIntervalMs = getEffectiveAutoMacroIntervalMs(autoMacro);
+
         if (!enabled) {
-            autoMacro.current_interval = autoMacro.interval;
+            autoMacro.current_interval_ms = effectiveIntervalMs;
+            autoMacro.current_interval = effectiveIntervalMs / 1000;
+            autoMacro.next_run_at = Date.now() + effectiveIntervalMs;
+        } else {
+            const remainingMs = Math.max(0, autoMacro.current_interval_ms || effectiveIntervalMs);
+            autoMacro.next_run_at = Date.now() + remainingMs;
         }
     }
 
     notifyAutoMacrosUpdate();
+}
+
+export function setTemporaryAutoMacroInterval(
+    name: string,
+    intervalMs: number,
+    durationMs?: number,
+) {
+    const normalizedName = String(name ?? "").trim();
+    const parsedIntervalMs = Number(intervalMs);
+
+    if (!normalizedName) {
+        throw new Error("auto macro name is required");
+    }
+
+    if (!Number.isFinite(parsedIntervalMs) || parsedIntervalMs <= 0) {
+        throw new Error("auto macro interval must be greater than 0");
+    }
+
+    const autoMacro = autoMacros.find(entry => entry.name === normalizedName);
+    if (!autoMacro) {
+        throw new Error(`auto macro not found: ${normalizedName}`);
+    }
+
+    const normalizedIntervalMs = Math.max(MIN_AUTO_MACRO_INTERVAL_MS, Math.round(parsedIntervalMs));
+    const parsedDurationMs = durationMs === undefined ? undefined : Number(durationMs);
+
+    if (parsedDurationMs !== undefined && (!Number.isFinite(parsedDurationMs) || parsedDurationMs <= 0)) {
+        throw new Error("temporary auto macro duration must be greater than 0");
+    }
+
+    const now = Date.now();
+    autoMacro.temporary_interval_ms = normalizedIntervalMs;
+    autoMacro.temporary_interval_until = parsedDurationMs === undefined
+        ? undefined
+        : now + Math.round(parsedDurationMs);
+    autoMacro.current_interval_ms = normalizedIntervalMs;
+    autoMacro.current_interval = normalizedIntervalMs / 1000;
+    autoMacro.next_run_at = now + normalizedIntervalMs;
+
+    logRegular(
+        `temporary interval for auto macro ${autoMacro.name}: ${normalizedIntervalMs}ms`
+        + (autoMacro.temporary_interval_until ? ` for ${Math.round(parsedDurationMs!)}ms` : " until reset"),
+    );
+    notifyAutoMacrosUpdate();
+
+    return autoMacro;
+}
+
+export function resetTemporaryAutoMacroInterval(name: string) {
+    const normalizedName = String(name ?? "").trim();
+
+    if (!normalizedName) {
+        throw new Error("auto macro name is required");
+    }
+
+    const autoMacro = autoMacros.find(entry => entry.name === normalizedName);
+    if (!autoMacro) {
+        throw new Error(`auto macro not found: ${normalizedName}`);
+    }
+
+    autoMacro.temporary_interval_ms = undefined;
+    autoMacro.temporary_interval_until = undefined;
+    autoMacro.current_interval_ms = autoMacro.interval_ms;
+    autoMacro.current_interval = autoMacro.interval;
+    autoMacro.next_run_at = Date.now() + autoMacro.interval_ms;
+
+    logRegular(`reset temporary interval for auto macro ${autoMacro.name} to ${autoMacro.interval_ms}ms`);
+    notifyAutoMacrosUpdate();
+
+    return autoMacro;
 }
 
 export function getAutoMacros() {
