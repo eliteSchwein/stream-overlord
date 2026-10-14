@@ -5,6 +5,8 @@ import {getMacroConfig, hasMacroTasks, interpolateTemplate, triggerMacro} from "
 import getWebsocketServer from "../App";
 import {enqueueInteraction} from "./InteractionHelper";
 import {logRegular} from "./LogHelper";
+import {stripEmotes} from "./DataHelper";
+import {stripUrlsAndNormalizeWhitespace} from "./EmojiHelper";
 
 export type EventSimulationFieldType = "text" | "number" | "boolean" | "textarea" | "select";
 
@@ -39,6 +41,8 @@ export type EventEntry = {
     asset: boolean;
     configured: boolean;
     bypass_interaction_queue: boolean;
+    strip_emotes: boolean;
+    strip_urls: boolean;
     simulationFields: EventSimulationField[];
 };
 
@@ -307,6 +311,8 @@ function createEventEntry(
         asset: false,
         configured: false,
         bypass_interaction_queue: false,
+        strip_emotes: false,
+        strip_urls: false,
         simulationFields,
     };
 }
@@ -395,20 +401,32 @@ function coerceEventBoolean(value: unknown): boolean {
     return false;
 }
 
-export function getEventBypassInteractionQueue(configName: string): boolean {
+function getEventBooleanOption(configName: string, option: "bypass_interaction_queue" | "strip_emotes" | "strip_urls"): boolean {
     const normalizedConfigName = normalizeEventConfigName(configName);
     const macroConfig = getMacroConfig(normalizedConfigName);
 
-    if (macroConfig && Object.prototype.hasOwnProperty.call(macroConfig, "bypass_interaction_queue")) {
-        return coerceEventBoolean(macroConfig.bypass_interaction_queue);
+    if (macroConfig && Object.prototype.hasOwnProperty.call(macroConfig, option)) {
+        return coerceEventBoolean(macroConfig[option]);
     }
 
     const assetConfig = getAssetConfig(normalizedConfigName);
-    if (assetConfig && Object.prototype.hasOwnProperty.call(assetConfig, "bypass_interaction_queue")) {
-        return coerceEventBoolean(assetConfig.bypass_interaction_queue);
+    if (assetConfig && Object.prototype.hasOwnProperty.call(assetConfig, option)) {
+        return coerceEventBoolean(assetConfig[option]);
     }
 
     return false;
+}
+
+export function getEventStripEmotes(configName: string): boolean {
+    return getEventBooleanOption(configName, "strip_emotes");
+}
+
+export function getEventStripUrls(configName: string): boolean {
+    return getEventBooleanOption(configName, "strip_urls");
+}
+
+export function getEventBypassInteractionQueue(configName: string): boolean {
+    return getEventBooleanOption(configName, "bypass_interaction_queue");
 }
 
 export function updateConfiguredEventIndex(): EventIndex {
@@ -425,6 +443,8 @@ export function updateConfiguredEventIndex(): EventIndex {
                 asset,
                 configured: macro || asset,
                 bypass_interaction_queue: getEventBypassInteractionQueue(entry.configName),
+                strip_emotes: getEventStripEmotes(entry.configName),
+                strip_urls: getEventStripUrls(entry.configName),
             };
         });
     }
@@ -510,6 +530,97 @@ export async function simulateConfiguredEvent(
     return {eventUuid, event};
 }
 
+
+export function filterConfiguredEventTextValue(
+    configName: string,
+    text: string,
+    context: any = {},
+): string {
+    const normalizedConfigName = normalizeEventConfigName(configName);
+    if (!normalizedConfigName) return text;
+
+    let filtered = text;
+    if (getEventStripEmotes(normalizedConfigName)) {
+        filtered = stripEmotes(filtered, context as any);
+    }
+    if (getEventStripUrls(normalizedConfigName)) {
+        filtered = stripUrlsAndNormalizeWhitespace(filtered);
+    }
+
+    return filtered.trim();
+}
+
+export function shouldSkipMessageLikeConfiguredEventBeforeQuery(
+    configName: string,
+    text: string,
+    context: any = {},
+): boolean {
+    if (!text.trim()) return false;
+
+    const normalizedConfigName = normalizeEventConfigName(configName);
+    if (!normalizedConfigName) return false;
+
+    const filteringEnabled =
+        getEventStripEmotes(normalizedConfigName) ||
+        getEventStripUrls(normalizedConfigName);
+
+    if (!filteringEnabled) return false;
+
+    return filterConfiguredEventTextValue(normalizedConfigName, text, context).length === 0;
+}
+
+const EVENT_TEXT_KEYS = new Set([
+    "message",
+    "messageText",
+    "input",
+    "text",
+    "content",
+    "userInput",
+    "rewardInput",
+    "query",
+]);
+
+function sanitizeConfiguredEventText(
+    value: any,
+    stripEmotesEnabled: boolean,
+    stripUrlsEnabled: boolean,
+    context: any,
+    depth = 0,
+): any {
+    if (value === null || value === undefined || depth > 5) return value;
+    if (Array.isArray(value)) {
+        return value.map(item => sanitizeConfiguredEventText(item, stripEmotesEnabled, stripUrlsEnabled, context, depth + 1));
+    }
+    if (typeof value !== "object") return value;
+
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) return value;
+
+    const output: Record<string, any> = {...value};
+
+    for (const [key, currentValue] of Object.entries(output)) {
+        if (typeof currentValue === "string" && EVENT_TEXT_KEYS.has(key)) {
+            let text = currentValue;
+            if (stripEmotesEnabled) text = stripEmotes(text, context as any);
+            if (stripUrlsEnabled) text = stripUrlsAndNormalizeWhitespace(text);
+            output[key] = text;
+            continue;
+        }
+
+        if (currentValue && typeof currentValue === "object") {
+            output[key] = sanitizeConfiguredEventText(
+                currentValue,
+                stripEmotesEnabled,
+                stripUrlsEnabled,
+                context,
+                depth + 1,
+            );
+        }
+    }
+
+    return output;
+}
+
 export async function triggerConfiguredEvent(
     configName: string,
     variables: Record<string, any> = {},
@@ -519,7 +630,18 @@ export async function triggerConfiguredEvent(
 
     if (!normalizedConfigName) return;
 
-    const eventUuid = String(variables.eventUuid ?? `${normalizedConfigName}_${randomUUID()}`);
+    const stripEmotesEnabled = getEventStripEmotes(normalizedConfigName);
+    const stripUrlsEnabled = getEventStripUrls(normalizedConfigName);
+    const sanitizedVariables = (stripEmotesEnabled || stripUrlsEnabled)
+        ? sanitizeConfiguredEventText(
+            variables,
+            stripEmotesEnabled,
+            stripUrlsEnabled,
+            variables.event ?? variables,
+        )
+        : variables;
+
+    const eventUuid = String(sanitizedVariables.eventUuid ?? `${normalizedConfigName}_${randomUUID()}`);
     const hasMacro = hasMacroTasks(normalizedConfigName);
     const hasAsset = hasAssetConfigContent(normalizedConfigName);
     if (!hasMacro && !hasAsset) {
@@ -533,7 +655,7 @@ export async function triggerConfiguredEvent(
 
     const execute = async (interactionUuid?: string) => {
         const eventVariables = {
-            ...variables,
+            ...sanitizedVariables,
             eventUuid,
             ...(interactionUuid ? {interactionUuid} : {}),
         };

@@ -81,6 +81,7 @@ export type ChannelPointConfig = {
     macro: string;
     auto_accept?: boolean;
     strip_emotes?: boolean;
+    strip_urls?: boolean;
     input_required?: boolean;
     bypass_interaction_queue?: boolean;
     enable_default?: boolean;
@@ -208,6 +209,7 @@ function normalizeChannelPointConfig(name: string, config: any = {}): ChannelPoi
         enable_default: coerceChannelPointBoolean(config?.enable_default),
         auto_accept: coerceChannelPointBoolean(config?.auto_accept),
         strip_emotes: coerceChannelPointBoolean(config?.strip_emotes),
+        strip_urls: coerceChannelPointBoolean(config?.strip_urls),
         input_required: coerceChannelPointBoolean(config?.input_required ?? config?.inputRequired),
         bypass_interaction_queue: coerceChannelPointBoolean(config?.bypass_interaction_queue),
     };
@@ -495,6 +497,7 @@ function normalizeChannelPointConfigContentForWrite(filePath: string, content: s
     if (hasOwnValue(patch, "enable_default")) config.enable_default = coerceChannelPointBoolean(patch.enable_default);
     if (hasOwnValue(patch, "auto_accept")) config.auto_accept = coerceChannelPointBoolean(patch.auto_accept);
     if (hasOwnValue(patch, "strip_emotes")) config.strip_emotes = coerceChannelPointBoolean(patch.strip_emotes);
+    if (hasOwnValue(patch, "strip_urls")) config.strip_urls = coerceChannelPointBoolean(patch.strip_urls);
     if (hasOwnValue(patch, "input_required")) config.input_required = coerceChannelPointBoolean(patch.input_required);
     if (hasOwnValue(patch, "inputRequired")) config.input_required = coerceChannelPointBoolean(patch.inputRequired);
 
@@ -506,6 +509,7 @@ function normalizeChannelPointConfigContentForWrite(filePath: string, content: s
     config.enable_default = coerceChannelPointBoolean(config.enable_default);
     config.auto_accept = coerceChannelPointBoolean(config.auto_accept);
     config.strip_emotes = coerceChannelPointBoolean(config.strip_emotes);
+    config.strip_urls = coerceChannelPointBoolean(config.strip_urls);
     config.input_required = coerceChannelPointBoolean(config.input_required);
 
     return stringifyChannelPointConfigContent(filePath, config);

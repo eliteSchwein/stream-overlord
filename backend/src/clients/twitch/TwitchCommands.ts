@@ -27,6 +27,8 @@ import getWebsocketServer, {getTwitchClient, setReloadUpdate} from "../../App";
 import {getAssetConfig} from "../../helper/AssetHelper";
 import {addAlert} from "../../helper/AlertHelper";
 import {translate} from "../../helper/LocaleHelper";
+import {stripEmotes} from "../../helper/DataHelper";
+import {stripUrlsAndNormalizeWhitespace} from "../../helper/EmojiHelper";
 function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
     const directory = path.dirname(filePath);
     fs.mkdirSync(directory, {recursive: true});
@@ -412,6 +414,8 @@ function normalizeCommandConfigForSave(filePath: string, commandConfig: any) {
             .map(value => normalizeUserName(value))
             .filter(Boolean),
         bypass_interaction_queue: normalizeBoolean(cleanCommandConfig?.bypass_interaction_queue),
+        strip_emotes: normalizeBoolean(cleanCommandConfig?.strip_emotes),
+        strip_urls: normalizeBoolean(cleanCommandConfig?.strip_urls),
     };
 
     delete normalizedConfig.singleUse;
@@ -1073,6 +1077,8 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
             const macro = normalizeString(currentOption.macro);
             const assetName = normalizeString(currentOption.asset);
             const bypassInteractionQueue = normalizeBoolean(currentOption.bypass_interaction_queue);
+            const stripEmotesEnabled = normalizeBoolean(currentOption.strip_emotes);
+            const stripUrlsEnabled = normalizeBoolean(currentOption.strip_urls);
             const singleUse = normalizeSingleUse(currentOption.single_use ?? currentOption.singleUse);
             const userListMode = normalizeUserListMode(
                 currentOption.user_list_mode ?? currentOption.userListMode
@@ -1157,6 +1163,18 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
 
             const parsedParams = await parseConfigParams(command, rawParam, context, bot, paramConfig);
             if (!parsedParams.ok) return;
+
+            for (const paramOptions of paramConfig) {
+                if (paramOptions.type !== "all" && paramOptions.type !== "string") continue;
+
+                const currentValue = parsedParams.params[paramOptions.name];
+                if (typeof currentValue !== "string") continue;
+
+                let value = currentValue;
+                if (stripEmotesEnabled) value = stripEmotes(value, context as any);
+                if (stripUrlsEnabled) value = stripUrlsAndNormalizeWhitespace(value);
+                parsedParams.params[paramOptions.name] = value;
+            }
 
             if (singleUse === "global") {
                 globallyUsed = true;

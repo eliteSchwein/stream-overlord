@@ -15,6 +15,7 @@ import {
     updateChannelPoints
 } from "../../../../helper/ChannelPointHelper";
 import {stripEmotes} from "../../../../helper/DataHelper";
+import {stripUrlsAndNormalizeWhitespace} from "../../../../helper/EmojiHelper";
 import {getAssetConfig} from "../../../../helper/AssetHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
@@ -211,13 +212,19 @@ export default class ChannelPointsEvent extends BaseEvent {
                     userName: event.userName,
                     userDisplayName: event.userDisplayName,
                     broadcasterName: event.broadcasterName,
-                    input:
-                        configChannelPoint.strip_emotes === true
-                            ? stripEmotes(
-                                String(event.input ?? ""),
-                                event as any,
-                            )
-                            : event.input,
+                    input: (() => {
+                        let input = String(event.input ?? "");
+
+                        if (configChannelPoint.strip_emotes === true) {
+                            input = stripEmotes(input, event as any);
+                        }
+
+                        if (configChannelPoint.strip_urls === true) {
+                            input = stripUrlsAndNormalizeWhitespace(input);
+                        }
+
+                        return input;
+                    })(),
                 },
             });
 

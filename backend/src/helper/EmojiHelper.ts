@@ -85,6 +85,21 @@ export function stripLikelyThirdPartyEmotes(text: string): string {
         .join(" ");
 }
 
+
+export function stripUrlsAndNormalizeWhitespace(text: string): string {
+    if (!text) return text;
+
+    return text
+        // Full URLs with an explicit scheme.
+        .replace(/\bhttps?:\/\/[^\s<]+/giu, "")
+        // Common scheme-less URLs beginning with www.
+        .replace(/\bwww\.[^\s<]+/giu, "")
+        // Bare domains such as example.com/path. Avoid e-mail addresses.
+        .replace(/(?<!@)\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?:\/[^\s<]*)?/giu, "")
+        .replace(/[ \t]{2,}/g, " ")
+        .trim();
+}
+
 export function stripUnicodeEmojisAndNormalizeWhitespace(text: string): string {
     return stripSpecialSymbols(stripTextEmoticons(stripUnicodeEmojis(text)))
         .replace(/[ \t]{2,}/g, " ")

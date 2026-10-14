@@ -8,7 +8,7 @@ import {addSongRequest, toggleSongRequest} from "../MusicHelper";
 import {getTwitchClient} from "../../App";
 import {logRegular, logWarn} from "../LogHelper";
 import {assetRoot} from "../AssetManagementHelper";
-import {stripLikelyThirdPartyEmotes, stripUnicodeEmojisAndNormalizeWhitespace} from "../EmojiHelper";
+import {stripLikelyThirdPartyEmotes, stripUnicodeEmojisAndNormalizeWhitespace, stripUrlsAndNormalizeWhitespace} from "../EmojiHelper";
 
 export default class FunctionMacroTask extends BaseMacroTask {
     channel = "function";
@@ -142,6 +142,24 @@ export default class FunctionMacroTask extends BaseMacroTask {
                 variables[data.key] = stripped;
 
                 logRegular(`strip_emojis ${data.key}`);
+                break;
+            }
+
+            case "strip_urls": {
+                if (data.content === undefined || data.content === null) {
+                    logWarn(`strip_urls requires content`);
+                    break;
+                }
+
+                if (!data.key) {
+                    logWarn(`strip_urls requires key`);
+                    break;
+                }
+
+                const content = fillTemplate(String(data.content), variables);
+                variables[data.key] = stripUrlsAndNormalizeWhitespace(content);
+
+                logRegular(`strip_urls ${data.key}`);
                 break;
             }
 

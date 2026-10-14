@@ -1,6 +1,7 @@
 import BaseEvent from "./BaseEvent";
 import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {logRegular} from "../../../../helper/LogHelper";
+import {shouldSkipMessageLikeConfiguredEventBeforeQuery} from "../../../../helper/EventHelper";
 
 export default class AnnouncementEvent extends BaseEvent {
     name = "Announcement";
@@ -17,6 +18,17 @@ export default class AnnouncementEvent extends BaseEvent {
         { name: "userDisplayName", type: "text" as const, localeKey: "events.simulation.fields.userDisplayName", default: "TestModerator", required: true },
         { name: "announcementColor", type: "text" as const, localeKey: "events.simulation.fields.color", default: "primary", required: false },
     ];
+
+    protected async shouldHandleEvent(event: any): Promise<boolean> {
+        const messageText = String(event?.messageText ?? "");
+
+        if (shouldSkipMessageLikeConfiguredEventBeforeQuery(this.configName, messageText, event)) {
+            logRegular(`skip Twitch announcement event after text filters produced empty content`);
+            return false;
+        }
+
+        return true;
+    }
 
     async handleRegister() {
         const primaryChannel = getPrimaryChannel();

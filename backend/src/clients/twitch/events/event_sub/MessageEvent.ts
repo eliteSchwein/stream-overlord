@@ -3,6 +3,7 @@ import type {EventSubChannelChatMessageEvent} from "@twurple/eventsub-base";
 import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {logRegular} from "../../../../helper/LogHelper";
 import {linkMessageToEvent} from "../../../../helper/MessageEventLinkHelper";
+import {shouldSkipMessageLikeConfiguredEventBeforeQuery} from "../../../../helper/EventHelper";
 
 export default class MessageEvent extends BaseEvent {
     name = "Message";
@@ -18,6 +19,17 @@ export default class MessageEvent extends BaseEvent {
         { name: "userName", type: "text" as const, localeKey: "events.simulation.fields.userName", default: "testviewer", required: true },
         { name: "userDisplayName", type: "text" as const, localeKey: "events.simulation.fields.userDisplayName", default: "TestViewer", required: true },
     ];
+
+    protected async shouldHandleEvent(event: EventSubChannelChatMessageEvent): Promise<boolean> {
+        const messageText = String((event as any).messageText ?? "");
+
+        if (shouldSkipMessageLikeConfiguredEventBeforeQuery(this.configName, messageText, event)) {
+            logRegular(`skip Twitch message event after text filters produced empty content`);
+            return false;
+        }
+
+        return true;
+    }
 
     async handleRegister() {
         const primaryChannel = getPrimaryChannel();

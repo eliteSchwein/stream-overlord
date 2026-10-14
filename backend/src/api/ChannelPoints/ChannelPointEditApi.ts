@@ -22,6 +22,7 @@ export default class ChannelPointEditApi extends BaseApi {
                     enable_default: data?.enable_default ?? channelPoint?.enable_default,
                     auto_accept: data?.auto_accept ?? channelPoint?.auto_accept,
                     strip_emotes: data?.strip_emotes ?? channelPoint?.strip_emotes,
+                    strip_urls: data?.strip_urls ?? channelPoint?.strip_urls,
                     input_required: data?.input_required ?? channelPoint?.input_required,
                 },
             );

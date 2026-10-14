@@ -149,6 +149,10 @@ export default class BaseEvent {
     }
 
     async handleEvent(event: any) {
+        // Allow message-like events to reject filtered-empty content before an
+        // event UUID/cooldown/query slot is allocated.
+        if (!await this.shouldHandleEvent(event)) return;
+
         const channel = event.broadcasterName;
         if (isEventFull(this.name, channel, this.eventLimit)) return;
 
@@ -177,6 +181,10 @@ export default class BaseEvent {
             removeEventFromCooldown(eventUuid, this.name, channel);
             removeEventFromQuery(eventUuid);
         }
+    }
+
+    protected async shouldHandleEvent(_event: any): Promise<boolean> {
+        return true;
     }
 
     protected sanitizeMacroEvent(event: any): any {
