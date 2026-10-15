@@ -509,6 +509,151 @@ export default class TwitchMacroTask extends BaseMacroTask {
                     break;
                 }
 
+                case "slow_chat":
+                case "enable_slow_chat": {
+                    const enabled = method === "enable_slow_chat"
+                        ? true
+                        : data.enabled !== false;
+
+                    if (!enabled) {
+                        await api.chat.updateSettings(primaryChannel.id, {
+                            slowModeEnabled: false,
+                        });
+                        break;
+                    }
+
+                    const delay = number(data.delay ?? data.duration, 30) ?? 30;
+                    if (delay < 3 || delay > 120) {
+                        logWarn("twitch slow_chat delay must be between 3 and 120 seconds");
+                        return;
+                    }
+
+                    await api.chat.updateSettings(primaryChannel.id, {
+                        slowModeEnabled: true,
+                        slowModeDelay: Math.round(delay),
+                    });
+                    break;
+                }
+
+                case "disable_slow_chat": {
+                    await api.chat.updateSettings(primaryChannel.id, {
+                        slowModeEnabled: false,
+                    });
+                    break;
+                }
+
+                case "clear_chat": {
+                    await api.moderation.deleteChatMessages(primaryChannel.id);
+                    break;
+                }
+
+                case "emote_only": {
+                    await api.chat.updateSettings(primaryChannel.id, {
+                        emoteOnlyModeEnabled: data.enabled !== false,
+                    });
+                    break;
+                }
+
+                case "followers_only": {
+                    const enabled = data.enabled !== false;
+                    const delay = number(data.delay ?? data.duration, 0) ?? 0;
+
+                    if (delay < 0 || delay > 129600) {
+                        logWarn("twitch followers_only delay must be between 0 and 129600 minutes");
+                        return;
+                    }
+
+                    await api.chat.updateSettings(primaryChannel.id, enabled
+                        ? {
+                            followerOnlyModeEnabled: true,
+                            followerOnlyModeDelay: Math.round(delay),
+                        }
+                        : {followerOnlyModeEnabled: false});
+                    break;
+                }
+
+                case "subscribers_only": {
+                    await api.chat.updateSettings(primaryChannel.id, {
+                        subscriberOnlyModeEnabled: data.enabled !== false,
+                    });
+                    break;
+                }
+
+                case "unique_chat": {
+                    await api.chat.updateSettings(primaryChannel.id, {
+                        uniqueChatModeEnabled: data.enabled !== false,
+                    });
+                    break;
+                }
+
+                case "chat_settings": {
+                    const settings: Record<string, any> = {};
+
+                    if (data.slow_mode !== undefined || data.slow !== undefined) {
+                        const enabled = Boolean(data.slow_mode ?? data.slow);
+                        settings.slowModeEnabled = enabled;
+
+                        if (enabled && (data.slow_delay !== undefined || data.delay !== undefined)) {
+                            const delay = number(data.slow_delay ?? data.delay);
+                            if (delay === undefined || delay < 3 || delay > 120) {
+                                logWarn("twitch chat_settings slow_delay must be between 3 and 120 seconds");
+                                return;
+                            }
+                            settings.slowModeDelay = Math.round(delay);
+                        }
+                    }
+
+                    if (data.emote_only !== undefined) {
+                        settings.emoteOnlyModeEnabled = Boolean(data.emote_only);
+                    }
+
+                    if (data.followers_only !== undefined) {
+                        const enabled = Boolean(data.followers_only);
+                        settings.followerOnlyModeEnabled = enabled;
+
+                        if (enabled && data.followers_delay !== undefined) {
+                            const delay = number(data.followers_delay);
+                            if (delay === undefined || delay < 0 || delay > 129600) {
+                                logWarn("twitch chat_settings followers_delay must be between 0 and 129600 minutes");
+                                return;
+                            }
+                            settings.followerOnlyModeDelay = Math.round(delay);
+                        }
+                    }
+
+                    if (data.subscribers_only !== undefined) {
+                        settings.subscriberOnlyModeEnabled = Boolean(data.subscribers_only);
+                    }
+
+                    if (data.unique_chat !== undefined) {
+                        settings.uniqueChatModeEnabled = Boolean(data.unique_chat);
+                    }
+
+                    if (data.non_moderator_delay !== undefined) {
+                        const raw = data.non_moderator_delay;
+                        const enabled = raw !== false && raw !== null && raw !== 0 && raw !== "0";
+                        settings.nonModeratorChatDelayEnabled = enabled;
+
+                        if (enabled) {
+                            const delay = number(raw);
+                            if (![2, 4, 6].includes(delay ?? -1)) {
+                                logWarn("twitch chat_settings non_moderator_delay must be 2, 4 or 6 seconds, or false to disable");
+                                return;
+                            }
+                            settings.nonModeratorChatDelay = delay;
+                        }
+                    }
+
+                    if (!Object.keys(settings).length) {
+                        logWarn("twitch chat_settings requires at least one setting");
+                        return;
+                    }
+
+                    const result = await api.chat.updateSettings(primaryChannel.id, settings);
+                    storeResult(result);
+                    break;
+                }
+
                 case "ban": {
                     const user = await resolveUser(data.user);
                     if (!user) {
