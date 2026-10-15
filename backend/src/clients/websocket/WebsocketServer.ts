@@ -1,5 +1,4 @@
 import WebSocket, {WebSocketServer} from "ws";
-import {createHash} from "node:crypto";
 import {getConfig, getRawConfig, getSettings} from "../../helper/ConfigHelper";
 import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
@@ -40,8 +39,8 @@ export default class WebsocketServer {
     private externalMessageSink?: (method: string, data: any) => void;
     private cavaConnections = new Map<string, Set<any>>();
     private cavaLastFrames = new Map<string, string>();
-    private sentStateByConnection = new WeakMap<any, Map<string, string>>();
-    private pendingStateByConnection = new WeakMap<any, Map<string, {data: any, signature: string}>>();
+    private sentStateByConnection = new WeakMap<any, Map<string, any>>();
+    private pendingStateByConnection = new WeakMap<any, Map<string, {data: any}>>();
     private pendingFlushTimers = new WeakMap<any, NodeJS.Timeout>();
     private readonly localBufferedAmountLimit = 4 * 1024 * 1024;
     private readonly cavaBufferedAmountLimit = 256 * 1024;
@@ -314,6 +313,71 @@ export default class WebsocketServer {
         return this.websocket
     }
 
+    private isStateRecord(value: any): value is Record<string, any> {
+        return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+    }
+
+    private cloneStateValue(value: any): any {
+        if (Array.isArray(value)) return value.map((entry) => this.cloneStateValue(entry))
+        if (!this.isStateRecord(value)) return value
+
+        const result: Record<string, any> = {}
+        for (const [key, entry] of Object.entries(value)) {
+            result[key] = this.cloneStateValue(entry)
+        }
+        return result
+    }
+
+    /**
+     * Build a JSON merge-style delta for local websocket state. Objects are
+     * diffed recursively, arrays are atomic, and removed keys are represented
+     * as null. Returning undefined means there is no change to send.
+     */
+    private createStateDelta(previous: any, next: any): any | undefined {
+        if (Object.is(previous, next)) return undefined
+
+        if (Array.isArray(previous) || Array.isArray(next)) {
+            try {
+                if (JSON.stringify(previous) === JSON.stringify(next)) return undefined
+            } catch {}
+            return this.cloneStateValue(next)
+        }
+
+        if (this.isStateRecord(previous) && this.isStateRecord(next)) {
+            const delta: Record<string, any> = {}
+            let changed = false
+
+            for (const key of Object.keys(next)) {
+                const childDelta = this.createStateDelta(previous[key], next[key])
+                if (childDelta === undefined) continue
+                delta[key] = childDelta
+                changed = true
+            }
+
+            for (const key of Object.keys(previous)) {
+                if (Object.prototype.hasOwnProperty.call(next, key)) continue
+                delta[key] = null
+                changed = true
+            }
+
+            return changed ? delta : undefined
+        }
+
+        return this.cloneStateValue(next)
+    }
+
+    /**
+     * Most notify methods have exactly one state object per method. Named OBS
+     * notifications carry multiple independent states under the same method,
+     * so include the OBS connection name in the cache key.
+     */
+    private getStateCacheKey(method: string, data: any): string {
+        if (method === 'notify_obs_scene_update_named' || method === 'notify_obs_audio_update_named') {
+            return `${method}:${String(data?.connection ?? 'default')}`
+        }
+        return method
+    }
+
     public send(method: string, data: any = {}, connection?: WebSocket) {
         if(method === 'notify_visible_element') {
             toggleElementVisiblity(data.target, data.state)
@@ -321,6 +385,8 @@ export default class WebsocketServer {
 
         if (!connection && this.externalMessageSink) {
             try {
+                // External sinks (cloud) receive the authoritative full local state
+                // and maintain their own independent delta baseline.
                 this.externalMessageSink(method, data);
             } catch (error) {
                 logError("external websocket message sink failed")
@@ -330,16 +396,8 @@ export default class WebsocketServer {
 
         const targets: any[] = connection ? [connection] : [...this.websocket.clients]
         const stateful = this.statefulEndpoints.has(method)
-        let stateSignature: string | undefined
-        if (stateful) {
-            try {
-                stateSignature = createHash('sha1').update(JSON.stringify(data)).digest('hex')
-            } catch {
-                stateSignature = undefined
-            }
-        }
-
         let delivered = 0
+
         for (const client of targets) {
             try {
                 if (this.isCavaConnection(client)) continue
@@ -349,36 +407,47 @@ export default class WebsocketServer {
                 const allowed = this.connectionEndpoints[clientKey]
                 if (!allowed || !allowed.includes(method)) continue
 
-                if (stateful && stateSignature !== undefined) {
-                    let sentState = this.sentStateByConnection.get(client)
+                let payloadData = data
+                let partial = false
+                let stateKey: string | undefined
+                let sentState: Map<string, any> | undefined
+
+                if (stateful) {
+                    stateKey = this.getStateCacheKey(method, data)
+                    sentState = this.sentStateByConnection.get(client)
                     if (!sentState) {
-                        sentState = new Map<string, string>()
+                        sentState = new Map<string, any>()
                         this.sentStateByConnection.set(client, sentState)
                     }
-                    if (sentState.get(method) === stateSignature) continue
+
+                    if (sentState.has(stateKey)) {
+                        const delta = this.createStateDelta(sentState.get(stateKey), data)
+                        if (delta === undefined) continue
+                        payloadData = delta
+                        partial = true
+                    }
                 }
 
                 // Do not allow one stalled browser/overlay to turn the ws library into
                 // an unbounded in-memory message queue. Stateful notifications are
-                // coalesced to one latest value per endpoint and retried; transient
-                // event notifications are dropped when a client cannot keep up.
+                // coalesced to the newest full state and diffed against the last state
+                // actually delivered when the client catches up.
                 if (client.bufferedAmount > this.localBufferedAmountLimit) {
-                    if (stateful && stateSignature !== undefined) {
-                        this.queuePendingState(client, method, data, stateSignature)
-                    }
+                    if (stateful) this.queuePendingState(client, method, data)
                     continue
                 }
 
                 client.send(JSON.stringify({
                     jsonrpc: "2.0",
                     method,
-                    params: data,
+                    params: payloadData,
+                    ...(partial ? {partial: true} : {}),
                     id: getRandomInt(10_000)
                 }))
 
-                if (stateful && stateSignature !== undefined) {
-                    this.sentStateByConnection.get(client)?.set(method, stateSignature)
-                    this.pendingStateByConnection.get(client)?.delete(method)
+                if (stateful && stateKey && sentState) {
+                    sentState.set(stateKey, this.cloneStateValue(data))
+                    this.pendingStateByConnection.get(client)?.delete(stateKey)
                 }
                 delivered++
             } catch (error) {
@@ -390,13 +459,15 @@ export default class WebsocketServer {
         return delivered
     }
 
-    private queuePendingState(client: any, method: string, data: any, signature: string) {
+    private queuePendingState(client: any, method: string, data: any) {
         let pending = this.pendingStateByConnection.get(client)
         if (!pending) {
             pending = new Map()
             this.pendingStateByConnection.set(client, pending)
         }
-        pending.set(method, {data, signature})
+
+        const stateKey = this.getStateCacheKey(method, data)
+        pending.set(stateKey, {data: this.cloneStateValue(data)})
 
         if (this.pendingFlushTimers.has(client)) return
         const timer = setTimeout(() => {
@@ -416,17 +487,31 @@ export default class WebsocketServer {
         }
 
         if (client.bufferedAmount > this.localBufferedAmountLimit) {
-            const first = pending.entries().next().value
-            if (first) this.queuePendingState(client, first[0], first[1].data, first[1].signature)
+            const timer = setTimeout(() => {
+                this.pendingFlushTimers.delete(client)
+                this.flushPendingState(client)
+            }, 100)
+            timer.unref?.()
+            this.pendingFlushTimers.set(client, timer)
             return
         }
 
-        for (const [method, entry] of Array.from(pending.entries())) {
+        for (const [stateKey, entry] of Array.from(pending.entries())) {
             if (client.bufferedAmount > this.localBufferedAmountLimit) {
-                this.queuePendingState(client, method, entry.data, entry.signature)
+                const timer = setTimeout(() => {
+                    this.pendingFlushTimers.delete(client)
+                    this.flushPendingState(client)
+                }, 100)
+                timer.unref?.()
+                this.pendingFlushTimers.set(client, timer)
                 return
             }
+
+            // The pending entry stores the authoritative newest full state. send()
+            // calculates the cumulative delta from the last state actually delivered.
+            const method = stateKey.split(':', 1)[0]
             this.send(method, entry.data, client)
+            pending.delete(stateKey)
         }
     }
 
@@ -464,7 +549,13 @@ export default class WebsocketServer {
             // Existing subscriptions retain their sent-state cache, so an incremental
             // registration only produces the initial values for newly registered data.
             const sentState = this.sentStateByConnection.get(connection as any)
-            for (const endpoint of newlyAddedEndpoints) sentState?.delete(endpoint)
+            if (sentState) {
+                for (const endpoint of newlyAddedEndpoints) {
+                    for (const key of Array.from(sentState.keys())) {
+                        if (key === endpoint || key.startsWith(`${endpoint}:`)) sentState.delete(key)
+                    }
+                }
+            }
             this.sendUpdate(connection, newlyAddedEndpoints)
         }
 

@@ -243,14 +243,70 @@ function stripCloudSuppressedData(value: any): any {
     return result;
 }
 
+function isCloudRecord(value: any): value is Record<string, any> {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function cloneCloudValue(value: any): any {
+    if (Array.isArray(value)) return value.map(cloneCloudValue);
+    if (!isCloudRecord(value)) return value;
+
+    const result: Record<string, any> = {};
+    for (const [key, entry] of Object.entries(value)) {
+        result[key] = cloneCloudValue(entry);
+    }
+    return result;
+}
+
+/**
+ * Build a JSON merge-style delta. Objects are diffed recursively so a notify
+ * with one changed field only forwards that field. Arrays are intentionally
+ * atomic: if an array changes, the latest complete array is sent. Removed
+ * object keys are represented as null so the cloud can remove them while
+ * merging the delta into its existing state.
+ */
+function createCloudDelta(previous: any, next: any): any | undefined {
+    if (Object.is(previous, next)) return undefined;
+
+    if (Array.isArray(previous) || Array.isArray(next)) {
+        try {
+            if (JSON.stringify(previous) === JSON.stringify(next)) return undefined;
+        } catch {}
+        return cloneCloudValue(next);
+    }
+
+    if (isCloudRecord(previous) && isCloudRecord(next)) {
+        const delta: Record<string, any> = {};
+        let changed = false;
+
+        for (const key of Object.keys(next)) {
+            const childDelta = createCloudDelta(previous[key], next[key]);
+            if (childDelta === undefined) continue;
+            delta[key] = childDelta;
+            changed = true;
+        }
+
+        for (const key of Object.keys(previous)) {
+            if (Object.prototype.hasOwnProperty.call(next, key)) continue;
+            delta[key] = null;
+            changed = true;
+        }
+
+        return changed ? delta : undefined;
+    }
+
+    return cloneCloudValue(next);
+}
+
 export default class CloudClient {
     private socket?: WebSocket;
     private reconnectTimer?: NodeJS.Timeout;
     private pendingRegistration?: PendingRegistration;
     private manualDisconnect = false;
     private lastState: Record<string, any> = {};
+    private lastSentState: Record<string, any> = {};
     private lastUpdateSignatures = new Map<string, string>();
-    private pendingUpdates = new Map<string, any>();
+    private pendingUpdates = new Map<string, {data: any; fullState: any}>();
     private updateFlushTimer?: NodeJS.Timeout;
     private registrationVerifyInFlight = false;
     private reconnectFailures = 0;
@@ -551,6 +607,7 @@ export default class CloudClient {
             });
             logSuccess("cloud integration connected");
             this.lastUpdateSignatures.clear();
+            this.lastSentState = {};
             this.pendingUpdates.clear();
             this.syncModerators();
             this.sendSnapshot();
@@ -643,27 +700,32 @@ export default class CloudClient {
         // CAVA stays local-only and must never occupy cloud state/bandwidth.
         if (isCloudSuppressedUpdate(method)) {
             delete this.lastState[method];
+            delete this.lastSentState[method];
             this.lastUpdateSignatures.delete(method);
             this.pendingUpdates.delete(method);
             return;
         }
 
         const cleanData = stripCloudSuppressedData(data);
-        this.lastState[method] = cleanData;
+        this.lastState[method] = cloneCloudValue(cleanData);
 
-        let signature: string;
-        try {
-            signature = createHash("sha1").update(JSON.stringify(cleanData)).digest("hex");
-        } catch {
-            signature = createHash("sha1").update(String(cleanData)).digest("hex");
-        }
+        // The first cloud connection gets a complete snapshot. After that, compare
+        // every notify against the last state that was actually delivered to cloud
+        // and forward only changed keys. If this notify was not part of the initial
+        // snapshot yet, its first update is intentionally sent in full.
+        const hasBaseline = Object.prototype.hasOwnProperty.call(this.lastSentState, method);
+        const delta = hasBaseline
+            ? createCloudDelta(this.lastSentState[method], cleanData)
+            : cloneCloudValue(cleanData);
 
-        if (this.lastUpdateSignatures.get(method) === signature) return;
-        this.lastUpdateSignatures.set(method, signature);
+        if (delta === undefined) return;
 
-        // Keep only the newest value per method while the cloud socket is congested.
-        // This bounds memory use and naturally coalesces fast-changing state.
-        this.pendingUpdates.set(method, cleanData);
+        // Keep only the newest cumulative delta per method while the cloud socket is
+        // congested. fullState is committed only after the delta was really sent.
+        this.pendingUpdates.set(method, {
+            data: delta,
+            fullState: cloneCloudValue(cleanData),
+        });
         this.flushPendingUpdates();
     }
 
@@ -675,14 +737,21 @@ export default class CloudClient {
             return;
         }
 
-        for (const [method, data] of Array.from(this.pendingUpdates.entries())) {
+        for (const [method, pending] of Array.from(this.pendingUpdates.entries())) {
             if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
             if (this.socket.bufferedAmount > CLOUD_BUFFERED_AMOUNT_LIMIT) {
                 this.scheduleUpdateFlush();
                 return;
             }
 
-            if (this.send({type: "update", method, data})) {
+            if (this.send({type: "update", method, data: pending.data, partial: true})) {
+                this.lastSentState[method] = cloneCloudValue(pending.fullState);
+                try {
+                    this.lastUpdateSignatures.set(
+                        method,
+                        createHash("sha1").update(JSON.stringify(pending.fullState)).digest("hex"),
+                    );
+                } catch {}
                 this.pendingUpdates.delete(method);
             } else {
                 this.scheduleUpdateFlush();
@@ -727,9 +796,11 @@ export default class CloudClient {
             });
 
             if (this.send(payload)) {
-                // The snapshot is authoritative. Any currently-known notify state is
-                // already represented, so don't immediately echo it again as updates.
+                // A snapshot establishes a fresh baseline for this websocket. Every
+                // later notify is sent as a partial-key delta against this exact state.
+                this.lastSentState = {};
                 for (const [method, data] of Object.entries(this.lastState)) {
+                    this.lastSentState[method] = cloneCloudValue(data);
                     try {
                         this.lastUpdateSignatures.set(
                             method,
