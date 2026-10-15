@@ -5,6 +5,7 @@ import {logRegular, logWarn} from "../LogHelper";
 import fillTemplate from "../TemplateHelper";
 import {sleep} from "../../../../helper/GeneralHelper";
 import {disableRandomClips, enableRandomClips} from "../RandomClipsHelper";
+import {upsertStreamerClip} from "../StreamerClipCacheHelper";
 
 export default class TwitchMacroTask extends BaseMacroTask {
     channel = "twitch";
@@ -353,6 +354,8 @@ export default class TwitchMacroTask extends BaseMacroTask {
                         });
                         break;
                     }
+
+                    await upsertStreamerClip(clip);
 
                     storeResult({
                         id: clip.id,

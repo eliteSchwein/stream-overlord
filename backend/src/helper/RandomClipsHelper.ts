@@ -1,5 +1,6 @@
 import {logDebug, logRegular, logWarn} from "./LogHelper";
 import {redis} from "../clients/redis/Redis";
+import {getStreamerClipCache} from "./StreamerClipCacheHelper";
 
 type PlaybackMode = "single" | "rotate";
 type SelectionMode = "random" | "top";
@@ -204,6 +205,28 @@ async function fetchClipPool(
     recentClipsDays: number,
 ): Promise<CachedClipPool> {
     const normalizedChannel = normalizeChannel(channel);
+
+    const streamerCache = getStreamerClipCache(normalizedChannel);
+
+    if (streamerCache) {
+        const cutoff =
+            recentClipsDays > 0
+                ? Date.now() - recentClipsDays * 24 * 60 * 60 * 1000
+                : 0;
+
+        return {
+            cached_at: streamerCache.updated_at,
+            channel: streamerCache.channel,
+            channel_display_name: streamerCache.channel_display_name,
+            clips:
+                cutoff > 0
+                    ? streamerCache.clips.filter((clip) => {
+                        const created = Date.parse(clip.created_at);
+                        return Number.isFinite(created) && created >= cutoff;
+                    })
+                    : streamerCache.clips,
+        };
+    }
 
     const cached = await readCachedClipPool(
         normalizedChannel,

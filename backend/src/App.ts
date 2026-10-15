@@ -1,4 +1,4 @@
-import readConfig, {getRawConfig, watchConfig} from "./helper/ConfigHelper";
+import readConfig, {getPrimaryChannel, getRawConfig, watchConfig} from "./helper/ConfigHelper";
 import * as packageConfig from '../../package.json'
 import {logNotice, logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
@@ -37,6 +37,7 @@ import {initGiveaway} from "./helper/GiveawayHelper";
 import {initCategoryLibrary} from "./helper/CategoryLibraryHelper";
 import {initVirtualAudioCable} from "./helper/VirtualAudioCableHelper";
 import CloudClient from "./clients/cloud/CloudClient";
+import {initStreamerClipCache} from "./helper/StreamerClipCacheHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -107,6 +108,7 @@ async function init() {
 
     twitchClient = new TwitchClient()
     await twitchClient.connect()
+    await initStreamerClipCache(twitchClient.getBot()?.api, getPrimaryChannel())
     await initCategoryLibrary(twitchClient.getBot())
     await registerPermissions(twitchClient.getBot())
     registerPermissionInterval(twitchClient.getBot())
@@ -264,6 +266,7 @@ export async function reload() {
         await webServer?.precacheConfiguredHtmlTemplates()
 
         await getTwitchClient().connect()
+        await initStreamerClipCache(getTwitchClient().getBot()?.api, getPrimaryChannel())
         await registerPermissions(getTwitchClient()?.getBot())
         try {
             await cloudClient.connect()

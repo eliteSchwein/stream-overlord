@@ -10,6 +10,7 @@ import {pulseHeartbeatLeds} from "./NeopixelHelper";
 import {sync} from "./MusicHelper";
 import {getTwitchClient} from "../App";
 import {getCachedTwitchStream, updateTwitchStreamData} from "./TwitchDataHelper";
+import {refreshStreamerClipCache} from "./StreamerClipCacheHelper";
 
 export default function initialSchedulers() {
     void updateAdData()
@@ -27,6 +28,7 @@ export default function initialSchedulers() {
     setInterval(async () => {
         // updateTemplateVariables()
         void pulseHeartbeatLeds()
+        void refreshStreamerClipCache()
 
         // EventSub does not publish viewer-count changes. Refresh the current
         // stream snapshot while live so notify_twitch_data stays current.
