@@ -136,7 +136,6 @@ export async function updateSystemInfo() {
                         // of invoking systeminformation (and spawning Linux helpers) twice.
                         const cachedMethodData: Record<string, any> = {
                             cpu: systemInformations.cpu,
-                            graphics: systemInformations.gpu,
                             cpuTemperature: systemInformations.cpu?.temp ?? {},
                             currentLoad: systemInformations.load,
                             mem: systemInformations.memory,
@@ -230,10 +229,8 @@ export async function updateSystemComponents() {
         if (refreshStaticHardware) {
             const [cpu, gpu] = await Promise.all([
                 si.cpu(),
-                si.graphics()
             ])
             systemInformations.cpu = cpu
-            systemInformations.gpu = gpu
             lastStaticHardwareUpdate = now
         }
 
@@ -286,7 +283,6 @@ export function getCpu() {
 }
 
 export function getGpu() {
-    return systemInformations.gpu
 }
 
 export function getSystemComponents() {
