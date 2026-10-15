@@ -578,8 +578,27 @@ export default class WebsocketServer {
         }
     }
 
-    public removeConnection(client: string) {
+    public removeConnection(client: string, connection?: WebSocket) {
         delete this.connectionEndpoints[client];
+
+        // Explicitly release all per-socket state immediately. WeakMaps alone are
+        // not enough here because a pending flush timer closes over the socket and
+        // can otherwise keep the socket plus large full-state snapshots alive.
+        if (connection) {
+            const timer = this.pendingFlushTimers.get(connection as any)
+            if (timer) {
+                clearTimeout(timer)
+                this.pendingFlushTimers.delete(connection as any)
+            }
+
+            const pending = this.pendingStateByConnection.get(connection as any)
+            pending?.clear()
+            this.pendingStateByConnection.delete(connection as any)
+
+            const sentState = this.sentStateByConnection.get(connection as any)
+            sentState?.clear()
+            this.sentStateByConnection.delete(connection as any)
+        }
 
         this.send("notify_connection", this.getConnections())
     }

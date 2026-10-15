@@ -137,7 +137,7 @@ export async function updateSystemInfo() {
                         const cachedMethodData: Record<string, any> = {
                             cpu: systemInformations.cpu,
                             graphics: systemInformations.gpu,
-                            cpuTemperature: {main: systemInformations.cpu?.temp},
+                            cpuTemperature: systemInformations.cpu?.temp ?? {},
                             currentLoad: systemInformations.load,
                             mem: systemInformations.memory,
                             fsSize: [
@@ -237,7 +237,7 @@ export async function updateSystemComponents() {
             lastStaticHardwareUpdate = now
         }
 
-        systemInformations.cpu.temp = temperature.main
+        systemInformations.cpu.temp = temperature
         systemInformations.load = load
         systemInformations.memory = {
             total: Number(memory.total ?? 0) || 0,

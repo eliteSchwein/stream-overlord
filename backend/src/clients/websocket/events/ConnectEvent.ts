@@ -64,7 +64,7 @@ export default class ConnectEvent extends BaseEvent{
         event.on("close", (code, reason) => {
             logDebug(`client disconnected: ${client} code: ${code} reason: ${reason.toString()}`)
 
-            this.client.removeConnection(client)
+            this.client.removeConnection(client, event)
         });
 
         await sleep(1_000)
