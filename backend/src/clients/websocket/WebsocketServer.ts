@@ -1,4 +1,5 @@
-import {WebSocketServer} from "ws";
+import WebSocket, {WebSocketServer} from "ws";
+import {createHash} from "node:crypto";
 import {getConfig, getRawConfig, getSettings} from "../../helper/ConfigHelper";
 import {logError, logRegular, logWarn} from "../../helper/LogHelper";
 import ConnectEvent from "./events/ConnectEvent";
@@ -38,6 +39,63 @@ import {getTwitchDataPayload, setTwitchDataNotifier} from "../../helper/TwitchDa
 export default class WebsocketServer {
     private externalMessageSink?: (method: string, data: any) => void;
     private cavaConnections = new Map<string, Set<any>>();
+    private cavaLastFrames = new Map<string, string>();
+    private sentStateByConnection = new WeakMap<any, Map<string, string>>();
+    private pendingStateByConnection = new WeakMap<any, Map<string, {data: any, signature: string}>>();
+    private pendingFlushTimers = new WeakMap<any, NodeJS.Timeout>();
+    private readonly localBufferedAmountLimit = 4 * 1024 * 1024;
+    private readonly cavaBufferedAmountLimit = 256 * 1024;
+    private heartbeatTimer?: NodeJS.Timeout;
+    private readonly statefulEndpoints = new Set<string>([
+        'notify_interaction_queue',
+        'notify_assets_update',
+        'notify_ads',
+        'notify_toggle_element',
+        'notify_source_update',
+        'notify_system_info',
+        'notify_audio_update',
+        'notify_virtual_audio_cables',
+        'notify_channel_point_update',
+        'notify_shield_mode',
+        'notify_game_update',
+        'notify_timer',
+        'notify_visible_element',
+        'notify_connection',
+        'notify_connection_update',
+        'notify_config_update',
+        'notify_obs_scene_update',
+        'notify_obs_scene_update_named',
+        'notify_obs_audio_update',
+        'notify_obs_audio_update_named',
+        'notify_test_mode',
+        'notify_voice_list_update',
+        'notify_macro_update',
+        'notify_commands_update',
+        'notify_auto_macros_update',
+        'notify_rotating_scene_update',
+        'notify_rotating_scene_runtime_update',
+        'notify_variables_update',
+        'notify_giveaway_update',
+        'notify_yolobox_update',
+        'notify_music_show',
+        'notify_music_update',
+        'notify_audio_outputs_update',
+        'notify_audio_presets_update',
+        'notify_storage_update',
+        'notify_integrations_update',
+        'notify_settings_update',
+        'notify_playlist_update',
+        'notify_reload_update',
+        'notify_update_manager',
+        'notify_ollama_update',
+        'notify_events_update',
+        'notify_dynamic_data_update',
+        'notify_speedtest_update',
+        'notify_category_library_update',
+        'notify_category_active',
+        'notify_category_style_update',
+        'notify_twitch_data',
+    ]);
     websocket: WebSocketServer
     validEndpoints: string[] = [
         'notify_alert',
@@ -115,11 +173,15 @@ export default class WebsocketServer {
         setTwitchDataNotifier((payload) => this.send("notify_twitch_data", payload))
 
         this.websocket = new WebSocketServer({port: config?.port ?? 8100, host: '0.0.0.0', maxPayload: 512 * 1024 * 1024})
+        this.startHeartbeat()
 
         // Dedicated high-frequency CAVA sockets share the same listener/port but
         // use their own WebSocket connection per feed: /cava/<target>.
         // They intentionally bypass the regular endpoint registration/state sync.
         this.websocket.on('connection', (socket: any, request: any) => {
+            socket.__streambotAlive = true
+            socket.on('pong', () => { socket.__streambotAlive = true })
+
             const target = this.getCavaTargetFromUrl(request?.url)
             if (!target) return
 
@@ -130,6 +192,24 @@ export default class WebsocketServer {
         setConnectionUpdateNotifier((connections) => {
             this.send("notify_connection_update", connections)
         })
+    }
+
+    private startHeartbeat() {
+        if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
+        this.heartbeatTimer = setInterval(() => {
+            for (const socket of this.websocket.clients as Set<any>) {
+                if (socket.__streambotAlive === false) {
+                    try { socket.terminate() } catch {}
+                    continue
+                }
+
+                socket.__streambotAlive = false
+                try { socket.ping() } catch {
+                    try { socket.terminate() } catch {}
+                }
+            }
+        }, 30_000)
+        this.heartbeatTimer.unref?.()
     }
 
     public registerEvents() {
@@ -156,6 +236,18 @@ export default class WebsocketServer {
         this.cavaConnections.get(target)!.add(connection)
         logRegular(`cava websocket connected: ${target}`)
 
+        const initialFrame = this.cavaLastFrames.get(target)
+        if (initialFrame !== undefined && connection.readyState === WebSocket.OPEN) {
+            try {
+                connection.send(JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'notify_music_cava',
+                    params: {target, raw: initialFrame},
+                    id: getRandomInt(10_000),
+                }))
+            } catch {}
+        }
+
         connection.on('close', () => {
             const connections = this.cavaConnections.get(target)
             connections?.delete(connection)
@@ -168,6 +260,9 @@ export default class WebsocketServer {
     }
 
     public sendCava(target: string, raw: string): number {
+        if (this.cavaLastFrames.get(target) === raw) return 0
+        this.cavaLastFrames.set(target, raw)
+
         const connections = this.cavaConnections.get(target)
         if (!connections?.size) return 0
 
@@ -181,8 +276,14 @@ export default class WebsocketServer {
         let delivered = 0
         for (const connection of Array.from(connections)) {
             try {
-                if (connection.readyState !== 1) {
+                if (connection.readyState !== WebSocket.OPEN) {
                     connections.delete(connection)
+                    continue
+                }
+
+                // CAVA is real-time visualization data. Never let stale frames build
+                // an unbounded ws send queue when a client is slow.
+                if (connection.bufferedAmount > this.cavaBufferedAmountLimit) {
                     continue
                 }
 
@@ -227,16 +328,46 @@ export default class WebsocketServer {
             }
         }
 
-        // @ts-ignore
-        const targets = connection  ? [connection] : [...this.websocket.clients]
-        let delivered = 0
-
-        targets.forEach((client) => {
+        const targets: any[] = connection ? [connection] : [...this.websocket.clients]
+        const stateful = this.statefulEndpoints.has(method)
+        let stateSignature: string | undefined
+        if (stateful) {
             try {
-                const clientKey = `${client._socket.remoteAddress}:${client._socket.remotePort}`
-                const allowed = this.connectionEndpoints[clientKey]
+                stateSignature = createHash('sha1').update(JSON.stringify(data)).digest('hex')
+            } catch {
+                stateSignature = undefined
+            }
+        }
 
-                if (!allowed || !allowed.includes(method)) return
+        let delivered = 0
+        for (const client of targets) {
+            try {
+                if (this.isCavaConnection(client)) continue
+                if (client.readyState !== WebSocket.OPEN) continue
+
+                const clientKey = `${client._socket?.remoteAddress}:${client._socket?.remotePort}`
+                const allowed = this.connectionEndpoints[clientKey]
+                if (!allowed || !allowed.includes(method)) continue
+
+                if (stateful && stateSignature !== undefined) {
+                    let sentState = this.sentStateByConnection.get(client)
+                    if (!sentState) {
+                        sentState = new Map<string, string>()
+                        this.sentStateByConnection.set(client, sentState)
+                    }
+                    if (sentState.get(method) === stateSignature) continue
+                }
+
+                // Do not allow one stalled browser/overlay to turn the ws library into
+                // an unbounded in-memory message queue. Stateful notifications are
+                // coalesced to one latest value per endpoint and retried; transient
+                // event notifications are dropped when a client cannot keep up.
+                if (client.bufferedAmount > this.localBufferedAmountLimit) {
+                    if (stateful && stateSignature !== undefined) {
+                        this.queuePendingState(client, method, data, stateSignature)
+                    }
+                    continue
+                }
 
                 client.send(JSON.stringify({
                     jsonrpc: "2.0",
@@ -244,14 +375,59 @@ export default class WebsocketServer {
                     params: data,
                     id: getRandomInt(10_000)
                 }))
+
+                if (stateful && stateSignature !== undefined) {
+                    this.sentStateByConnection.get(client)?.set(method, stateSignature)
+                    this.pendingStateByConnection.get(client)?.delete(method)
+                }
                 delivered++
             } catch (error) {
                 logError("request to a websocket client failed!")
                 logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
             }
-        })
+        }
 
         return delivered
+    }
+
+    private queuePendingState(client: any, method: string, data: any, signature: string) {
+        let pending = this.pendingStateByConnection.get(client)
+        if (!pending) {
+            pending = new Map()
+            this.pendingStateByConnection.set(client, pending)
+        }
+        pending.set(method, {data, signature})
+
+        if (this.pendingFlushTimers.has(client)) return
+        const timer = setTimeout(() => {
+            this.pendingFlushTimers.delete(client)
+            this.flushPendingState(client)
+        }, 100)
+        timer.unref?.()
+        this.pendingFlushTimers.set(client, timer)
+    }
+
+    private flushPendingState(client: any) {
+        const pending = this.pendingStateByConnection.get(client)
+        if (!pending?.size) return
+        if (client.readyState !== WebSocket.OPEN) {
+            pending.clear()
+            return
+        }
+
+        if (client.bufferedAmount > this.localBufferedAmountLimit) {
+            const first = pending.entries().next().value
+            if (first) this.queuePendingState(client, first[0], first[1].data, first[1].signature)
+            return
+        }
+
+        for (const [method, entry] of Array.from(pending.entries())) {
+            if (client.bufferedAmount > this.localBufferedAmountLimit) {
+                this.queuePendingState(client, method, entry.data, entry.signature)
+                return
+            }
+            this.send(method, entry.data, client)
+        }
     }
 
     public addConnection(connection: WebSocket, endpoints: string[]): string[] {
@@ -276,13 +452,21 @@ export default class WebsocketServer {
         }
 
         // add only the new ones that aren't already present
+        const newlyAddedEndpoints: string[] = []
         for (const ep of validNewEndpoints) {
             if (!this.connectionEndpoints[client].includes(ep)) {
                 this.connectionEndpoints[client].push(ep)
+                newlyAddedEndpoints.push(ep)
             }
         }
 
-        this.sendUpdate(connection)
+        if (newlyAddedEndpoints.length > 0) {
+            // Existing subscriptions retain their sent-state cache, so an incremental
+            // registration only produces the initial values for newly registered data.
+            const sentState = this.sentStateByConnection.get(connection as any)
+            for (const endpoint of newlyAddedEndpoints) sentState?.delete(endpoint)
+            this.sendUpdate(connection, newlyAddedEndpoints)
+        }
 
         this.send("notify_connection", this.getConnections())
 
@@ -319,83 +503,94 @@ export default class WebsocketServer {
         return Object.keys(this.connectionEndpoints).includes(client)
     }
 
-    public sendUpdate(connection?: WebSocket) {
+    public sendUpdate(connection?: WebSocket, onlyEndpoints?: string[]) {
         // @ts-ignore
         const targets = connection ? [connection] : [...this.websocket.clients]
+        const endpointFilter = onlyEndpoints ? new Set(onlyEndpoints) : null
 
         targets.forEach((client) => {
             try {
-                this.send("notify_shield_mode", {
-                    action: isShieldActive() ? "enable" : "disable"
-                }, client)
+                const initialSend = (method: string, data: any) => {
+                    if (endpointFilter && !endpointFilter.has(method)) return 0
+                    return this.send(method, data, client)
+                }
 
-                this.send("notify_game_update", getGameInfo(), client)
-                this.send("notify_channel_point_update", getChannelPointUpdatePayload(), client)
-                this.send("notify_twitch_data", getTwitchDataPayload(), client)
-                this.send("notify_audio_update", getAudioData(), client)
-                this.send("notify_system_info", getSystemInfo(), client)
-                this.send("notify_source_update", getSourceFilters(), client)
-                this.send("notify_music_update", getStatus(), client)
-                this.send("notify_playlist_update", getPlaylistUpdatePayload(), client)
-                this.send("notify_connection", this.getConnections(), client)
-                this.send("notify_connection_update", getManagedConnections(), client)
+                initialSend("notify_shield_mode", {
+                    action: isShieldActive() ? "enable" : "disable"
+                })
+
+                initialSend("notify_game_update", getGameInfo())
+                initialSend("notify_channel_point_update", getChannelPointUpdatePayload())
+                initialSend("notify_twitch_data", getTwitchDataPayload())
+                initialSend("notify_audio_update", getAudioData())
+                initialSend("notify_system_info", getSystemInfo())
+                initialSend("notify_source_update", getSourceFilters())
+                initialSend("notify_music_update", getStatus())
+                initialSend("notify_playlist_update", getPlaylistUpdatePayload())
+                initialSend("notify_connection", this.getConnections())
+                initialSend("notify_connection_update", getManagedConnections())
                 const obsClient = getOBSClient()
 
-                this.send("notify_obs_scene_update", obsClient?.getSceneData(), client)
-                this.send("notify_obs_audio_update", obsClient?.getAudioData(), client)
+                initialSend("notify_obs_scene_update", obsClient?.getSceneData())
+                initialSend("notify_obs_audio_update", obsClient?.getAudioData())
 
                 for(const connectionName of obsClient?.getConnectionNames?.() ?? []) {
-                    this.send("notify_obs_scene_update_named", {
+                    initialSend("notify_obs_scene_update_named", {
                         connection: connectionName,
                         scenes: obsClient?.getSceneData(connectionName) ?? [],
-                    }, client)
-                    this.send("notify_obs_audio_update_named", {
+                    })
+                    initialSend("notify_obs_audio_update_named", {
                         connection: connectionName,
                         audio: obsClient?.getAudioData(connectionName) ?? {},
-                    }, client)
+                    })
                 }
-                this.send("notify_config_update", {data: getRawConfig()}, client)
-                this.send("notify_test_mode", {active: isTestModeActive()}, client)
-                this.send("notify_voice_list_update", {voices: getVoices()}, client)
-                this.send("notify_macro_update", {macros: getMacros()}, client)
-                this.send("notify_commands_update", {commands: getConfiguredCommands()}, client)
-                this.send("notify_auto_macros_update", getAutoMacros(), client)
-                this.send("notify_rotating_scene_update", {rotatingScenes: getRotateScenes()}, client)
-                this.send("notify_events_update", {events: getConfiguredEventIndex()}, client)
-                this.send("notify_interaction_queue", getInteractionQueue(), client)
-                this.send("notify_dynamic_data_update", {dynamic_data: getDynamicData()}, client)
-                this.send("notify_speedtest_update", getSpeedtestState(), client)
-                // this.send("notify_variables_update", getTemplateVariables(), client)
-                this.send("notify_giveaway_update", getGiveaway(), client)
-                this.send("notify_yolobox_update", getYoloboxClient()?.getData(), client)
-                this.send("notify_assets_update", getParsedAssetFiles(), client)
-                this.send("notify_audio_outputs_update", getAudioOutputs(), client)
-                this.send("notify_audio_presets_update", {presets: getAudioPresets()}, client)
-                this.send("notify_storage_update", getSystemStorageInfo(), client)
-                this.send("notify_integrations_update", getIntegrationsSafe(), client)
-                this.send("notify_settings_update", getSettings(), client)
-                this.send("notify_reload_update", getReloadUpdate(), client)
-                this.send("notify_service_reload", {}, client)
-                this.send("notify_update_manager", getUpdateManagerStatus(), client)
-                this.send("notify_ollama_update", getOllamaUpdate(), client)
-                this.send("notify_category_library_update", getCategoryLibrary(), client)
-                this.send("notify_category_active", getActiveCategoryPayload(), client)
-                this.send("notify_category_style_update", getActiveCategoryStylePayload(), client)
+                initialSend("notify_config_update", {data: getRawConfig()})
+                initialSend("notify_test_mode", {active: isTestModeActive()})
+                initialSend("notify_voice_list_update", {voices: getVoices()})
+                initialSend("notify_macro_update", {macros: getMacros()})
+                initialSend("notify_commands_update", {commands: getConfiguredCommands()})
+                initialSend("notify_auto_macros_update", getAutoMacros())
+                initialSend("notify_rotating_scene_update", {rotatingScenes: getRotateScenes()})
+                initialSend("notify_events_update", {events: getConfiguredEventIndex()})
+                initialSend("notify_interaction_queue", getInteractionQueue())
+                initialSend("notify_dynamic_data_update", {dynamic_data: getDynamicData()})
+                initialSend("notify_speedtest_update", getSpeedtestState())
+                // initialSend("notify_variables_update", getTemplateVariables())
+                initialSend("notify_giveaway_update", getGiveaway())
+                initialSend("notify_yolobox_update", getYoloboxClient()?.getData())
+                initialSend("notify_assets_update", getParsedAssetFiles())
+                initialSend("notify_audio_outputs_update", getAudioOutputs())
+                initialSend("notify_audio_presets_update", {presets: getAudioPresets()})
+                initialSend("notify_storage_update", getSystemStorageInfo())
+                initialSend("notify_integrations_update", getIntegrationsSafe())
+                initialSend("notify_settings_update", getSettings())
+                initialSend("notify_reload_update", getReloadUpdate())
+                initialSend("notify_service_reload", {})
+                initialSend("notify_update_manager", getUpdateManagerStatus())
+                initialSend("notify_ollama_update", getOllamaUpdate())
+                initialSend("notify_category_library_update", getCategoryLibrary())
+                initialSend("notify_category_active", getActiveCategoryPayload())
+                initialSend("notify_category_style_update", getActiveCategoryStylePayload())
                 // Virtual audio media is transported via MediaMTX/WebRTC.
                 // WebSocket carries signaling/state only.
-                this.send("notify_virtual_audio_cables", {cables: getVirtualAudioCables()}, client)
+                initialSend("notify_virtual_audio_cables", {cables: getVirtualAudioCables()})
                 // Fresh overlays receive an authoritative category-media snapshot:
                 // clear all category-owned targets first, then replay the active/fallback media.
-                for (const media of getActiveCategoryMediaReplayNotifications()) {
-                    this.send("notify_media_update", media, client)
+                if (!endpointFilter || endpointFilter.has('notify_media_update')) {
+                    for (const media of getActiveCategoryMediaReplayNotifications()) {
+                        initialSend("notify_media_update", media)
+                    }
                 }
 
-                void emitVariablesUpdate(client)
+                if (!endpointFilter || endpointFilter.has('notify_variables_update')) {
+                    void emitVariablesUpdate(client)
+                }
 
-                for(const id in getAllVisibleElements()) {
-                    const state = getAllVisibleElements()[id]
-
-                    this.send("notify_visible_element", {target: id, state: state}, client)
+                if (!endpointFilter || endpointFilter.has('notify_visible_element')) {
+                    for(const id in getAllVisibleElements()) {
+                        const state = getAllVisibleElements()[id]
+                        initialSend("notify_visible_element", {target: id, state: state})
+                    }
                 }
             } catch (error) {
                 logError("failed to send update to client")

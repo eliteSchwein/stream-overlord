@@ -1,4 +1,5 @@
 import os from "node:os";
+import {createHash} from "node:crypto";
 import WebSocket from "ws";
 import axios from "axios";
 import * as packageConfig from "../../../../package.json";
@@ -26,6 +27,30 @@ const RECONNECT_DELAY = 5_000;
 const MAX_RECONNECT_FAILURES = 5;
 const HEARTBEAT_WATCHDOG_INTERVAL = 10_000;
 const HEARTBEAT_STALE_AFTER = 30_000;
+const CLOUD_BUFFERED_AMOUNT_LIMIT = 2 * 1024 * 1024;
+const CLOUD_UPDATE_FLUSH_DELAY = 100;
+const CLOUD_FORWARDED_METHODS = new Set([
+    "notify_music_update",
+    "notify_playlist_update",
+    "notify_giveaway_update",
+    "notify_interaction",
+    "notify_interaction_queue",
+    "notify_auto_macros_update",
+    "notify_macro_update",
+    "notify_channel_point_update",
+    "notify_rotating_scene_update",
+    "notify_rotating_scene_runtime_update",
+    "notify_audio_update",
+    "notify_audio_outputs_update",
+    "notify_audio_presets_update",
+    "notify_obs_scene_update",
+    "notify_obs_scene_update_named",
+    "notify_obs_audio_update",
+    "notify_obs_audio_update_named",
+    "notify_yolobox_update",
+    "notify_connection_update",
+]);
+
 type PendingRegistration = {
     pairingId: string;
     status: string;
@@ -224,7 +249,9 @@ export default class CloudClient {
     private pendingRegistration?: PendingRegistration;
     private manualDisconnect = false;
     private lastState: Record<string, any> = {};
-    private snapshotTimer?: NodeJS.Timeout;
+    private lastUpdateSignatures = new Map<string, string>();
+    private pendingUpdates = new Map<string, any>();
+    private updateFlushTimer?: NodeJS.Timeout;
     private registrationVerifyInFlight = false;
     private reconnectFailures = 0;
     private heartbeatWatchdog?: NodeJS.Timeout;
@@ -523,6 +550,8 @@ export default class CloudClient {
                 message: "connected",
             });
             logSuccess("cloud integration connected");
+            this.lastUpdateSignatures.clear();
+            this.pendingUpdates.clear();
             this.syncModerators();
             this.sendSnapshot();
         });
@@ -554,6 +583,7 @@ export default class CloudClient {
         socket.on("close", (code, reason) => {
             if (this.socket === socket) this.socket = undefined;
             this.stopHeartbeatWatchdog();
+            this.clearUpdateFlush();
             setManagedConnection("cloud", {
                 enabled: Boolean(getCloudIntegration().enabled),
                 connected: false,
@@ -591,6 +621,8 @@ export default class CloudClient {
         this.stopHeartbeatWatchdog();
         this.reconnectFailures = 0;
         this.clearReconnect();
+        this.clearUpdateFlush();
+        this.pendingUpdates.clear();
         this.closeSocket();
         setManagedConnection("cloud", {
             enabled: Boolean(getCloudIntegration().enabled),
@@ -606,17 +638,72 @@ export default class CloudClient {
 
     public handleLocalUpdate(method: string, data: any) {
         if (!method.startsWith("notify_")) return;
+        if (!CLOUD_FORWARDED_METHODS.has(method)) return;
 
-        // CAVA updates are high-frequency visualization data and are intentionally
-        // local-only. Never queue or forward them to the cloud.
+        // CAVA stays local-only and must never occupy cloud state/bandwidth.
         if (isCloudSuppressedUpdate(method)) {
             delete this.lastState[method];
+            this.lastUpdateSignatures.delete(method);
+            this.pendingUpdates.delete(method);
             return;
         }
 
-        this.lastState[method] = data;
-        if (this.snapshotTimer) clearTimeout(this.snapshotTimer);
-        this.snapshotTimer = setTimeout(() => this.sendSnapshot(), 100);
+        const cleanData = stripCloudSuppressedData(data);
+        this.lastState[method] = cleanData;
+
+        let signature: string;
+        try {
+            signature = createHash("sha1").update(JSON.stringify(cleanData)).digest("hex");
+        } catch {
+            signature = createHash("sha1").update(String(cleanData)).digest("hex");
+        }
+
+        if (this.lastUpdateSignatures.get(method) === signature) return;
+        this.lastUpdateSignatures.set(method, signature);
+
+        // Keep only the newest value per method while the cloud socket is congested.
+        // This bounds memory use and naturally coalesces fast-changing state.
+        this.pendingUpdates.set(method, cleanData);
+        this.flushPendingUpdates();
+    }
+
+    private flushPendingUpdates() {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+
+        if (this.socket.bufferedAmount > CLOUD_BUFFERED_AMOUNT_LIMIT) {
+            this.scheduleUpdateFlush();
+            return;
+        }
+
+        for (const [method, data] of Array.from(this.pendingUpdates.entries())) {
+            if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return;
+            if (this.socket.bufferedAmount > CLOUD_BUFFERED_AMOUNT_LIMIT) {
+                this.scheduleUpdateFlush();
+                return;
+            }
+
+            if (this.send({type: "update", method, data})) {
+                this.pendingUpdates.delete(method);
+            } else {
+                this.scheduleUpdateFlush();
+                return;
+            }
+        }
+    }
+
+    private scheduleUpdateFlush() {
+        if (this.updateFlushTimer) return;
+        this.updateFlushTimer = setTimeout(() => {
+            this.updateFlushTimer = undefined;
+            this.flushPendingUpdates();
+        }, CLOUD_UPDATE_FLUSH_DELAY);
+        this.updateFlushTimer.unref?.();
+    }
+
+    private clearUpdateFlush() {
+        if (!this.updateFlushTimer) return;
+        clearTimeout(this.updateFlushTimer);
+        this.updateFlushTimer = undefined;
     }
 
     public sendSnapshot() {
@@ -639,7 +726,19 @@ export default class CloudClient {
                 },
             });
 
-            this.send(payload);
+            if (this.send(payload)) {
+                // The snapshot is authoritative. Any currently-known notify state is
+                // already represented, so don't immediately echo it again as updates.
+                for (const [method, data] of Object.entries(this.lastState)) {
+                    try {
+                        this.lastUpdateSignatures.set(
+                            method,
+                            createHash("sha1").update(JSON.stringify(data)).digest("hex"),
+                        );
+                    } catch {}
+                    this.pendingUpdates.delete(method);
+                }
+            }
         } catch (error: any) {
             logError("failed to build/send cloud snapshot");
             logError(JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -648,6 +747,7 @@ export default class CloudClient {
 
     private send(data: any) {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return false;
+        if (this.socket.bufferedAmount > CLOUD_BUFFERED_AMOUNT_LIMIT) return false;
         try {
             this.socket.send(JSON.stringify(data));
             return true;
@@ -721,8 +821,8 @@ export default class CloudClient {
                 data: result ?? {status: "okay"},
             });
 
-            if (this.snapshotTimer) clearTimeout(this.snapshotTimer);
-            this.snapshotTimer = setTimeout(() => this.sendSnapshot(), 50);
+            // State changes caused by the action are forwarded through the normal
+            // notify_* path as deltas; do not resend the entire cloud snapshot.
         } catch (error: any) {
             const errorMessage = error?.message ?? String(error);
             logWarn(`cloud API failed: ${method} - ${errorMessage}`);

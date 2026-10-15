@@ -36,6 +36,13 @@ const defaultSystemInfoConfig = {
 }
 
 let currentSystemInfo = []
+let systemInfoUpdateInFlight: Promise<void> | null = null
+let componentUpdateInFlight: Promise<void> | null = null
+let lastStaticHardwareUpdate = 0
+let lastStorageUpdate = 0
+
+const STATIC_HARDWARE_INTERVAL_MS = 5 * 60_000
+const STORAGE_INTERVAL_MS = 10_000
 const systemInformations: any = {
     cpu: {
         temp: undefined
@@ -53,6 +60,14 @@ const systemInformations: any = {
     storage: {
         internal: null,
         external: []
+    },
+    process: {
+        rss: 0,
+        heap_total: 0,
+        heap_used: 0,
+        external: 0,
+        array_buffers: 0,
+        heap_usage_percent: 0
     }
 }
 
@@ -95,62 +110,91 @@ function isExternalMount(filesystem: any) {
 }
 
 export async function updateSystemInfo() {
-    try {
-        await updateSystemComponents()
-        const configuredSystemInfo = getConfig(/systeminfo/g)?.[0]
-        const config = configuredSystemInfo?.entries?.length
-            ? configuredSystemInfo.entries
-            : defaultSystemInfoConfig.entries
-        const newSystemInfo = []
+    if (systemInfoUpdateInFlight) {
+        return systemInfoUpdateInFlight
+    }
 
-        for(const index in config) {
-            const entry = config[index]
-            let data = entry.data
-            let rawValue = 0
+    systemInfoUpdateInFlight = (async () => {
+        try {
+            await updateSystemComponents()
+            const configuredSystemInfo = getConfig(/systeminfo/g)?.[0]
+            const config = configuredSystemInfo?.entries?.length
+                ? configuredSystemInfo.entries
+                : defaultSystemInfoConfig.entries
+            const newSystemInfo = []
 
-            switch(data.type) {
-                case "systeminfo":
-                    logDebug(`update system info: ${data.method}().${data.entry}`)
-                    const mainData = await si[data.method]()
-                    rawValue = _.get(mainData, data.entry)
-                    break
-                case "raw":
-                    if(!existsSync(data.path)) {
+            for(const index in config) {
+                const entry = config[index]
+                let data = entry.data
+                let rawValue = 0
+
+                switch(data.type) {
+                    case "systeminfo": {
+                        logDebug(`update system info: ${data.method}().${data.entry}`)
+
+                        // Reuse data that updateSystemComponents already fetched instead
+                        // of invoking systeminformation (and spawning Linux helpers) twice.
+                        const cachedMethodData: Record<string, any> = {
+                            cpu: systemInformations.cpu,
+                            graphics: systemInformations.gpu,
+                            cpuTemperature: {main: systemInformations.cpu?.temp},
+                            currentLoad: systemInformations.load,
+                            mem: systemInformations.memory,
+                            fsSize: [
+                                ...(systemInformations.storage?.internal ? [systemInformations.storage.internal] : []),
+                                ...(systemInformations.storage?.external ?? [])
+                            ]
+                        }
+
+                        const mainData = Object.prototype.hasOwnProperty.call(cachedMethodData, data.method)
+                            ? cachedMethodData[data.method]
+                            : await si[data.method]()
+                        rawValue = _.get(mainData, data.entry)
                         break
                     }
-                    logDebug(`update raw system info: ${data.path}`)
+                    case "raw":
+                        if(!existsSync(data.path)) {
+                            break
+                        }
+                        logDebug(`update raw system info: ${data.path}`)
 
-                    rawValue = Number.parseFloat(readFileSync(data.path).toString())
-                    break
+                        rawValue = Number.parseFloat(readFileSync(data.path).toString())
+                        break
+                }
+
+                if(data.divide !== undefined) {
+                    rawValue = rawValue / data.divide
+                }
+                if(data.decimal !== undefined && Number.isFinite(rawValue)) {
+                    rawValue = Number.parseFloat(rawValue.toFixed(data.decimal))
+                }
+
+                let finalValue = `${rawValue}`
+
+                if(data.end) {
+                    finalValue = `${finalValue} ${data.end}`
+                }
+
+                newSystemInfo.push({
+                    label: entry.label,
+                    icon: entry.icon,
+                    short: entry.short,
+                    data: finalValue
+                })
             }
 
-            if(data.divide !== undefined) {
-                rawValue = rawValue / data.divide
-            }
-            if(data.decimal !== undefined) {
-                rawValue = Number.parseFloat(rawValue.toFixed(data.decimal))
-            }
-
-            let finalValue = `${rawValue}`
-
-            if(data.end) {
-                finalValue = `${finalValue} ${data.end}`
-            }
-
-            newSystemInfo.push({
-                label: entry.label,
-                icon: entry.icon,
-                short: entry.short,
-                data: finalValue
-            })
+            currentSystemInfo = newSystemInfo
+            notifySystemInfo()
+        } catch (error) {
+            logDebug('system info update failed:')
+            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
         }
+    })()
 
-        currentSystemInfo = newSystemInfo
-
-        notifySystemInfo()
-    } catch (error) {
-        logDebug('system info update failed:')
-        logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    try {
+        await systemInfoUpdateInFlight
+    } finally {
+        systemInfoUpdateInFlight = null
     }
 }
 
@@ -165,35 +209,76 @@ export function notifySystemInfo() {
 }
 
 export async function updateSystemComponents() {
-    logDebug('update system components')
-    systemInformations.cpu = await si.cpu()
-    systemInformations.gpu = await si.graphics()
-
-    systemInformations.cpu.temp = await si.cpuTemperature()
-
-    systemInformations.load = await si.currentLoad()
-
-    const memory = await si.mem()
-    systemInformations.memory = {
-        total: Number(memory.total ?? 0) || 0,
-        used: Number(memory.used ?? 0) || 0,
-        available: Number(memory.available ?? 0) || 0,
-        usage_percent: toUsagePercent(Number(memory.used ?? 0), Number(memory.total ?? 0))
+    if (componentUpdateInFlight) {
+        return componentUpdateInFlight
     }
 
-    const filesystems = await si.fsSize()
-    const rootFilesystem = filesystems.find((filesystem: any) => filesystem.mount === '/')
-    systemInformations.storage = {
-        internal: rootFilesystem ? normalizeFilesystem(rootFilesystem) : null,
-        external: filesystems
-            .filter((filesystem: any) => isExternalMount(filesystem) && Number(filesystem.size ?? 0) > 0)
-            .map((filesystem: any) => normalizeFilesystem(filesystem))
+    componentUpdateInFlight = (async () => {
+        logDebug('update system components')
+        const now = Date.now()
+        const refreshStaticHardware = !lastStaticHardwareUpdate || now - lastStaticHardwareUpdate >= STATIC_HARDWARE_INTERVAL_MS
+        const refreshStorage = !lastStorageUpdate || now - lastStorageUpdate >= STORAGE_INTERVAL_MS
+
+        // Dynamic values may be refreshed frequently, but do them concurrently
+        // and never allow scheduler ticks to overlap.
+        const [temperature, load, memory] = await Promise.all([
+            si.cpuTemperature(),
+            si.currentLoad(),
+            si.mem()
+        ])
+
+        if (refreshStaticHardware) {
+            const [cpu, gpu] = await Promise.all([
+                si.cpu(),
+                si.graphics()
+            ])
+            systemInformations.cpu = cpu
+            systemInformations.gpu = gpu
+            lastStaticHardwareUpdate = now
+        }
+
+        systemInformations.cpu.temp = temperature.main
+        systemInformations.load = load
+        systemInformations.memory = {
+            total: Number(memory.total ?? 0) || 0,
+            used: Number(memory.used ?? 0) || 0,
+            available: Number(memory.available ?? 0) || 0,
+            usage_percent: toUsagePercent(Number(memory.used ?? 0), Number(memory.total ?? 0))
+        }
+
+        const processMemory = process.memoryUsage()
+        systemInformations.process = {
+            rss: processMemory.rss,
+            heap_total: processMemory.heapTotal,
+            heap_used: processMemory.heapUsed,
+            external: processMemory.external,
+            array_buffers: processMemory.arrayBuffers,
+            heap_usage_percent: toUsagePercent(processMemory.heapUsed, processMemory.heapTotal)
+        }
+
+        if (refreshStorage) {
+            const filesystems = await si.fsSize()
+            const rootFilesystem = filesystems.find((filesystem: any) => filesystem.mount === '/')
+            systemInformations.storage = {
+                internal: rootFilesystem ? normalizeFilesystem(rootFilesystem) : null,
+                external: filesystems
+                    .filter((filesystem: any) => isExternalMount(filesystem) && Number(filesystem.size ?? 0) > 0)
+                    .map((filesystem: any) => normalizeFilesystem(filesystem))
+            }
+            lastStorageUpdate = now
+        }
+
+        delete systemInformations.cpu['flags']
+        delete systemInformations.load['cpus']
+
+        logDebug(JSON.stringify(systemInformations))
+    })()
+
+    try {
+        await componentUpdateInFlight
+    } finally {
+        componentUpdateInFlight = null
     }
-
-    delete systemInformations.cpu['flags']
-    delete systemInformations.load['cpus']
-
-    logDebug(JSON.stringify(systemInformations))
 }
 
 export function getCpu() {

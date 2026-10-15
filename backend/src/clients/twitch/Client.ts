@@ -103,6 +103,26 @@ export default class TwitchClient {
         }
     }
 
+    private async registerWithConcurrency(
+        registrations: ReadonlyArray<readonly [string, () => Promise<unknown> | unknown]>,
+        concurrency = 10
+    ) {
+        let nextIndex = 0;
+        const workerCount = Math.max(1, Math.min(concurrency, registrations.length));
+
+        await Promise.all(Array.from({length: workerCount}, async () => {
+            while (true) {
+                const index = nextIndex++;
+                if (index >= registrations.length) {
+                    return;
+                }
+
+                const [name, register] = registrations[index];
+                await this.safeRegister(name, register);
+            }
+        }));
+    }
+
     private async loadStoredAuthUserId(auth: TwitchAuth, type: "message" | "control") {
         const token = await auth.getStoredToken(type);
 
@@ -138,6 +158,25 @@ export default class TwitchClient {
         return id === this.controlAuthUserId || id === this.messageAuthUserId;
     }
 
+    private async validateAuthConnection(bot: Bot, userId: string | undefined, type: "message" | "control") {
+        if (!userId) {
+            logWarn(`twitch ${type} auth cannot be validated because user id is missing`);
+            return;
+        }
+
+        try {
+            const user = await bot.api.users.getAuthenticatedUser(userId);
+            logSuccess(
+                `twitch ${type} auth API connection successful as ` +
+                `${user.displayName ?? user.name ?? userId} (id=${userId})`
+            );
+        } catch (error) {
+            logWarn(`twitch ${type} auth API validation failed`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+            throw error;
+        }
+    }
+
     private async tryMessageAuth(config: any) {
         this.messageAuth = new TwitchAuth();
 
@@ -149,15 +188,19 @@ export default class TwitchClient {
                 return;
             }
 
+            // Message auth is deliberately API-only. It exists solely for
+            // outgoing chat messages / announcements and must not join chat or
+            // own any EventSub subscriptions.
             this.messageBot = new Bot({
                 authProvider: messageAuthProvider,
-                channels: config.channels,
+                channels: [],
                 chatClientOptions: null,
             });
 
-            await this.loadStoredAuthUserId(this.messageAuth, "message");
+            const messageAuthUserId = await this.loadStoredAuthUserId(this.messageAuth, "message");
+            await this.validateAuthConnection(this.messageBot, messageAuthUserId, "message");
 
-            logSuccess("twitch message auth is ready");
+            logSuccess("twitch message auth is ready for outgoing messages / announcements");
         } catch (error) {
             this.messageBot = undefined;
 
@@ -464,7 +507,10 @@ export default class TwitchClient {
         });
 
         // These do not depend on Twitch chat and can happen concurrently.
-        const controlAuthUserPromise = this.loadStoredAuthUserId(this.auth, "control");
+        const controlAuthUserPromise = this.loadStoredAuthUserId(this.auth, "control").then(async userId => {
+            await this.validateAuthConnection(bot, userId, "control");
+            return userId;
+        });
         const messageAuthPromise = this.tryMessageAuth(config);
         const primaryChannelPromise = loadPrimaryChannel(this);
 
@@ -485,28 +531,123 @@ export default class TwitchClient {
         });
         this.eventSub = eventSub;
 
-        // Twitch data loading and EventSub registration are independent after
-        // the primary channel is known.
-        await Promise.all([
-            controlAuthUserPromise,
-            updateTwitchData(bot),
-            this.registerEvents(bot, eventSub),
-        ]);
+        // Observe the control-auth EventSub socket lifecycle. We intentionally
+        // do NOT recreate subscriptions from these callbacks: Twurple owns the
+        // reconnect lifecycle for subscription objects already attached to this
+        // listener.
+        eventSub.on(eventSub.onUserSocketConnect, (userId: string) => {
+            if (generation !== this.connectGeneration || this.eventSub !== eventSub) {
+                return;
+            }
 
-        if (generation !== this.connectGeneration || this.bot !== bot || this.eventSub !== eventSub) {
-            logRegular(`discard stale twitch connect generation ${generation} before EventSub start`);
-            await Promise.resolve(eventSub.stop());
-            return;
-        }
+            const socketCount = Number((eventSub as any)?._sockets?.size ?? 0);
+            logSuccess(`twitch eventsub socket connected (user=${userId}, sockets=${socketCount})`);
 
-        try {
-            eventSub.start();
-        } catch (error) {
-            if (!this.warnTwitchNetworkError("failed to start eventsub", error)) {
-                logWarn("failed to start eventsub");
+            if (socketCount > 1) {
+                logWarn(`twitch eventsub has ${socketCount} websocket connections; expected 1 for a single control auth user`);
+            }
+        });
+
+        eventSub.on(eventSub.onUserSocketDisconnect, (userId: string, error: Error) => {
+            if (generation !== this.connectGeneration || this.eventSub !== eventSub) {
+                return;
+            }
+
+            logWarn(
+                `twitch eventsub socket disconnected (user=${userId}): ` +
+                `${error?.message ?? String(error ?? "unknown error")}`
+            );
+        });
+
+        eventSub.on(eventSub.onSubscriptionCreateFailure, (subscription: any, error: Error) => {
+            if (generation !== this.connectGeneration || this.eventSub !== eventSub) {
+                return;
+            }
+
+            logWarn(
+                `twitch eventsub subscription create failed ` +
+                `(${subscription?.type ?? subscription?.id ?? "unknown"}): ` +
+                `${error?.message ?? String(error)}`
+            );
+        });
+
+        let eventSubSuccessCount = 0;
+        eventSub.on(eventSub.onSubscriptionCreateSuccess, (subscription: any) => {
+            if (generation !== this.connectGeneration || this.eventSub !== eventSub) {
+                return;
+            }
+
+            eventSubSuccessCount++;
+            const socketCount = Number((eventSub as any)?._sockets?.size ?? 0);
+            logRegular(
+                `twitch eventsub subscription active #${eventSubSuccessCount}: ` +
+                `${subscription?.type ?? subscription?.id ?? "unknown"} (sockets=${socketCount})`
+            );
+        });
+
+        // Register every control-auth subscription while the listener is still
+        // inactive. Twurple explicitly supports this: start() gathers the users
+        // from the already-created subscription objects, creates one socket per
+        // auth user and only submits them after that socket has a valid session.
+        // This avoids hammering socket.start() while the first WS handshake is
+        // still in progress.
+        void (async () => {
+            await controlAuthUserPromise;
+
+            if (generation !== this.connectGeneration || this.bot !== bot || this.eventSub !== eventSub) {
+                return;
+            }
+
+            await this.registerEvents(bot, eventSub);
+
+            if (generation !== this.connectGeneration || this.bot !== bot || this.eventSub !== eventSub) {
+                return;
+            }
+
+            const registeredSubscriptions = [...(((eventSub as any)?._subscriptions?.values?.() ?? []) as Iterable<any>)];
+            const eventSubAuthUsers = [...new Set(
+                registeredSubscriptions
+                    .map((subscription: any) => String(subscription?.authUserId ?? "").trim())
+                    .filter(Boolean)
+            )];
+
+            logRegular(
+                `twitch eventsub prepared ${registeredSubscriptions.length} subscriptions for ` +
+                `${eventSubAuthUsers.length} auth user(s): ${eventSubAuthUsers.join(", ") || "none"}`
+            );
+
+            if (eventSubAuthUsers.length !== 1) {
+                logWarn(
+                    `twitch eventsub expected exactly one control auth user, but found ` +
+                    `${eventSubAuthUsers.length}: ${eventSubAuthUsers.join(", ") || "none"}`
+                );
+            }
+
+            try {
+                eventSub.start();
+                logRegular("twitch eventsub listener started");
+            } catch (error) {
+                if (!this.warnTwitchNetworkError("failed to start eventsub", error)) {
+                    logWarn("failed to start eventsub");
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                }
+                return;
+            }
+
+            // Twitch data refresh is independent from EventSub registration and
+            // may run after the listener has been started.
+            void updateTwitchData(bot).catch(error => {
+                if (!this.warnTwitchNetworkError("failed to update twitch data", error)) {
+                    logWarn("failed to update twitch data");
+                    logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                }
+            });
+        })().catch(error => {
+            if (!this.warnTwitchNetworkError("twitch eventsub background initialization failed", error)) {
+                logWarn("twitch eventsub background initialization failed");
                 logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
             }
-        }
+        });
 
         // Message auth is optional and must not hold the main Twitch startup
         // hostage. It continues in parallel if it is still initializing.
@@ -580,11 +721,7 @@ export default class TwitchClient {
             ["shared chat session end event", () => new ChannelSharedChatSessionEnd(eventSub, bot).register()],
         ] as const;
 
-        await Promise.all(
-            regularEventRegistrations.map(([name, register]) =>
-                this.safeRegister(name, register)
-            )
-        );
+        await this.registerWithConcurrency(regularEventRegistrations, 10);
 
         const affiliateOrPartner = await affiliateOrPartnerPromise;
 
@@ -615,11 +752,57 @@ export default class TwitchClient {
             ["channel charity donation event", () => new ChannelCharityDonationEvent(eventSub, bot).register()],
         ] as const;
 
-        await Promise.all(
-            monetizationEventRegistrations.map(([name, register]) =>
-                this.safeRegister(name, register)
-            )
+        await this.registerWithConcurrency(monetizationEventRegistrations, 10);
+    }
+
+
+    public getEventSubDiagnostics() {
+        const listener: any = this.eventSub as any;
+        const sockets: Map<string, any> = listener?._sockets instanceof Map
+            ? listener._sockets
+            : new Map<string, any>();
+        const subscriptions = listener?._subscriptions?.values
+            ? [...listener._subscriptions.values()]
+            : [];
+
+        const subscriptionsByUser: Record<string, number> = {};
+        for (const subscription of subscriptions) {
+            const authUserId = String(subscription?.authUserId ?? "unknown");
+            subscriptionsByUser[authUserId] = (subscriptionsByUser[authUserId] ?? 0) + 1;
+        }
+
+        const socketDetails = [...sockets.entries()].map(([userId, socket]) => ({
+            user_id: userId,
+            connected: Boolean(socket?.sessionId),
+            ready_to_subscribe: Boolean(socket?.readyToSubscribe),
+            subscriptions: subscriptionsByUser[userId] ?? 0,
+        }));
+
+        return {
+            listener_active: Boolean(listener?.isActive),
+            websocket_connections: sockets.size,
+            subscriptions: subscriptions.length,
+            auth_users: Object.keys(subscriptionsByUser),
+            sockets: socketDetails,
+        };
+    }
+
+    public logEventSubDiagnostics() {
+        const status = this.getEventSubDiagnostics();
+        logRegular(
+            `twitch eventsub status: active=${status.listener_active} ` +
+            `websockets=${status.websocket_connections} subscriptions=${status.subscriptions} ` +
+            `auth_users=${status.auth_users.join(",") || "none"}`
         );
+
+        for (const socket of status.sockets) {
+            logRegular(
+                `twitch eventsub socket: user=${socket.user_id} connected=${socket.connected} ` +
+                `ready=${socket.ready_to_subscribe} subscriptions=${socket.subscriptions}`
+            );
+        }
+
+        return status;
     }
 
     public async reloadCommands() {

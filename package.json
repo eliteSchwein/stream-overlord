@@ -6,7 +6,7 @@
   "scripts": {
     "generate:backend-api-index": "node scripts/generate-backend-api-index.js",
     "start:backend": "node backend/dist/index.js --max-old-space-size=1024 --expose-gc",
-    "start:backend:dev": "node backend/dist/index.js --max-old-space-size=1024 --expose-gc --trace_gc --trace-deprecation --trace-warnings --trace-uncaught --track-heap-objects --inspect=0.0.0.0:3000",
+    "start:backend:dev": "mkdir -p /tmp/streambot-node-diagnostics && node --max-old-space-size=1024 --expose-gc --inspect=0.0.0.0:3000 --heapsnapshot-signal=SIGUSR2 --report-on-fatalerror --report-uncaught-exception --report-directory=/tmp/streambot-node-diagnostics --trace-deprecation --trace-warnings --trace-uncaught backend/dist/index.js",
     "build": "npm run build:backend",
     "build:backend": "npm run generate:backend-api-index && esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --external:onoff --outfile=backend/dist/index.js",
     "build:backend:dev": "npm run generate:backend-api-index && esbuild backend/src/App.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --external:onoff --outfile=backend/dist/index.js"
@@ -57,7 +57,7 @@
     "obs-websocket-js": "^5.0.8",
     "path-to-regexp": "8.4.2",
     "picomatch": "4.0.7",
-    "qs": "6.16.0",
+    "qs": "6.16.1",
     "querystring": "^0.2.1",
     "readline-sync": "^1.4.10",
     "regex-parser": "^2.3.1",
@@ -65,7 +65,7 @@
     "stacktrace-js": "^2.0.2",
     "ts-node": "^10.9.2",
     "typescript": "^7.0.2",
-    "undici": "8.11.2",
+    "undici": "8.12.1",
     "uuid": "^14.0.3",
     "websocket-ts": "^3.0.0",
     "ws": "^8.22.0"
