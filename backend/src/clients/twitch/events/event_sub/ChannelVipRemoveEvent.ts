@@ -1,4 +1,5 @@
 import BaseEvent from "./BaseEvent";
+import {removeVipPermission} from "../../helper/PermissionHelper";
 import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
 import {isEventQueried} from "../../helper/CooldownHelper";
@@ -18,6 +19,8 @@ export default class ChannelVipRemoveEvent extends BaseEvent {
 
     async handle(event: any) {
         logRegular(`vip removed`)
+
+        removeVipPermission(getPrimaryChannel().name, event)
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')

@@ -2,7 +2,7 @@ import readConfig, {getPrimaryChannel, getRawConfig, watchConfig} from "./helper
 import * as packageConfig from '../../package.json'
 import {logNotice, logRegular, logSuccess, logWarn} from "./helper/LogHelper";
 import TwitchClient from "./clients/twitch/Client";
-import registerPermissions, {registerPermissionInterval, setModeratorUpdateNotifier} from "./clients/twitch/helper/PermissionHelper";
+import registerPermissions, {setModeratorUpdateNotifier} from "./clients/twitch/helper/PermissionHelper";
 import WebsocketServer from "./clients/websocket/WebsocketServer";
 import {fetchGameInfo} from "./helper/GameHelper";
 import WebServer from "./clients/webserver/WebServer";
@@ -111,7 +111,6 @@ async function init() {
     await initStreamerClipCache(twitchClient.getBot()?.api, getPrimaryChannel())
     await initCategoryLibrary(twitchClient.getBot())
     await registerPermissions(twitchClient.getBot())
-    registerPermissionInterval(twitchClient.getBot())
 
     try {
         stage = 'connecting_cloud'
