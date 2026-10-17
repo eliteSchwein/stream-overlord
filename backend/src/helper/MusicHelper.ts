@@ -94,6 +94,8 @@ const defaultMusicConfig = {
 
 const defaultCavaConfig = {
     bars: 36,
+    framerate: 60,
+    source: 'music',
     output: {
         channels: 'mono',
     },
@@ -1486,8 +1488,13 @@ async function waitForMpvSocket() {
     }
 }
 
+type CavaSource = 'music' | 'tts' | 'alert'
+
 type CavaTargetConfig = {
     target: string
+    bars: number
+    framerate: number
+    source: CavaSource
     values: Record<string, any>
 }
 
@@ -1504,7 +1511,7 @@ export function startCavaFeed() {
     for (const config of configs) {
         const configPath = getCavaConfigPath(config.target)
 
-        writeFileSync(configPath, buildCavaConfig(config.values))
+        writeFileSync(configPath, buildCavaConfig(config.values, config.source))
 
         const process = spawn('cava', ['-p', configPath])
         cavaProcesses.set(config.target, process)
@@ -1514,7 +1521,7 @@ export function startCavaFeed() {
         logDebug(`cava ${config.target} values: ${JSON.stringify(config.values)}`)
 
         process.stdout.on('data', data => {
-            getWebsocketServer().sendCava(config.target, data.toString())
+            getWebsocketServer().sendCava(config.target, data.toString(), config.bars, config.framerate, config.source)
         })
 
         process.stderr.on('data', data => {
@@ -1563,11 +1570,14 @@ function getCavaTargetConfigs(): CavaTargetConfig[] {
     const entries: Array<[string, any]> = [
         ['', {
             bars: systemCavaConfig.bars,
+            framerate: systemCavaConfig.framerate,
+            source: systemCavaConfig.source,
             enabled: true,
         }],
         ['music_preview', {
             bars: 5,
             framerate: 30,
+            source: 'music',
             enabled: true,
         }],
         ...Object.entries(systemCavaConfig.targets ?? {}),
@@ -1584,8 +1594,29 @@ function getCavaTargetConfigs(): CavaTargetConfig[] {
             continue
         }
 
+        const configuredBars = Number(values.bars ?? systemCavaConfig.bars)
+        const bars = Number.isFinite(configuredBars) && configuredBars > 0
+            ? Math.trunc(configuredBars)
+            : Number(defaultCavaConfig.bars)
+
+        const configuredFramerate = Number(values.framerate ?? systemCavaConfig.framerate ?? 60)
+        const framerate = Number.isFinite(configuredFramerate) && configuredFramerate > 0
+            ? Math.trunc(configuredFramerate)
+            : 60
+
+        const source = normalizeCavaSource(values.source ?? systemCavaConfig.source)
+
+        // These are resolved metadata, not arbitrary [general] CAVA keys.
+        values.bars = bars
+        values.framerate = framerate
+        delete values.source
+        delete values.enabled
+
         targetConfigs.set(target, {
             target,
+            bars,
+            framerate,
+            source,
             values,
         })
     }
@@ -1615,6 +1646,13 @@ function getCavaConfigTarget(config: any, index: number, fallbackName = ''): str
 }
 
 
+function normalizeCavaSource(value: unknown): CavaSource {
+    const source = String(value ?? 'music').trim().toLowerCase()
+
+    if (source === 'tts' || source === 'alert') return source
+    return 'music'
+}
+
 function stripCavaMetaValues(config: Record<string, any>): Record<string, any> {
     const values = { ...config }
 
@@ -1638,7 +1676,7 @@ function getCavaConfigPath(target: string): string {
     return `${cavaConfigPathPrefix}-${safeTarget}.conf`
 }
 
-function buildCavaConfig(targetConfig: Record<string, any>): string {
+function buildCavaConfig(targetConfig: Record<string, any>, source: CavaSource): string {
     const systemCavaConfig = getSystemCavaConfig()
 
     const general = {
@@ -1648,7 +1686,7 @@ function buildCavaConfig(targetConfig: Record<string, any>): string {
 
     const input = {
         method: 'pulse',
-        source: `${streambotMusicSink}.monitor`,
+        source: `${getStreambotSinkName(source)}.monitor`,
     }
 
     const output = {

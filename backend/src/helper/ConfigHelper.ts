@@ -93,13 +93,14 @@ export type LocalAdminPanelSettings = UiConfiguration & {
 
 export type UiConfiguration = Record<string, unknown>;
 
+export type CavaSource = "music" | "tts" | "alert";
+
 export type CavaTargetSettings = Record<string, string | number | boolean>;
 
 export type CavaSettings = {
     bars: number;
-    input: {
-        source: string;
-    };
+    framerate: number;
+    source: CavaSource;
     output: {
         channels: string;
     };
@@ -181,9 +182,8 @@ const defaultGiveawaySettings: GiveawaySettings = {
 
 const defaultCavaSettings: CavaSettings = {
     bars: 36,
-    input: {
-        source: "streambot_cava.monitor",
-    },
+    framerate: 60,
+    source: "music",
     output: {
         channels: "mono",
     },
@@ -404,11 +404,22 @@ function normalizeCavaTargetSettings(rawTargetSettings: Record<string, unknown> 
         target.enabled = true;
     }
 
-    if (target.bars === undefined) {
-        target.bars = defaultCavaSettings.bars;
+    return target;
+}
+
+function normalizeCavaSource(value: unknown, fallback: CavaSource = "music"): CavaSource {
+    const source = String(value ?? "").trim().toLowerCase();
+
+    if (source === "music" || source === "tts" || source === "alert") {
+        return source;
     }
 
-    return target;
+    // Backwards compatibility with the old raw PulseAudio/PipeWire source field.
+    if (source.includes("tts")) return "tts";
+    if (source.includes("alert")) return "alert";
+    if (source.includes("music") || source.includes("cava")) return "music";
+
+    return fallback;
 }
 
 function normalizeCavaSettings(rawCavaSettings: Partial<CavaSettings> = {}): CavaSettings {
@@ -428,9 +439,11 @@ function normalizeCavaSettings(rawCavaSettings: Partial<CavaSettings> = {}): Cav
 
     return {
         bars: numberSetting(rawCavaSettings.bars, defaultCavaSettings.bars),
-        input: {
-            source: stringSetting(rawCavaSettings.input?.source, defaultCavaSettings.input.source),
-        },
+        framerate: numberSetting(rawCavaSettings.framerate, defaultCavaSettings.framerate),
+        source: normalizeCavaSource(
+            (rawCavaSettings as any).source ?? (rawCavaSettings as any).input?.source,
+            defaultCavaSettings.source,
+        ),
         output: {
             channels: stringSetting(rawCavaSettings.output?.channels, defaultCavaSettings.output.channels),
         },
@@ -748,10 +761,6 @@ export function writeSystemConfig(newSystemConfig: Partial<StreambotSettings>) {
             ? {
                 ...systemConfig.cava,
                 ...newSystemConfig.cava,
-                input: {
-                    ...systemConfig.cava.input,
-                    ...newSystemConfig.cava.input,
-                },
                 output: {
                     ...systemConfig.cava.output,
                     ...newSystemConfig.cava.output,

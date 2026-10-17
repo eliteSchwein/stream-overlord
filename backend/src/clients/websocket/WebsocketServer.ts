@@ -39,6 +39,9 @@ export default class WebsocketServer {
     private externalMessageSink?: (method: string, data: any) => void;
     private cavaConnections = new Map<string, Set<any>>();
     private cavaLastFrames = new Map<string, string>();
+    private cavaBars = new Map<string, number>();
+    private cavaFramerates = new Map<string, number>();
+    private cavaSources = new Map<string, string>();
     private sentStateByConnection = new WeakMap<any, Map<string, any>>();
     private pendingStateByConnection = new WeakMap<any, Map<string, {data: any}>>();
     private pendingFlushTimers = new WeakMap<any, NodeJS.Timeout>();
@@ -241,7 +244,7 @@ export default class WebsocketServer {
                 connection.send(JSON.stringify({
                     jsonrpc: '2.0',
                     method: 'notify_music_cava',
-                    params: {target, raw: initialFrame},
+                    params: {target, bars: this.cavaBars.get(target) ?? 0, framerate: this.cavaFramerates.get(target) ?? 60, source: this.cavaSources.get(target) ?? 'music', raw: initialFrame},
                     id: getRandomInt(10_000),
                 }))
             } catch {}
@@ -258,7 +261,10 @@ export default class WebsocketServer {
         return typeof connection?.__streambotCavaTarget === 'string'
     }
 
-    public sendCava(target: string, raw: string): number {
+    public sendCava(target: string, raw: string, bars: number, framerate: number, source: 'music' | 'tts' | 'alert' = 'music'): number {
+        this.cavaBars.set(target, bars)
+        this.cavaFramerates.set(target, framerate)
+        this.cavaSources.set(target, source)
         if (this.cavaLastFrames.get(target) === raw) return 0
         this.cavaLastFrames.set(target, raw)
 
@@ -268,7 +274,7 @@ export default class WebsocketServer {
         const payload = JSON.stringify({
             jsonrpc: '2.0',
             method: 'notify_music_cava',
-            params: {target, raw},
+            params: {target, bars, framerate, source, raw},
             id: getRandomInt(10_000),
         })
 
