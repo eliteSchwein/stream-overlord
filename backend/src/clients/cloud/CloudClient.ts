@@ -50,6 +50,7 @@ const CLOUD_FORWARDED_METHODS = new Set([
     "notify_obs_audio_update_named",
     "notify_yolobox_update",
     "notify_connection_update",
+    "notify_twitch_user_list",
 ]);
 
 type PendingRegistration = {
@@ -141,6 +142,41 @@ function normalizeCloudApiMethod(section: string, action: string, explicitMethod
         "yolobox.toggle": "yolobox_toggle",
         "yolobox.execute": "execute_yolobox",
 
+        // Twitch moderation
+        "twitch.timeout": "twitch_timeout",
+        "twitch.ban": "twitch_ban",
+        "twitch.unban": "twitch_unban",
+        "twitch.warn": "twitch_warn",
+        "twitch.clear_chat": "twitch_clear_chat",
+        "twitch.delete_message": "twitch_delete_message",
+        "twitch.moderator": "twitch_moderator",
+        "twitch.vip": "twitch_vip",
+        "twitch.shield_mode": "twitch_shield_mode",
+        "twitch.slow_chat": "twitch_slow_chat",
+        "twitch.emote_only": "twitch_emote_only",
+        "twitch.followers_only": "twitch_followers_only",
+        "twitch.subscribers_only": "twitch_subscribers_only",
+        "twitch.unique_chat": "twitch_unique_chat",
+        "twitch.user_info": "twitch_user_info",
+
+        "twitch.moderation.timeout": "twitch_timeout",
+        "twitch.moderation.ban": "twitch_ban",
+        "twitch.moderation.unban": "twitch_unban",
+        "twitch.moderation.warn": "twitch_warn",
+        "twitch.moderation.clear_chat": "twitch_clear_chat",
+        "twitch.moderation.delete_message": "twitch_delete_message",
+        "twitch.moderation.moderator": "twitch_moderator",
+        "twitch.moderation.vip": "twitch_vip",
+        "twitch.moderation.shield_mode": "twitch_shield_mode",
+
+        "twitch.chat.slow": "twitch_slow_chat",
+        "twitch.chat.slow_chat": "twitch_slow_chat",
+        "twitch.chat.emote_only": "twitch_emote_only",
+        "twitch.chat.followers_only": "twitch_followers_only",
+        "twitch.chat.subscribers_only": "twitch_subscribers_only",
+        "twitch.chat.unique": "twitch_unique_chat",
+        "twitch.chat.unique_chat": "twitch_unique_chat",
+
         // Compatibility aliases
         music_prev: "music_back",
         music_previous: "music_back",
@@ -203,6 +239,48 @@ function normalizeCloudApiMethod(section: string, action: string, explicitMethod
         },
         obs: {scene: "obs_set_scene", command: "obs_trigger_command", reload_browsers: "obs_reload_browsers"},
         yolobox: {toggle: "yolobox_toggle", execute: "execute_yolobox"},
+
+        twitch: {
+            timeout: "twitch_timeout",
+            ban: "twitch_ban",
+            unban: "twitch_unban",
+            warn: "twitch_warn",
+            clear_chat: "twitch_clear_chat",
+            delete_message: "twitch_delete_message",
+            moderator: "twitch_moderator",
+            vip: "twitch_vip",
+            shield_mode: "twitch_shield_mode",
+            slow: "twitch_slow_chat",
+            slow_chat: "twitch_slow_chat",
+            emote_only: "twitch_emote_only",
+            followers_only: "twitch_followers_only",
+            subscribers_only: "twitch_subscribers_only",
+            unique: "twitch_unique_chat",
+            unique_chat: "twitch_unique_chat",
+            user_info: "twitch_user_info",
+        },
+
+        twitch_moderation: {
+            timeout: "twitch_timeout",
+            ban: "twitch_ban",
+            unban: "twitch_unban",
+            warn: "twitch_warn",
+            clear_chat: "twitch_clear_chat",
+            delete_message: "twitch_delete_message",
+            moderator: "twitch_moderator",
+            vip: "twitch_vip",
+            shield_mode: "twitch_shield_mode",
+        },
+
+        twitch_chat: {
+            slow: "twitch_slow_chat",
+            slow_chat: "twitch_slow_chat",
+            emote_only: "twitch_emote_only",
+            followers_only: "twitch_followers_only",
+            subscribers_only: "twitch_subscribers_only",
+            unique: "twitch_unique_chat",
+            unique_chat: "twitch_unique_chat",
+        },
     };
 
     // If the cloud already sends a real websocket method, use it unchanged.
@@ -223,6 +301,40 @@ function normalizeCloudApiParams(method: string, payload: any) {
     }
     if (method === "set_audio_output_mute" && params.muted === undefined && params.enabled !== undefined) {
         params.muted = Boolean(params.enabled);
+    }
+
+    if (
+        method.startsWith("twitch_")
+        && params.user === undefined
+    ) {
+        params.user = firstString(
+            params.login,
+            params.user_login,
+            params.username,
+            params.user_id,
+            params.target,
+        );
+    }
+
+    if (
+        method === "twitch_delete_message"
+        && params.message_id === undefined
+    ) {
+        params.message_id = firstString(
+            params.messageId,
+            params.id,
+        );
+    }
+
+    if (
+        ["twitch_moderator", "twitch_vip"].includes(method)
+        && params.action === undefined
+        && params.enabled !== undefined
+    ) {
+        params.action =
+            Boolean(params.enabled)
+                ? "add"
+                : "remove";
     }
 
     return params;
