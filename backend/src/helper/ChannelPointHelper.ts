@@ -199,6 +199,21 @@ function readChannelPointConfigFile(filePath: string) {
 
 function normalizeChannelPointConfig(name: string, config: any = {}): ChannelPointConfig {
     const label = String(config?.label ?? config?.name ?? name).trim();
+    const requireFollower = coerceChannelPointBoolean(config?.require_follower ?? config?.requiresFollower);
+    const minimumFollowSeconds = Math.max(0, Math.floor(Number(config?.minimum_follow_seconds ?? config?.minimumFollowSeconds ?? 0) || 0));
+    const requireSubscriber = coerceChannelPointBoolean(config?.require_subscriber ?? config?.requiresSubscriber);
+    const minimumSubTier = Number(config?.minimum_sub_tier ?? config?.minimumSubTier ?? 0) || 0;
+    const minimumSubMonths = Math.max(0, Math.floor(Number(config?.minimum_sub_months ?? config?.minimumSubMonths ?? 0) || 0));
+    const requireVip = coerceChannelPointBoolean(config?.require_vip ?? config?.requiresVip);
+    const requireModerator = coerceChannelPointBoolean(config?.require_moderator ?? config?.requiresMod);
+    const hasAccessRequirements =
+        requireFollower
+        || minimumFollowSeconds > 0
+        || requireSubscriber
+        || minimumSubTier > 0
+        || minimumSubMonths > 0
+        || requireVip
+        || requireModerator;
 
     return {
         ...config,
@@ -207,11 +222,21 @@ function normalizeChannelPointConfig(name: string, config: any = {}): ChannelPoi
         asset: String(config?.asset ?? "").trim(),
         macro: String(config?.macro ?? "").trim(),
         enable_default: coerceChannelPointBoolean(config?.enable_default),
-        auto_accept: coerceChannelPointBoolean(config?.auto_accept),
+        // Required so denied redemptions can actually be CANCELED/refunded.
+        auto_accept: hasAccessRequirements
+            ? false
+            : coerceChannelPointBoolean(config?.auto_accept),
         strip_emotes: coerceChannelPointBoolean(config?.strip_emotes),
         strip_urls: coerceChannelPointBoolean(config?.strip_urls),
         input_required: coerceChannelPointBoolean(config?.input_required ?? config?.inputRequired),
         bypass_interaction_queue: coerceChannelPointBoolean(config?.bypass_interaction_queue),
+        require_follower: requireFollower,
+        minimum_follow_seconds: minimumFollowSeconds,
+        require_subscriber: requireSubscriber,
+        minimum_sub_tier: minimumSubTier,
+        minimum_sub_months: minimumSubMonths,
+        require_vip: requireVip,
+        require_moderator: requireModerator,
     };
 }
 

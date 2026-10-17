@@ -65,5 +65,16 @@
     "tier_3": "Tier 3",
     "tier_unknown": "unknown tier",
     "subscribed_with_months": "{user} has been subscribed for {months} month(s) and is currently {tier}{gifted}."
+  },
+  "eligibility": {
+    "user_not_found": "The Twitch user could not be found.",
+    "follow_required": "You must follow the channel to use this.",
+    "follow_too_short": "You must follow the channel for at least {duration} to use this.",
+    "subscriber_required": "You must be subscribed to use this.",
+    "sub_tier_required": "You need at least {tier} to use this.",
+    "sub_time_required": "You must be subscribed for at least {months} month(s) to use this.",
+    "sub_time_unknown": "Your subscription duration is not known yet. Send a chat message and try again.",
+    "vip_required": "You must be a VIP to use this.",
+    "moderator_required": "You must be a moderator to use this."
   }
 }

@@ -8,6 +8,7 @@ import {getPrimaryChannel} from "../../../helper/ConfigHelper";
 import {v4 as uuidv4} from "uuid";
 import {linkMessageToEvent} from "../../../helper/MessageEventLinkHelper";
 import {translate} from "../../../helper/LocaleHelper";
+import {checkTwitchAccessRequirements, formatAccessDuration, formatSubTier} from "../../../helper/TwitchAccessRequirementHelper";
 
 export default class BaseCommand {
     command: string;
@@ -16,6 +17,11 @@ export default class BaseCommand {
     requiresVip = false;
     requiresMod = false;
     requiresBroadcaster = false;
+    requiresFollower = false;
+    minimumFollowSeconds = 0;
+    requiresSubscriber = false;
+    minimumSubTier = 0;
+    minimumSubMonths = 0;
     globalCooldown = 5;
     userCooldown = 10;
     enforceSame = false;
@@ -139,6 +145,26 @@ export default class BaseCommand {
             context.broadcasterId !== context.userId
         ) {
             await this.replyPermissionError(context);
+            return;
+        }
+
+        const accessResult = await checkTwitchAccessRequirements({
+            userId: context.userId,
+            userName: context.userName,
+            channelName: context.broadcasterName,
+            broadcasterId: context.broadcasterId,
+            badgeInfo: (context.msg as any)?.userInfo?.badgeInfo,
+            requirements: {
+                require_follower: this.requiresFollower,
+                minimum_follow_seconds: this.minimumFollowSeconds,
+                require_subscriber: this.requiresSubscriber,
+                minimum_sub_tier: this.minimumSubTier,
+                minimum_sub_months: this.minimumSubMonths,
+            },
+        });
+
+        if (!accessResult.allowed) {
+            await this.replyAccessRequirementError(context, accessResult);
             return;
         }
 
@@ -317,6 +343,18 @@ export default class BaseCommand {
         if (!isShowErrorMessage()) return;
 
         await this.commandReply(context, message);
+    }
+
+    protected async replyAccessRequirementError(context: BotCommandContext, result: any) {
+        if (!isShowErrorMessage()) return;
+
+        const key = `eligibility.${result?.code ?? "user_not_found"}`;
+        const data = result?.data ?? {};
+        await this.commandReply(context, translate(key, {
+            duration: formatAccessDuration(data.required_seconds ?? 0),
+            months: data.required_months ?? 0,
+            tier: formatSubTier(data.required_tier ?? 1000),
+        }));
     }
 
     async handle(params: any, context: BotCommandContext, rawParam: string[]) {}

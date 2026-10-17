@@ -1,15 +1,9 @@
 import BaseCommand from "./BaseCommand";
 import {addGiveawayUser, hasGiveawayUser, isGiveawayActive} from "../../../helper/GiveawayHelper";
 import {getGiveawaySettings, getPrimaryChannel} from "../../../helper/ConfigHelper";
-import {hasModerator, hasVip} from "../helper/PermissionHelper";
 import {translate} from "../../../helper/LocaleHelper";
+import {checkTwitchAccessRequirements, formatAccessDuration, formatSubTier} from "../../../helper/TwitchAccessRequirementHelper";
 
-function humanDuration(seconds: number) {
-    if (seconds % 86400 === 0) return `${seconds / 86400}d`;
-    if (seconds % 3600 === 0) return `${seconds / 3600}h`;
-    if (seconds % 60 === 0) return `${seconds / 60}m`;
-    return `${seconds}s`;
-}
 
 export default class GiveawayEnterCommand extends BaseCommand {
     command = getGiveawaySettings().giveawayCommand;
@@ -42,50 +36,29 @@ export default class GiveawayEnterCommand extends BaseCommand {
         const broadcasterId = primaryChannel.id;
         const channelName = context.broadcasterName;
 
-        if (settings.require_moderator && context.userId !== broadcasterId && !hasModerator(channelName, context.userId)) {
-            await this.replyCommandError(context, translate("giveaway.moderator_required"));
+        const accessResult = await checkTwitchAccessRequirements({
+            userId: context.userId,
+            userName: context.userName,
+            channelName: context.broadcasterName,
+            broadcasterId,
+            badgeInfo: (context.msg as any)?.userInfo?.badgeInfo,
+            requirements: settings,
+        });
+
+        if (!accessResult.allowed) {
+            const data = accessResult.data ?? {};
+            await this.replyCommandError(
+                context,
+                translate(
+                    `eligibility.${accessResult.code ?? "user_not_found"}`,
+                    {
+                        duration: formatAccessDuration(data.required_seconds ?? 0),
+                        months: data.required_months ?? 0,
+                        tier: formatSubTier(data.required_tier ?? 1000),
+                    },
+                ),
+            );
             return;
-        }
-
-        if (settings.require_vip && context.userId !== broadcasterId && !hasVip(channelName, context.userId)) {
-            await this.replyCommandError(context, translate("giveaway.vip_required"));
-            return;
-        }
-
-        if (settings.require_subscriber && context.userId !== broadcasterId) {
-            const subscriptions = await this.bot.api.subscriptions.getSubscriptions(broadcasterId, {
-                userId: context.userId,
-                limit: 1,
-            } as any);
-
-            if (!subscriptions.data?.length) {
-                await this.replyCommandError(context, translate("giveaway.subscriber_required"));
-                return;
-            }
-        }
-
-        if ((settings.require_follower || settings.minimum_follow_seconds > 0) && context.userId !== broadcasterId) {
-            const followerData = await this.bot.api.channels.getChannelFollowers(broadcasterId, context.userId);
-            const follower = followerData.data?.[0];
-
-            if (!follower) {
-                await this.replyCommandError(context, translate("giveaway.follow_required"));
-                return;
-            }
-
-            if (settings.minimum_follow_seconds > 0) {
-                const followDate = follower.followDate;
-                const followedSeconds = followDate
-                    ? Math.max(0, Math.floor((Date.now() - followDate.getTime()) / 1000))
-                    : 0;
-
-                if (followedSeconds < settings.minimum_follow_seconds) {
-                    await this.replyCommandError(context, translate("giveaway.follow_too_short", {
-                        duration: humanDuration(settings.minimum_follow_seconds),
-                    }));
-                    return;
-                }
-            }
         }
 
         const added = await addGiveawayUser(user);

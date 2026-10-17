@@ -17,6 +17,8 @@ import {
 import {stripEmotes} from "../../../../helper/DataHelper";
 import {stripUrlsAndNormalizeWhitespace} from "../../../../helper/EmojiHelper";
 import {getAssetConfig} from "../../../../helper/AssetHelper";
+import {checkTwitchAccessRequirements, formatAccessDuration, formatSubTier} from "../../../../helper/TwitchAccessRequirementHelper";
+import {translate} from "../../../../helper/LocaleHelper";
 
 export default class ChannelPointsEvent extends BaseEvent {
     name = "ChannelPointsEvent";
@@ -172,6 +174,35 @@ export default class ChannelPointsEvent extends BaseEvent {
         let cooldownAdded = false;
 
         try {
+            const primaryChannel = getPrimaryChannel();
+            const accessResult = await checkTwitchAccessRequirements({
+                userId: event.userId,
+                userName: event.userName,
+                channelName: event.broadcasterName,
+                broadcasterId: primaryChannel.id,
+                requirements: configChannelPoint,
+            });
+
+            if (!accessResult.allowed) {
+                const data = accessResult.data ?? {};
+                const message = translate(
+                    `eligibility.${accessResult.code ?? "user_not_found"}`,
+                    {
+                        duration: formatAccessDuration(data.required_seconds ?? 0),
+                        months: data.required_months ?? 0,
+                        tier: formatSubTier(data.required_tier ?? 1000),
+                    },
+                );
+
+                if (event.broadcasterName !== event.userName) {
+                    await this.bot.whisper(event.userName, message);
+                }
+
+                logWarn(`channel point denied for ${event.userName}: ${accessResult.code}`);
+                await this.updateRedemptionStatus(event, "CANCELED");
+                return;
+            }
+
             if (!configChannelPoint.asset && !configChannelPoint.macro) {
                 await this.denyConfiguredChannelPoint(
                     event,

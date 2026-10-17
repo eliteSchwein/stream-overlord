@@ -27,6 +27,7 @@ import getWebsocketServer, {getTwitchClient, setReloadUpdate} from "../../App";
 import {getAssetConfig} from "../../helper/AssetHelper";
 import {addAlert} from "../../helper/AlertHelper";
 import {translate} from "../../helper/LocaleHelper";
+import {checkTwitchAccessRequirements, formatAccessDuration, formatSubTier} from "../../helper/TwitchAccessRequirementHelper";
 import {stripEmotes} from "../../helper/DataHelper";
 import {stripUrlsAndNormalizeWhitespace} from "../../helper/EmojiHelper";
 import FollowAgeCommand from "./commands/FollowAgeCommand";
@@ -120,6 +121,16 @@ const COMMAND_RUNTIME_SETTINGS = new Set([
     "requiresBroadcaster",
     "requiresMod",
     "requiresVip",
+    "requiresFollower",
+    "minimumFollowSeconds",
+    "requiresSubscriber",
+    "minimumSubTier",
+    "minimumSubMonths",
+    "require_follower",
+    "minimum_follow_seconds",
+    "require_subscriber",
+    "minimum_sub_tier",
+    "minimum_sub_months",
 ]);
 
 const COMMAND_REGISTRATION_SETTINGS = new Set([
@@ -480,7 +491,13 @@ function normalizeRuntimeCommandSetting(setting: string, value: any) {
                 .filter(Boolean);
 
         case "userCooldown":
-        case "globalCooldown": {
+        case "globalCooldown":
+        case "minimumFollowSeconds":
+        case "minimumSubTier":
+        case "minimumSubMonths":
+        case "minimum_follow_seconds":
+        case "minimum_sub_tier":
+        case "minimum_sub_months": {
             if (value === "" || value === null || value === undefined) {
                 return undefined;
             }
@@ -503,6 +520,10 @@ function normalizeRuntimeCommandSetting(setting: string, value: any) {
         case "requiresBroadcaster":
         case "requiresMod":
         case "requiresVip":
+        case "requiresFollower":
+        case "requiresSubscriber":
+        case "require_follower":
+        case "require_subscriber":
             return normalizeBoolean(value);
 
         default:
@@ -1144,6 +1165,30 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
                 context.broadcasterId !== context.userId
             ) {
                 await replyPermissionError(context);
+                return;
+            }
+
+            const accessResult = await checkTwitchAccessRequirements({
+                userId: context.userId,
+                userName: context.userName,
+                channelName: context.broadcasterName,
+                broadcasterId: context.broadcasterId,
+                badgeInfo: (context.msg as any)?.userInfo?.badgeInfo,
+                requirements: currentOption,
+            });
+
+            if (!accessResult.allowed) {
+                if (isShowErrorMessage()) {
+                    const data = accessResult.data ?? {};
+                    await replyWithFallback(context, translate(
+                        `eligibility.${accessResult.code ?? "user_not_found"}`,
+                        {
+                            duration: formatAccessDuration(data.required_seconds ?? 0),
+                            months: data.required_months ?? 0,
+                            tier: formatSubTier(data.required_tier ?? 1000),
+                        },
+                    ));
+                }
                 return;
             }
 

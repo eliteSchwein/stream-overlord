@@ -65,5 +65,16 @@
     "tier_3": "Tier 3",
     "tier_unknown": "unbekannter Tier",
     "subscribed_with_months": "{user} ist seit insgesamt {months} Monat(en) abonniert und aktuell {tier}{gifted}."
+  },
+  "eligibility": {
+    "user_not_found": "Der Twitch-Benutzer konnte nicht gefunden werden.",
+    "follow_required": "Du musst dem Kanal folgen, um dies zu verwenden.",
+    "follow_too_short": "Du musst dem Kanal seit mindestens {duration} folgen, um dies zu verwenden.",
+    "subscriber_required": "Du musst den Kanal abonniert haben, um dies zu verwenden.",
+    "sub_tier_required": "Du benötigst mindestens {tier}, um dies zu verwenden.",
+    "sub_time_required": "Du musst den Kanal seit mindestens {months} Monat(en) abonniert haben, um dies zu verwenden.",
+    "sub_time_unknown": "Deine Abo-Dauer ist noch nicht bekannt. Schreibe eine Chat-Nachricht und versuche es erneut.",
+    "vip_required": "Du musst VIP sein, um dies zu verwenden.",
+    "moderator_required": "Du musst Moderator sein, um dies zu verwenden."
   }
 }

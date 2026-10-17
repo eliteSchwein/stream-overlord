@@ -75,6 +75,8 @@ export type GiveawaySettings = {
     require_follower: boolean;
     minimum_follow_seconds: number;
     require_subscriber: boolean;
+    minimum_sub_tier: number;
+    minimum_sub_months: number;
     require_vip: boolean;
     require_moderator: boolean;
 };
@@ -176,6 +178,8 @@ const defaultGiveawaySettings: GiveawaySettings = {
     require_follower: false,
     minimum_follow_seconds: 0,
     require_subscriber: false,
+    minimum_sub_tier: 0,
+    minimum_sub_months: 0,
     require_vip: false,
     require_moderator: false,
 };
@@ -569,6 +573,14 @@ function normalizeGiveawaySettings(rawGiveawaySettings: Partial<GiveawaySettings
             defaultGiveawaySettings.minimum_follow_seconds,
         ))),
         require_subscriber: booleanSetting(rawGiveawaySettings.require_subscriber, defaultGiveawaySettings.require_subscriber),
+        minimum_sub_tier: Math.max(0, Math.floor(numberSetting(
+            rawGiveawaySettings.minimum_sub_tier,
+            defaultGiveawaySettings.minimum_sub_tier,
+        ))),
+        minimum_sub_months: Math.max(0, Math.floor(numberSetting(
+            rawGiveawaySettings.minimum_sub_months,
+            defaultGiveawaySettings.minimum_sub_months,
+        ))),
         require_vip: booleanSetting(rawGiveawaySettings.require_vip, defaultGiveawaySettings.require_vip),
         require_moderator: booleanSetting(rawGiveawaySettings.require_moderator, defaultGiveawaySettings.require_moderator),
     };
