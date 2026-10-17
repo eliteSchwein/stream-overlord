@@ -555,18 +555,25 @@ export function shouldSkipMessageLikeConfiguredEventBeforeQuery(
     text: string,
     context: any = {},
 ): boolean {
-    if (!text.trim()) return false;
-
     const normalizedConfigName = normalizeEventConfigName(configName);
-    if (!normalizedConfigName) return false;
 
-    const filteringEnabled =
-        getEventStripEmotes(normalizedConfigName) ||
-        getEventStripUrls(normalizedConfigName);
+    let filtered = text;
 
-    if (!filteringEnabled) return false;
+    if (normalizedConfigName) {
+        if (getEventStripEmotes(normalizedConfigName)) {
+            filtered = stripEmotes(filtered, context as any);
+        }
 
-    return filterConfiguredEventTextValue(normalizedConfigName, text, context).length === 0;
+        if (getEventStripUrls(normalizedConfigName)) {
+            filtered = stripUrlsAndNormalizeWhitespace(filtered);
+        }
+    }
+
+    // Apply all configured filters first, then trim before deciding whether
+    // the message is empty.
+    filtered = filtered.trim();
+
+    return filtered.length === 0;
 }
 
 const EVENT_TEXT_KEYS = new Set([
