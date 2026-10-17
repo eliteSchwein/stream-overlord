@@ -29,6 +29,8 @@ import {addAlert} from "../../helper/AlertHelper";
 import {translate} from "../../helper/LocaleHelper";
 import {stripEmotes} from "../../helper/DataHelper";
 import {stripUrlsAndNormalizeWhitespace} from "../../helper/EmojiHelper";
+import FollowAgeCommand from "./commands/FollowAgeCommand";
+import SubTimeCommand from "./commands/SubTimeCommand";
 function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
     const directory = path.dirname(filePath);
     fs.mkdirSync(directory, {recursive: true});
@@ -162,6 +164,8 @@ export default function buildCommands(bot: Bot, twitchClient?: TwitchClient) {
     commands = commands.concat(new ToggleErrorMessageCommand(bot, twitchClient).register());
     commands = commands.concat(new MusicCommand(bot, twitchClient).register());
     commands = commands.concat(new GiveawayEnterCommand(bot, twitchClient).register());
+    commands = commands.concat(new FollowAgeCommand(bot, twitchClient).register());
+    commands = commands.concat(new SubTimeCommand(bot, twitchClient).register());
 
     commands = buildConfigCommands(commands, bot, twitchClient);
 

@@ -43,5 +43,27 @@
   "errors": {
     "enabled": "Error messages (for example missing permissions) are now posted to chat again.",
     "disabled": "Error messages (for example missing permissions) are no longer posted to chat."
+  },
+  "followage": {
+    "user_not_found": "Could not find Twitch user {user}.",
+    "not_following": "{user} is not following.",
+    "following_for": "{user} has followed for {duration}.",
+    "duration_year_one": "{value} year",
+    "duration_year_other": "{value} years",
+    "duration_month_one": "{value} month",
+    "duration_month_other": "{value} months",
+    "duration_day_one": "{value} day",
+    "duration_day_other": "{value} days"
+  },
+  "subtime": {
+    "user_not_found": "Could not find Twitch user {user}.",
+    "not_subscribed": "{user} is not currently subscribed.",
+    "subscribed": "{user} is currently subscribed at {tier}{gifted}.",
+    "gifted": " (gifted)",
+    "tier_1": "Tier 1",
+    "tier_2": "Tier 2",
+    "tier_3": "Tier 3",
+    "tier_unknown": "unknown tier",
+    "subscribed_with_months": "{user} has been subscribed for {months} month(s) and is currently {tier}{gifted}."
   }
 }

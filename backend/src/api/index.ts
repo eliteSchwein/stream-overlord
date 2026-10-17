@@ -169,6 +169,7 @@ export { default as UpdateRefreshApi } from "./System/UpdateRefreshApi";
 export { default as UpdateStateApi } from "./System/UpdateStateApi";
 export { default as EventSubStatusApi } from "./Twitch/EventSubStatusApi";
 export { default as RandomClipsMediaApi } from "./Twitch/RandomClipsMediaApi";
+export { default as UserInfoApi } from "./Twitch/UserInfoApi";
 export { default as VariableDeleteApi } from "./Variables/VariableDeleteApi";
 export { default as VariableGetApi } from "./Variables/VariableGetApi";
 export { default as VariableListApi } from "./Variables/VariableListApi";

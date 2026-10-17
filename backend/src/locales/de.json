@@ -43,5 +43,27 @@
   "errors": {
     "enabled": "Fehlermeldungen (z.B. bei fehlender Berechtigung) werden nun wieder in den Chat gepostet.",
     "disabled": "Fehlermeldungen (z.B. bei fehlender Berechtigung) werden nun nicht mehr in den Chat gepostet."
+  },
+  "followage": {
+    "user_not_found": "Der Twitch-Benutzer {user} konnte nicht gefunden werden.",
+    "not_following": "{user} folgt dem Kanal nicht.",
+    "following_for": "{user} folgt dem Kanal seit {duration}.",
+    "duration_year_one": "{value} Jahr",
+    "duration_year_other": "{value} Jahren",
+    "duration_month_one": "{value} Monat",
+    "duration_month_other": "{value} Monaten",
+    "duration_day_one": "{value} Tag",
+    "duration_day_other": "{value} Tagen"
+  },
+  "subtime": {
+    "user_not_found": "Der Twitch-Benutzer {user} konnte nicht gefunden werden.",
+    "not_subscribed": "{user} ist aktuell nicht abonniert.",
+    "subscribed": "{user} ist aktuell mit {tier}{gifted} abonniert.",
+    "gifted": " (geschenkt)",
+    "tier_1": "Tier 1",
+    "tier_2": "Tier 2",
+    "tier_3": "Tier 3",
+    "tier_unknown": "unbekannter Tier",
+    "subscribed_with_months": "{user} ist seit insgesamt {months} Monat(en) abonniert und aktuell {tier}{gifted}."
   }
 }

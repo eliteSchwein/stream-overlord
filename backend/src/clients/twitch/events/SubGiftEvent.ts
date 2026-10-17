@@ -4,6 +4,7 @@ import {WAIT_FOREVER, waitUntil} from "async-wait-until";
 import {isEventQueried} from "../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../helper/LogHelper";
 import isShieldActive from "../../../helper/ShieldHelper";
+import {rememberTwitchSubscriptionMonths} from "../../../helper/TwitchSubscriptionDurationHelper";
 import {waitForCommunitySubGift} from "../../../helper/CommunitySubGiftHelper";
 
 export default class SubGiftEvent extends BaseEvent {
@@ -53,6 +54,11 @@ export default class SubGiftEvent extends BaseEvent {
         }
 
         logRegular(`sub gift from ${event.gifterDisplayName} to ${event.userDisplayName} in ${event.months} month on tier ${plan}`)
+
+        await rememberTwitchSubscriptionMonths(
+            event.userId,
+            event.months,
+        )
 
         if(isShieldActive()) {
             logWarn('Shield mode active!')

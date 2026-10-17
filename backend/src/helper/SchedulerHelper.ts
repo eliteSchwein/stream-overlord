@@ -11,6 +11,7 @@ import {sync} from "./MusicHelper";
 import {getTwitchClient} from "../App";
 import {getCachedTwitchStream, updateTwitchStreamData} from "./TwitchDataHelper";
 import {refreshStreamerClipCache} from "./StreamerClipCacheHelper";
+import {refreshTwitchUserList} from "./TwitchUserListHelper";
 
 export default function initialSchedulers() {
     void updateAdData()
@@ -23,6 +24,12 @@ export default function initialSchedulers() {
     // slow scheduler (1 min)
     setInterval(async () => {
     }, 60_000)
+
+    // Twitch chatter/user list refresh. Twitch does not expose join/leave
+    // EventSub events for the full chatter list, so reconcile periodically.
+    setInterval(() => {
+        void refreshTwitchUserList()
+    }, 30_000)
 
     // moderate scheduler (15 sec)
     setInterval(async () => {

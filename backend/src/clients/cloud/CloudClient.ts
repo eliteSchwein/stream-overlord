@@ -21,6 +21,7 @@ import {getConfig} from "../../helper/ConfigHelper";
 import {getModeratorsForCloud} from "../twitch/helper/PermissionHelper";
 import {logError, logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {triggerConfiguredEvent} from "../../helper/EventHelper";
+import {getTwitchUserInfo} from "../../helper/TwitchUserInfoHelper";
 
 const DEFAULT_CLOUD_URL = "https://cloud.streamding.dev";
 const RECONNECT_DELAY = 5_000;
@@ -989,5 +990,16 @@ export default class CloudClient {
         if (!this.reconnectTimer) return;
         clearTimeout(this.reconnectTimer);
         this.reconnectTimer = undefined;
+    }
+
+    async getTwitchUserInfo(user: string): Promise<any> {
+        const result =
+            await getTwitchUserInfo(user);
+
+        if (!result) {
+            throw new Error("user not found");
+        }
+
+        return result;
     }
 }

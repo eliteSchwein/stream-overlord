@@ -2,7 +2,7 @@ import BaseApi from "../../abstracts/BaseApi";
 import {getTwitchClient} from "../../App";
 
 export default class EventSubStatusApi extends BaseApi {
-    restEndpoint = "twitch-eventsub-status";
+    restEndpoint = "twitch/eventsub/status";
     restPost = false;
     websocketMethod = "twitch_eventsub_status";
 

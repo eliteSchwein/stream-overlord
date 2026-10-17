@@ -38,6 +38,8 @@ import {initCategoryLibrary} from "./helper/CategoryLibraryHelper";
 import {initVirtualAudioCable} from "./helper/VirtualAudioCableHelper";
 import CloudClient from "./clients/cloud/CloudClient";
 import {initStreamerClipCache} from "./helper/StreamerClipCacheHelper";
+import {refreshTwitchUserList, refreshTwitchUserListRoles} from "./helper/TwitchUserListHelper";
+import {initTwitchSubscriptionDurations} from "./helper/TwitchSubscriptionDurationHelper";
 
 let twitchClient: TwitchClient
 let websocketServer: WebsocketServer
@@ -80,10 +82,14 @@ async function init() {
     ensureDefaultOllamaIntegration()
     cloudClient = new CloudClient()
     websocketServer.setExternalMessageSink((method, data) => cloudClient?.handleLocalUpdate(method, data))
-    setModeratorUpdateNotifier(() => cloudClient?.syncModerators())
+    setModeratorUpdateNotifier(() => {
+        cloudClient?.syncModerators()
+        refreshTwitchUserListRoles()
+    })
 
     stage = 'loading_cache'
     await redis.connect()
+    await initTwitchSubscriptionDurations()
     await initGiveaway()
 
     stage = 'loading_web_content'
@@ -109,6 +115,7 @@ async function init() {
     twitchClient = new TwitchClient()
     await twitchClient.connect()
     await initStreamerClipCache(twitchClient.getBot()?.api, getPrimaryChannel())
+    await refreshTwitchUserList()
     await initCategoryLibrary(twitchClient.getBot())
     await registerPermissions(twitchClient.getBot())
 
@@ -257,7 +264,10 @@ export async function reload() {
 
         if (!cloudClient) cloudClient = new CloudClient()
         websocketServer?.setExternalMessageSink((method, data) => cloudClient?.handleLocalUpdate(method, data))
-        setModeratorUpdateNotifier(() => cloudClient?.syncModerators())
+        setModeratorUpdateNotifier(() => {
+        cloudClient?.syncModerators()
+        refreshTwitchUserListRoles()
+    })
 
         await syncOllamaIntegration()
         await redis.connect()
@@ -266,6 +276,7 @@ export async function reload() {
 
         await getTwitchClient().connect()
         await initStreamerClipCache(getTwitchClient().getBot()?.api, getPrimaryChannel())
+        await refreshTwitchUserList()
         await registerPermissions(getTwitchClient()?.getBot())
         try {
             await cloudClient.connect()

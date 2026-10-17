@@ -33,6 +33,7 @@ import {getInteractionQueue} from "../../helper/InteractionHelper";
 import {getActiveCategoryMediaReplayNotifications, getActiveCategoryPayload, getActiveCategoryStylePayload, getCategoryLibrary} from "../../helper/CategoryLibraryHelper";
 import {getVirtualAudioCables} from "../../helper/VirtualAudioCableHelper";
 import {getTwitchDataPayload, setTwitchDataNotifier} from "../../helper/TwitchDataHelper";
+import {getTwitchUserListPayload, setTwitchUserListNotifier} from "../../helper/TwitchUserListHelper";
 
 
 export default class WebsocketServer {
@@ -97,6 +98,7 @@ export default class WebsocketServer {
         'notify_category_active',
         'notify_category_style_update',
         'notify_twitch_data',
+        'notify_twitch_user_list',
     ]);
     websocket: WebSocketServer
     validEndpoints: string[] = [
@@ -163,6 +165,7 @@ export default class WebsocketServer {
         'notify_category_active',
         'notify_category_style_update',
         'notify_twitch_data',
+        'notify_twitch_user_list',
     ]
     connectionEndpoints = {}
     messageEvents: BaseApi[] = []
@@ -173,6 +176,7 @@ export default class WebsocketServer {
         logRegular(`initial websocket server`)
 
         setTwitchDataNotifier((payload) => this.send("notify_twitch_data", payload))
+        setTwitchUserListNotifier((payload) => this.send("notify_twitch_user_list", payload))
 
         this.websocket = new WebSocketServer({port: config?.port ?? 8100, host: '0.0.0.0', maxPayload: 512 * 1024 * 1024})
         this.startHeartbeat()
@@ -638,6 +642,7 @@ export default class WebsocketServer {
                 initialSend("notify_game_update", getGameInfo())
                 initialSend("notify_channel_point_update", getChannelPointUpdatePayload())
                 initialSend("notify_twitch_data", getTwitchDataPayload())
+                initialSend("notify_twitch_user_list", getTwitchUserListPayload())
                 initialSend("notify_audio_update", getAudioData())
                 initialSend("notify_system_info", getSystemInfo())
                 initialSend("notify_source_update", getSourceFilters())
