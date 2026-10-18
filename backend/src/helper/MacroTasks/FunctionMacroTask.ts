@@ -1,7 +1,7 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
 import * as fs from "node:fs";
 import {sleep} from "../../../../helper/GeneralHelper";
-import fillTemplate from "../TemplateHelper";
+import fillTemplate, {getTemplateVariables} from "../TemplateHelper";
 import {toggleAutoMacro} from "../AutoMacroHelper";
 import {speak} from "../TTShelper";
 import {addSongRequest, toggleSongRequest} from "../MusicHelper";
@@ -106,7 +106,19 @@ export default class FunctionMacroTask extends BaseMacroTask {
                     break;
                 }
 
-                const added = await addSongRequest(fillTemplate(data.url, variables));
+                const requestUrl =
+                    fillTemplate(data.url, variables);
+
+                const added =
+                    await addSongRequest(requestUrl);
+
+                // Keep the macro's snapshotted template state in sync with
+                // the result before the next task/condition is evaluated.
+                variables.songrequest =
+                    getTemplateVariables({
+                        ...variables,
+                        url: requestUrl,
+                    }).songrequest;
 
                 if (!added) {
                     logWarn(`song_request failed`);
@@ -117,6 +129,10 @@ export default class FunctionMacroTask extends BaseMacroTask {
 
             case "song_request_toggle": {
                 await toggleSongRequest();
+
+                variables.songrequest =
+                    getTemplateVariables(variables).songrequest;
+
                 break;
             }
 

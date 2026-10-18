@@ -1,5 +1,5 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
-import fillTemplate from "../TemplateHelper";
+import fillTemplate, {getTemplateVariables} from "../TemplateHelper";
 import {
     addSongRequest,
     back as musicBack,
@@ -25,7 +25,7 @@ import {logRegular, logWarn} from "../LogHelper";
 export default class MusicMacroTask extends BaseMacroTask {
     channel = "music"
 
-    async handle(method: string, data: any = {}) {
+    async handle(method: string, data: any = {}, variables: any = {}) {
         logRegular(`trigger music: ${method}`);
 
         switch (method) {
@@ -132,7 +132,20 @@ export default class MusicMacroTask extends BaseMacroTask {
                     break;
                 }
 
-                const added = await addSongRequest(fillTemplate(data.url, data));
+                const requestUrl =
+                    fillTemplate(data.url, variables);
+
+                const added =
+                    await addSongRequest(requestUrl);
+
+                // Macro variables are initialized once when the macro starts.
+                // Refresh songrequest explicitly so following tasks/conditions
+                // see the result of this request immediately.
+                variables.songrequest =
+                    getTemplateVariables({
+                        ...variables,
+                        url: requestUrl,
+                    }).songrequest;
 
                 if (!added) {
                     logWarn(`music song_request failed`);
@@ -144,6 +157,10 @@ export default class MusicMacroTask extends BaseMacroTask {
             case "song_request_toggle":
             case "toggle_song_request": {
                 await toggleSongRequest();
+
+                variables.songrequest =
+                    getTemplateVariables(variables).songrequest;
+
                 break;
             }
 
