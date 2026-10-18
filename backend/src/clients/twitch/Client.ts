@@ -211,8 +211,8 @@ export default class TwitchClient {
         }
     }
 
-    private getOutgoingBots(account: "message" | "streamer" = "message") {
-        const bots = account === "streamer"
+    private getOutgoingBots(account: "message" | "control" = "message") {
+        const bots = account === "control"
             ? [
                 {name: "control" as const, bot: this.bot},
             ]
@@ -224,11 +224,12 @@ export default class TwitchClient {
         return bots.filter(entry => !!entry.bot) as {name: "message" | "control"; bot: Bot}[];
     }
 
-    private normalizeOutgoingAccount(account?: string): "message" | "streamer" {
+    private normalizeOutgoingAccount(account?: string): "message" | "control" {
         const normalized = String(account ?? "").trim().toLowerCase();
 
+        // "streamer" remains a backwards-compatible alias for control auth.
         if (normalized === "streamer" || normalized === "control") {
-            return "streamer";
+            return "control";
         }
 
         return "message";
@@ -907,19 +908,46 @@ export default class TwitchClient {
 
     public async sendMessage(message: string, channelId?: string, account?: string) {
         const primaryChannel = getPrimaryChannel();
-        const broadcasterId = channelId ?? primaryChannel.id;
+
+        const requestedChannelId =
+            String(channelId ?? "").trim();
+
+        const broadcasterId =
+            requestedChannelId
+            || String(primaryChannel?.id ?? "").trim();
+
+        if (!broadcasterId) {
+            logWarn(
+                "twitch send message skipped: primary broadcaster id is missing"
+            );
+            return;
+        }
 
         await this.withMessageFallback("send message", async (bot, authName) => {
             const senderId = this.getAuthUserId(authName);
             if (!senderId) throw new Error(`missing ${authName} auth user id`);
 
-            await bot.api.chat.sendChatMessageAsApp(senderId, broadcasterId, message);
+            await bot.api.chat.sendChatMessageAsApp(
+                senderId,
+                broadcasterId,
+                message
+            );
         }, account);
     }
 
     public async reply(message: string, replyParentMessageId: string, channelId?: string) {
         const primaryChannel = getPrimaryChannel();
-        const broadcasterId = channelId ?? primaryChannel.id;
+
+        const broadcasterId =
+            String(channelId ?? "").trim()
+            || String(primaryChannel?.id ?? "").trim();
+
+        if (!broadcasterId) {
+            logWarn(
+                "twitch reply skipped: primary broadcaster id is missing"
+            );
+            return;
+        }
 
         await this.withMessageFallback("reply", async (bot, authName) => {
             const senderId = this.getAuthUserId(authName);

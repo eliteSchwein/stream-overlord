@@ -178,8 +178,8 @@ export default class FunctionMacroTask extends BaseMacroTask {
 
                 await twitchClient.sendMessage(
                     fillTemplate(data.content, variables),
-                    data.channel_id ?? data.channelId,
-                    data.account
+                    undefined,
+                    data.account ?? data.auth ?? "message"
                 );
 
                 break;
