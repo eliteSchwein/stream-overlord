@@ -100,6 +100,8 @@ export { default as MusicStatusApi } from "./Music/MusicStatusApi";
 export { default as MusicTogglePauseApi } from "./Music/MusicTogglePauseApi";
 export { default as MusicVolumeApi } from "./Music/MusicVolumeApi";
 export { default as MusicVolumeRelativeApi } from "./Music/MusicVolumeRelativeApi";
+export { default as SongRequestRemoveApi } from "./Music/SongRequestRemoveApi";
+export { default as SongRequestsApi } from "./Music/SongRequestsApi";
 export { default as ColorNeopixelApi } from "./Neopixel/ColorNeopixelApi";
 export { default as NeopixelAddApi } from "./Neopixel/NeopixelAddApi";
 export { default as NeopixelRemoveApi } from "./Neopixel/NeopixelRemoveApi";

@@ -2,6 +2,7 @@ import {getOBSClient, getTwitchClient, getYoloboxClient} from "../../App";
 import {
     back as musicBack,
     getStatus as getMusicStatus,
+    getSongRequestUpdatePayload,
     next as musicNext,
     pause as musicPause,
     play as musicPlay,
@@ -71,6 +72,7 @@ export function getRemoteDashboardSnapshot() {
         version: REMOTE_DASHBOARD_VERSION,
         updated_at: Date.now(),
         music: getMusicStatus(),
+        song_requests: getSongRequestUpdatePayload(),
         giveaway: getGiveaway(),
         interactions: getInteractionQueue(),
         auto_macros: getAutoMacros(),

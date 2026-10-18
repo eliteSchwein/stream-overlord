@@ -50,6 +50,7 @@ const CLOUD_FORWARDED_METHODS = new Set([
     "notify_obs_audio_update_named",
     "notify_yolobox_update",
     "notify_connection_update",
+    "notify_song_request_update",
     "notify_twitch_user_list",
 ]);
 
@@ -97,6 +98,9 @@ function normalizeCloudApiMethod(section: string, action: string, explicitMethod
         "music.songrequest_toggle": "music_songrequest_toggle",
         "music.play_song": "music_play_song",
         "music.status": "music_status",
+        "music.song_requests.list": "music_song_requests",
+        "music.song_requests.remove": "music_song_request_remove",
+        "music.song_request.remove": "music_song_request_remove",
 
         // Giveaway
         "giveaway.start": "start_giveaway",
@@ -207,6 +211,9 @@ function normalizeCloudApiMethod(section: string, action: string, explicitMethod
             songrequest_toggle: "music_songrequest_toggle",
             song_requests_toggle: "music_songrequest_toggle",
             play_song: "music_play_song",
+            song_requests: "music_song_requests",
+            song_request_remove: "music_song_request_remove",
+            remove_song_request: "music_song_request_remove",
         },
         giveaway: {
             start: "start_giveaway",

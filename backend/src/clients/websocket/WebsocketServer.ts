@@ -19,7 +19,7 @@ import {getRotateScenes} from "../../helper/RotateSceneHelper";
 import {getGiveaway} from "../../helper/GiveawayHelper";
 import BaseApi from "../../abstracts/BaseApi";
 import {getParsedAssetFiles} from "../../helper/AssetHelper";
-import {getPlaylistUpdatePayload, getStatus} from "../../helper/MusicHelper";
+import {getPlaylistUpdatePayload, getSongRequestUpdatePayload, getStatus} from "../../helper/MusicHelper";
 import {getManagedConnections, setConnectionUpdateNotifier} from "../../helper/ConnectionHelper";
 import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 import {emitVariablesUpdate} from "../../helper/VariableHelper";
@@ -88,6 +88,7 @@ export default class WebsocketServer {
         'notify_integrations_update',
         'notify_settings_update',
         'notify_playlist_update',
+        'notify_song_request_update',
         'notify_reload_update',
         'notify_update_manager',
         'notify_ollama_update',
@@ -151,6 +152,7 @@ export default class WebsocketServer {
         'notify_integrations_update',
         'notify_settings_update',
         'notify_playlist_update',
+        'notify_song_request_update',
         'notify_reload_update',
         'notify_service_reload',
         'notify_update_manager',
@@ -648,6 +650,7 @@ export default class WebsocketServer {
                 initialSend("notify_source_update", getSourceFilters())
                 initialSend("notify_music_update", getStatus())
                 initialSend("notify_playlist_update", getPlaylistUpdatePayload())
+                initialSend("notify_song_request_update", getSongRequestUpdatePayload())
                 initialSend("notify_connection", this.getConnections())
                 initialSend("notify_connection_update", getManagedConnections())
                 const obsClient = getOBSClient()

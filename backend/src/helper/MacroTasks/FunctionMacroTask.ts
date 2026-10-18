@@ -109,8 +109,22 @@ export default class FunctionMacroTask extends BaseMacroTask {
                 const requestUrl =
                     fillTemplate(data.url, variables);
 
+                const requester =
+                    String(
+                        variables.displayUserName
+                        ?? variables.userDisplayName
+                        ?? variables.userName
+                        ?? variables.username
+                        ?? variables.user?.displayName
+                        ?? variables.user?.name
+                        ?? "",
+                    ).trim();
+
                 const added =
-                    await addSongRequest(requestUrl);
+                    await addSongRequest(
+                        requestUrl,
+                        requester,
+                    );
 
                 // Keep the macro's snapshotted template state in sync with
                 // the result before the next task/condition is evaluated.

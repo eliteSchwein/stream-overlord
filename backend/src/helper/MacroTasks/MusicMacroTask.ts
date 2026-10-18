@@ -135,8 +135,22 @@ export default class MusicMacroTask extends BaseMacroTask {
                 const requestUrl =
                     fillTemplate(data.url, variables);
 
+                const requester =
+                    String(
+                        variables.displayUserName
+                        ?? variables.userDisplayName
+                        ?? variables.userName
+                        ?? variables.username
+                        ?? variables.user?.displayName
+                        ?? variables.user?.name
+                        ?? "",
+                    ).trim();
+
                 const added =
-                    await addSongRequest(requestUrl);
+                    await addSongRequest(
+                        requestUrl,
+                        requester,
+                    );
 
                 // Macro variables are initialized once when the macro starts.
                 // Refresh songrequest explicitly so following tasks/conditions

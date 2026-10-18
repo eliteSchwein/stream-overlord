@@ -44,6 +44,9 @@ let musicUpdateInterval: ReturnType<typeof setInterval> | null = null
 let status: any = null
 let songRequestQueue: string[] = []
 let songRequestTitleMap: Record<string, string> = {}
+let songRequestRequesterMap: Record<string, string> = {}
+let songRequestAddedAtMap: Record<string, number> = {}
+let songRequestQueryMap: Record<string, string> = {}
 let songRequestBlocklist: string[] = []
 let currentRequestIndex = 0
 let songRequestBusy = false
@@ -80,6 +83,9 @@ type MusicCrashState = {
     current_is_songrequest: boolean
     songrequest_queue: string[]
     songrequest_title_map: Record<string, string>
+    songrequest_requester_map?: Record<string, string>
+    songrequest_added_at_map?: Record<string, number>
+    songrequest_query_map?: Record<string, string>
     songrequest_blocklist: string[]
     songrequest_current_index: number
     songrequest_current_url: string | null
@@ -206,6 +212,14 @@ function getInitialMusicVolumePercent(): number {
 export async function startMusicPlayer(restoreModeFromState = true) {
     pendingMusicCrashState = readMusicCrashState()
 
+    // Restore song-request queue metadata immediately. Cloud connects earlier
+    // in startup than the music player, so this state must exist before the
+    // first post-connect song-request update is emitted.
+    restoreSongRequestRuntimeStateFromCrash(
+        pendingMusicCrashState,
+        restoreModeFromState,
+    )
+
     suppressMusicStateWrite = true
     await stopMusicPlayer()
 
@@ -214,12 +228,9 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         mpvProcess = null
         suppressMusicStateWrite = false
         await notifyPlaylistUpdate()
+        notifySongRequestUpdate()
         await sync()
         return
-    }
-
-    if (restoreModeFromState && pendingMusicCrashState?.songrequest_enabled === true) {
-        songRequestEnabled = true
     }
 
     if (songRequestEnabled) {
@@ -234,6 +245,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         logWarn('music player not started: no music files found')
         suppressMusicStateWrite = false
         await notifyPlaylistUpdate()
+        notifySongRequestUpdate()
         await sync()
         return
     }
@@ -282,6 +294,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         logWarn('music player not ready: mpv socket missing')
         mpvProcess = null
         suppressMusicStateWrite = false
+        notifySongRequestUpdate()
         await sync()
         return
     }
@@ -306,6 +319,7 @@ export async function startMusicPlayer(restoreModeFromState = true) {
     }
 
     await notifyPlaylistUpdate()
+    notifySongRequestUpdate()
     await sync()
 
     logSuccess('music player is ready')
@@ -401,6 +415,7 @@ export async function toggleSongRequest(): Promise<boolean> {
     }
 
     await reloadMusicPlayer(false)
+    notifySongRequestUpdate()
     await sync()
 
     try {
@@ -445,13 +460,14 @@ function resolveRedirectUrl(url: string): Promise<string> {
     })
 }
 
-export async function addSongRequest(url: string): Promise<boolean> {
+export async function addSongRequest(url: string, username: string = ''): Promise<boolean> {
     if (!songRequestEnabled) {
         logWarn('songrequest failed: songrequests are disabled')
         return false
     }
 
-    let normalizedUrl = normalizeSongRequestUrl(url)
+    const originalQuery = String(url ?? '').trim()
+    let normalizedUrl = normalizeSongRequestUrl(originalQuery)
 
     if (normalizedUrl.includes('link.deezer.com')) {
         const redirectedUrl = await resolveRedirectUrl(normalizedUrl)
@@ -469,6 +485,9 @@ export async function addSongRequest(url: string): Promise<boolean> {
     }
 
     songRequestQueue.push(normalizedUrl)
+    songRequestRequesterMap[normalizedUrl] = String(username ?? '').trim()
+    songRequestAddedAtMap[normalizedUrl] = Date.now()
+    songRequestQueryMap[normalizedUrl] = originalQuery
 
     mkdirSync(songRequestPath, { recursive: true })
 
@@ -495,6 +514,7 @@ export async function addSongRequest(url: string): Promise<boolean> {
     }
 
     await notifyPlaylistUpdate()
+    notifySongRequestUpdate()
     await sync()
 
     return true
@@ -845,6 +865,54 @@ export function getSongRequestState() {
     }
 }
 
+
+function getSongRequestFilenameForUrl(url: string): string | null {
+    for (const [filename, mappedUrl] of Object.entries(songRequestTitleMap)) {
+        if (mappedUrl === url) return filename
+    }
+
+    return null
+}
+
+export function getSongRequestUpdatePayload() {
+    const startIndex = Math.max(0, currentRequestIndex)
+
+    const items = songRequestQueue
+        .slice(startIndex)
+        .map((url, relativeIndex) => {
+            const index = startIndex + relativeIndex
+            const filename = getSongRequestFilenameForUrl(url)
+
+            return {
+                id: url,
+                index,
+                url,
+                query: songRequestQueryMap[url] ?? url,
+                username: songRequestRequesterMap[url] ?? "",
+                requested_at: songRequestAddedAtMap[url] ?? null,
+                filename,
+                title: filename
+                    ? path.basename(filename, path.extname(filename))
+                    : null,
+                current: index === currentRequestIndex,
+            }
+        })
+
+    return {
+        enabled: songRequestEnabled,
+        busy: songRequestBusy,
+        current_index: currentRequestIndex,
+        total: items.length,
+        items,
+    }
+}
+
+export function notifySongRequestUpdate() {
+    const payload = getSongRequestUpdatePayload()
+    getWebsocketServer().send('notify_song_request_update', payload)
+    return payload
+}
+
 async function getCurrentMusic() {
     const metadata = await mpvGetProperty('metadata') ?? {}
     const duration = secondsToMs(await mpvGetProperty('duration'))
@@ -1001,6 +1069,9 @@ function writeMusicCrashState(data: any) {
         current_is_songrequest: typeof trackPath === 'string' && trackPath.startsWith(songRequestPath),
         songrequest_queue: songRequestQueue,
         songrequest_title_map: songRequestTitleMap,
+        songrequest_requester_map: songRequestRequesterMap,
+        songrequest_added_at_map: songRequestAddedAtMap,
+        songrequest_query_map: songRequestQueryMap,
         songrequest_blocklist: songRequestBlocklist,
         songrequest_current_index: currentRequestIndex,
         songrequest_current_url: data?.songrequest?.current_url ?? null,
@@ -1017,6 +1088,76 @@ function writeMusicCrashState(data: any) {
     }
 }
 
+
+function restoreSongRequestRuntimeStateFromCrash(
+    state: MusicCrashState | null,
+    restoreEnabledState = true,
+) {
+    if (!state) return
+
+    if (
+        restoreEnabledState
+        && state.songrequest_enabled === true
+    ) {
+        songRequestEnabled = true
+    }
+
+    if (Array.isArray(state.songrequest_blocklist)) {
+        songRequestBlocklist = state.songrequest_blocklist
+    }
+
+    if (!songRequestEnabled) {
+        return
+    }
+
+    if (Array.isArray(state.songrequest_queue)) {
+        songRequestQueue = [...state.songrequest_queue]
+    }
+
+    if (
+        state.songrequest_title_map
+        && typeof state.songrequest_title_map === 'object'
+    ) {
+        songRequestTitleMap = {
+            ...state.songrequest_title_map,
+        }
+    }
+
+    if (
+        state.songrequest_requester_map
+        && typeof state.songrequest_requester_map === 'object'
+    ) {
+        songRequestRequesterMap = {
+            ...state.songrequest_requester_map,
+        }
+    }
+
+    if (
+        state.songrequest_added_at_map
+        && typeof state.songrequest_added_at_map === 'object'
+    ) {
+        songRequestAddedAtMap = {
+            ...state.songrequest_added_at_map,
+        }
+    }
+
+    if (
+        state.songrequest_query_map
+        && typeof state.songrequest_query_map === 'object'
+    ) {
+        songRequestQueryMap = {
+            ...state.songrequest_query_map,
+        }
+    }
+
+    if (Number.isFinite(state.songrequest_current_index)) {
+        currentRequestIndex = Math.max(
+            0,
+            Number(state.songrequest_current_index),
+        )
+    }
+}
+
 async function applyMusicCrashState() {
     const state = pendingMusicCrashState ?? readMusicCrashState()
     pendingMusicCrashState = null
@@ -1026,26 +1167,6 @@ async function applyMusicCrashState() {
     if (!mpvProcess || !existsSync(mpvSocketPath)) return
 
     logRegular('apply music crash state')
-
-    if (Array.isArray(state.songrequest_blocklist)) {
-        songRequestBlocklist = state.songrequest_blocklist
-    }
-
-    if (songRequestEnabled) {
-        if (Array.isArray(state.songrequest_queue)) {
-            songRequestQueue = state.songrequest_queue
-        }
-
-        if (state.songrequest_title_map && typeof state.songrequest_title_map === 'object') {
-            songRequestTitleMap = state.songrequest_title_map
-        }
-
-        if (Number.isFinite(state.songrequest_current_index)) {
-            currentRequestIndex = state.songrequest_current_index
-        }
-    } else {
-        clearSongRequestRuntimeState()
-    }
 
     const playlist = await getPlaylist()
     const wantedPath = state.path
@@ -1247,6 +1368,7 @@ async function handleSongFinished() {
 }
 
 async function handleSongRequestNext() {
+    const completedUrl = songRequestQueue[currentRequestIndex] ?? null
     const currentPath = await mpvGetProperty('path')
 
     if (currentPath && currentPath.startsWith(songRequestPath) && existsSync(currentPath)) {
@@ -1256,9 +1378,16 @@ async function handleSongRequestNext() {
         rmSync(currentPath, { force: true })
     }
 
+    if (completedUrl) {
+        delete songRequestRequesterMap[completedUrl]
+        delete songRequestAddedAtMap[completedUrl]
+        delete songRequestQueryMap[completedUrl]
+    }
+
     currentRequestIndex++
 
     await appendMissingDownloadedSongs()
+    notifySongRequestUpdate()
 }
 
 async function prepareSongRequestCache() {
@@ -1276,6 +1405,96 @@ function getSongRequestFiles(): string[] {
 
     return readdirSync(songRequestPath)
         .map(file => path.join(songRequestPath, file))
+}
+
+
+export async function removeSongRequest(
+    selector: {
+        id?: string
+        url?: string
+        index?: number
+    } = {},
+) {
+    const requestedIndex =
+        selector.index !== undefined
+            ? Number(selector.index)
+            : NaN
+
+    const requestedUrl =
+        String(
+            selector.url
+            ?? selector.id
+            ?? "",
+        ).trim()
+
+    let index = -1
+
+    if (Number.isInteger(requestedIndex)) {
+        index = requestedIndex
+    } else if (requestedUrl) {
+        index = songRequestQueue.findIndex(
+            (url, queueIndex) =>
+                queueIndex >= currentRequestIndex
+                && (
+                    url === requestedUrl
+                    || songRequestQueryMap[url] === requestedUrl
+                ),
+        )
+    }
+
+    if (
+        index < currentRequestIndex
+        || index < 0
+        || index >= songRequestQueue.length
+    ) {
+        throw new Error("song request not found")
+    }
+
+    const url = songRequestQueue[index]
+    const query = songRequestQueryMap[url] ?? url
+    const filename = getSongRequestFilenameForUrl(url)
+    const filePath =
+        filename
+            ? path.join(songRequestPath, filename)
+            : null
+
+    // Only ever manipulate files that belong to the dedicated song-request
+    // directory. Regular music files are intentionally unreachable here.
+    if (
+        filePath
+        && path.resolve(filePath).startsWith(
+            `${path.resolve(songRequestPath)}${path.sep}`,
+        )
+    ) {
+        await removeFromPlaylist(filePath)
+
+        if (existsSync(filePath)) {
+            rmSync(filePath, {force: true})
+        }
+
+        delete songRequestTitleMap[filename!]
+    }
+
+    songRequestQueue.splice(index, 1)
+    delete songRequestRequesterMap[url]
+    delete songRequestAddedAtMap[url]
+    delete songRequestQueryMap[url]
+
+    if (index < currentRequestIndex) {
+        currentRequestIndex = Math.max(0, currentRequestIndex - 1)
+    }
+
+    await notifyPlaylistUpdate()
+    notifySongRequestUpdate()
+    await sync()
+
+    return {
+        removed: true,
+        id: url,
+        index,
+        url,
+        query,
+    }
 }
 
 async function removeFromPlaylist(filePath: string) {
@@ -1403,6 +1622,9 @@ function clearSongRequestRuntimeState() {
     currentRequestIndex = 0
     songRequestQueue = []
     songRequestTitleMap = {}
+    songRequestRequesterMap = {}
+    songRequestAddedAtMap = {}
+    songRequestQueryMap = {}
     songRequestBusy = false
 }
 
