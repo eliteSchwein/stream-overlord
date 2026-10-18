@@ -16,7 +16,7 @@ import {getGiveaway, removeGiveawayUser, startGiveaway, stopGiveaway} from "../.
 import {cancelInteraction, getInteractionQueue} from "../../helper/InteractionHelper";
 import {removeAlertByEventUuid} from "../../helper/AlertHelper";
 import {getAutoMacros, toggleAutoMacro} from "../../helper/AutoMacroHelper";
-import {getMacros, triggerMacro} from "../../helper/MacroHelper";
+import {getCloudMacros, triggerMacro} from "../../helper/MacroHelper";
 import {
     getChannelPointUpdatePayload,
     toggleChannelPoint,
@@ -74,7 +74,7 @@ export function getRemoteDashboardSnapshot() {
         giveaway: getGiveaway(),
         interactions: getInteractionQueue(),
         auto_macros: getAutoMacros(),
-        macros: getMacros(),
+        macros: getCloudMacros(),
         channel_points: getChannelPointUpdatePayload(),
         rotating_scene: {
             items: getRotateScenes(),

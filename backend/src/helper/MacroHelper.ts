@@ -385,6 +385,51 @@ function relativeMacroPath(filePath: string) {
     return path.relative(getMacroDirectory(), filePath).replace(/\\/g, "/");
 }
 
+function normalizeMacroConfig(macroConfig: any, macroName: string, filePath: string) {
+    return {
+        ...macroConfig,
+        name: macroName,
+        description: String(macroConfig?.description ?? ""),
+        hide_from_cloud:
+            macroConfig?.hide_from_cloud === true
+            || macroConfig?.hideFromCloud === true,
+        tasks: macroConfig?.tasks ?? [],
+        file: relativeMacroPath(filePath),
+    };
+}
+
+/**
+ * Cloud-safe macro projection.
+ *
+ * Macros with hide_from_cloud=true never leave the local backend. The
+ * remaining entries keep their normal macro data, including description, so
+ * the cloud UI can display useful labels/details without maintaining a second
+ * metadata store.
+ */
+export function getCloudMacros() {
+    const result: Record<string, any> = {};
+
+    for (const [name, macro] of Object.entries(macros)) {
+        if (
+            (macro as any)?.hide_from_cloud === true
+            || (macro as any)?.hideFromCloud === true
+        ) {
+            continue;
+        }
+
+        result[name] = {
+            ...(macro as any),
+            description: String((macro as any)?.description ?? ""),
+            hide_from_cloud: false,
+        };
+
+        // Never leak a legacy alias if a config happened to contain it.
+        delete result[name].hideFromCloud;
+    }
+
+    return result;
+}
+
 function loadMacrosFromFiles() {
     ensureMacroDirectory();
 
@@ -395,12 +440,11 @@ function loadMacrosFromFiles() {
 
             if (!macroName) continue;
 
-            macros[macroName] = {
-                ...macroConfig,
-                name: macroName,
-                tasks: macroConfig?.tasks ?? [],
-                file: relativeMacroPath(filePath),
-            };
+            macros[macroName] = normalizeMacroConfig(
+                macroConfig,
+                macroName,
+                filePath,
+            );
         } catch (error) {
             logWarn(`failed to load macro file ${filePath}`);
             logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -700,12 +744,15 @@ export function getMacroConfig(name: string) {
         if (!filePath) return undefined;
 
         const macroConfig = readMacroConfigFile(filePath) as any;
-        return {
-            ...macroConfig,
-            name: macroConfig?.name ?? getMacroNameFromFile(filePath),
-            tasks: macroConfig?.tasks ?? [],
-            file: relativeMacroPath(filePath),
-        };
+        const macroName =
+            macroConfig?.name
+            ?? getMacroNameFromFile(filePath);
+
+        return normalizeMacroConfig(
+            macroConfig,
+            macroName,
+            filePath,
+        );
     } catch (error) {
         logWarn(`failed to read macro config ${name}`);
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -749,12 +796,14 @@ export function hasMacroTasks(name: string) {
         // before configured events decide there is nothing to execute.
         if (tasks.length > 0 && (!loadedMacro || !Array.isArray(loadedMacro?.tasks) || loadedMacro.tasks.length === 0)) {
             const macroName = macroConfig?.name ?? getMacroNameFromFile(filePath);
-            macros[macroName] = {
-                ...macroConfig,
-                name: macroName,
-                tasks,
-                file: relativeMacroPath(filePath),
-            };
+            macros[macroName] = normalizeMacroConfig(
+                {
+                    ...macroConfig,
+                    tasks,
+                },
+                macroName,
+                filePath,
+            );
 
             // Keep exact event-name lookup working when the filename matched the
             // requested key but an explicit macro name differs.

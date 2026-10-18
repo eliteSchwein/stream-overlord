@@ -4,7 +4,7 @@ import WebSocket from "ws";
 import axios from "axios";
 import * as packageConfig from "../../../../package.json";
 import getGameInfo from "../../helper/GameHelper";
-import {getMacros} from "../../helper/MacroHelper";
+import {getCloudMacros} from "../../helper/MacroHelper";
 import {getInteractionQueue} from "../../helper/InteractionHelper";
 import {getStatus as getMusicStatus} from "../../helper/MusicHelper";
 import {getRemoteDashboardSnapshot} from "./RemoteDashboard";
@@ -819,7 +819,19 @@ export default class CloudClient {
             return;
         }
 
-        const cleanData = stripCloudSuppressedData(data);
+        let cleanData = stripCloudSuppressedData(data);
+
+        // Local macro notifications contain every macro because the local UI
+        // must still see/edit hidden entries. Cloud receives a dedicated
+        // projection so hide_from_cloud=true macros never enter cloud state,
+        // snapshots or delta updates.
+        if (method === "notify_macro_update") {
+            cleanData = {
+                ...(cleanData && typeof cleanData === "object" ? cleanData : {}),
+                macros: getCloudMacros(),
+            };
+        }
+
         this.lastState[method] = cloneCloudValue(cleanData);
 
         // The first cloud connection gets a complete snapshot. After that, compare
@@ -901,7 +913,7 @@ export default class CloudClient {
             const payload = stripCloudSuppressedData({
                 type: "snapshot",
                 data: {
-                    macros: dashboard.macros ?? getMacros(),
+                    macros: dashboard.macros ?? getCloudMacros(),
                     interactions: dashboard.interactions ?? getInteractionQueue(),
                     status,
                     dashboard,

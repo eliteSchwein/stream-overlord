@@ -77,6 +77,7 @@ export { default as MacroDeleteApi } from "./Macros/MacroDeleteApi";
 export { default as MacroEditApi } from "./Macros/MacroEditApi";
 export { default as MacroExistsApi } from "./Macros/MacroExistsApi";
 export { default as MacroListApi } from "./Macros/MacroListApi";
+export { default as MacroMetadataApi } from "./Macros/MacroMetadataApi";
 export { default as MacroMoveApi } from "./Macros/MacroMoveApi";
 export { default as MacroReadApi } from "./Macros/MacroReadApi";
 export { default as MacroTemplateVariablesApi } from "./Macros/MacroTemplateVariablesApi";
