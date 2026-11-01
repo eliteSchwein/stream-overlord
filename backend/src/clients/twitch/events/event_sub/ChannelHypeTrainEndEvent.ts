@@ -1,8 +1,8 @@
 import BaseEvent from "./BaseEvent";
 import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
-import {isEventQueried} from "../../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
+import {hasInteraction} from "../../../../helper/InteractionHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
 
 export default class ChannelHypeTrainEndEvent extends BaseEvent {
@@ -51,6 +51,10 @@ export default class ChannelHypeTrainEndEvent extends BaseEvent {
         logRegular(`dispatch hype train end -> ${this.configName}`)
         await this.triggerConfiguredEvent(event)
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})
+        // The event query is owned by BaseEvent and is removed only after this
+        // handler returns, so waiting on isEventQueried(eventUuid) deadlocks.
+        // The configured event uses the same UUID in the interaction queue;
+        // waiting for that interaction is the actual macro/asset completion.
+        await waitUntil(() => !hasInteraction(this.eventUuid), {timeout: 600_000})
     }
 }

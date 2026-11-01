@@ -1,8 +1,8 @@
 import BaseEvent from "./BaseEvent";
 import {getPrimaryChannel} from "../../../../helper/ConfigHelper";
 import {waitUntil} from "async-wait-until";
-import {isEventQueried} from "../../helper/CooldownHelper";
 import {logRegular, logWarn} from "../../../../helper/LogHelper";
+import {hasInteraction} from "../../../../helper/InteractionHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
 import type {EventSimulationField} from "../../../../helper/EventHelper";
 
@@ -110,6 +110,6 @@ export default class ChannelHypeTrainProgressEvent extends BaseEvent {
 
         await this.triggerConfiguredEvent(event)
 
-        await waitUntil(() => !isEventQueried(this.eventUuid), {timeout: 600_000})
+        await waitUntil(() => !hasInteraction(this.eventUuid), {timeout: 600_000})
     }
 }
