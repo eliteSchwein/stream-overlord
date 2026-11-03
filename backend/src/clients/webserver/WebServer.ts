@@ -125,6 +125,13 @@ export default class WebServer {
 
         const htmlRoot = this.getHtmlRoot();
 
+        // The backend root is the admin entry point. Keep this before the
+        // generic HTML/static middleware so a static index.html cannot
+        // intercept `/` before the redirect runs.
+        this.app.get("/", (_req, res) => {
+            res.redirect(302, "/commander");
+        });
+
         setOverlayCacheRebuildHandler(async () => {
             await Promise.all([
                 this.precacheConfiguredHtmlTemplates(),
