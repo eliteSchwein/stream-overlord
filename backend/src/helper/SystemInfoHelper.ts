@@ -57,6 +57,12 @@ const systemInformations: any = {
         available: 0,
         usage_percent: 0
     },
+    swap: {
+        total: 0,
+        used: 0,
+        available: 0,
+        usage_percent: 0
+    },
     storage: {
         internal: null,
         external: []
@@ -139,6 +145,7 @@ export async function updateSystemInfo() {
                             cpuTemperature: systemInformations.cpu?.temp ?? {},
                             currentLoad: systemInformations.load,
                             mem: systemInformations.memory,
+                            swap: systemInformations.swap,
                             fsSize: [
                                 ...(systemInformations.storage?.internal ? [systemInformations.storage.internal] : []),
                                 ...(systemInformations.storage?.external ?? [])
@@ -236,11 +243,30 @@ export async function updateSystemComponents() {
 
         systemInformations.cpu.temp = temperature
         systemInformations.load = load
+        // si.mem().used is total - free and therefore counts the page cache as
+        // used, which on Linux is almost always ~100%. MemAvailable already
+        // excludes reclaimable cache/buffers, so total - available is the real usage.
+        const memoryTotal = Number(memory.total ?? 0) || 0
+        const memoryAvailable = Number(memory.available ?? 0) || 0
+        const memoryUsed = memoryAvailable > 0
+            ? Math.max(0, memoryTotal - memoryAvailable)
+            : Number(memory.active ?? memory.used ?? 0) || 0
+
         systemInformations.memory = {
-            total: Number(memory.total ?? 0) || 0,
-            used: Number(memory.used ?? 0) || 0,
-            available: Number(memory.available ?? 0) || 0,
-            usage_percent: toUsagePercent(Number(memory.used ?? 0), Number(memory.total ?? 0))
+            total: memoryTotal,
+            used: memoryUsed,
+            available: memoryAvailable,
+            cached: Number(memory.buffcache ?? 0) || 0,
+            usage_percent: toUsagePercent(memoryUsed, memoryTotal)
+        }
+
+        const swapTotal = Number(memory.swaptotal ?? 0) || 0
+        const swapUsed = Number(memory.swapused ?? 0) || 0
+        systemInformations.swap = {
+            total: swapTotal,
+            used: swapUsed,
+            available: Number(memory.swapfree ?? Math.max(0, swapTotal - swapUsed)) || 0,
+            usage_percent: toUsagePercent(swapUsed, swapTotal)
         }
 
         const processMemory = process.memoryUsage()
