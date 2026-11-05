@@ -74,7 +74,18 @@ let audioSystemRefreshPending = false;
 type PipewireLoopbackModule = {
     moduleId: string;
     outputName: string | null;
+    noFallback: boolean;
 };
+
+/**
+ * Volume the loopbacks of an interface should actually play at:
+ * 0 while muted, otherwise the (retained) current volume.
+ */
+function getEffectiveInterfaceVolume(audioInterface: string): number {
+    const current = audioData[audioInterface];
+    if (!current || current.muted === true) return 0;
+    return normalizeVolume(Number(current.current_volume ?? current.default_volume ?? 0.2));
+}
 
 function getAudioConfigWithDefaults(): Record<string, any> {
     const config = getConfig(/audio /g, true) ?? {};
@@ -134,7 +145,7 @@ export async function syncVirtualAudioCableRouting(): Promise<void> {
         current.linked_output = linkedOutputs[0] ?? null;
         audioData[key] = current;
 
-        const wantedVolume = Number(current.current_volume ?? current.default_volume ?? 0.2);
+        const wantedVolume = getEffectiveInterfaceVolume(key);
         tasks.push((async () => {
             await setupPipewireAudioSink(key, linkedOutputs, false);
             await setPipewireSinkOutputVolume(key, wantedVolume);
@@ -168,9 +179,16 @@ export async function initAudio() {
             null,
         );
 
+        // An empty saved list means the user explicitly unlinked everything;
+        // only fall back to the default output when nothing was ever saved.
+        const hasSavedLinks =
+            savedVolumes[key]?.linked_outputs !== undefined ||
+            savedVolumes[key]?.linked_output !== undefined;
+
         linkedOutputs = applyConfiguredVirtualCableRouting(key, linkedOutputs);
 
         if (
+            !hasSavedLinks &&
             isEnabled(config[key]?.pipewire_sink) &&
             linkedOutputs.length === 0 &&
             defaultOutputName &&
@@ -344,7 +362,7 @@ export async function linkPipewireSinkToAudioOutput(
     currentAudioData.linked_output = linkedOutputs[0] ?? null;
     audioData[audioInterface] = currentAudioData;
 
-    const wantedVolume = Number(currentAudioData.current_volume ?? currentAudioData.default_volume ?? 0.2);
+    const wantedVolume = getEffectiveInterfaceVolume(audioInterface);
 
     await setupPipewireAudioSink(audioInterface, linkedOutputs, false);
     await setPipewireSinkOutputVolume(audioInterface, wantedVolume);
@@ -394,7 +412,7 @@ export async function unlinkPipewireSinkFromAudioOutput(
     currentAudioData.linked_output = linkedOutputs[0] ?? null;
     audioData[audioInterface] = currentAudioData;
 
-    const wantedVolume = Number(currentAudioData.current_volume ?? currentAudioData.default_volume ?? 0.2);
+    const wantedVolume = getEffectiveInterfaceVolume(audioInterface);
 
     await setupPipewireAudioSink(audioInterface, linkedOutputs, false);
     await setPipewireSinkOutputVolume(audioInterface, wantedVolume);
@@ -1404,7 +1422,11 @@ async function setupPipewireAudioSinkInternal(
     for (const loopback of existingLoopbacks) {
         const targetKey = getPipewireLoopbackTargetKey(loopback.outputName);
 
-        if (!wantedKeys.has(targetKey) || usedKeys.has(targetKey)) {
+        // Loopbacks created before node.dont-fallback was set silently fall
+        // back to the default output when their target is missing; replace them.
+        const outdated = loopback.outputName !== null && !loopback.noFallback;
+
+        if (outdated || !wantedKeys.has(targetKey) || usedKeys.has(targetKey)) {
             modulesToUnload.push(loopback.moduleId);
             continue;
         }
@@ -1425,9 +1447,10 @@ async function setupPipewireAudioSinkInternal(
         !usedKeys.has(getPipewireLoopbackTargetKey(outputName))
     );
 
+    const initialVolume = getEffectiveInterfaceVolume(configName);
     const createdModuleIds = await Promise.all(
         missingOutputs.map(outputName =>
-            loadPipewireLoopback(configName, sinkName, outputName)
+            loadPipewireLoopback(configName, sinkName, outputName, initialVolume)
         )
     );
 
@@ -1527,6 +1550,7 @@ async function getExistingPipewireLoopbackModules(
             result.push({
                 moduleId,
                 outputName: parsePipewireLoopbackSinkName(line),
+                noFallback: line.includes("node.dont-fallback=true"),
             });
         }
     } catch {}
@@ -1609,10 +1633,13 @@ async function forcePipewireSinkOutputVolumeWithRetry(
     }
 }
 
+const loopbackNoFallbackProperties = ["node.dont-fallback=true", "node.linger=true"];
+
 async function loadPipewireLoopback(
     configName: string,
     sinkName: string,
     outputName: string | null,
+    initialVolume: number,
 ): Promise<string | null> {
     try {
         const loopbackArgs = [
@@ -1622,9 +1649,23 @@ async function loadPipewireLoopback(
             "latency_msec=30",
         ];
 
+        // pactl percentages are cubic, PipeWire stream volumes are linear.
+        const linearVolume = Math.pow(normalizeVolume(initialVolume), 3);
+        const sinkInputProperties = [
+            // Start the stream at the wanted volume. Otherwise WirePlumber
+            // starts every new loopback at 100% and the later volume
+            // correction is audible as a loud burst.
+            `state.default-volume=${linearVolume.toFixed(6)}`,
+        ];
+
         if (outputName) {
             loopbackArgs.push(`sink=${outputName}`);
+            // Never fall back to the default output when the target device
+            // is missing; wait unlinked until it appears instead.
+            sinkInputProperties.push(...loopbackNoFallbackProperties);
         }
+
+        loopbackArgs.push(`sink_input_properties="${sinkInputProperties.join(" ")}"`);
 
         const output = await runCommandWithOutput("pactl", loopbackArgs);
         const moduleId = output.trim();
