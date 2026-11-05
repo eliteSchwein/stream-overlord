@@ -112,6 +112,7 @@ export { default as ReloadObsBrowserScenesApi } from "./Obs/ReloadObsBrowserScen
 export { default as SetObsSceneApi } from "./Obs/SetObsSceneApi";
 export { default as TriggerObsCommandApi } from "./Obs/TriggerObsCommandApi";
 export { default as OllamaChangeModelApi } from "./Ollama/OllamaChangeModelApi";
+export { default as OllamaContextSizeApi } from "./Ollama/OllamaContextSizeApi";
 export { default as OllamaDirectApi } from "./Ollama/OllamaDirectApi";
 export { default as OllamaExternalApi } from "./Ollama/OllamaExternalApi";
 export { default as OllamaRestartApi } from "./Ollama/OllamaRestartApi";

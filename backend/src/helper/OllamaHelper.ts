@@ -8,6 +8,7 @@ import getWebsocketServer from "../App";
 import {
     getOllamaIntegration,
     isOllamaIntegrationEnabled,
+    setOllamaIntegrationContextSize,
     setOllamaIntegrationModel,
 } from "./IntegrationsHelper";
 import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
@@ -113,6 +114,17 @@ export type OllamaUpdate = {
     changing_model: boolean;
     model: string;
     models: string[];
+    // Recommendations from meta/ollama.json for this device's RAM size.
+    recommended_model: string;
+    model_recommendations: Record<string, OllamaModelRecommendation>;
+    // User-defined context size, 0 = automatic.
+    context_size: number;
+    // Recommended context size for the active model, 0 = none.
+    recommended_context_size: number;
+    // Context size actually sent to Ollama, 0 = Ollama default.
+    effective_context_size: number;
+    min_context_size: number;
+    max_context_size: number;
     ram_mib: number;
     external: boolean;
     external_provider: "ollama" | "openai";
@@ -253,27 +265,185 @@ export function isOllamaInstalled() {
     return fs.existsSync(getOllamaBinary());
 }
 
-function readTestedModels(): Record<string, string[]> {
+export const OLLAMA_MIN_CONTEXT_SIZE = 512;
+export const OLLAMA_MAX_CONTEXT_SIZE = 131_072;
+
+type OllamaModelRecommendation = {
+    context_size: number;
+};
+
+type OllamaRamTier = {
+    // Minimum total RAM in MiB required for this tier.
+    ram: number;
+    recommended_model: string;
+    models: Record<string, OllamaModelRecommendation>;
+};
+
+function normalizeContextSize(value: unknown) {
+    const size = Number(value ?? 0);
+
+    return Number.isFinite(size) && size > 0
+        ? Math.floor(size)
+        : 0;
+}
+
+function getRamMiB() {
+    return Math.floor(os.totalmem() / 1024 / 1024);
+}
+
+/**
+ * meta/ollama.json maps a minimum RAM size in MiB (Raspberry Pi 5 variants)
+ * to the tested models of that tier:
+ *
+ *   "4000": {
+ *     "recommended_model": "gemma3:1b",
+ *     "models": {"gemma3:1b": {"context_size": 4096}}
+ *   }
+ *
+ * The legacy format ("4000": ["gemma3:1b"]) is still accepted.
+ */
+function readModelTiers(): OllamaRamTier[] {
+    let parsed: any;
+
     try {
-        const parsed = JSON.parse(
+        parsed = JSON.parse(
             fs.readFileSync(getModelConfigPath(), "utf8"),
         );
-
-        if (
-            !parsed ||
-            typeof parsed !== "object" ||
-            Array.isArray(parsed)
-        ) {
-            return {};
-        }
-
-        return parsed;
     } catch (error: any) {
         runtimeState.error =
             error?.message ?? "failed to read ollama.json";
 
-        return {};
+        return [];
     }
+
+    if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        Array.isArray(parsed)
+    ) {
+        return [];
+    }
+
+    const tiers: OllamaRamTier[] = [];
+
+    for (const [ramKey, entry] of Object.entries<any>(parsed)) {
+        const ram = Number(ramKey);
+
+        if (!Number.isFinite(ram)) continue;
+
+        const models: Record<string, OllamaModelRecommendation> = {};
+
+        if (Array.isArray(entry)) {
+            for (const model of entry) {
+                const name = String(model ?? "").trim();
+                if (name) models[name] = {context_size: 0};
+            }
+        } else if (entry && typeof entry === "object") {
+            for (const [model, config] of Object.entries<any>(entry.models ?? {})) {
+                const name = String(model ?? "").trim();
+                if (!name) continue;
+
+                models[name] = {
+                    context_size: normalizeContextSize(config?.context_size),
+                };
+            }
+        } else {
+            continue;
+        }
+
+        tiers.push({
+            ram,
+            recommended_model: String(
+                Array.isArray(entry) ? "" : entry.recommended_model ?? "",
+            ).trim(),
+            models,
+        });
+    }
+
+    return tiers.sort((a, b) => a.ram - b.ram);
+}
+
+function getEligibleModelTiers() {
+    const ramMiB = getRamMiB();
+
+    return readModelTiers().filter(({ram}) => ram <= ramMiB);
+}
+
+/**
+ * Recommendations for all models available on this device. Higher RAM tiers
+ * override the context size recommended by lower tiers.
+ */
+function getModelRecommendations() {
+    const recommendations: Record<string, OllamaModelRecommendation> = {};
+
+    for (const tier of getEligibleModelTiers()) {
+        for (const [model, recommendation] of Object.entries(tier.models)) {
+            recommendations[model] = {
+                context_size:
+                    recommendation.context_size ||
+                    recommendations[model]?.context_size ||
+                    0,
+            };
+        }
+    }
+
+    return recommendations;
+}
+
+function getRecommendedOllamaModel() {
+    const tiers = getEligibleModelTiers();
+
+    for (let i = tiers.length - 1; i >= 0; i--) {
+        const model = tiers[i].recommended_model;
+
+        if (model && tiers[i].models[model]) {
+            return model;
+        }
+    }
+
+    return "";
+}
+
+function getRecommendedContextSize(model: string) {
+    if (isExternalAiEnabled()) return 0;
+
+    return getModelRecommendations()[model]?.context_size ?? 0;
+}
+
+/**
+ * Context size used for Ollama requests: the user-defined value wins,
+ * otherwise the recommendation for the model (internal Ollama only),
+ * otherwise 0 which lets Ollama use its own default.
+ */
+export function getEffectiveOllamaContextSize(
+    model = String(getOllamaIntegration().model ?? "").trim(),
+) {
+    if (isExternalOpenAiEnabled()) return 0;
+
+    return (
+        normalizeContextSize(getOllamaIntegration().context_size) ||
+        getRecommendedContextSize(model)
+    );
+}
+
+function withContextSize(
+    data: any,
+    contextSize: number,
+) {
+    if (
+        contextSize <= 0 ||
+        normalizeContextSize(data?.options?.num_ctx) > 0
+    ) {
+        return data;
+    }
+
+    return {
+        ...data,
+        options: {
+            ...(data?.options ?? {}),
+            num_ctx: contextSize,
+        },
+    };
 }
 
 export function getAvailableOllamaModels() {
@@ -281,37 +451,13 @@ export function getAvailableOllamaModels() {
         return [...runtimeState.external_models];
     }
 
-    const ramMiB = Math.floor(os.totalmem() / 1024 / 1024);
-    const testedModels = readTestedModels();
-    const models = new Set<string>();
-
-    Object.entries(testedModels)
-        .map(([ram, entries]) => ({
-            ram: Number(ram),
-            entries,
-        }))
-        .filter(
-            ({ram, entries}) =>
-                Number.isFinite(ram) &&
-                ram <= ramMiB &&
-                Array.isArray(entries),
-        )
-        .sort((a, b) => a.ram - b.ram)
-        .forEach(({entries}) => {
-            for (const model of entries) {
-                const normalized = String(model ?? "").trim();
-
-                if (normalized) {
-                    models.add(normalized);
-                }
-            }
-        });
-
-    return [...models];
+    return Object.keys(getModelRecommendations());
 }
 
 export function getOllamaUpdate(): OllamaUpdate {
     const integration = getOllamaIntegration();
+    const model = String(integration.model ?? "").trim();
+    const external = isExternalAiEnabled();
 
     return {
         enabled: Boolean(integration.enabled),
@@ -319,9 +465,16 @@ export function getOllamaUpdate(): OllamaUpdate {
         running: runtimeState.running,
         installing: runtimeState.installing,
         changing_model: runtimeState.changing_model,
-        model: String(integration.model ?? ""),
+        model,
         models: getAvailableOllamaModels(),
-        ram_mib: Math.floor(os.totalmem() / 1024 / 1024),
+        recommended_model: external ? "" : getRecommendedOllamaModel(),
+        model_recommendations: external ? {} : getModelRecommendations(),
+        context_size: normalizeContextSize(integration.context_size),
+        recommended_context_size: getRecommendedContextSize(model),
+        effective_context_size: getEffectiveOllamaContextSize(model),
+        min_context_size: OLLAMA_MIN_CONTEXT_SIZE,
+        max_context_size: OLLAMA_MAX_CONTEXT_SIZE,
+        ram_mib: getRamMiB(),
         external: Boolean(integration.external),
         external_provider: getExternalAiProvider(),
         external_url: String(
@@ -913,14 +1066,19 @@ async function preloadConfiguredOllamaModel() {
     );
 
     try {
+        // Preload with the same num_ctx as the chat requests, otherwise Ollama
+        // reloads the model on the first real request.
         await getOllamaApi().post(
             "/api/generate",
-            {
-                model,
-                prompt: "",
-                stream: false,
-                keep_alive: -1,
-            },
+            withContextSize(
+                {
+                    model,
+                    prompt: "",
+                    stream: false,
+                    keep_alive: -1,
+                },
+                getEffectiveOllamaContextSize(model),
+            ),
             {
                 timeout: isExternalOllamaEnabled()
                     ? OLLAMA_NON_CHAT_TIMEOUT
@@ -1134,11 +1292,16 @@ export async function directOllamaRequest(
                 requestPath === "/api/generate"
             )
         ) {
-            requestData = {
-                ...requestData,
-                think: false,
-                keep_alive: -1,
-            };
+            requestData = withContextSize(
+                {
+                    ...requestData,
+                    think: false,
+                    keep_alive: -1,
+                },
+                getEffectiveOllamaContextSize(
+                    String(requestData.model ?? "").trim(),
+                ),
+            );
         }
 
         const requestedTimeout = Number(data?.timeout ?? 0);
@@ -1223,29 +1386,21 @@ export async function aiChatRequest(
         }
     }
 
-    const normalizedContextSize =
-        Number.isFinite(contextSize) &&
-        contextSize > 0
-            ? Math.floor(contextSize)
-            : 0;
-
+    // A per-request context size overrides the configured one. Without it,
+    // directOllamaRequest applies the configured/recommended context size.
     const response = await directOllamaRequest({
         path: "/api/chat",
         method: "POST",
         timeout,
-        data: {
-            model,
-            messages,
-            stream: false,
-            keep_alive: -1,
-            ...(normalizedContextSize > 0
-                ? {
-                    options: {
-                        num_ctx: normalizedContextSize,
-                    },
-                }
-                : {}),
-        },
+        data: withContextSize(
+            {
+                model,
+                messages,
+                stream: false,
+                keep_alive: -1,
+            },
+            normalizeContextSize(contextSize),
+        ),
     });
 
     return {
@@ -1346,6 +1501,52 @@ async function pullConfiguredOllamaModel() {
 
         emitOllamaUpdate();
     }
+}
+
+/**
+ * Sets the user-defined context size. null/""/0 resets it to automatic
+ * (recommendation from meta/ollama.json or the Ollama default).
+ */
+export async function changeOllamaContextSize(
+    value: unknown,
+) {
+    const automatic =
+        value === null ||
+        value === undefined ||
+        String(value).trim() === "" ||
+        Number(value) === 0;
+
+    const contextSize = automatic ? 0 : Number(value);
+
+    if (
+        !automatic &&
+        (
+            !Number.isInteger(contextSize) ||
+            contextSize < OLLAMA_MIN_CONTEXT_SIZE ||
+            contextSize > OLLAMA_MAX_CONTEXT_SIZE
+        )
+    ) {
+        throw new Error(
+            `context size must be an integer between ${OLLAMA_MIN_CONTEXT_SIZE} and ${OLLAMA_MAX_CONTEXT_SIZE}, or 0 for automatic`,
+        );
+    }
+
+    const previous = getEffectiveOllamaContextSize();
+
+    setOllamaIntegrationContextSize(contextSize);
+
+    // Reload the model with the new num_ctx so the next request is fast.
+    if (
+        isOllamaIntegrationEnabled() &&
+        runtimeState.running &&
+        getEffectiveOllamaContextSize() !== previous
+    ) {
+        await preloadConfiguredOllamaModel();
+    }
+
+    emitOllamaUpdate();
+
+    return getOllamaUpdate();
 }
 
 export async function changeOllamaModel(

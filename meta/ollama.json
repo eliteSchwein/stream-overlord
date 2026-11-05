@@ -1,13 +1,41 @@
 {
-  "2000": [
-    "gemma3:270m"
-  ],
-  "4000": [
-    "gemma3:1b",
-    "qwen3:0.6b"
-  ],
-  "8000": [
-    "qwen3:1.7b",
-    "qwen3:4b-instruct"
-  ]
+  "2000": {
+    "recommended_model": "gemma3:270m",
+    "models": {
+      "gemma3:270m": {
+        "context_size": 4096
+      }
+    }
+  },
+  "4000": {
+    "recommended_model": "gemma3:1b",
+    "models": {
+      "gemma3:270m": {
+        "context_size": 8192
+      },
+      "gemma3:1b": {
+        "context_size": 4096
+      },
+      "qwen3:0.6b": {
+        "context_size": 4096
+      }
+    }
+  },
+  "8000": {
+    "recommended_model": "qwen3:1.7b",
+    "models": {
+      "gemma3:1b": {
+        "context_size": 8192
+      },
+      "qwen3:0.6b": {
+        "context_size": 8192
+      },
+      "qwen3:1.7b": {
+        "context_size": 8192
+      },
+      "qwen3:4b-instruct": {
+        "context_size": 4096
+      }
+    }
+  }
 }

@@ -115,6 +115,10 @@ export type OllamaIntegration = {
     // Internal mode stays managed Ollama with exactly one remembered model.
     internal_model?: string;
 
+    // User-defined Ollama context size (num_ctx). 0/undefined means "use the
+    // recommendation from meta/ollama.json" (internal) or the server default.
+    context_size?: number;
+
     // `external` is kept as the mode flag for compatibility.
     external?: boolean;
     external_provider?: ExternalAiProvider;
@@ -176,6 +180,7 @@ export type SafeIntegrations = {
         enabled: boolean;
         model: string;
         internal_model: string;
+        context_size: number;
         external: boolean;
         external_provider: ExternalAiProvider;
         external_url: string;
@@ -327,6 +332,7 @@ export function getIntegrationsSafe(): SafeIntegrations {
                 enabled: Boolean(integration.enabled),
                 model: String(integration.model ?? ""),
                 internal_model: String(integration.internal_model ?? ""),
+                context_size: Number(integration.context_size ?? 0) || 0,
                 external: Boolean(integration.external),
                 external_provider: provider,
                 external_url: String(activeExternalConfig?.url ?? ""),
@@ -815,6 +821,22 @@ export function setOllamaIntegrationModel(model: string) {
         ).model = normalizedModel;
     } else {
         integrations.ollama.internal_model = normalizedModel;
+    }
+
+    writeIntegrations(integrations);
+    emitIntegrationsUpdate();
+}
+
+export function setOllamaIntegrationContextSize(contextSize: number) {
+    const integrations = readIntegrations();
+
+    integrations.ollama ??= getDefaultOllamaIntegration();
+    migrateOllamaIntegration(integrations.ollama);
+
+    if (Number.isFinite(contextSize) && contextSize > 0) {
+        integrations.ollama.context_size = Math.floor(contextSize);
+    } else {
+        delete integrations.ollama.context_size;
     }
 
     writeIntegrations(integrations);
