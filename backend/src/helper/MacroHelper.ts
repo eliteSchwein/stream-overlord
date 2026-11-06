@@ -28,6 +28,8 @@ import ChannelPointMacroTask from "./MacroTasks/ChannelPointMacroTask";
 import TimerMacroTask from "./MacroTasks/TimerMacroTask";
 import EffectMacroTask from "./MacroTasks/EffectMacroTask";
 import AnimationMacroTask from "./MacroTasks/AnimationMacroTask";
+import CssMacroTask from "./MacroTasks/CssMacroTask";
+import OverlayVariableMacroTask from "./MacroTasks/OverlayVariableMacroTask";
 import KeyboardMacroTask from "./MacroTasks/KeyboardMacroTask";
 import RotateSceneMacroTask from "./MacroTasks/RotateSceneMacroTask";
 import AutoMacroTask from "./MacroTasks/AutoMacroTask";
@@ -712,6 +714,8 @@ export default function loadMacros() {
         new TimerMacroTask(),
         new EffectMacroTask(),
         new AnimationMacroTask(),
+        new CssMacroTask(),
+        new OverlayVariableMacroTask(),
         new KeyboardMacroTask(),
         new RotateSceneMacroTask(),
         new AutoMacroTask(),

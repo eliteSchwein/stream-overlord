@@ -319,7 +319,9 @@ export default class WebServer {
 
                 try {
                     const html = await this.renderHtmlFile(fullPath, resolvedRoot);
-                    const injectedHtml = this.injectTransparentBackgroundCss(html);
+                    const injectedHtml = this.injectBodyControllers(
+                        this.injectTransparentBackgroundCss(html)
+                    );
 
                     res.type("html");
 
@@ -637,6 +639,50 @@ export default class WebServer {
         }
 
         return `${styleTag}\n${html}`;
+    }
+
+    // Controllers every overlay page gets on its <body>, without the template
+    // having to declare them.
+    private readonly bodyControllers = ["css"];
+
+    private injectBodyControllers(html: string): string {
+        const bodyMatch = html.match(/<body\b[^>]*>/i);
+
+        if (!bodyMatch) {
+            // A late <body> start tag still adds its attributes to the implicit
+            // body element, so templates without a body tag are covered too.
+            const bodyTag = `<body data-controller="${this.bodyControllers.join(" ")}">`;
+
+            if (/<\/head>/i.test(html)) {
+                return html.replace(/<\/head>/i, `</head>\n${bodyTag}`);
+            }
+
+            return `${html}\n${bodyTag}`;
+        }
+
+        const bodyTag = bodyMatch[0];
+        const controllerMatch = bodyTag.match(/\sdata-controller\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+
+        let newBodyTag: string;
+
+        if (controllerMatch) {
+            const existing = String(controllerMatch[1] ?? controllerMatch[2] ?? controllerMatch[3] ?? "")
+                .split(/\s+/)
+                .filter(Boolean);
+            const controllers = [...new Set([...existing, ...this.bodyControllers])];
+
+            newBodyTag = bodyTag.replace(
+                controllerMatch[0],
+                () => ` data-controller="${controllers.join(" ")}"`
+            );
+        } else {
+            newBodyTag = bodyTag.replace(
+                /^<body/i,
+                `<body data-controller="${this.bodyControllers.join(" ")}"`
+            );
+        }
+
+        return html.replace(bodyTag, () => newBodyTag);
     }
 
     public getExpress() {

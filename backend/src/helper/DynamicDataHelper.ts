@@ -10,6 +10,7 @@ export type DynamicData = {
     animation_targets: string[];
     timer_names: string[];
     visible_targets: string[];
+    variable_keys: string[];
 };
 
 const REDIS_KEY = "dynamic_data";
@@ -20,6 +21,7 @@ const EMPTY_DYNAMIC_DATA: DynamicData = {
     animation_targets: [],
     timer_names: [],
     visible_targets: [],
+    variable_keys: [],
 };
 
 let dynamicData: DynamicData = cloneDynamicData(EMPTY_DYNAMIC_DATA);
@@ -32,6 +34,7 @@ function cloneDynamicData(data: DynamicData): DynamicData {
         animation_targets: [...data.animation_targets],
         timer_names: [...data.timer_names],
         visible_targets: [...data.visible_targets],
+        variable_keys: [...data.variable_keys],
     };
 }
 
@@ -59,6 +62,9 @@ function normalizeDynamicData(value: any): DynamicData {
         ),
         visible_targets: normalizeValues(
             Array.isArray(value?.visible_targets) ? value.visible_targets : [],
+        ),
+        variable_keys: normalizeValues(
+            Array.isArray(value?.variable_keys) ? value.variable_keys : [],
         ),
     };
 }
@@ -186,6 +192,7 @@ async function parseDynamicData(templateRoot: string): Promise<DynamicData> {
     const animationTargets = new Set<string>();
     const timerNames = new Set<string>();
     const visibleTargets = new Set<string>();
+    const variableKeys = new Set<string>();
 
     const files = await findHtmlFiles(resolvedRoot, resolvedRoot);
 
@@ -237,6 +244,14 @@ async function parseDynamicData(templateRoot: string): Promise<DynamicData> {
             );
 
             collectVisibleControllerTargets(html, visibleTargets);
+
+            collectAttributeValues(
+                html,
+                "data-variable-key",
+                variableKeys,
+                filePath,
+                resolvedRoot,
+            );
         }),
     );
 
@@ -246,6 +261,7 @@ async function parseDynamicData(templateRoot: string): Promise<DynamicData> {
         animation_targets: normalizeValues(animationTargets),
         timer_names: normalizeValues(timerNames),
         visible_targets: normalizeValues(visibleTargets),
+        variable_keys: normalizeValues(variableKeys),
     };
 
     return result;

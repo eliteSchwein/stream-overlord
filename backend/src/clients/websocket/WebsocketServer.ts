@@ -23,6 +23,7 @@ import {getPlaylistUpdatePayload, getSongRequestUpdatePayload, getStatus} from "
 import {getManagedConnections, setConnectionUpdateNotifier} from "../../helper/ConnectionHelper";
 import {getSystemStorageInfo} from "../../helper/SystemStorageHelper";
 import {emitVariablesUpdate} from "../../helper/VariableHelper";
+import {getCssOverrides} from "../../helper/CssOverrideHelper";
 import {getIntegrationsSafe} from "../../helper/IntegrationsHelper";
 import {getUpdateManagerStatus} from "../../helper/UpdateHelper";
 import {getOllamaUpdate} from "../../helper/OllamaHelper";
@@ -144,6 +145,8 @@ export default class WebsocketServer {
         'notify_music_show',
         'notify_music_update',
         'notify_animation_update',
+        'notify_css_update',
+        'notify_overlay_variable',
         'notify_audio_outputs_update',
         'notify_audio_presets_update',
         'notify_media_update',
@@ -708,6 +711,12 @@ export default class WebsocketServer {
 
                 if (!endpointFilter || endpointFilter.has('notify_variables_update')) {
                     void emitVariablesUpdate(client)
+                }
+
+                if (!endpointFilter || endpointFilter.has('notify_css_update')) {
+                    for (const override of getCssOverrides()) {
+                        initialSend("notify_css_update", {action: "set", ...override})
+                    }
                 }
 
                 if (!endpointFilter || endpointFilter.has('notify_visible_element')) {
