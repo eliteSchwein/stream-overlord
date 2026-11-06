@@ -6,6 +6,7 @@ import fillTemplate from "../TemplateHelper";
 import {sleep} from "../../../../helper/GeneralHelper";
 import {disableRandomClips, enableRandomClips} from "../RandomClipsHelper";
 import {upsertStreamerClip} from "../StreamerClipCacheHelper";
+import {getTwitchUserObject} from "../TwitchUserInfoHelper";
 
 export default class TwitchMacroTask extends BaseMacroTask {
     channel = "twitch";
@@ -378,6 +379,28 @@ export default class TwitchMacroTask extends BaseMacroTask {
                         is_featured: clip.isFeatured,
                     });
 
+                    break;
+                }
+
+                case "user_info": {
+                    // accepts a login, an id or a user object (e.g. ${user})
+                    const rawUser = resolveTemplateValue(data.user);
+                    const query = rawUser && typeof rawUser === "object"
+                        ? String(rawUser.id ?? rawUser.name ?? "").trim()
+                        : text(data.user).replace(/^@/, "");
+
+                    if (!query) {
+                        logWarn("twitch user_info requires user");
+                        return;
+                    }
+
+                    const info = await getTwitchUserObject(query);
+
+                    if (!info) {
+                        logWarn(`twitch user_info: user not found: ${query}`);
+                    }
+
+                    storeResult(info ?? null);
                     break;
                 }
 

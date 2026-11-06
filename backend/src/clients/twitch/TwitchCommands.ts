@@ -30,6 +30,8 @@ import {translate} from "../../helper/LocaleHelper";
 import {checkTwitchAccessRequirements, formatAccessDuration, formatSubTier} from "../../helper/TwitchAccessRequirementHelper";
 import {stripEmotes} from "../../helper/DataHelper";
 import {stripUrlsAndNormalizeWhitespace} from "../../helper/EmojiHelper";
+import {buildTwitchUserObject} from "../../helper/TwitchUserInfoHelper";
+import {attachTwitchUserVariables} from "../../helper/TwitchUserVariableHelper";
 import FollowAgeCommand from "./commands/FollowAgeCommand";
 import SubTimeCommand from "./commands/SubTimeCommand";
 function atomicWriteFileSync(filePath: string, content: string | Buffer, encoding: BufferEncoding = "utf8") {
@@ -1270,6 +1272,10 @@ function buildConfigCommand(command: string, option: any, bot: Bot, twitchClient
                         ...(interactionUuid ? {interactionUuid} : {}),
                     };
 
+                    if (configuredAsset) {
+                        await attachTwitchUserVariables(interactionVariables, [configuredAsset]);
+                    }
+
                     if (configuredAsset && assetName) {
                         addAlert({
                             asset: assetName,
@@ -1416,25 +1422,7 @@ async function parseConfigParams(
                 return { ok: false };
             }
 
-            let gameName = "";
-
-            try {
-                const stream = await bot.api.streams.getStreamByUserId(user.id);
-                gameName = stream?.gameName ?? "";
-            } catch (_) {
-                logWarn(`failed to fetch category for command user ${user.displayName}`);
-            }
-
-            params[paramOptions.name] = {
-                id: user.id,
-                name: user.name,
-                displayName: user.displayName,
-                description: user.description,
-                profilePictureUrl: user.profilePictureUrl,
-                broadcasterType: user.broadcasterType,
-                creationDate: user.creationDate,
-                gameName,
-            };
+            params[paramOptions.name] = await buildTwitchUserObject(user);
 
             paramIndex++;
             continue;

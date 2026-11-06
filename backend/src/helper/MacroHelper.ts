@@ -29,6 +29,8 @@ import TimerMacroTask from "./MacroTasks/TimerMacroTask";
 import EffectMacroTask from "./MacroTasks/EffectMacroTask";
 import AnimationMacroTask from "./MacroTasks/AnimationMacroTask";
 import CssMacroTask from "./MacroTasks/CssMacroTask";
+import FormatMacroTask from "./MacroTasks/FormatMacroTask";
+import {attachTwitchUserVariables} from "./TwitchUserVariableHelper";
 import OverlayVariableMacroTask from "./MacroTasks/OverlayVariableMacroTask";
 import KeyboardMacroTask from "./MacroTasks/KeyboardMacroTask";
 import RotateSceneMacroTask from "./MacroTasks/RotateSceneMacroTask";
@@ -715,6 +717,7 @@ export default function loadMacros() {
         new EffectMacroTask(),
         new AnimationMacroTask(),
         new CssMacroTask(),
+        new FormatMacroTask(),
         new OverlayVariableMacroTask(),
         new KeyboardMacroTask(),
         new RotateSceneMacroTask(),
@@ -1052,6 +1055,9 @@ export async function triggerMacro(name: string, variables: any = {}) {
     }
 
     const tasks = macros[name]?.tasks ?? [];
+
+    // ${user} / ${gifter} with follow, sub, mod, ... data, loaded only if used
+    await attachTwitchUserVariables(variables, [tasks]);
 
     logNotice(`trigger ${tasks.length} tasks from ${name} macro`);
 

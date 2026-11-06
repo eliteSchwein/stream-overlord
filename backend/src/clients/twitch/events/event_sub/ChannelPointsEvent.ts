@@ -6,6 +6,7 @@ import {addEventToCooldown, isEventFull, removeEventFromCooldown} from "../../he
 import {v4 as uuidv4} from "uuid";
 import {sleep} from "../../../../../../helper/GeneralHelper";
 import {addAlert} from "../../../../helper/AlertHelper";
+import {attachTwitchUserVariables} from "../../../../helper/TwitchUserVariableHelper";
 import {isMacroPresent, triggerMacro} from "../../../../helper/MacroHelper";
 import {enqueueInteraction} from "../../../../helper/InteractionHelper";
 import isShieldActive from "../../../../helper/ShieldHelper";
@@ -282,6 +283,8 @@ export default class ChannelPointsEvent extends BaseEvent {
                     asset &&
                     (asset.video || asset.sound || asset.image || asset.message)
                 ) {
+                    await attachTwitchUserVariables(runtimeVariables, [asset]);
+
                     addAlert({
                         ...asset,
                         asset: configChannelPoint.asset,

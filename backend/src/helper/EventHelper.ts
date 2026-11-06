@@ -2,6 +2,7 @@ import {randomUUID} from "crypto";
 import {getAssetConfig, hasAssetConfigContent} from "./AssetHelper";
 import {addAlert} from "./AlertHelper";
 import {getMacroConfig, hasMacroTasks, interpolateTemplate, triggerMacro} from "./MacroHelper";
+import {attachTwitchUserVariables} from "./TwitchUserVariableHelper";
 import getWebsocketServer from "../App";
 import {enqueueInteraction} from "./InteractionHelper";
 import {logRegular} from "./LogHelper";
@@ -666,6 +667,11 @@ export async function triggerConfiguredEvent(
             eventUuid,
             ...(interactionUuid ? {interactionUuid} : {}),
         };
+
+        await attachTwitchUserVariables(eventVariables, [
+            configuredAsset,
+            hasMacro ? getMacroConfig(normalizedConfigName)?.tasks : null,
+        ]);
 
         if (hasMacro) {
             await triggerMacro(normalizedConfigName, eventVariables);

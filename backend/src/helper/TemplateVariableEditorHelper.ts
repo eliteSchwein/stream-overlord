@@ -1,5 +1,7 @@
 import {randomUUID} from "crypto";
 import {getTemplateVariables} from "./TemplateHelper";
+import {getExampleTwitchUserObject} from "./TwitchUserInfoHelper";
+import {addExampleTwitchUserVariables} from "./TwitchUserVariableHelper";
 
 type TemplateEditorContext = "auto" | "macro" | "event" | "command" | "channel_point" | "timer" | "auto_macro";
 
@@ -110,7 +112,7 @@ function getCommandParamExample(param: any) {
         case "number":
             return 1;
         case "user":
-            return "TestUser";
+            return getExampleTwitchUserObject();
         case "subcommand":
             return param?.subcommands?.[0]?.name ?? "example";
         case "all":
@@ -378,10 +380,10 @@ export function getEditorTemplateVariables(input: any = {}) {
     const customVariables = input?.variables && typeof input.variables === "object" && !Array.isArray(input.variables)
         ? input.variables
         : {};
-    const payload = {
+    const payload = addExampleTwitchUserVariables({
         ...contextPayload.payload,
         ...customVariables,
-    };
+    });
     // Mirror triggerMacro() exactly: global template roots are created first,
     // then the raw runtime payload is spread on top. This keeps editor
     // autocomplete paths identical to what the macro interpolator can resolve.
