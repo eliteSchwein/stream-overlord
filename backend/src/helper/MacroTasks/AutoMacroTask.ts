@@ -1,6 +1,37 @@
 import BaseMacroTask from "../../abstracts/BaseMacroTask";
 import {MIN_AUTO_MACRO_INTERVAL_MS, resetTemporaryAutoMacroInterval, setTemporaryAutoMacroInterval, toggleAutoMacro} from "../AutoMacroHelper";
 
+function isSet(value: any) {
+    return value !== undefined && value !== null && value !== "";
+}
+
+function toNumber(value: any) {
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed === "" ? NaN : Number(trimmed);
+    }
+    return Number(value);
+}
+
+function unitFactor(unit: any, fallback: number) {
+    switch (String(unit ?? "").trim().toLowerCase()) {
+        case "ms":
+        case "milliseconds":
+            return 1;
+        case "s":
+        case "seconds":
+            return 1000;
+        case "min":
+        case "minutes":
+            return 60_000;
+        case "h":
+        case "hours":
+            return 3_600_000;
+        default:
+            return fallback;
+    }
+}
+
 export default class AutoMacroTask extends BaseMacroTask {
     getChannel(): string {
         return "auto_macro";
@@ -22,13 +53,15 @@ export default class AutoMacroTask extends BaseMacroTask {
 
             case "set_interval":
             case "temporary_interval": {
-                const intervalMs = data?.interval_ms !== undefined
-                    ? Number(data.interval_ms)
-                    : Number(data?.interval) * 1000;
-                const durationMs = data?.duration_ms !== undefined
-                    ? Number(data.duration_ms)
-                    : data?.duration !== undefined
-                        ? Number(data.duration) * 1000
+                // Values may come from template interpolation (e.g. "${effect_interval}000"),
+                // so they can arrive as strings.
+                const intervalMs = isSet(data?.interval_ms)
+                    ? toNumber(data.interval_ms)
+                    : toNumber(data?.interval) * unitFactor(data?.interval_unit, 1000);
+                const durationMs = isSet(data?.duration_ms)
+                    ? toNumber(data.duration_ms)
+                    : isSet(data?.duration)
+                        ? toNumber(data.duration) * unitFactor(data?.duration_unit, 1000)
                         : undefined;
 
                 if (!Number.isFinite(intervalMs) || intervalMs <= 0) {

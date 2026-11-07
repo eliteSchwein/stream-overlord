@@ -953,6 +953,22 @@ async function executeMacroTask(task: any, variables: any) {
     await macroTask.run(task.channel, task.method, taskData, variables);
 }
 
+// `${var}` keeps the variable's type (e.g. number from function.random) while
+// case inputs from YAML/editor are usually strings, so compare primitives by
+// their string form.
+function switchValuesMatch(input: any, caseInput: any): boolean {
+    if (input === caseInput) return true;
+
+    const isPrimitive = (value: any) =>
+        typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+
+    if (isPrimitive(input) && isPrimitive(caseInput)) {
+        return String(input).trim() === String(caseInput).trim();
+    }
+
+    return false;
+}
+
 function shouldExecute(controlStack: any[]): boolean {
     return controlStack.every(block => block.active);
 }
@@ -1206,7 +1222,7 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
                         const data = task.data ?? {};
                         const caseInput = data.input ?? task.input;
-                        const active = block.input === caseInput;
+                        const active = switchValuesMatch(block.input, caseInput);
 
                         block.active = active;
                         block.matched = active;
