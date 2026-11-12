@@ -37,7 +37,7 @@ mkdir -p \
     "${STAGE_ROOT}"
 
 echo "Downloading Ollama (${OLLAMA_ARCH})..."
-curl --fail --location --retry 3 --output "${ARCHIVE}" "${DOWNLOAD_URL}"
+curl --fail --location --retry 3 --progress-bar --output "${ARCHIVE}" "${DOWNLOAD_URL}"
 
 echo "Extracting Ollama..."
 if tar --help 2>/dev/null | grep -q -- '--zstd'; then

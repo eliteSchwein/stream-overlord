@@ -5,6 +5,15 @@ import * as path from "node:path";
 import {existsSync, mkdirSync, readFileSync, readdirSync} from "node:fs";
 import {getConfig} from "./ConfigHelper";
 import {logError, logNotice, logRegular, logWarn} from "./LogHelper";
+import {
+    createAptProgressTracker,
+    parseGitProgress,
+    parsePercent,
+    runStreaming,
+    scalePercent,
+    type UpdateProgress,
+    type UpdateProgressStage,
+} from "./UpdateProgress";
 
 const execFileAsync = promisify(execFile);
 
@@ -37,6 +46,8 @@ export type UpdateManagerState = {
     update_available: boolean;
     checking: boolean;
     updating: boolean;
+    // Live progress while `updating` is true.
+    progress?: UpdateProgress;
     error?: string;
 };
 
@@ -143,7 +154,103 @@ export function setUpdateManagerNotifier(
 }
 
 function emitUpdateManager() {
+    if (progressEmitTimer) {
+        clearTimeout(progressEmitTimer);
+        progressEmitTimer = undefined;
+    }
+
+    lastProgressEmitAt = Date.now();
     notifier?.("notify_update_manager", getUpdateManagerStatus());
+}
+
+const PROGRESS_EMIT_INTERVAL_MS = 250;
+let lastProgressEmitAt = 0;
+let progressEmitTimer: NodeJS.Timeout | undefined;
+
+// Progress lines can arrive very fast (apt, curl), so throttle them while
+// still guaranteeing the latest state is sent.
+function emitUpdateManagerThrottled() {
+    const elapsed = Date.now() - lastProgressEmitAt;
+
+    if (elapsed >= PROGRESS_EMIT_INTERVAL_MS) {
+        emitUpdateManager();
+        return;
+    }
+
+    if (progressEmitTimer) return;
+
+    progressEmitTimer = setTimeout(() => {
+        progressEmitTimer = undefined;
+        emitUpdateManager();
+    }, PROGRESS_EMIT_INTERVAL_MS - elapsed);
+}
+
+function setProgress(name: string, progress: UpdateProgress) {
+    const state = updateState[name];
+    if (!state?.updating) return;
+
+    state.progress = progress;
+    emitUpdateManagerThrottled();
+}
+
+function setStage(name: string, stage: UpdateProgressStage, percent?: number, message?: string) {
+    setProgress(name, {stage, percent, message});
+}
+
+async function runApt(name: string, packages: string[]) {
+    const tracker = createAptProgressTracker(packages, (progress) => setProgress(name, progress));
+
+    setProgress(name, {stage: "preparing", percent: 0, package_total: packages.length});
+
+    await runStreaming(
+        "sudo",
+        ["-n", "apt-get", "install", "-y", "--only-upgrade", ...tracker.args, ...packages],
+        {env: tracker.env, onLine: tracker.onLine},
+    );
+}
+
+/**
+ * Runs one of the bundled install scripts (ollama/piper). They print
+ * "Downloading ..." / "Extracting ..." / "... installed in ..." and use curl's
+ * progress bar, which is mapped into the given overall range.
+ */
+async function runInstallScript(name: string, script: string, to: number) {
+    const extractAt = scalePercent(85, 0, to);
+    let stage: UpdateProgressStage = "preparing";
+
+    setStage(name, "preparing", 0);
+
+    await runStreaming("bash", [script], {
+        onLine: (line, stream) => {
+            if (/^downloading\b/i.test(line)) {
+                stage = "downloading";
+                setStage(name, stage, 0, line);
+                return;
+            }
+
+            if (/^extracting\b/i.test(line)) {
+                stage = "extracting";
+                setStage(name, stage, extractAt, line);
+                return;
+            }
+
+            if (/installed in/i.test(line)) {
+                setStage(name, "installing", to, line);
+                return;
+            }
+
+            if (stage === "downloading" && stream === "stderr") {
+                const percent = parsePercent(line);
+                if (percent === undefined) return;
+
+                setProgress(name, {
+                    stage,
+                    percent: scalePercent(percent, 0, extractAt),
+                    package_percent: percent,
+                });
+            }
+        },
+    });
 }
 
 function getUpdatingManagerNames(excludeName?: string): string[] {
@@ -393,11 +500,13 @@ function getOllamaInstallScript(): string {
     return script;
 }
 
-async function updateOllama(): Promise<void> {
+async function updateOllama(name: string): Promise<void> {
     const script = getOllamaInstallScript();
 
     logNotice(`updating ollama using ${script}`);
-    await run("bash", [script]);
+    await runInstallScript(name, script, 90);
+
+    setStage(name, "restarting", 90);
 
     try {
         const {restartOllama} = await import("./OllamaHelper");
@@ -482,11 +591,11 @@ function getPiperInstallScript(): string {
     return script;
 }
 
-async function updatePiper(): Promise<void> {
+async function updatePiper(name: string): Promise<void> {
     const script = getPiperInstallScript();
 
     logNotice(`updating piper using ${script}`);
-    await run("bash", [script]);
+    await runInstallScript(name, script, 95);
 
     try {
         const {emitSystemStorageUpdate} = await import("./SystemStorageHelper");
@@ -562,6 +671,7 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
             update_available: previous?.update_available ?? false,
             checking: true,
             updating: previous?.updating ?? false,
+            progress: previous?.progress,
         };
     }
 
@@ -573,6 +683,7 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
         update_available: previousSystem?.update_available ?? false,
         checking: true,
         updating: previousSystem?.updating ?? false,
+        progress: previousSystem?.progress,
     };
 
     emitUpdateManager();
@@ -595,6 +706,7 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
                 updateState[name] = {
                     ...result,
                     updating: updateState[name]?.updating ?? false,
+                    progress: updateState[name]?.progress,
                 };
             } catch (error) {
                 updateState[name] = {
@@ -615,6 +727,7 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
                 updateState.system = {
                     ...(await checkSystemApt(managedPackages)),
                     updating: updateState.system?.updating ?? false,
+                    progress: updateState.system?.progress,
                 };
             } catch (error) {
                 updateState.system = {
@@ -637,15 +750,6 @@ export async function checkUpdates(): Promise<UpdateManagerPayload> {
 }
 
 async function runPostUpdateAction(config: UpdateManagerConfig) {
-    if (config.npm_install) {
-        if (!config.path) {
-            throw new Error("npm_install requires a configured path");
-        }
-
-        logNotice(`running production npm install in ${config.path}`);
-        await run("npm", ["ci", "--omit=dev"], config.path);
-    }
-
     if (config.reload) {
         notifier?.("notify_service_reload", {type: config.reload});
     }
@@ -694,8 +798,10 @@ async function updateManagerInternal(name: string, allowDuringUpdateAll = false)
             const packages = (current?.updates ?? []).map((entry) => entry.package);
 
             if (packages.length > 0) {
-                await run("sudo", ["-n", "apt-get", "install", "-y", "--only-upgrade", ...packages]);
+                await runApt(name, packages);
             }
+
+            setStage(name, "verifying", 100);
 
             const managedPackages = new Set(
                 Object.values(managers)
@@ -703,26 +809,51 @@ async function updateManagerInternal(name: string, allowDuringUpdateAll = false)
                     .filter((packageName): packageName is string => Boolean(packageName)),
             );
 
-            updateState.system = await checkSystemApt(managedPackages);
+            updateState.system = {...await checkSystemApt(managedPackages), progress: undefined};
             emitUpdateManager();
             logNotice("system update completed");
             return updateState.system;
         }
 
         if (config!.ollama) {
-            await updateOllama();
+            await updateOllama(name);
         } else if (config!.piper) {
-            await updatePiper();
+            await updatePiper(name);
         } else if (config!.package) {
-            await run("sudo", ["-n", "apt-get", "install", "-y", "--only-upgrade", config!.package]);
+            await runApt(name, [config!.package]);
         } else {
             if (!config!.path) {
                 throw new Error(`update manager '${name}' has git configured but no path`);
             }
 
+            // Pull takes the first part of the bar, npm install the rest.
+            const pullEnd = config!.npm_install ? 50 : 90;
+
+            setStage(name, "pulling", 0);
             await ensureGitRepository(name, config!);
-            await run("git", ["-C", config!.path, "pull", "--ff-only"]);
+            await runStreaming("git", ["-C", config!.path, "pull", "--ff-only", "--progress"], {
+                env: {...process.env, LC_ALL: "C", LANG: "C"},
+                onLine: (line) => {
+                    const progress = parseGitProgress(line);
+                    if (!progress) return;
+                    setStage(name, "pulling", scalePercent(progress.percent, 0, pullEnd), progress.message);
+                },
+            });
+
+            if (config!.npm_install) {
+                setStage(name, "dependencies", pullEnd, "npm ci --omit=dev");
+                logNotice(`running production npm install in ${config!.path}`);
+                await runStreaming("npm", ["ci", "--omit=dev", "--no-progress"], {
+                    cwd: config!.path,
+                    onLine: (line) => {
+                        // npm has no machine readable progress; show its output.
+                        setStage(name, "dependencies", undefined, line);
+                    },
+                });
+            }
         }
+
+        setStage(name, "verifying", 95);
 
         const checked = config!.ollama
             ? await checkOllama(name)
@@ -732,11 +863,22 @@ async function updateManagerInternal(name: string, allowDuringUpdateAll = false)
                     ? await checkApt(name, config!)
                     : await checkGit(name, config!);
 
-        updateState[name] = checked;
-        emitUpdateManager();
+        if (config!.service || config!.reload) {
+            // Keep the manager marked as updating until the restart is done,
+            // so the progress stays visible.
+            updateState[name] = {
+                ...checked,
+                updating: true,
+                progress: {stage: "restarting", percent: 98},
+            };
+            emitUpdateManager();
+        }
 
         logNotice(`update completed for ${name}`);
         await runPostUpdateAction(config!);
+
+        updateState[name] = checked;
+        emitUpdateManager();
 
         return updateState[name];
     } catch (error) {
@@ -746,6 +888,7 @@ async function updateManagerInternal(name: string, allowDuringUpdateAll = false)
             ...updateState[name],
             checking: false,
             updating: false,
+            progress: undefined,
             error: message,
         };
         emitUpdateManager();

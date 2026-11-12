@@ -31,7 +31,7 @@ ARCHIVE="${TMP_ROOT}/piper.tar.gz"
 mkdir -p "${STAGE_ROOT}" "${TTS_ROOT}/models"
 
 echo "Downloading Piper (${PIPER_ARCH})..."
-curl --fail --location --retry 3 --output "${ARCHIVE}" "${DOWNLOAD_URL}"
+curl --fail --location --retry 3 --progress-bar --output "${ARCHIVE}" "${DOWNLOAD_URL}"
 
 echo "Extracting Piper..."
 tar -xzf "${ARCHIVE}" -C "${STAGE_ROOT}"
