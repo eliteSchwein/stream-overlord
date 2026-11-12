@@ -25,6 +25,8 @@ import {logDebug, logError, logRegular, logSuccess, logWarn} from './LogHelper'
 import {emitMusicEvent} from './MusicEventHelper'
 import {translate} from './LocaleHelper'
 import https from 'https'
+import CavaFeed from "./cava/CavaFeed";
+import type {CavaTarget} from "./cava/CavaWorkerProtocol";
 
 const songRequestPath = '/tmp/songrequests'
 const mpvSocketPath = '/tmp/streambot-music-mpv.sock'
@@ -38,7 +40,23 @@ let musicPath = '$HOME/Music/Streambot'
 let songRequestEnabled = false
 let cavaEnabled = false
 let mpvProcess: ChildProcessWithoutNullStreams | null = null
-const cavaProcesses = new Map<string, ChildProcessWithoutNullStreams>()
+// cava runs in the `cava` worker thread; created on first use.
+let cavaFeed: CavaFeed | undefined
+
+function getCavaFeed() {
+    if (cavaFeed) return cavaFeed
+
+    const websocketServer = getWebsocketServer()
+    const feed = new CavaFeed(frame => websocketServer.sendCavaFrame(frame))
+    cavaFeed = feed
+
+    for (const [target, count] of Object.entries(websocketServer.getCavaConnections())) {
+        feed.setListenerCount(target, Number(count))
+    }
+    websocketServer.setCavaListenerNotifier((target, count) => feed.setListenerCount(target, count))
+
+    return feed
+}
 let mpvEventSocket: Socket | null = null
 let musicUpdateInterval: ReturnType<typeof setInterval> | null = null
 let status: any = null
@@ -286,6 +304,8 @@ export async function startMusicPlayer(restoreModeFromState = true) {
         mpvProcess = null
         stopMpvEventListener()
         stopMusicUpdateInterval()
+        // Publish the stopped state once; there is no periodic sync anymore.
+        void sync().catch(() => undefined)
     })
 
     await waitForMpvSocket()
@@ -358,6 +378,9 @@ export async function stopMusicPlayer() {
     if (existsSync(mpvSocketPath)) {
         unlinkSync(mpvSocketPath)
     }
+
+    // Publish the stopped state once; there is no periodic sync anymore.
+    await sync()
 }
 
 export async function reloadMusicPlayer(restoreModeFromState = false) {
@@ -550,12 +573,52 @@ export async function notifyPlaylistUpdate() {
     getWebsocketServer().send('notify_playlist_update', playlistUpdatePayload)
 }
 
-export async function sync() {
-    status = await getMusicUpdate()
+let syncInFlight: Promise<void> | null = null
+let syncQueued: Promise<void> | null = null
+
+async function runSync(refreshVolume: boolean) {
+    status = await getMusicUpdate(refreshVolume)
 
     writeMusicCrashState(status)
 
     getWebsocketServer().send('notify_music_update', status)
+}
+
+// Explicit sync (after play/pause/next/volume/...): always reflects the state
+// after the caller's command. If a sync is already running, one follow-up sync
+// is queued and shared by every caller that arrives meanwhile.
+export function sync(): Promise<void> {
+    if (!syncInFlight) {
+        syncInFlight = runSync(true).finally(() => {
+            syncInFlight = null
+        })
+        return syncInFlight
+    }
+
+    if (!syncQueued) {
+        syncQueued = syncInFlight
+            .catch(() => undefined)
+            .then(() => {
+                syncQueued = null
+                return sync()
+            })
+    }
+
+    return syncQueued
+}
+
+// Periodic tick: skipped while a sync is still running so slow ticks on a Pi
+// cannot pile up, and uses the cached volume instead of spawning pactl.
+function syncTick() {
+    if (syncInFlight) return
+
+    syncInFlight = runSync(false).finally(() => {
+        syncInFlight = null
+    })
+
+    syncInFlight.catch(error => {
+        logWarn(`[mpv] music update failed: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`)
+    })
 }
 
 export async function show() {
@@ -816,9 +879,50 @@ export async function deleteSong(filename: string) {
     }
 }
 
-async function getMusicUpdate() {
+const MUSIC_UPDATE_INTERVAL_MS = 1000
+// Volume can also change outside the app (pavucontrol, audio presets), so the
+// periodic tick still re-reads it, just not every tick.
+const VOLUME_REFRESH_INTERVAL_MS = 5000
+
+let cachedVolume: number | null = null
+let cachedVolumeAt = 0
+
+async function getMusicVolume(forceRefresh: boolean) {
+    const now = Date.now()
+
+    if (forceRefresh || cachedVolume === null || now - cachedVolumeAt >= VOLUME_REFRESH_INTERVAL_MS) {
+        cachedVolume = await getPipewireSinkOutputVolumePercent(streambotMusicConfigName)
+        cachedVolumeAt = now
+    }
+
+    return cachedVolume
+}
+
+// A directory's mtime changes whenever an entry is added, removed or renamed,
+// so one stat replaces a full readdir per tick.
+const musicFileCountCache = new Map<string, {mtimeMs: number; count: number}>()
+
+function getCachedMusicFileCount(directory: string, count: () => number) {
+    let mtimeMs: number
+
+    try {
+        mtimeMs = statSync(directory).mtimeMs
+    } catch {
+        musicFileCountCache.delete(directory)
+        return 0
+    }
+
+    const cached = musicFileCountCache.get(directory)
+    if (cached && cached.mtimeMs === mtimeMs) return cached.count
+
+    const value = count()
+    musicFileCountCache.set(directory, {mtimeMs, count: value})
+    return value
+}
+
+async function getMusicUpdate(refreshVolume = true) {
     const current = await getCurrentMusic()
-    const volume = await getPipewireSinkOutputVolumePercent(streambotMusicConfigName)
+    const volume = await getMusicVolume(refreshVolume)
     const thumbnail = await getMusicThumbnailUpdate(current.path)
     const shuffle = musicShuffleEnabled
     const loopPlaylist = await mpvGetProperty('loop-playlist')
@@ -844,8 +948,8 @@ async function getMusicUpdate() {
         thumbnail,
         track: current,
         playlist_length: songRequestEnabled
-            ? getSongRequestFiles().filter(file => isMusicFile(file)).length
-            : getRegularMusicFiles().length,
+            ? getCachedMusicFileCount(songRequestPath, () => getSongRequestFiles().filter(file => isMusicFile(file)).length)
+            : getCachedMusicFileCount(musicPath, () => getRegularMusicFiles().length),
         songrequest: getSongRequestState(),
     }
 }
@@ -1049,6 +1153,12 @@ function readMusicCrashState(): MusicCrashState | null {
     }
 }
 
+// Progress changes every tick; the rest only on real changes. Write
+// immediately on real changes and at most every 10 s for progress alone.
+const MUSIC_STATE_PROGRESS_WRITE_INTERVAL_MS = 10_000
+let lastMusicStateSignature: string | null = null
+let lastMusicStateWriteAt = 0
+
 function writeMusicCrashState(data: any) {
     const track = data?.track ?? {}
     const trackPath = track.path ?? null
@@ -1078,10 +1188,23 @@ function writeMusicCrashState(data: any) {
         updated_at: new Date().toISOString(),
     }
 
+    const {progress: _progress, updated_at: _updatedAt, ...stableState} = state as any
+    const signature = JSON.stringify(stableState)
+    const now = Date.now()
+
+    if (
+        signature === lastMusicStateSignature
+        && now - lastMusicStateWriteAt < MUSIC_STATE_PROGRESS_WRITE_INTERVAL_MS
+    ) {
+        return
+    }
+
     try {
         const tmpPath = `${musicStatePath}.tmp`
         writeFileSync(tmpPath, JSON.stringify(state, null, 2))
         renameSync(tmpPath, musicStatePath)
+        lastMusicStateSignature = signature
+        lastMusicStateWriteAt = now
     } catch (error) {
         logWarn('failed to write music crash state')
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
@@ -1205,11 +1328,8 @@ async function applyMusicCrashState() {
 function startMusicUpdateInterval() {
     stopMusicUpdateInterval()
 
-    musicUpdateInterval = setInterval(() => {
-        sync().catch(error => {
-            logWarn(`[mpv] music update failed: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`)
-        })
-    }, 1000)
+    // The only periodic music update (the scheduler no longer calls sync()).
+    musicUpdateInterval = setInterval(syncTick, MUSIC_UPDATE_INTERVAL_MS)
 }
 
 function stopMusicUpdateInterval() {
@@ -1730,43 +1850,31 @@ export function startCavaFeed() {
         return
     }
 
+    const targets: CavaTarget[] = []
+
     for (const config of configs) {
         const configPath = getCavaConfigPath(config.target)
 
         writeFileSync(configPath, buildCavaConfig(config.values, config.source))
 
-        const process = spawn('cava', ['-p', configPath])
-        cavaProcesses.set(config.target, process)
-
-        logRegular(`cava ${config.target} created`)
         logDebug(`cava ${config.target} config: ${configPath}`)
         logDebug(`cava ${config.target} values: ${JSON.stringify(config.values)}`)
 
-        process.stdout.on('data', data => {
-            getWebsocketServer().sendCava(config.target, data.toString(), config.bars, config.framerate, config.source)
-        })
-
-        process.stderr.on('data', data => {
-            logDebug(`cava ${config.target} ${data.toString().trim()}`)
-        })
-
-        process.on('exit', () => {
-            cavaProcesses.delete(config.target)
-        })
-
-        process.on('error', error => {
-            logWarn(`cava${config.target} failed to start: ${error.message}`)
-            cavaProcesses.delete(config.target)
+        targets.push({
+            target: config.target,
+            configPath,
+            bars: config.bars,
+            framerate: config.framerate,
+            source: config.source,
         })
     }
+
+    // The worker spawns cava and turns its output into ready-to-send frames.
+    getCavaFeed().start(targets)
 }
 
 function stopCavaFeed() {
-    for (const process of cavaProcesses.values()) {
-        process.kill()
-    }
-
-    cavaProcesses.clear()
+    cavaFeed?.stop()
 }
 
 function getSystemCavaConfig(): any {

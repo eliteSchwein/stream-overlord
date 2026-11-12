@@ -199,7 +199,34 @@ function resolveMediaFile(reference: string, assetName: string): string | undefi
     return resolved;
 }
 
+// ffprobe is a blocking spawnSync and asset configs are re-normalized on every
+// load, so cache each media file's result until the file itself changes.
+const mediaDurationCache = new Map<string, {key: string; duration: number | undefined}>();
+
 function probeMediaDuration(mediaFile: string, assetName: string): number | undefined {
+    let cacheKey: string | undefined;
+
+    try {
+        const stat = fs.statSync(mediaFile);
+        cacheKey = `${stat.size}:${stat.mtimeMs}`;
+        const cached = mediaDurationCache.get(mediaFile);
+        if (cached && cached.key === cacheKey) {
+            return cached.duration;
+        }
+    } catch {
+        // Fall through to ffprobe, which reports the error.
+    }
+
+    const duration = probeMediaDurationUncached(mediaFile, assetName);
+
+    if (cacheKey) {
+        mediaDurationCache.set(mediaFile, {key: cacheKey, duration});
+    }
+
+    return duration;
+}
+
+function probeMediaDurationUncached(mediaFile: string, assetName: string): number | undefined {
 
     const result = spawnSync("ffprobe", [
         "-v", "error",
@@ -679,7 +706,49 @@ function relativeAssetConfigPath(filePath: string) {
     return path.relative(getAssetConfigDirectory(), filePath).replace(/\\/g, "/");
 }
 
+// While set, name lookups resolve from a single directory walk instead of
+// re-walking and re-parsing every asset config per lookup. Only active inside
+// withAssetConfigFileIndex(), so file changes outside that scope are always seen.
+let assetConfigFileIndex: Map<string, string> | null = null;
+
+function buildAssetConfigFileIndex() {
+    const index = new Map<string, string>();
+
+    for (const filePath of walkAssetConfigFiles(getAssetConfigDirectory())) {
+        const fileName = getAssetNameFromConfigFile(filePath);
+
+        try {
+            const assetConfig = readAssetConfigFile(filePath) as any;
+            const assetName = assetConfig?.name ?? fileName;
+            if (!index.has(assetName)) index.set(assetName, filePath);
+        } catch (error) {
+            logRegular(`failed to inspect asset config file ${filePath}`);
+        }
+
+        if (!index.has(fileName)) index.set(fileName, filePath);
+    }
+
+    return index;
+}
+
+export function withAssetConfigFileIndex<T>(fn: () => T): T {
+    if (assetConfigFileIndex) return fn();
+
+    ensureAssetConfigDirectory();
+    assetConfigFileIndex = buildAssetConfigFileIndex();
+
+    try {
+        return fn();
+    } finally {
+        assetConfigFileIndex = null;
+    }
+}
+
 function findAssetConfigFileByName(name: string): string | undefined {
+    if (assetConfigFileIndex) {
+        return assetConfigFileIndex.get(name);
+    }
+
     ensureAssetConfigDirectory();
 
     for (const filePath of walkAssetConfigFiles(getAssetConfigDirectory())) {

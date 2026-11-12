@@ -7,6 +7,7 @@ import getWebsocketServer from "../../App";
 import RotatingSceneEvent from "./events/RotatingSceneEvent";
 import InputUpdateEvent from "./events/InputUpdateEvent";
 import _ = require("lodash");
+import {createWorkerOBSWebSocket} from "./worker/WorkerOBSWebSocket";
 import {triggerConfiguredEvent} from "../../helper/EventHelper";
 
 type OBSConfig = {
@@ -162,7 +163,8 @@ export class OBSClient {
         this.connections[name] = connection
 
         try {
-            connection.obsWebsocket = new OBSWebSocket()
+            // Each OBS connection runs in its own worker thread (`obs-<name>`).
+            connection.obsWebsocket = createWorkerOBSWebSocket(name)
 
             await new Promise<void>((resolve, reject) => {
                 const timeout = setTimeout(() => {

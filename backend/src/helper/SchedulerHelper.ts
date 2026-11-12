@@ -7,7 +7,6 @@ import {fetchVoices} from "./TTShelper";
 import {updateAutoMacros} from "./AutoMacroHelper";
 import {updateGiveaway} from "./GiveawayHelper";
 import {pulseHeartbeatLeds} from "./NeopixelHelper";
-import {sync} from "./MusicHelper";
 import {getTwitchClient} from "../App";
 import {getCachedTwitchStream, updateTwitchStreamData} from "./TwitchDataHelper";
 import {refreshStreamerClipCache} from "./StreamerClipCacheHelper";
@@ -68,10 +67,8 @@ export default function initialSchedulers() {
         void getYoloboxClient()?.checkConnection()
     }, 500)
 
-    // fastest scheduler (250 ms)
-    setInterval(() => {
-        void sync()
-    }, 250)
+    // Music status is updated by MusicHelper's own interval while the player
+    // runs (and by explicit sync() calls after player actions).
 }
 
 export async function updateAdData() {

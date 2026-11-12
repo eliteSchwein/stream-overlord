@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {getSystemConfigDirectory} from "./ConfigHelper";
 import {logWarn} from "./LogHelper";
+import {compileScssInWorker} from "./sass/SassCompiler";
 
 const fontExtensions = new Set([
     ".ttf",
@@ -308,14 +309,12 @@ async function compileStyle(
     if (mode === "css") return content;
 
     try {
-        const sass = await import("sass");
-        const result = sass.compileString(content, {
-            style: "expanded",
-            url: new URL(`file://${path.join(stylesRoot, fileName)}`),
-            loadPaths: [stylesRoot, customizationRoot, fontsRoot],
-        });
-
-        return result.css;
+        // Compiled in the `sass` worker thread so it never blocks the main loop.
+        return await compileScssInWorker(
+            content,
+            new URL(`file://${path.join(stylesRoot, fileName)}`).toString(),
+            [stylesRoot, customizationRoot, fontsRoot],
+        );
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         throw new Error(`SCSS compilation failed: ${message}`);

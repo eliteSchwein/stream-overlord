@@ -49,6 +49,7 @@ export default class WebsocketServer {
     private pendingFlushTimers = new WeakMap<any, NodeJS.Timeout>();
     private readonly localBufferedAmountLimit = 4 * 1024 * 1024;
     private readonly cavaBufferedAmountLimit = 256 * 1024;
+    private cavaListenerNotifier?: (target: string, count: number) => void;
     private heartbeatTimer?: NodeJS.Timeout;
     private readonly statefulEndpoints = new Set<string>([
         'notify_interaction_queue',
@@ -246,6 +247,7 @@ export default class WebsocketServer {
 
         this.cavaConnections.get(target)!.add(connection)
         logRegular(`cava websocket connected: ${target}`)
+        this.notifyCavaListeners(target)
 
         const initialFrame = this.cavaLastFrames.get(target)
         if (initialFrame !== undefined && connection.readyState === WebSocket.OPEN) {
@@ -263,7 +265,22 @@ export default class WebsocketServer {
             const connections = this.cavaConnections.get(target)
             connections?.delete(connection)
             if (connections?.size === 0) this.cavaConnections.delete(target)
+            this.notifyCavaListeners(target)
         })
+    }
+
+    // The cava worker only encodes/posts frames for targets with listeners.
+    public setCavaListenerNotifier(callback?: (target: string, count: number) => void) {
+        this.cavaListenerNotifier = callback
+    }
+
+    private notifyCavaListeners(target: string) {
+        try {
+            this.cavaListenerNotifier?.(target, this.cavaConnections.get(target)?.size ?? 0)
+        } catch (error) {
+            logError("cava listener notifier failed")
+            logError(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+        }
     }
 
     public isCavaConnection(connection: any): boolean {
@@ -271,21 +288,38 @@ export default class WebsocketServer {
     }
 
     public sendCava(target: string, raw: string, bars: number, framerate: number, source: 'music' | 'tts' | 'alert' = 'music'): number {
-        this.cavaBars.set(target, bars)
-        this.cavaFramerates.set(target, framerate)
-        this.cavaSources.set(target, source)
         if (this.cavaLastFrames.get(target) === raw) return 0
+        if (!this.cavaConnections.get(target)?.size) {
+            this.cavaLastFrames.set(target, raw)
+            return 0
+        }
+
+        return this.sendCavaFrame({
+            target,
+            raw,
+            bars,
+            framerate,
+            source,
+            payload: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'notify_music_cava',
+                params: {target, bars, framerate, source, raw},
+                id: getRandomInt(10_000),
+            }),
+        })
+    }
+
+    // Frames from the cava worker arrive deduped and already encoded; this only
+    // writes the payload to the target's overlay sockets.
+    public sendCavaFrame(frame: {target: string, raw: string, payload: string, bars: number, framerate: number, source: string}): number {
+        const {target, raw, payload} = frame
+        this.cavaBars.set(target, frame.bars)
+        this.cavaFramerates.set(target, frame.framerate)
+        this.cavaSources.set(target, frame.source)
         this.cavaLastFrames.set(target, raw)
 
         const connections = this.cavaConnections.get(target)
         if (!connections?.size) return 0
-
-        const payload = JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'notify_music_cava',
-            params: {target, bars, framerate, source, raw},
-            id: getRandomInt(10_000),
-        })
 
         let delivered = 0
         for (const connection of Array.from(connections)) {
@@ -310,7 +344,10 @@ export default class WebsocketServer {
             }
         }
 
-        if (connections.size === 0) this.cavaConnections.delete(target)
+        if (connections.size === 0) {
+            this.cavaConnections.delete(target)
+            this.notifyCavaListeners(target)
+        }
         return delivered
     }
 

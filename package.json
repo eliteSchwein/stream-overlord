@@ -8,8 +8,8 @@
     "start:backend": "node backend/dist/index.js --max-old-space-size=1024 --expose-gc",
     "start:backend:dev": "mkdir -p /tmp/streambot-node-diagnostics && node --max-old-space-size=1024 --expose-gc --inspect=0.0.0.0:3000 --heapsnapshot-signal=SIGUSR2 --report-on-fatalerror --report-uncaught-exception --report-directory=/tmp/streambot-node-diagnostics --trace-deprecation --trace-warnings --trace-uncaught backend/dist/index.js",
     "build": "npm run build:backend",
-    "build:backend": "npm run generate:backend-api-index && esbuild backend/src/App.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --external:onoff --outfile=backend/dist/index.js",
-    "build:backend:dev": "npm run generate:backend-api-index && esbuild backend/src/App.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --external:onoff --outfile=backend/dist/index.js"
+    "build:backend": "npm run generate:backend-api-index && esbuild index=backend/src/App.ts eventsub-worker=backend/src/clients/twitch/eventsub/EventSubWorker.ts obs-worker=backend/src/clients/obs/worker/OBSWorker.ts sass-worker=backend/src/helper/sass/SassWorker.ts cava-worker=backend/src/helper/cava/CavaWorker.ts cloud-worker=backend/src/clients/cloud/worker/CloudWorker.ts --tree-shaking=true --target=es2020 --bundle --minify --color=true --platform=node --external:onoff --outdir=backend/dist",
+    "build:backend:dev": "npm run generate:backend-api-index && esbuild index=backend/src/App.ts eventsub-worker=backend/src/clients/twitch/eventsub/EventSubWorker.ts obs-worker=backend/src/clients/obs/worker/OBSWorker.ts sass-worker=backend/src/helper/sass/SassWorker.ts cava-worker=backend/src/helper/cava/CavaWorker.ts cloud-worker=backend/src/clients/cloud/worker/CloudWorker.ts --watch --tree-shaking=true --target=es2020 --bundle --color=true --platform=node --external:onoff --outdir=backend/dist"
   },
   "repository": {
     "type": "git",

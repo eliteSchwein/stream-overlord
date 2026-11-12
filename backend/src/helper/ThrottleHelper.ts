@@ -1,9 +1,13 @@
 import {logDebug, logWarn} from "./LogHelper";
-import {execFileSync} from "node:child_process";
+import {execFile, execFileSync} from "node:child_process";
+import {promisify} from "node:util";
 import getWebsocketServer from "../App";
+
+const execFileAsync = promisify(execFile);
 
 let throttleActive = false;
 let vcgencmdAvailable: boolean | undefined;
+let throttleCheckInFlight = false;
 
 const UNDERVOLTED = 0x1;
 const CAPPED = 0x2;
@@ -30,13 +34,23 @@ function hasVcgencmd(): boolean {
 }
 
 export async function checkThrottle() {
+    // One-time detection (cached); stays synchronous.
     if (!hasVcgencmd()) {
         return;
     }
 
+    // Runs every second from the scheduler; never let checks overlap.
+    if (throttleCheckInFlight) {
+        return;
+    }
+
+    throttleCheckInFlight = true;
+
     try {
-        const output = execFileSync("vcgencmd", ["get_throttled"], {
-            encoding: "utf8"
+        // Async so the main thread is not blocked while vcgencmd runs.
+        const {stdout: output} = await execFileAsync("vcgencmd", ["get_throttled"], {
+            encoding: "utf8",
+            timeout: 5_000,
         });
 
         const hexString = output.split("=")[1]?.trim();
@@ -68,6 +82,8 @@ export async function checkThrottle() {
     } catch (error) {
         logDebug("throttle update failed:");
         logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    } finally {
+        throttleCheckInFlight = false;
     }
 }
 

@@ -5,6 +5,7 @@ import buildCommands from "./TwitchCommands";
 import {EventSubWsListener} from "@twurple/eventsub-ws";
 import {logNotice, logRegular, logSuccess, logWarn} from "../../helper/LogHelper";
 import {setManagedConnection} from "../../helper/ConnectionHelper";
+import EventSubWorkerBridge from "./eventsub/EventSubWorkerBridge";
 
 // regular EasyBot events
 import SubEvent from "./events/SubEvent";
@@ -63,7 +64,10 @@ export default class TwitchClient {
     protected controlAuthUserId?: string;
     protected messageAuthUserId?: string;
 
+    // Main-thread shadow listener: event classes register on it, the real
+    // WebSocket runs in the worker owned by eventSubWorker.
     protected eventSub?: EventSubWsListener;
+    protected eventSubWorker?: EventSubWorkerBridge;
 
     private controlAuthProvider?: any;
     private twitchConfig?: any;
@@ -121,6 +125,19 @@ export default class TwitchClient {
                 await this.safeRegister(name, register);
             }
         }));
+    }
+
+    // easy-bot's Bot always opens an IRC chat connection in its constructor
+    // (chatClientOptions: null does not prevent it). Bots that are only used
+    // for `.api` close it immediately; quit() is a manual disconnect, so the
+    // chat client does not reconnect.
+    private closeUnusedChat(bot: Bot, label: string) {
+        try {
+            bot.chat.quit();
+        } catch (error) {
+            logWarn(`failed to close unused ${label} chat connection`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
     }
 
     private async loadStoredAuthUserId(auth: TwitchAuth, type: "message" | "control") {
@@ -196,6 +213,7 @@ export default class TwitchClient {
                 channels: [],
                 chatClientOptions: null,
             });
+            this.closeUnusedChat(this.messageBot, "message bot");
 
             const messageAuthUserId = await this.loadStoredAuthUserId(this.messageAuth, "message");
             await this.validateAuthConnection(this.messageBot, messageAuthUserId, "message");
@@ -376,14 +394,15 @@ export default class TwitchClient {
         // Stop EventSub first. Its subscriptions belong to the WebSocket session and
         // Twitch disables them when the session disconnects. Awaiting the stop also
         // prevents a replacement connection from racing the old socket teardown.
-        const eventSub = this.eventSub;
+        const eventSubWorker = this.eventSubWorker;
+        this.eventSubWorker = undefined;
         this.eventSub = undefined;
 
-        if (eventSub) {
+        if (eventSubWorker) {
             logRegular("disconnect eventsub");
 
             try {
-                await Promise.resolve(eventSub.stop());
+                await eventSubWorker.stop();
             } catch (error) {
                 logWarn("failed to disconnect eventsub cleanly");
                 logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
@@ -462,10 +481,12 @@ export default class TwitchClient {
             return;
         }
 
+        // Only used for `.api` inside the command handlers.
         const tempBot = new Bot({
             authProvider,
             channels: config.channels
         });
+        this.closeUnusedChat(tempBot, "command api bot");
 
         const commands = buildCommands(tempBot, this);
 
@@ -481,6 +502,9 @@ export default class TwitchClient {
         // Chat is deliberately non-blocking. API/EventSub setup can complete
         // independently and the managed connection state is updated later.
         const chatConnectionPromise = this.waitForControlChatConnection();
+        // Chat can connect before the API/EventSub setup below finishes; the
+        // final "api_ready" status must not overwrite "connected" then.
+        let chatConnectedEarly = false;
 
         void chatConnectionPromise.then(chatConnected => {
             if (generation !== this.connectGeneration || this.bot !== bot) {
@@ -488,6 +512,7 @@ export default class TwitchClient {
             }
 
             if (chatConnected) {
+                chatConnectedEarly = true;
                 setManagedConnection("twitch", {
                     enabled: true,
                     state: "connected",
@@ -526,10 +551,12 @@ export default class TwitchClient {
 
         logRegular("connect eventsub");
 
-        const eventSub = new EventSubWsListener({
-            apiClient: bot.api,
-            logger: { minLevel: "ERROR" }
-        });
+        // The EventSub WebSocket and subscription setup run in a worker thread.
+        // `eventSub` is the main-thread shadow listener that the event classes
+        // register on; notifications are dispatched back to it.
+        const eventSubWorker = new EventSubWorkerBridge(bot.api, authProvider);
+        const eventSub = eventSubWorker.listener;
+        this.eventSubWorker = eventSubWorker;
         this.eventSub = eventSub;
 
         // Observe the control-auth EventSub socket lifecycle. We intentionally
@@ -541,7 +568,7 @@ export default class TwitchClient {
                 return;
             }
 
-            const socketCount = Number((eventSub as any)?._sockets?.size ?? 0);
+            const socketCount = eventSubWorker.getSocketStates().size;
             logSuccess(`twitch eventsub socket connected (user=${userId}, sockets=${socketCount})`);
 
             if (socketCount > 1) {
@@ -579,7 +606,7 @@ export default class TwitchClient {
             }
 
             eventSubSuccessCount++;
-            const socketCount = Number((eventSub as any)?._sockets?.size ?? 0);
+            const socketCount = eventSubWorker.getSocketStates().size;
             logRegular(
                 `twitch eventsub subscription active #${eventSubSuccessCount}: ` +
                 `${subscription?.type ?? subscription?.id ?? "unknown"} (sockets=${socketCount})`
@@ -625,8 +652,8 @@ export default class TwitchClient {
             }
 
             try {
-                eventSub.start();
-                logRegular("twitch eventsub listener started");
+                eventSubWorker.start();
+                logRegular("twitch eventsub listener started (worker thread)");
             } catch (error) {
                 if (!this.warnTwitchNetworkError("failed to start eventsub", error)) {
                     logWarn("failed to start eventsub");
@@ -660,6 +687,11 @@ export default class TwitchClient {
         });
 
         if (generation !== this.connectGeneration || this.bot !== bot) {
+            return;
+        }
+
+        if (chatConnectedEarly) {
+            logSuccess("twitch api/eventsub is ready");
             return;
         }
 
@@ -759,9 +791,7 @@ export default class TwitchClient {
 
     public getEventSubDiagnostics() {
         const listener: any = this.eventSub as any;
-        const sockets: Map<string, any> = listener?._sockets instanceof Map
-            ? listener._sockets
-            : new Map<string, any>();
+        const sockets = this.eventSubWorker?.getSocketStates() ?? new Map();
         const subscriptions = listener?._subscriptions?.values
             ? [...listener._subscriptions.values()]
             : [];
@@ -774,13 +804,13 @@ export default class TwitchClient {
 
         const socketDetails = [...sockets.entries()].map(([userId, socket]) => ({
             user_id: userId,
-            connected: Boolean(socket?.sessionId),
-            ready_to_subscribe: Boolean(socket?.readyToSubscribe),
+            connected: socket.connected,
+            ready_to_subscribe: socket.readyToSubscribe,
             subscriptions: subscriptionsByUser[userId] ?? 0,
         }));
 
         return {
-            listener_active: Boolean(listener?.isActive),
+            listener_active: Boolean(this.eventSubWorker?.isActive),
             websocket_connections: sockets.size,
             subscriptions: subscriptions.length,
             auth_users: Object.keys(subscriptionsByUser),

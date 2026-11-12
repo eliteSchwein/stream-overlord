@@ -31,6 +31,16 @@ export default class ChannelPointsEvent extends BaseEvent {
     private readonly redemptionDeduplicationTtl = 30 * 60 * 1000;
 
     async handleRegister() {
+        // The redemption subscription is already attached by BaseEvent.register().
+        // Syncing rewards is one sequential Helix request per reward, so run it in
+        // the background instead of holding up eventSub.start() for every event.
+        void this.syncChannelPointRewards().catch(error => {
+            logWarn("failed to sync channel point rewards");
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        });
+    }
+
+    private async syncChannelPointRewards() {
         const primaryChannel = getPrimaryChannel();
 
         const presentChannelPoints = await this.bot.api.channelPoints.getCustomRewards(primaryChannel.id);

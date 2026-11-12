@@ -318,7 +318,50 @@ function sanitizeMacroFileName(name: string) {
         || "macro";
 }
 
+// While set, name lookups resolve from a single directory walk instead of
+// re-walking and re-parsing every macro file per lookup. Only active inside
+// withMacroFileIndex(), so file changes outside that scope are always seen.
+let macroFileIndex: Map<string, string> | null = null;
+
+function buildMacroFileIndex() {
+    const index = new Map<string, string>();
+
+    for (const filePath of walkMacroFiles(getMacroDirectory())) {
+        const fileName = getMacroNameFromFile(filePath);
+
+        try {
+            const macroConfig = readMacroConfigFile(filePath) as any;
+            const macroName = macroConfig?.name ?? fileName;
+            if (!index.has(macroName)) index.set(macroName, filePath);
+        } catch (error) {
+            logWarn(`failed to inspect macro file ${filePath}`);
+            logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+
+        if (!index.has(fileName)) index.set(fileName, filePath);
+    }
+
+    return index;
+}
+
+export function withMacroFileIndex<T>(fn: () => T): T {
+    if (macroFileIndex) return fn();
+
+    ensureMacroDirectory();
+    macroFileIndex = buildMacroFileIndex();
+
+    try {
+        return fn();
+    } finally {
+        macroFileIndex = null;
+    }
+}
+
 function findMacroFileByName(name: string): string | undefined {
+    if (macroFileIndex) {
+        return macroFileIndex.get(name);
+    }
+
     ensureMacroDirectory();
 
     for (const filePath of walkMacroFiles(getMacroDirectory())) {

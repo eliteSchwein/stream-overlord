@@ -1,7 +1,7 @@
 import {randomUUID} from "crypto";
-import {getAssetConfig, hasAssetConfigContent} from "./AssetHelper";
+import {getAssetConfig, hasAssetConfigContent, withAssetConfigFileIndex} from "./AssetHelper";
 import {addAlert} from "./AlertHelper";
-import {getMacroConfig, hasMacroTasks, interpolateTemplate, triggerMacro} from "./MacroHelper";
+import {getMacroConfig, hasMacroTasks, interpolateTemplate, triggerMacro, withMacroFileIndex} from "./MacroHelper";
 import {attachTwitchUserVariables} from "./TwitchUserVariableHelper";
 import getWebsocketServer from "../App";
 import {enqueueInteraction} from "./InteractionHelper";
@@ -342,8 +342,22 @@ export function registerEventEntry(
 ): EventEntry {
     const entry = createEventEntry(configName, simulationFields);
     upsertEventEntry(entry);
-    updateConfiguredEventIndex();
+    // Registrations arrive in bursts (every Twitch event on connect). Rebuild
+    // the index once after the burst instead of once per registration.
+    scheduleConfiguredEventIndexUpdate();
     return entry;
+}
+
+let configuredEventIndexUpdateScheduled = false;
+
+function scheduleConfiguredEventIndexUpdate() {
+    if (configuredEventIndexUpdateScheduled) return;
+    configuredEventIndexUpdateScheduled = true;
+
+    setImmediate(() => {
+        configuredEventIndexUpdateScheduled = false;
+        updateConfiguredEventIndex();
+    });
 }
 
 export function registerEventEntries(configNames: string[] = []) {
@@ -402,20 +416,27 @@ function coerceEventBoolean(value: unknown): boolean {
     return false;
 }
 
-function getEventBooleanOption(configName: string, option: "bypass_interaction_queue" | "strip_emotes" | "strip_urls"): boolean {
-    const normalizedConfigName = normalizeEventConfigName(configName);
-    const macroConfig = getMacroConfig(normalizedConfigName);
+type EventBooleanOption = "bypass_interaction_queue" | "strip_emotes" | "strip_urls";
 
+function resolveEventBooleanOption(macroConfig: any, assetConfig: any, option: EventBooleanOption): boolean {
     if (macroConfig && Object.prototype.hasOwnProperty.call(macroConfig, option)) {
         return coerceEventBoolean(macroConfig[option]);
     }
 
-    const assetConfig = getAssetConfig(normalizedConfigName);
     if (assetConfig && Object.prototype.hasOwnProperty.call(assetConfig, option)) {
         return coerceEventBoolean(assetConfig[option]);
     }
 
     return false;
+}
+
+function getEventBooleanOption(configName: string, option: EventBooleanOption): boolean {
+    const normalizedConfigName = normalizeEventConfigName(configName);
+    return resolveEventBooleanOption(
+        getMacroConfig(normalizedConfigName),
+        getAssetConfig(normalizedConfigName),
+        option,
+    );
 }
 
 export function getEventStripEmotes(configName: string): boolean {
@@ -431,24 +452,33 @@ export function getEventBypassInteractionQueue(configName: string): boolean {
 }
 
 export function updateConfiguredEventIndex(): EventIndex {
-    configuredEventIndex = {};
+    const nextIndex: EventIndex = {};
 
-    for (const channel in eventEntries) {
-        configuredEventIndex[channel] = eventEntries[channel].map(entry => {
-            const macro = hasMacroTasks(entry.configName);
-            const asset = hasAssetConfigContent(entry.configName);
+    // Walk/parse the macro and asset directories once for the whole rebuild
+    // instead of once per lookup per entry.
+    withMacroFileIndex(() => withAssetConfigFileIndex(() => {
+        for (const channel in eventEntries) {
+            nextIndex[channel] = eventEntries[channel].map(entry => {
+                const configName = normalizeEventConfigName(entry.configName);
+                const macro = hasMacroTasks(entry.configName);
+                const asset = hasAssetConfigContent(entry.configName);
+                const macroConfig = getMacroConfig(configName);
+                const assetConfig = getAssetConfig(configName);
 
-            return {
-                ...entry,
-                macro,
-                asset,
-                configured: macro || asset,
-                bypass_interaction_queue: getEventBypassInteractionQueue(entry.configName),
-                strip_emotes: getEventStripEmotes(entry.configName),
-                strip_urls: getEventStripUrls(entry.configName),
-            };
-        });
-    }
+                return {
+                    ...entry,
+                    macro,
+                    asset,
+                    configured: macro || asset,
+                    bypass_interaction_queue: resolveEventBooleanOption(macroConfig, assetConfig, "bypass_interaction_queue"),
+                    strip_emotes: resolveEventBooleanOption(macroConfig, assetConfig, "strip_emotes"),
+                    strip_urls: resolveEventBooleanOption(macroConfig, assetConfig, "strip_urls"),
+                };
+            });
+        }
+    }));
+
+    configuredEventIndex = nextIndex;
 
     notifyEventsUpdate();
 
