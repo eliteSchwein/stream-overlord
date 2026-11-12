@@ -65,6 +65,10 @@ const defaultAudioConfig: Record<string, any> = {
 
 const pipewireLoopbackModuleIds: Record<string, string[]> = {};
 const pipewireLoopbackSinkInputIds: Record<string, string[]> = {};
+// Per interface: loopback module id -> target output, and loopback
+// sink-input id -> owning module id. Used for per-link volumes.
+const pipewireLoopbackModuleOutputs: Record<string, Record<string, string | null>> = {};
+const pipewireLoopbackSinkInputModules: Record<string, Record<string, string>> = {};
 const pipewireSetupPromises: Record<string, Promise<void> | undefined> = {};
 const audioVolumeWriteGeneration: Record<string, number> = {};
 const audioVolumeWritePending: Record<string, number> = {};
@@ -85,6 +89,75 @@ function getEffectiveInterfaceVolume(audioInterface: string): number {
     const current = audioData[audioInterface];
     if (!current || current.muted === true) return 0;
     return normalizeVolume(Number(current.current_volume ?? current.default_volume ?? 0.2));
+}
+
+function isPerLinkControl(audioInterface: string): boolean {
+    return audioData[audioInterface]?.per_link_control === true;
+}
+
+function normalizeLinkVolumes(value: any): Record<string, number> {
+    const result: Record<string, number> = {};
+    if (!value || typeof value !== "object" || Array.isArray(value)) return result;
+
+    for (const [output, volume] of Object.entries(value)) {
+        const parsed = Number(volume);
+        if (output && Number.isFinite(parsed)) result[output] = normalizeVolume(parsed);
+    }
+
+    return result;
+}
+
+/**
+ * Volume of one link (interface -> output), ignoring mute. Without per-link
+ * control every link plays at the interface volume.
+ */
+function getLinkVolume(audioInterface: string, outputName: string | null): number {
+    const current = audioData[audioInterface];
+    if (!current) return 0;
+
+    const channelVolume = normalizeVolume(Number(current.current_volume ?? current.default_volume ?? 0.2));
+    if (!isPerLinkControl(audioInterface) || !outputName) return channelVolume;
+
+    const linkVolume = Number(current.link_volumes?.[outputName]);
+    return Number.isFinite(linkVolume) ? normalizeVolume(linkVolume) : channelVolume;
+}
+
+function getEffectiveLinkVolume(audioInterface: string, outputName: string | null): number {
+    if (!audioData[audioInterface] || audioData[audioInterface].muted === true) return 0;
+    return getLinkVolume(audioInterface, outputName);
+}
+
+/** Gives every linked output a link volume (defaults to the interface volume). */
+function ensureLinkVolumes(audioInterface: string) {
+    const current = audioData[audioInterface];
+    if (!current) return;
+
+    const linkVolumes = normalizeLinkVolumes(current.link_volumes);
+    const channelVolume = normalizeVolume(Number(current.current_volume ?? current.default_volume ?? 0.2));
+
+    for (const output of normalizeLinkedOutputs(current.linked_outputs ?? current.linked_output)) {
+        if (linkVolumes[output] === undefined) linkVolumes[output] = channelVolume;
+    }
+
+    current.link_volumes = linkVolumes;
+}
+
+/**
+ * Marks a volume write as in flight so the PipeWire readback cannot overwrite
+ * the state with the previous value meanwhile (same as setVolume).
+ */
+async function withVolumeWrite<T>(audioInterface: string, write: () => Promise<T>): Promise<T> {
+    const generation = (audioVolumeWriteGeneration[audioInterface] ?? 0) + 1;
+    audioVolumeWriteGeneration[audioInterface] = generation;
+    audioVolumeWritePending[audioInterface] = generation;
+
+    try {
+        return await write();
+    } finally {
+        if (audioVolumeWritePending[audioInterface] === generation) {
+            delete audioVolumeWritePending[audioInterface];
+        }
+    }
 }
 
 function getAudioConfigWithDefaults(): Record<string, any> {
@@ -213,7 +286,11 @@ export async function initAudio() {
             muted,
             linked_outputs: linkedOutputs,
             linked_output: linkedOutputs[0] ?? null,
+            per_link_control: savedVolumes[key]?.per_link_control === true,
+            link_volumes: normalizeLinkVolumes(savedVolumes[key]?.link_volumes),
         };
+
+        if (audioData[key].per_link_control) ensureLinkVolumes(key);
 
         if (isEnabled(audioData[key].pipewire_sink)) {
             await initializePipewireAudioSink(key, linkedOutputs, outputVolume);
@@ -276,6 +353,20 @@ export async function setVolume(
 
     audioVolumeWriteGeneration[audioInterface] = generation;
     audioVolumeWritePending[audioInterface] = generation;
+
+    // With per-link control a channel volume write (macro, preset, API) sets
+    // every link to that volume. Unmuting (restoring the retained volume)
+    // keeps the individual link volumes.
+    if (isPerLinkControl(audioInterface) && safeVolume > 0) {
+        const isUnmute = previousMuted && volumesEqual(safeVolume, previousVolume);
+
+        if (!isUnmute) {
+            ensureLinkVolumes(audioInterface);
+            for (const output of Object.keys(currentAudioData.link_volumes ?? {})) {
+                currentAudioData.link_volumes[output] = safeVolume;
+            }
+        }
+    }
 
     // Update the in-memory state immediately. While this generation is being
     // written to PipeWire, subscription readback is not allowed to overwrite it.
@@ -361,6 +452,8 @@ export async function linkPipewireSinkToAudioOutput(
     currentAudioData.linked_outputs = linkedOutputs;
     currentAudioData.linked_output = linkedOutputs[0] ?? null;
     audioData[audioInterface] = currentAudioData;
+
+    if (isPerLinkControl(audioInterface)) ensureLinkVolumes(audioInterface);
 
     const wantedVolume = getEffectiveInterfaceVolume(audioInterface);
 
@@ -529,6 +622,8 @@ export async function setAudioOutputMute(
 type AudioPresetVolumeState = {
     volume: number;
     muted: boolean;
+    per_link_control?: boolean;
+    link_volumes?: Record<string, number>;
 };
 
 type AudioPreset = {
@@ -633,6 +728,8 @@ export async function saveAudioPreset(
             preset.interface_states[key] = {
                 volume: safeVolume,
                 muted,
+                per_link_control: audioData[key]?.per_link_control === true,
+                link_volumes: normalizeLinkVolumes(audioData[key]?.link_volumes),
             };
         }
 
@@ -766,6 +863,23 @@ export async function applyAudioPreset(name: string) {
                     await setVolume(key, 0, false, false);
                 }
             }
+
+            // Per-link state is applied after the interface volume, because
+            // an interface volume write sets all links to that volume.
+            if (typeof state?.per_link_control === "boolean") {
+                current.per_link_control = state.per_link_control;
+                current.link_volumes = {
+                    ...normalizeLinkVolumes(current.link_volumes),
+                    ...normalizeLinkVolumes(state.link_volumes),
+                };
+                if (current.per_link_control) ensureLinkVolumes(key);
+
+                if (isEnabled(current.pipewire_sink)) {
+                    await withVolumeWrite(key, () =>
+                        setPipewireSinkOutputVolume(key, getEffectiveInterfaceVolume(key))
+                    );
+                }
+            }
         })
     );
 
@@ -897,6 +1011,8 @@ function saveAudioVolumes() {
         data[key] = {
             current_volume: audioData[key].current_volume,
             muted: audioData[key].muted === true,
+            per_link_control: audioData[key].per_link_control === true,
+            link_volumes: normalizeLinkVolumes(audioData[key].link_volumes),
         };
 
         if (isEnabled(audioData[key].pipewire_sink)) {
@@ -1087,6 +1203,11 @@ async function refreshPipewireSinkVolumes(): Promise<boolean> {
             // PipeWire value and make the UI jump backwards.
             if (audioVolumeWritePending[key] !== undefined) return;
 
+            if (isPerLinkControl(key)) {
+                if (await refreshPipewireLinkVolumes(key)) changed = true;
+                return;
+            }
+
             const rawVolume = await getPipewireSinkOutputVolume(key);
             if (rawVolume === null) return;
 
@@ -1122,6 +1243,48 @@ async function refreshPipewireSinkVolumes(): Promise<boolean> {
 
     if (changed) {
         saveAudioVolumes();
+    }
+
+    return changed;
+}
+
+/**
+ * Readback for per-link interfaces: every link keeps its own volume. All links
+ * at 0 means the interface is muted (link volumes are retained).
+ */
+async function refreshPipewireLinkVolumes(key: string): Promise<boolean> {
+    const volumes = await getPipewireLinkVolumes(key);
+    if (audioVolumeWritePending[key] !== undefined) return false;
+
+    const entries = Object.entries(volumes);
+    if (entries.length === 0) return false;
+
+    const currentAudioData = audioData[key];
+    const currentMuted = currentAudioData.muted === true;
+
+    if (entries.every(([, volume]) => volume <= 0)) {
+        if (currentMuted) return false;
+        applyAudioVolumeState(key, 0);
+        return true;
+    }
+
+    let changed = false;
+
+    if (currentMuted) {
+        currentAudioData.muted = false;
+        changed = true;
+    }
+
+    currentAudioData.link_volumes = normalizeLinkVolumes(currentAudioData.link_volumes);
+
+    for (const [output, volume] of entries) {
+        const stepped = normalizeVolumeForInterface(key, volume);
+        const previous = currentAudioData.link_volumes[output];
+
+        if (previous === undefined || !volumesEqual(previous, stepped)) {
+            currentAudioData.link_volumes[output] = stepped;
+            changed = true;
+        }
     }
 
     return changed;
@@ -1233,7 +1396,27 @@ export async function getAvailableAudioOutputs() {
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
 
-    return outputs;
+    return sortAudioOutputs(outputs);
+}
+
+/**
+ * Stable output order for all panels: physical outputs first (PipeWire
+ * order), then virtual audio cables in their configured order. Virtual cable
+ * sinks get a new PipeWire index whenever they are recreated, so the raw
+ * order would shuffle them.
+ */
+function sortAudioOutputs(outputs: any[]): any[] {
+    const cableOrder = getVirtualAudioCableSettings().map(cable => cable.id);
+    const physical = outputs.filter(output => !output.virtual_audio_cable);
+    const virtual = outputs
+        .filter(output => output.virtual_audio_cable)
+        .sort((a, b) => {
+            const left = cableOrder.indexOf(a.virtual_audio_cable_id);
+            const right = cableOrder.indexOf(b.virtual_audio_cable_id);
+            return (left < 0 ? Number.MAX_SAFE_INTEGER : left) - (right < 0 ? Number.MAX_SAFE_INTEGER : right);
+        });
+
+    return [...physical, ...virtual];
 }
 
 async function getDefaultAudioSinkName(): Promise<string | null> {
@@ -1408,6 +1591,7 @@ async function setupPipewireAudioSinkInternal(
     ]);
 
     const keptModuleIds: string[] = [];
+    const moduleOutputs: Record<string, string | null> = {};
 
     // Important: an empty linked_outputs array means explicitly disconnected.
     // Do NOT translate it to [null], because null tells module-loopback to use
@@ -1433,6 +1617,7 @@ async function setupPipewireAudioSinkInternal(
 
         usedKeys.add(targetKey);
         keptModuleIds.push(loopback.moduleId);
+        moduleOutputs[loopback.moduleId] = loopback.outputName;
     }
 
     await Promise.all(
@@ -1447,12 +1632,21 @@ async function setupPipewireAudioSinkInternal(
         !usedKeys.has(getPipewireLoopbackTargetKey(outputName))
     );
 
-    const initialVolume = getEffectiveInterfaceVolume(configName);
     const createdModuleIds = await Promise.all(
         missingOutputs.map(outputName =>
-            loadPipewireLoopback(configName, sinkName, outputName, initialVolume)
+            loadPipewireLoopback(
+                configName,
+                sinkName,
+                outputName,
+                getEffectiveLinkVolume(configName, outputName),
+            )
         )
     );
+
+    createdModuleIds.forEach((moduleId, index) => {
+        if (moduleId) moduleOutputs[moduleId] = missingOutputs[index];
+    });
+    pipewireLoopbackModuleOutputs[configName] = moduleOutputs;
 
     pipewireLoopbackModuleIds[configName] = Array.from(new Set([
         ...keptModuleIds,
@@ -1611,6 +1805,44 @@ async function forcePipewireSinkInputsVolume(
 }
 
 
+/** Output (link target) of a loopback sink-input, undefined if unknown. */
+function getSinkInputOutput(configName: string, sinkInputId: string): string | null | undefined {
+    const moduleId = pipewireLoopbackSinkInputModules[configName]?.[sinkInputId];
+    if (!moduleId) return undefined;
+
+    const outputs = pipewireLoopbackModuleOutputs[configName];
+    if (!outputs || !Object.prototype.hasOwnProperty.call(outputs, moduleId)) return undefined;
+
+    return outputs[moduleId];
+}
+
+/**
+ * Applies the interface volume to its loopbacks. With per-link control every
+ * loopback gets its own link volume; 0 (muted) silences all of them.
+ */
+async function applyPipewireSinkInputsVolume(
+    configName: string,
+    sinkInputIds: string[],
+    channelVolume: number,
+): Promise<void> {
+    if (!isPerLinkControl(configName) || channelVolume <= 0) {
+        await forcePipewireSinkInputsVolume(configName, sinkInputIds, channelVolume);
+        return;
+    }
+
+    const groups = new Map<number, string[]>();
+
+    for (const sinkInputId of sinkInputIds) {
+        const output = getSinkInputOutput(configName, sinkInputId);
+        const volume = output === undefined ? channelVolume : getLinkVolume(configName, output);
+        groups.set(volume, [...(groups.get(volume) ?? []), sinkInputId]);
+    }
+
+    await Promise.all(Array.from(groups.entries()).map(([volume, ids]) =>
+        forcePipewireSinkInputsVolume(configName, ids, volume)
+    ));
+}
+
 async function forcePipewireSinkOutputVolumeWithRetry(
     configName: string,
     volume: number,
@@ -1624,7 +1856,7 @@ async function forcePipewireSinkOutputVolumeWithRetry(
 
         if (sinkInputIds.length > 0) {
             pipewireLoopbackSinkInputIds[configName] = sinkInputIds;
-            await forcePipewireSinkInputsVolume(configName, sinkInputIds, safeVolume);
+            await applyPipewireSinkInputsVolume(configName, sinkInputIds, safeVolume);
         }
 
         if (attempt < attempts - 1) {
@@ -1788,11 +2020,11 @@ export async function setPipewireSinkOutputVolume(
             return;
         }
 
-        await forcePipewireSinkInputsVolume(configName, retryIds, safeVolume);
+        await applyPipewireSinkInputsVolume(configName, retryIds, safeVolume);
         return;
     }
 
-    await forcePipewireSinkInputsVolume(configName, sinkInputIds, safeVolume);
+    await applyPipewireSinkInputsVolume(configName, sinkInputIds, safeVolume);
 }
 
 export async function getPipewireSinkOutputVolumePercent(
@@ -1854,6 +2086,39 @@ export async function getPipewireSinkOutputVolume(
     return null;
 }
 
+/** Current volume of every link (output -> volume, 0 when muted). */
+async function getPipewireLinkVolumes(configName: string): Promise<Record<string, number>> {
+    if (!pipewireLoopbackSinkInputIds[configName]?.length) {
+        pipewireLoopbackSinkInputIds[configName] =
+            await findPipewireLoopbackSinkInputIds(configName);
+    }
+
+    const result: Record<string, number> = {};
+    const sinkInputIds = pipewireLoopbackSinkInputIds[configName] ?? [];
+    if (!sinkInputIds.length) return result;
+
+    try {
+        const output = await runCommandWithOutput("pactl", ["list", "sink-inputs"]);
+        const blocks = output.split(/Sink Input #/).slice(1);
+
+        for (const sinkInputId of sinkInputIds) {
+            const outputName = getSinkInputOutput(configName, sinkInputId);
+            if (!outputName) continue;
+
+            const block = blocks.find(entry => entry.split(/\r?\n/)[0]?.trim() === sinkInputId);
+            if (!block) continue;
+
+            const muted = block.match(/\n\s*Mute:\s*(yes|no)/)?.[1]?.trim() === "yes";
+            const volume = Number(block.match(/\n\s*Volume:.*?(\d+)%/)?.[1]);
+
+            if (muted) result[outputName] = 0;
+            else if (Number.isFinite(volume)) result[outputName] = Math.max(0, Math.min(1, volume / 100));
+        }
+    } catch {}
+
+    return result;
+}
+
 async function findPipewireLoopbackSinkInputIds(
     configName: string,
 ): Promise<string[]> {
@@ -1874,8 +2139,11 @@ async function findPipewireLoopbackSinkInputIds(
 
             if (!id || !/^\d+$/.test(id)) continue;
 
-            if (moduleIds.some(moduleId => block.includes(`Owner Module: ${moduleId}`))) {
+            const ownerModule = block.match(/Owner Module:\s*(\d+)/)?.[1];
+
+            if (ownerModule && moduleIds.includes(ownerModule)) {
                 result.push(id);
+                (pipewireLoopbackSinkInputModules[configName] ??= {})[id] = ownerModule;
             }
         }
 
@@ -1930,6 +2198,80 @@ function runCommandWithOutput(command: string, args: string[]): Promise<string> 
             resolve(stdout);
         });
     });
+}
+
+/**
+ * Sets the volume of one link (interface -> output). Enables per-link control
+ * for the interface if it is not enabled yet.
+ */
+export async function setAudioLinkVolume(
+    audioInterface: string,
+    outputName: string,
+    volume: number,
+) {
+    const current = audioData[audioInterface];
+
+    if (!current) return {error: "unknown interface"};
+    if (!isEnabled(current.pipewire_sink)) return {error: "interface is not a pipewire sink"};
+    if (!outputName) return {error: "missing output"};
+
+    const linkedOutputs = normalizeLinkedOutputs(current.linked_outputs ?? current.linked_output);
+    if (!linkedOutputs.includes(outputName)) return {error: "output is not linked"};
+
+    const safeVolume = normalizeVolumeForInterface(audioInterface, volume);
+    const previousVolume = getLinkVolume(audioInterface, outputName);
+
+    if (!isPerLinkControl(audioInterface)) {
+        current.per_link_control = true;
+    }
+
+    ensureLinkVolumes(audioInterface);
+    current.link_volumes[outputName] = safeVolume;
+
+    saveAudioVolumes();
+    getWebsocketServer().send("notify_audio_update", audioData);
+
+    await withVolumeWrite(audioInterface, () =>
+        setPipewireSinkOutputVolume(audioInterface, getEffectiveInterfaceVolume(audioInterface))
+    );
+
+    await triggerAudioEvent("event_audio_link_volume", {
+        audio_interface: audioInterface,
+        interface: audioInterface,
+        output: outputName,
+        previous_volume: previousVolume,
+        volume: safeVolume,
+        audio_interface_data: audioData[audioInterface],
+    });
+
+    return {
+        interface: audioInterface,
+        output: outputName,
+        volume: safeVolume,
+    };
+}
+
+/** Turns per-link volume control of an interface on or off. */
+export async function setAudioPerLinkControl(audioInterface: string, enabled: boolean) {
+    const current = audioData[audioInterface];
+
+    if (!current) return {error: "unknown interface"};
+    if (!isEnabled(current.pipewire_sink)) return {error: "interface is not a pipewire sink"};
+
+    current.per_link_control = enabled === true;
+    if (current.per_link_control) ensureLinkVolumes(audioInterface);
+
+    saveAudioVolumes();
+    getWebsocketServer().send("notify_audio_update", audioData);
+
+    await withVolumeWrite(audioInterface, () =>
+        setPipewireSinkOutputVolume(audioInterface, getEffectiveInterfaceVolume(audioInterface))
+    );
+
+    return {
+        interface: audioInterface,
+        per_link_control: current.per_link_control,
+    };
 }
 
 export function getAudioData() {

@@ -2,6 +2,7 @@ import BaseMacroTask from "../../abstracts/BaseMacroTask";
 import {
     applyAudioPreset,
     getAudioData,
+    setAudioLinkVolume,
     setVolume,
 } from "../AudioHelper";
 import {logRegular, logWarn} from "../LogHelper";
@@ -40,6 +41,7 @@ export default class AudioMacroTask extends BaseMacroTask {
             case "set_volume":
             case "adjust_volume":
             case "relative_volume":
+            case "set_link_volume":
                 break;
 
             default:
@@ -68,6 +70,39 @@ export default class AudioMacroTask extends BaseMacroTask {
         }
 
         switch (method) {
+            case "set_link_volume": {
+                const output = String(
+                    data.output ??
+                    data.audio_output ??
+                    data.link ??
+                    "",
+                ).trim();
+                const percent = Number(data.volume ?? data.value);
+
+                if (!output) {
+                    logWarn("audio set_link_volume requires output");
+                    return;
+                }
+
+                if (!Number.isFinite(percent)) {
+                    logWarn("audio set_link_volume requires numeric volume");
+                    return;
+                }
+
+                const normalizedVolume = Math.max(0, Math.min(100, percent)) / 100;
+                const result = await setAudioLinkVolume(audioInterface, output, normalizedVolume);
+
+                if ((result as any)?.error) {
+                    logWarn(`audio ${audioInterface} -> ${output} link volume failed: ${(result as any).error}`);
+                    return;
+                }
+
+                logRegular(
+                    `audio ${audioInterface} -> ${output} link volume set to ${Math.round(normalizedVolume * 100)}%`,
+                );
+                return;
+            }
+
             case "set_volume": {
                 const percent = Number(data.volume ?? data.value);
 
