@@ -7,6 +7,7 @@ import {getCloudMacros} from "../../helper/MacroHelper";
 import {getInteractionQueue} from "../../helper/InteractionHelper";
 import {getStatus as getMusicStatus} from "../../helper/MusicHelper";
 import {getRemoteDashboardSnapshot, getRemoteObsState} from "./RemoteDashboard";
+import {isBackendReady} from "../../App";
 import {getManagedConnections, setManagedConnection} from "../../helper/ConnectionHelper";
 import {
     clearCloudIntegrationRegistration,
@@ -50,6 +51,7 @@ const CLOUD_FORWARDED_METHODS = new Set([
     "notify_connection_update",
     "notify_song_request_update",
     "notify_twitch_user_list",
+    "notify_bootup_stage",
 ]);
 
 const CLOUD_OBS_METHODS = new Set([
@@ -384,7 +386,14 @@ export default class CloudClient {
 
     public syncModerators() {
         if (!this.worker) return;
-        this.post({type: "send", payload: {type: "moderators", moderators: getModeratorsForCloud()}});
+
+        // While booting (Twitch not loaded yet) the list is still empty; do
+        // not lock moderators out of the cloud. The moderator notifier syncs
+        // the real list once permissions are registered.
+        const moderators = getModeratorsForCloud();
+        if (moderators.length === 0 && !isBackendReady()) return;
+
+        this.post({type: "send", payload: {type: "moderators", moderators}});
     }
 
     public handleLocalUpdate(method: string, data: any) {
@@ -420,13 +429,16 @@ export default class CloudClient {
 
         try {
             const dashboard = getRemoteDashboardSnapshot();
+            const safe = <T>(read: () => T): T | undefined => {
+                try { return read(); } catch { return undefined; }
+            };
             const extra: CloudSnapshotExtra = {
-                macros: dashboard.macros ?? getCloudMacros(),
-                interactions: dashboard.interactions ?? getInteractionQueue(),
+                macros: dashboard.macros ?? safe(() => getCloudMacros()),
+                interactions: dashboard.interactions ?? safe(() => getInteractionQueue()),
                 dashboard,
-                game: getGameInfo(),
-                music: getMusicStatus(),
-                connections: getManagedConnections(),
+                game: safe(() => getGameInfo()),
+                music: safe(() => getMusicStatus()),
+                connections: safe(() => getManagedConnections()),
             };
 
             this.post({type: "snapshot", extra});

@@ -51,6 +51,58 @@ let cloudClient: CloudClient
 
 let ready = false
 let stage = 'unknown'
+
+// Boot stages in order, used to report the progress (step n of total).
+const BOOT_STAGES = [
+    'loading_web_components',
+    'loading_integrations',
+    'connecting_cloud',
+    'loading_cache',
+    'loading_web_content',
+    'loading_variables',
+    'starting_ollama',
+    'loading_system_components',
+    'starting_twitch_bot',
+    'connecting_obs',
+    'connecting_yolobox',
+    'fetching_game_info',
+    'starting_schedulers',
+    'initializing_macros',
+    'sending_default_wled_colors',
+    'starting_audio',
+    'updating_system_information',
+    'reading_assets_folder',
+    'starting_watchers',
+    'starting_gpio',
+    'starting_neopixel',
+    'loading_tts_voices',
+    'updating_obs_filters',
+    'starting_auto_macros',
+    'loading_scene_rotations',
+    'starting_music_player',
+    'updating_event_index',
+    'finished',
+]
+
+/**
+ * Sets the current boot stage and publishes it (local panels + cloud) as
+ * notify_bootup_stage.
+ */
+function setStage(next: string) {
+    stage = next
+    websocketServer?.send('notify_bootup_stage', getBootupState())
+}
+
+export function getBootupState() {
+    const index = BOOT_STAGES.indexOf(stage)
+
+    return {
+        stage,
+        ready,
+        step: index >= 0 ? index + 1 : 0,
+        total: BOOT_STAGES.length,
+    }
+}
 let unreadyMessage = 'backend loading'
 let reloadFinished = true
 
@@ -67,7 +119,7 @@ async function init() {
     webServer = new WebServer()
     await webServer.initial()
 
-    stage = 'loading_web_components'
+    setStage('loading_web_components')
     websocketServer = new WebsocketServer()
     websocketServer.initial()
     websocketServer.registerEvents()
@@ -77,7 +129,7 @@ async function init() {
 
     await registerApiEndpoints()
 
-    stage = 'loading_integrations'
+    setStage('loading_integrations')
     loadIntegrationsCache()
     ensureDefaultOllamaIntegration()
     cloudClient = new CloudClient()
@@ -87,15 +139,26 @@ async function init() {
         refreshTwitchUserListRoles()
     })
 
-    stage = 'loading_cache'
+    // Connect the cloud as early as possible so the cloud panel can follow
+    // (almost) the whole boot. Data that is not loaded yet follows via the
+    // normal notifies and a full snapshot once booting has finished.
+    try {
+        setStage('connecting_cloud')
+        await cloudClient.connect()
+    } catch (error) {
+        logWarn('cloud integration failed:')
+        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+    }
+
+    setStage('loading_cache')
     await redis.connect()
     await initTwitchSubscriptionDurations()
     await initGiveaway()
 
-    stage = 'loading_web_content'
+    setStage('loading_web_content')
     await webServer.initializeDynamicContent()
 
-    stage = 'loading_variables'
+    setStage('loading_variables')
     await initVariables()
 
     setUpdateManagerNotifier((method, data) => {
@@ -103,14 +166,14 @@ async function init() {
     })
     initializeUpdateManager()
 
-    stage = 'starting_ollama'
+    setStage('starting_ollama')
     await syncOllamaIntegration()
 
-    stage = 'loading_system_components'
+    setStage('loading_system_components')
 
     await updateSystemComponents()
 
-    stage = 'starting_twitch_bot'
+    setStage('starting_twitch_bot')
 
     twitchClient = new TwitchClient()
     await twitchClient.connect()
@@ -120,15 +183,7 @@ async function init() {
     await registerPermissions(twitchClient.getBot())
 
     try {
-        stage = 'connecting_cloud'
-        await cloudClient.connect()
-    } catch (error) {
-        logWarn('cloud integration failed:')
-        logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-    }
-
-    try {
-        stage = 'connecting_obs'
+        setStage('connecting_obs')
 
         logRegular('connecting obs...')
         obsClient = new OBSClient()
@@ -139,7 +194,7 @@ async function init() {
     }
 
     try {
-        stage = 'connecting_yolobox'
+        setStage('connecting_yolobox')
         logRegular('connect yolobox')
         yoloboxClient = new YoloboxClient()
         await yoloboxClient.connect()
@@ -148,71 +203,75 @@ async function init() {
         logWarn(JSON.stringify(error, Object.getOwnPropertyNames(error)))
     }
 
-    stage = 'fetching_game_info'
+    setStage('fetching_game_info')
 
     await fetchGameInfo()
 
-    stage = 'starting_schedulers'
+    setStage('starting_schedulers')
     logRegular('initial schedulers')
     initialTimers()
     initInteractions()
     initialAlerts()
     initialSchedulers()
 
-    stage = 'initializing_macros'
+    setStage('initializing_macros')
     loadMacros()
 
-    stage = 'sending_default_wled_colors'
+    setStage('sending_default_wled_colors')
     logRegular('activate configured wled lamps')
     await setLedColor()
 
-    stage = 'starting_audio'
+    setStage('starting_audio')
     logRegular('load audio outputs')
     // Virtual cable sinks must exist before the normal audio routing is restored,
     // because alert/tts/music may be linked to them just like physical outputs.
     await initVirtualAudioCable(websocketServer)
     await initAudio()
 
-    stage = 'updating_system_information'
+    setStage('updating_system_information')
     logRegular("init system info")
     await updateSystemInfo()
 
-    stage = 'reading_assets_folder'
+    setStage('reading_assets_folder')
     readAssetFolder()
 
-    stage = 'starting_watchers'
+    setStage('starting_watchers')
     watchConfig()
     initAssetWatcher()
 
-    stage = 'starting_gpio'
+    setStage('starting_gpio')
     initGpio()
 
-    stage = 'starting_neopixel'
+    setStage('starting_neopixel')
     await initNeopixels()
 
-    stage = 'loading_tts_voices'
+    setStage('loading_tts_voices')
     await fetchVoices()
 
-    stage = 'updating_obs_filters'
+    setStage('updating_obs_filters')
     await updateSourceFilters()
 
-    stage = 'starting_auto_macros'
+    setStage('starting_auto_macros')
     initAutoMacros()
 
-    stage = 'loading_scene_rotations'
+    setStage('loading_scene_rotations')
     loadRotateScenes()
 
-    stage = 'starting_music_player'
+    setStage('starting_music_player')
     initMusicEventBridge()
     loadMusicConfig()
     await startMusicPlayer()
 
-    stage = 'updating_event_index'
+    setStage('updating_event_index')
     updateConfiguredEventIndex()
 
     logSuccess('backend is ready')
     ready = true
-    stage = 'finished'
+    setStage('finished')
+
+    // The cloud connected early during boot; send the now complete state.
+    cloudClient?.syncModerators()
+    cloudClient?.sendSnapshot()
 
     await obsClient?.reloadAllBrowserScenes()
 

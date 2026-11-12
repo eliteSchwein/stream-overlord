@@ -1,4 +1,4 @@
-import {getOBSClient, getTwitchClient, getYoloboxClient} from "../../App";
+import {getBootupState, getOBSClient, getTwitchClient, getYoloboxClient} from "../../App";
 import {
     back as musicBack,
     getStatus as getMusicStatus,
@@ -80,38 +80,54 @@ export function getRemoteObsState() {
     };
 }
 
+/**
+ * Reads one snapshot section. The cloud connects early during boot, when some
+ * helpers are not initialized yet; a failing section is left out (undefined)
+ * instead of breaking the whole snapshot. A full snapshot is sent again when
+ * booting has finished.
+ */
+function safeSection<T>(read: () => T): T | undefined {
+    try {
+        return read();
+    } catch {
+        return undefined;
+    }
+}
+
 export function getRemoteDashboardSnapshot() {
-    const yolobox = getYoloboxClient();
-    const connections = getManagedConnections();
+    const yolobox = safeSection(() => getYoloboxClient());
+    const connections = safeSection(() => getManagedConnections()) ?? {};
 
     return {
         version: REMOTE_DASHBOARD_VERSION,
         updated_at: Date.now(),
-        music: getMusicStatus(),
-        song_requests: getSongRequestUpdatePayload(),
-        giveaway: getGiveaway(),
-        interactions: getInteractionQueue(),
-        auto_macros: getAutoMacros(),
-        macros: getCloudMacros(),
-        channel_points: getChannelPointUpdatePayload(),
-        rotating_scene: {
+        music: safeSection(() => getMusicStatus()),
+        song_requests: safeSection(() => getSongRequestUpdatePayload()),
+        giveaway: safeSection(() => getGiveaway()),
+        interactions: safeSection(() => getInteractionQueue()),
+        auto_macros: safeSection(() => getAutoMacros()),
+        macros: safeSection(() => getCloudMacros()),
+        channel_points: safeSection(() => getChannelPointUpdatePayload()),
+        rotating_scene: safeSection(() => ({
             items: getRotateScenes(),
             runtime: getRotateSceneRuntimeState(),
-        },
-        audio: {
+        })),
+        audio: safeSection(() => ({
             data: getAudioData(),
             outputs: getAudioOutputs(),
             presets: getAudioPresets(),
-        },
-        obs: getRemoteObsState(),
-        yolobox: {
-            connection: connections.yolobox ?? null,
+        })),
+        obs: safeSection(() => getRemoteObsState()),
+        yolobox: safeSection(() => ({
+            connection: (connections as any).yolobox ?? null,
             // Same startup rule as OBS: an enabled cloud integration may publish a
             // snapshot before the Yolobox client has been constructed.
             ip: yolobox?.getIp?.() ?? null,
             data: yolobox?.getData?.() ?? null,
-        },
+        })),
         connections,
+        // Boot progress; later changes arrive as notify_bootup_stage deltas.
+        notify_bootup_stage: getBootupState(),
     };
 }
 
