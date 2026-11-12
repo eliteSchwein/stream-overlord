@@ -63,8 +63,24 @@ function clamp(value: unknown, min: number, max: number, name: string): number {
     return Math.max(min, Math.min(max, n));
 }
 
-export function getRemoteDashboardSnapshot() {
+/**
+ * The cloud "obs" dashboard section. Used for the snapshot and for live OBS
+ * updates (the cloud only understands this combined section).
+ */
+export function getRemoteObsState() {
     const obs = getOBSClient();
+
+    return {
+        // Cloud snapshots can be requested while the backend is still booting.
+        // OBS is initialized later in App.ts, so never assume the client exists here.
+        connection_names: obs?.getConnectionNames?.() ?? [],
+        connected_connections: obs?.getConnectedConnectionNames?.() ?? [],
+        scenes: obs?.getAllSceneData?.() ?? {},
+        audio: obs?.getAllAudioData?.() ?? {},
+    };
+}
+
+export function getRemoteDashboardSnapshot() {
     const yolobox = getYoloboxClient();
     const connections = getManagedConnections();
 
@@ -87,14 +103,7 @@ export function getRemoteDashboardSnapshot() {
             outputs: getAudioOutputs(),
             presets: getAudioPresets(),
         },
-        obs: {
-            // Cloud snapshots can be requested while the backend is still booting.
-            // OBS is initialized later in App.ts, so never assume the client exists here.
-            connection_names: obs?.getConnectionNames?.() ?? [],
-            connected_connections: obs?.getConnectedConnectionNames?.() ?? [],
-            scenes: obs?.getAllSceneData?.() ?? {},
-            audio: obs?.getAllAudioData?.() ?? {},
-        },
+        obs: getRemoteObsState(),
         yolobox: {
             connection: connections.yolobox ?? null,
             // Same startup rule as OBS: an enabled cloud integration may publish a

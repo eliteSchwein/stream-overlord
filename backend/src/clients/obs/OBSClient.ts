@@ -23,6 +23,12 @@ type OBSConnection = {
     connected: boolean
     sceneData: any[]
     eventFetching: boolean
+    eventFetchPending?: boolean
+    // Scene a switch/transition is currently going to. Published to all
+    // panels as `switching: true` on that scene.
+    switchingScene?: {uuid: string, name: string}
+    switchingTimer?: NodeJS.Timeout
+    transitionActive?: boolean
     audioData: Record<string, any>
 }
 
@@ -267,7 +273,48 @@ export class OBSClient {
             await this.handleOBSError(connection.name, error)
         })
 
+        // Mark the new program scene live right away. The full refetch that
+        // follows (see the events list below) takes a while, so without this
+        // the panels only update after the OBS transition has finished.
+        const applyProgramSceneChange = (data: any) => {
+            if(this.applyProgramScene(
+                connection.name,
+                String(data?.sceneUuid ?? ''),
+                String(data?.sceneName ?? ''),
+            )) {
+                this.publishSceneData(connection.name)
+            }
+        }
+
+        // @ts-ignore canvas event is not part of the typed event map yet
+        connection.obsWebsocket.on('CurrentProgramSceneChangedCanvas', applyProgramSceneChange)
+
+        // Shared "switching" state for switches started outside the backend
+        // (OBS UI, hotkeys, other websocket clients).
+        connection.obsWebsocket.on('SceneTransitionStarted', () => {
+            connection.transitionActive = true
+            if(connection.switchingScene) this.scheduleSwitchingClear(connection, 10_000)
+        })
+
+        connection.obsWebsocket.on('SceneTransitionEnded', () => {
+            connection.transitionActive = false
+            this.clearSceneSwitching(connection)
+        })
+
         connection.obsWebsocket.on('CurrentProgramSceneChanged', (data: any) => {
+            if(connection.transitionActive) {
+                this.markSceneSwitching(
+                    connection,
+                    String(data?.sceneUuid ?? ''),
+                    String(data?.sceneName ?? ''),
+                )
+            } else if(connection.switchingScene) {
+                // No transition reported (yet): don't keep the state for long.
+                this.scheduleSwitchingClear(connection, 1_500)
+            }
+
+            applyProgramSceneChange(data)
+
             void this.emitObsEvent("event_obs_scene_changed", connection, {
                 sceneName: data.sceneName,
                 sceneUuid: data.sceneUuid,
@@ -347,6 +394,17 @@ export class OBSClient {
                 connection.name,
             )
 
+            // Keep panels (local, touch, cloud) in sync without a full refetch.
+            if(this.applySceneItemEnabled(
+                connection.name,
+                String(data.sceneUuid ?? ''),
+                String(data.sceneName ?? ''),
+                Number(data.sceneItemId),
+                Boolean(data.sceneItemEnabled),
+            )) {
+                this.publishSceneData(connection.name)
+            }
+
             void this.emitObsEvent(
                 data.sceneItemEnabled ? "event_obs_scene_item_enabled" : "event_obs_scene_item_disabled",
                 connection,
@@ -414,17 +472,29 @@ export class OBSClient {
         events.forEach(event =>
             // @ts-ignore
             connection.obsWebsocket.on(event, async () => {
-                if(connection.eventFetching) return
+                // Events during a running refetch are not dropped: they mark
+                // the data dirty and trigger one more refetch afterwards, so
+                // the final state always reflects the latest OBS change.
+                if(connection.eventFetching) {
+                    connection.eventFetchPending = true
+                    return
+                }
                 connection.eventFetching = true
 
                 try {
-                    await this.fetchItems(connection.name)
-                } catch (error) {
-                    logDebug(`obs event fetch failed (${connection.name}):`)
-                    logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
-                }
+                    do {
+                        connection.eventFetchPending = false
 
-                connection.eventFetching = false
+                        try {
+                            await this.fetchItems(connection.name)
+                        } catch (error) {
+                            logDebug(`obs event fetch failed (${connection.name}):`)
+                            logDebug(JSON.stringify(error, Object.getOwnPropertyNames(error)))
+                        }
+                    } while(connection.eventFetchPending)
+                } finally {
+                    connection.eventFetching = false
+                }
             })
         )
 
@@ -564,6 +634,122 @@ export class OBSClient {
         return this.getConnection(connectionName)?.audioData ?? {}
     }
 
+    /**
+     * Sends the stored scene data of a connection to all clients (local
+     * panels, touch, cloud).
+     */
+    private publishSceneData(connectionName = 'default') {
+        const connection = this.getConnection(connectionName)
+        if(!connection) return
+
+        const target = connection.switchingScene
+        for(const canvas of connection.sceneData ?? []) {
+            for(const scene of canvas?.scenes ?? []) {
+                scene.switching = Boolean(target && (target.uuid
+                    ? scene?.uuid === target.uuid
+                    : scene?.name === target.name))
+            }
+        }
+
+        // Keep the legacy/default event for existing clients.
+        if(connectionName === 'default') {
+            // @ts-ignore
+            this.sceneData = connection.sceneData
+
+            getWebsocketServer().send(
+                'notify_obs_scene_update',
+                connection.sceneData
+            )
+        }
+
+        // Always publish the indexed scene data for the concrete OBS
+        // connection. This allows secondary OBS instances to be indexed and
+        // consumed even when the default OBS connection is offline.
+        getWebsocketServer().send(
+            'notify_obs_scene_update_named',
+            {
+                connection: connectionName,
+                scenes: connection.sceneData,
+            }
+        )
+    }
+
+    /**
+     * Marks the given scene as the live scene of the canvas that contains it.
+     */
+    private applyProgramScene(connectionName: string, sceneUuid: string, sceneName: string): boolean {
+        if(!sceneUuid && !sceneName) return false
+
+        const matches = (scene: any) => sceneUuid
+            ? scene?.uuid === sceneUuid
+            : scene?.name === sceneName
+
+        let changed = false
+
+        for(const canvas of this.getSceneData(connectionName) ?? []) {
+            const scenes: any[] = canvas?.scenes ?? []
+            if(!scenes.some(matches)) continue
+
+            for(const scene of scenes) {
+                const active = matches(scene)
+                if(Boolean(scene.active) !== active) {
+                    scene.active = active
+                    changed = true
+                }
+            }
+        }
+
+        return changed
+    }
+
+    /**
+     * Applies a SceneItemEnableStateChanged event to the stored scene data.
+     * The same scene item can appear several times: as a top-level item of its
+     * own scene and as a child of groups/nested scenes that contain it.
+     */
+    private applySceneItemEnabled(
+        connectionName: string,
+        sceneUuid: string,
+        sceneName: string,
+        sceneItemId: number,
+        enabled: boolean,
+    ): boolean {
+        let changed = false
+
+        const matchesScene = (uuid: any, name: any) =>
+            (sceneUuid && uuid === sceneUuid) || (!sceneUuid && sceneName && name === sceneName)
+
+        const visit = (item: any, ownerUuid: any, ownerName: any) => {
+            if(!item) return
+
+            const parentUuid = item.parentSceneUuid ?? ownerUuid
+            const parentName = item.parentSceneName ?? ownerName
+
+            if(
+                Number(item.sceneItemId ?? item.id) === sceneItemId
+                && matchesScene(parentUuid, parentName)
+            ) {
+                item.sceneItemEnabled = enabled
+                item.enabled = enabled
+                changed = true
+            }
+
+            for(const child of item.children ?? []) {
+                visit(child, undefined, undefined)
+            }
+        }
+
+        for(const canvas of this.getSceneData(connectionName) ?? []) {
+            for(const scene of canvas?.scenes ?? []) {
+                for(const item of scene?.items ?? []) {
+                    visit(item, scene.uuid, scene.name)
+                }
+            }
+        }
+
+        return changed
+    }
+
     public getSceneItemById(
         sceneUuid: string,
         sceneItemId: number,
@@ -619,7 +805,69 @@ export class OBSClient {
             return
         }
 
-        await connection.obsWebsocket.call(method, data)
+        const isSceneSwitch = method === 'SetCurrentProgramScene'
+
+        if(isSceneSwitch) {
+            this.markSceneSwitching(
+                connection,
+                String(data?.sceneUuid ?? ''),
+                String(data?.sceneName ?? ''),
+            )
+        }
+
+        try {
+            await connection.obsWebsocket.call(method, data)
+        } catch (error) {
+            if(isSceneSwitch) this.clearSceneSwitching(connection)
+            throw error
+        }
+    }
+
+    /**
+     * Marks a scene as "switching" for all panels until OBS reports the end of
+     * the transition (or a fallback timeout).
+     */
+    private markSceneSwitching(
+        connection: OBSConnection,
+        sceneUuid: string,
+        sceneName: string,
+        timeoutMs = 10_000,
+    ) {
+        if(!sceneUuid && !sceneName) return
+
+        const matches = (scene: any) => sceneUuid
+            ? scene?.uuid === sceneUuid
+            : scene?.name === sceneName
+
+        // Switching to the live scene does nothing in OBS (no events).
+        if(!connection.transitionActive) {
+            const alreadyLive = (connection.sceneData ?? [])
+                .some((canvas: any) => (canvas?.scenes ?? []).some((scene: any) => matches(scene) && scene.active))
+            if(alreadyLive) return
+        }
+
+        const current = connection.switchingScene
+        const changed = !current || current.uuid !== sceneUuid || current.name !== sceneName
+
+        connection.switchingScene = {uuid: sceneUuid, name: sceneName}
+        this.scheduleSwitchingClear(connection, timeoutMs)
+
+        if(changed) this.publishSceneData(connection.name)
+    }
+
+    private scheduleSwitchingClear(connection: OBSConnection, timeoutMs: number) {
+        if(connection.switchingTimer) clearTimeout(connection.switchingTimer)
+        connection.switchingTimer = setTimeout(() => this.clearSceneSwitching(connection), timeoutMs)
+        connection.switchingTimer.unref?.()
+    }
+
+    private clearSceneSwitching(connection: OBSConnection) {
+        if(connection.switchingTimer) clearTimeout(connection.switchingTimer)
+        connection.switchingTimer = undefined
+
+        if(!connection.switchingScene) return
+        connection.switchingScene = undefined
+        this.publishSceneData(connection.name)
     }
 
     private async getCanvasList(connection: OBSConnection) {
@@ -1067,27 +1315,7 @@ export class OBSClient {
 
         connection.sceneData = sceneData
 
-        // Keep the legacy/default event for existing clients.
-        if(connectionName === 'default') {
-            // @ts-ignore
-            this.sceneData = connection.sceneData
-
-            getWebsocketServer().send(
-                'notify_obs_scene_update',
-                connection.sceneData
-            )
-        }
-
-        // Always publish the indexed scene data for the concrete OBS
-        // connection. This allows secondary OBS instances to be indexed and
-        // consumed even when the default OBS connection is offline.
-        getWebsocketServer().send(
-            'notify_obs_scene_update_named',
-            {
-                connection: connectionName,
-                scenes: connection.sceneData,
-            }
-        )
+        this.publishSceneData(connectionName)
 
         if(fullObsLog) {
             logNotice(`dump all obs audio sources (${connectionName}):`)

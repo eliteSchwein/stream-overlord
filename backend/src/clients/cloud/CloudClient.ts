@@ -6,7 +6,7 @@ import getGameInfo from "../../helper/GameHelper";
 import {getCloudMacros} from "../../helper/MacroHelper";
 import {getInteractionQueue} from "../../helper/InteractionHelper";
 import {getStatus as getMusicStatus} from "../../helper/MusicHelper";
-import {getRemoteDashboardSnapshot} from "./RemoteDashboard";
+import {getRemoteDashboardSnapshot, getRemoteObsState} from "./RemoteDashboard";
 import {getManagedConnections, setManagedConnection} from "../../helper/ConnectionHelper";
 import {
     clearCloudIntegrationRegistration,
@@ -50,6 +50,13 @@ const CLOUD_FORWARDED_METHODS = new Set([
     "notify_connection_update",
     "notify_song_request_update",
     "notify_twitch_user_list",
+]);
+
+const CLOUD_OBS_METHODS = new Set([
+    "notify_obs_scene_update",
+    "notify_obs_scene_update_named",
+    "notify_obs_audio_update",
+    "notify_obs_audio_update_named",
 ]);
 
 type PendingRegistration = {
@@ -383,6 +390,15 @@ export default class CloudClient {
     public handleLocalUpdate(method: string, data: any) {
         if (!method.startsWith("notify_")) return;
         if (!CLOUD_FORWARDED_METHODS.has(method)) return;
+
+        // The cloud keeps OBS state as one combined "obs" section (scenes and
+        // audio for all connections) and ignores the per-connection local
+        // notifies. Forward every OBS change as that section; the worker only
+        // sends the changed keys.
+        if (CLOUD_OBS_METHODS.has(method)) {
+            method = "notify_obs_update";
+            data = getRemoteObsState();
+        }
 
         // Local macro notifications contain every macro because the local UI
         // must still see/edit hidden entries. Cloud receives a dedicated
