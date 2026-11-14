@@ -35,17 +35,25 @@ import numpy as np
 # Seconds a detected box stays blurred after it was last detected (covers
 # movement between detections and single missed detections). Plates are
 # usually parked or slow and their detector is slower, so they are held longer.
-FACE_HOLD_SECONDS = 0.8
-PLATE_HOLD_SECONDS = 1.5
+FACE_HOLD_SECONDS = 4.0
+# Keep a face hidden for longer when optical flow can still follow its texture.
+# A failed/ambiguous tracker falls back to the short detector-loss grace period.
+FACE_RELIABLE_TRACK_SECONDS = 20.0
+FACE_FLOW_GRACE_SECONDS = 1.5
+# After this period without a model match, show TRACKING instead of a stale score.
+FACE_FRESH_SECONDS = 0.75
+PLATE_HOLD_SECONDS = 2.0
 # Relative padding around detected boxes (covers movement and detector jitter).
 FACE_PADDING = 0.3
-PLATE_PADDING = 0.15
+PLATE_PADDING = 0.20
 # Faces are detected on a frame scaled to at most this width. 960 finds faces
 # down to ~35-40 px in a 720p/1080p frame (640 only down to ~50 px).
 FACE_DETECT_WIDTH = 960
 # False positives only blur a bit more, misses leak a face: favour recall.
-FACE_THRESHOLD = 0.5
-PLATE_THRESHOLD = 0.4
+FACE_THRESHOLD = 0.35
+# A slightly lower threshold improves recall for EU plates, especially at an
+# angle. The detector still supplies the true score for the debug overlay.
+PLATE_THRESHOLD = 0.30
 # Pixelation block count across a blurred region (lower = coarser).
 PIXELATE_BLOCKS = 10
 
@@ -61,7 +69,7 @@ def log(message):
 
 
 # ---------------------------------------------------------------------------
-# Detectors. detect(frame) returns a list of (x1, y1, x2, y2) in frame pixels.
+# Detectors. detect(frame) returns (x1, y1, x2, y2, confidence) in frame pixels.
 # ---------------------------------------------------------------------------
 
 
@@ -98,7 +106,7 @@ class YunetFaceDetector:
         boxes = []
         for face in faces:
             x, y, w, h = face[:4] / scale
-            boxes.append((x, y, x + w, y + h))
+            boxes.append((x, y, x + w, y + h, float(face[14])))
         return boxes
 
 
@@ -192,7 +200,7 @@ def decode_yunet(outputs, size, threshold):
     result = []
     for index in np.array(cv2.dnn.NMSBoxes(boxes, scores, threshold, 0.3)).reshape(-1):
         x, y, w, h = boxes[int(index)]
-        result.append((x, y, x + w, y + h))
+        result.append((x, y, x + w, y + h, scores[int(index)]))
     return result
 
 
@@ -225,8 +233,8 @@ class OrtYunetFaceDetector:
             # BGR 0-255, NCHW, like OpenCV feeds YuNet.
             outputs = self.session.run(None, {self.input_name: np.ascontiguousarray(canvas.transpose(2, 0, 1))[None]})
             result += [
-                (bx1 / scale + x, by1 / scale + y, bx2 / scale + x, by2 / scale + y)
-                for bx1, by1, bx2, by2 in decode_yunet(outputs, self.size, self.threshold)
+                (bx1 / scale + x, by1 / scale + y, bx2 / scale + x, by2 / scale + y, confidence)
+                for bx1, by1, bx2, by2, confidence in decode_yunet(outputs, self.size, self.threshold)
             ]
         return result
 
@@ -272,7 +280,7 @@ class CoralFaceDetector:
 
     name = "coral"
 
-    def __init__(self, model_path, device=None, threshold=0.5):
+    def __init__(self, model_path, device=None, threshold=FACE_THRESHOLD):
         try:
             from ai_edge_litert.interpreter import Interpreter, load_delegate
         except ImportError:
@@ -289,6 +297,52 @@ class CoralFaceDetector:
         self.input_height, self.input_width = (int(value) for value in self.input["shape"][1:3])
         self.threshold = threshold
         self.outputs = self._map_outputs()
+        # Coral's SSD face model favors frontal faces. OpenCV's bundled
+        # profile cascade adds a CPU fallback for faces viewed from the side.
+        # No additional download or API setting is required.
+        self.profile = None
+        # Some embedded/minimal OpenCV builds omit objdetect (CascadeClassifier)
+        # or the bundled Haar cascade data. This optional CPU enhancement must
+        # never make a working Edge TPU detector fall back to CPU.
+        try:
+            cascade_factory = getattr(cv2, "CascadeClassifier", None)
+            cascade_dir = getattr(getattr(cv2, "data", None), "haarcascades", None)
+            if cascade_factory is None or not cascade_dir:
+                raise RuntimeError("OpenCV was built without CascadeClassifier or Haar cascade data")
+            cascade_path = os.path.join(cascade_dir, "haarcascade_profileface.xml")
+            if not os.path.isfile(cascade_path):
+                raise FileNotFoundError(cascade_path)
+            profile = cascade_factory(cascade_path)
+            if profile.empty():
+                raise RuntimeError("profile face cascade failed to load")
+            self.profile = profile
+        except Exception as error:  # optional fallback; keep Coral initialized
+            log(f"CPU side-profile detection unavailable ({error}); Coral face detection remains active")
+
+    def _profile_faces(self, frame):
+        if self.profile is None:
+            return []
+        height, width = frame.shape[:2]
+        scale = min(1.0, 640.0 / max(width, height))
+        small = frame if scale == 1.0 else cv2.resize(
+            frame, (max(1, round(width * scale)), max(1, round(height * scale))),
+            interpolation=cv2.INTER_AREA)
+        gray = cv2.equalizeHist(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY))
+        result = []
+        # The cascade only recognizes one profile direction; mirror to detect
+        # the other direction. These are heuristic detections, not probabilities.
+        for mirrored in (False, True):
+            source = cv2.flip(gray, 1) if mirrored else gray
+            faces = self.profile.detectMultiScale(
+                source, scaleFactor=1.12, minNeighbors=4,
+                minSize=(max(20, round(34 * scale)), max(20, round(34 * scale))))
+            for x, y, w, h in faces:
+                if mirrored:
+                    x = gray.shape[1] - x - w
+                box = (x / scale, y / scale, (x + w) / scale, (y + h) / scale)
+                if not any(iou(box, previous[:4]) > 0.35 for previous in result):
+                    result.append((*box, None))
+        return result
 
     def _map_outputs(self):
         # The SSD postprocess op names its outputs "<op>", "<op>:1", "<op>:2",
@@ -311,21 +365,36 @@ class CoralFaceDetector:
 
     def detect(self, frame):
         height, width = frame.shape[:2]
-        image = cv2.resize(frame, (self.input_width, self.input_height), interpolation=cv2.INTER_AREA)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        self.interpreter.set_tensor(self.input["index"], np.expand_dims(image, 0).astype(self.input["dtype"]))
-        self.interpreter.invoke()
-
-        boxes = self.interpreter.get_tensor(self.outputs["boxes"])[0]
-        scores = self.interpreter.get_tensor(self.outputs["scores"])[0]
-        count = int(np.squeeze(self.interpreter.get_tensor(self.outputs["count"])))
-
+        # Preserve aspect ratio: resizing a 16:9 frame straight to the square
+        # Coral input makes small faces very narrow and difficult to detect.
+        # Overlapping square crops also increase effective face resolution.
         result = []
-        for index in range(min(count, len(scores))):
-            if scores[index] < self.threshold:
-                continue
-            y1, x1, y2, x2 = boxes[index]
-            result.append((x1 * width, y1 * height, x2 * width, y2 * height))
+        for ox, oy, tw, th in square_tiles(height, width):
+            crop = frame[oy:oy + th, ox:ox + tw]
+            image = cv2.resize(crop, (self.input_width, self.input_height), interpolation=cv2.INTER_AREA)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            self.interpreter.set_tensor(self.input["index"], np.expand_dims(image, 0).astype(self.input["dtype"]))
+            self.interpreter.invoke()
+
+            boxes = self.interpreter.get_tensor(self.outputs["boxes"])[0]
+            scores = self.interpreter.get_tensor(self.outputs["scores"])[0]
+            count = int(np.squeeze(self.interpreter.get_tensor(self.outputs["count"])))
+            for index in range(min(count, len(scores))):
+                if scores[index] < self.threshold:
+                    continue
+                y1, x1, y2, x2 = boxes[index]
+                box = (max(0, x1 * tw + ox), max(0, y1 * th + oy),
+                       min(width, x2 * tw + ox), min(height, y2 * th + oy))
+                if box[2] <= box[0] or box[3] <= box[1]:
+                    continue
+                # Deduplicate overlapping tile predictions.
+                if not any(iou(box, previous[:4]) > 0.45 for previous in result):
+                    result.append((*box, float(scores[index])))
+        # An extra side-profile pass catches faces the TPU's frontal model
+        # does not recognize. Preserve the TPU prediction when boxes overlap.
+        for box in self._profile_faces(frame):
+            if not any(iou(box[:4], previous[:4]) > 0.30 for previous in result):
+                result.append(box)
         return result
 
 
@@ -352,20 +421,42 @@ class RknnYunetFaceDetector:
             canvas, scale = letterbox_top_left(frame[y:y + h, x:x + w], self.size)
             outputs = self.rknn.inference(inputs=[np.expand_dims(canvas, 0)], data_format="nhwc")
             result += [
-                (bx1 / scale + x, by1 / scale + y, bx2 / scale + x, by2 / scale + y)
-                for bx1, by1, bx2, by2 in decode_yunet(outputs, self.size, self.threshold)
+                (bx1 / scale + x, by1 / scale + y, bx2 / scale + x, by2 / scale + y, confidence)
+                for bx1, by1, bx2, by2, confidence in decode_yunet(outputs, self.size, self.threshold)
             ]
         return result
 
 
-class OnnxPlateDetector:
-    """
-    YOLOv9 license plate detector (open-image-models, end2end ONNX), GPU or CPU.
+def merge_plate_detections(detections, width, height, overlap=0.45):
+    """Merge overlapping detections from different tiles and zoom levels.
 
-    Wide frames are split into overlapping square tiles: letterboxing a 16:9
-    frame into the square model input wastes ~45% of it and shrinks plates
-    below what the model finds (640 model: ~80 px plates in one pass at 720p,
-    ~45 px with two tiles).
+    Keep the highest *model* confidence, never average confidence values or
+    replace them with an invented certainty for the debugging overlay.
+    """
+    filtered = []
+    for x1, y1, x2, y2, confidence in detections:
+        if not np.isfinite([x1, y1, x2, y2, confidence]).all():
+            continue
+        box = (max(0.0, min(width, x1)), max(0.0, min(height, y1)),
+               max(0.0, min(width, x2)), max(0.0, min(height, y2)))
+        if box[2] - box[0] < 5 or box[3] - box[1] < 3:
+            continue
+        filtered.append((*box, float(confidence)))
+
+    result = []
+    for candidate in sorted(filtered, key=lambda item: item[4], reverse=True):
+        if not any(iou(candidate[:4], previous[:4]) >= overlap for previous in result):
+            result.append(candidate)
+    return result
+
+
+class OnnxPlateDetector:
+    """YOLOv9 general license-plate model (ONNX, CPU or GPU).
+
+    Overlapping square crops preserve image detail in widescreen feeds. A
+    second, closer crop pass is used only when the first pass found nothing:
+    small / distant plates benefit, without always doubling inference work.
+    This improves *recall*; it does not make the model EU-specific.
     """
 
     def __init__(self, model_path, use_gpu=False, threshold=PLATE_THRESHOLD):
@@ -375,14 +466,36 @@ class OnnxPlateDetector:
         self.size = int(model_input.shape[2]) if isinstance(model_input.shape[2], int) else 384
         self.threshold = threshold
 
+    @staticmethod
+    def closeup_tiles(height, width):
+        """Overlapping zoom crops for plates too small in the standard pass."""
+        side = int(min(height, width) * 0.7)
+        if side < 320:
+            return []
+        xs = np.linspace(0, width - side, max(1, int(np.ceil(width / side))))
+        ys = np.linspace(0, height - side, max(1, int(np.ceil(height / side))))
+        return [(int(round(x)), int(round(y)), side, side) for y in ys for x in xs]
+
     def detect(self, frame):
+        height, width = frame.shape[:2]
         result = []
-        for x, y, w, h in square_tiles(*frame.shape[:2]):
-            result += [
-                (x1 + x, y1 + y, x2 + x, y2 + y)
-                for x1, y1, x2, y2 in self._detect_tile(frame[y:y + h, x:x + w])
-            ]
-        return result
+        for x, y, w, h in square_tiles(height, width):
+            result.extend(
+                (x1 + x, y1 + y, x2 + x, y2 + y, confidence)
+                for x1, y1, x2, y2, confidence in self._detect_tile(frame[y:y + h, x:x + w])
+            )
+
+        if not result:
+            # This is more expensive, so don't run it when ordinary detection
+            # succeeds. The thread consumes only the newest frame and never
+            # blocks video encoding.
+            for x, y, w, h in self.closeup_tiles(height, width):
+                result.extend(
+                    (x1 + x, y1 + y, x2 + x, y2 + y, confidence)
+                    for x1, y1, x2, y2, confidence in self._detect_tile(frame[y:y + h, x:x + w])
+                )
+
+        return merge_plate_detections(result, width, height)
 
     def _detect_tile(self, frame):
         height, width = frame.shape[:2]
@@ -399,7 +512,7 @@ class OnnxPlateDetector:
         predictions = self.session.run(None, {self.input_name: np.expand_dims(np.ascontiguousarray(tensor), 0)})[0]
 
         result = []
-        # [batch, x1, y1, x2, y2, class, score]
+        # End-to-end model: [batch, x1, y1, x2, y2, class, score].
         for row in predictions.reshape(-1, 7):
             if row[6] < self.threshold:
                 continue
@@ -408,6 +521,7 @@ class OnnxPlateDetector:
                 (row[2] - pad_h) / ratio,
                 (row[3] - pad_w) / ratio,
                 (row[4] - pad_h) / ratio,
+                float(row[6]),
             ))
         return result
 
@@ -529,7 +643,7 @@ class DetectionThread(threading.Thread):
         self.frame = None
         self.frame_id = 0
         self.frame_event = threading.Event()
-        self.results = []  # [(frame_id, [(x1, y1, x2, y2), ...])]
+        self.results = []  # [(frame_id, [(x1, y1, x2, y2, confidence), ...])]
         self.ready = False
         self.failed = False
         self.stopped = False
@@ -566,7 +680,8 @@ class DetectionThread(threading.Thread):
             frame, frame_id = self.frame, self.frame_id
 
             try:
-                boxes = [tuple(float(value) for value in box) for box in detector.detect(frame)]
+                boxes = [tuple(float(value) if value is not None else None for value in box)
+                         for box in detector.detect(frame)]
             except Exception as error:  # noqa: BLE001
                 self.failed = True
                 status(state="error", error=f"{self.kind} detection failed: {error}")
@@ -610,9 +725,13 @@ class TrackedBox:
     def __init__(self, kind, box, points, expires):
         self.kind = kind
         self.box = list(box)  # full resolution x1, y1, x2, y2
+        self.confidence = None
         self.points = points  # Nx1x2 float32 in tracking resolution, or None
         self.expires = expires
+        self.last_detected = time.monotonic()
         self.velocity = (0.0, 0.0)  # px per frame, full resolution
+        self.last_flow_ok = self.last_detected
+        self.flow_ok = False
 
 
 class BoxTracker:
@@ -655,18 +774,33 @@ class BoxTracker:
         return points.astype(np.float32)
 
     def _flow(self, old_gray, new_gray, box, points):
-        """Moves box/points from old_gray to new_gray. Returns (box, points, delta)."""
-        if points is None or len(points) == 0:
+        """Track points with forward/backward validation to reject background drift."""
+        if points is None or len(points) < 4:
             return box, None, (0.0, 0.0)
         moved, found, _ = cv2.calcOpticalFlowPyrLK(old_gray, new_gray, points, None, **LK_PARAMS)
-        if moved is None:
+        if moved is None or found is None:
             return box, None, (0.0, 0.0)
-        good = found.reshape(-1) == 1
-        if good.sum() < 3:
+        back, back_found, _ = cv2.calcOpticalFlowPyrLK(new_gray, old_gray, moved, None, **LK_PARAMS)
+        if back is None or back_found is None:
             return box, None, (0.0, 0.0)
-        delta = np.median((moved[good] - points[good]).reshape(-1, 2), axis=0) / self.scale
-        shifted = [box[0] + delta[0], box[1] + delta[1], box[2] + delta[0], box[3] + delta[1]]
-        return shifted, moved[good].reshape(-1, 1, 2), (float(delta[0]), float(delta[1]))
+        errors = np.linalg.norm((back - points).reshape(-1, 2), axis=1)
+        good = ((found.reshape(-1) == 1) & (back_found.reshape(-1) == 1)
+                & np.isfinite(errors) & (errors < 1.5))
+        if good.sum() < max(4, int(len(points) * 0.25)):
+            return box, None, (0.0, 0.0)
+        shifts = (moved[good] - points[good]).reshape(-1, 2)
+        median = np.median(shifts, axis=0)
+        deviations = np.linalg.norm(shifts - median, axis=1)
+        consistent = deviations < max(2.0, min(self.size) * 0.015)
+        if consistent.sum() < 4:
+            return box, None, (0.0, 0.0)
+        delta = np.median(shifts[consistent], axis=0) / self.scale
+        # A wildly jumping flow estimate must not throw the privacy box away.
+        if np.linalg.norm(delta) > max(12.0, self.width * 0.04):
+            return box, None, (0.0, 0.0)
+        shifted = [box[0] + delta[0], box[1] + delta[1],
+                   box[2] + delta[0], box[3] + delta[1]]
+        return shifted, moved[good][consistent].reshape(-1, 1, 2), (float(delta[0]), float(delta[1]))
 
     def update(self, frame, frame_id, results, hold_seconds):
         """
@@ -680,19 +814,28 @@ class BoxTracker:
         if self.previous is not None:
             for tracked in self.boxes:
                 tracked.box, tracked.points, delta = self._flow(self.previous, gray, tracked.box, tracked.points)
-                # Smoothed per-frame motion for the motion margin.
+                tracked.flow_ok = tracked.points is not None
+                if tracked.flow_ok:
+                    tracked.last_flow_ok = now
+                    # Refresh feature points within the current moving region.
+                    if len(tracked.points) < 8:
+                        extra = self._points(gray, tracked.box)
+                        if extra is not None:
+                            tracked.points = extra
+                elif now - tracked.last_detected < FACE_FRESH_SECONDS:
+                    # New detection can initialize a fresh set of features.
+                    tracked.points = self._points(gray, tracked.box)
                 tracked.velocity = (
                     0.5 * tracked.velocity[0] + 0.5 * delta[0],
                     0.5 * tracked.velocity[1] + 0.5 * delta[1],
                 )
-                if tracked.points is None:
-                    tracked.points = self._points(gray, tracked.box)
 
         # 2. Add new detections, moved from their frame to this one.
         for kind, kind_results in results.items():
             for det_frame_id, boxes in kind_results:
                 old_gray = self.history.get(det_frame_id)
-                for box in boxes:
+                for detection in boxes:
+                    box, confidence = detection[:4], detection[4]
                     velocity = (0.0, 0.0)
                     if old_gray is not None and det_frame_id != frame_id:
                         box, points, delta = self._flow(old_gray, gray, list(box), self._points(old_gray, box))
@@ -709,10 +852,24 @@ class BoxTracker:
                         if tracked.kind != kind or iou(tracked.box, box) < 0.3
                     ]
                     tracked = TrackedBox(kind, box, points, now + hold_seconds[kind])
+                    tracked.confidence = confidence
+                    tracked.last_detected = now
                     tracked.velocity = velocity
+                    tracked.last_flow_ok = now
                     self.boxes.append(tracked)
 
-        self.boxes = [tracked for tracked in self.boxes if tracked.expires > now]
+        # A confident flow track survives temporary model misses (hands,
+        # profile turns), but never beyond a bounded interval without a new
+        # AI detection. If flow fails, retain the ordinary 4-second grace.
+        self.boxes = [
+            tracked for tracked in self.boxes
+            if tracked.expires > now or (
+                tracked.kind == "face"
+                and now - tracked.last_detected < FACE_RELIABLE_TRACK_SECONDS
+                and now - tracked.last_flow_ok < FACE_FLOW_GRACE_SECONDS
+                and tracked.flow_ok
+            )
+        ]
 
         self.history[frame_id] = gray
         self.history.pop(frame_id - TRACK_HISTORY, None)
@@ -724,7 +881,11 @@ class BoxTracker:
             mx = abs(tracked.velocity[0]) * MOTION_MARGIN_FRAMES
             my = abs(tracked.velocity[1]) * MOTION_MARGIN_FRAMES
             x1, y1, x2, y2 = tracked.box
-            result.append((tracked.kind, [x1 - mx, y1 - my, x2 + mx, y2 + my]))
+            # A confidence score describes the original detector prediction,
+            # not the quality of tracking while the face is obscured.
+            fresh = tracked.kind != "face" or now - tracked.last_detected < FACE_FRESH_SECONDS
+            confidence = tracked.confidence if fresh else None
+            result.append((tracked.kind, [x1 - mx, y1 - my, x2 + mx, y2 + my], confidence, not fresh))
         return result
 
 
@@ -758,6 +919,43 @@ def create_detection_threads(config):
     return threads
 
 
+
+def draw_debug_label(frame, label, x1, y1, color):
+    height, width = frame.shape[:2]
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = max(0.8, min(1.6, min(width, height) / 720))
+    thickness = max(2, round(scale * 2))
+    (tw, th), baseline = cv2.getTextSize(label, font, scale, thickness)
+    margin = max(5, round(scale * 7))
+    left = min(max(0, x1), max(0, width - tw - margin * 2))
+    top = y1 - th - baseline - margin * 2 - 4
+    if top < 0:
+        top = min(height - th - baseline - margin * 2, y1 + 4)
+    top = max(0, top)
+    cv2.rectangle(frame, (left, top), (left + tw + margin * 2,
+                  top + th + baseline + margin * 2), color, -1)
+    cv2.putText(frame, label, (left + margin, top + margin + th),
+                font, scale, (0, 0, 0), thickness, cv2.LINE_AA)
+
+
+def draw_debug_hud(frame, label):
+    height, width = frame.shape[:2]
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    scale = max(0.55, min(1.2, min(width, height) / 950))
+    thickness = max(1, round(scale * 2))
+    (tw, th), baseline = cv2.getTextSize(label, font, scale, thickness)
+    padding = max(6, round(scale * 10))
+    # Scale down long HUD text on narrow video frames.
+    if tw + padding * 2 > width:
+        scale *= (width - padding * 2) / max(1, tw)
+        scale = max(0.3, scale)
+        (tw, th), baseline = cv2.getTextSize(label, font, scale, thickness)
+    cv2.rectangle(frame, (0, 0), (min(width - 1, tw + padding * 2),
+                  min(height - 1, th + baseline + padding * 2)), (25, 25, 25), -1)
+    cv2.putText(frame, label, (padding, padding + th), font, scale,
+                (255, 255, 255), thickness, cv2.LINE_AA)
+
+
 def main():
     with open(sys.argv[1], encoding="utf-8") as handle:
         config = json.load(handle)
@@ -777,7 +975,8 @@ def main():
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
-    blur = bool(config.get("faces") or config.get("plates"))
+    blur = bool(config.get("blur_faces", config.get("faces")) or config.get("blur_plates", config.get("plates")))
+    show_detections = bool(config.get("show_detections"))
     detection = create_detection_threads(config)
     for thread in detection:
         thread.start()
@@ -805,13 +1004,39 @@ def main():
                 results = {thread.kind: thread.take_results() for thread in detection}
                 boxes = tracker.update(frame, frame_id, results, hold_seconds)
 
-                if any(thread.failed or not thread.ready for thread in detection):
+                if blur and any(
+                    (thread.kind == "face" and config.get("blur_faces", True)
+                     or thread.kind == "plate" and config.get("blur_plates", True))
+                    and (thread.failed or not thread.ready) for thread in detection
+                ):
                     # Fail closed: nothing leaves unblurred while any detector
                     # is loading or broken.
                     pixelate(frame, 0, 0, width, height)
                 else:
-                    for kind, box in boxes:
-                        pixelate(frame, *pad_box(box, padding[kind], width, height))
+                    for kind, box, confidence, tracking_only in boxes:
+                        if config.get("blur_faces" if kind == "face" else "blur_plates", True):
+                            pixelate(frame, *pad_box(box, padding[kind], width, height))
+
+                if show_detections:
+                    # Always render debug feedback, including during startup,
+                    # when no objects were found, or when blur fails closed.
+                    for kind, box, confidence, tracking_only in boxes:
+                        x1, y1, x2, y2 = pad_box(box, padding[kind], width, height)
+                        color = (80, 220, 80) if kind == "face" else (0, 190, 255)
+                        thickness = max(2, round(min(width, height) / 360))
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
+                        label = ("FACE TRACKING" if tracking_only else
+                                 f"{kind.upper()} {confidence * 100:.0f}%" if confidence is not None else
+                                 "FACE PROFILE" if kind == "face" else kind.upper())
+                        draw_debug_label(frame, label, x1, y1, color)
+
+                    face_count = sum(kind == "face" for kind, _, _, _ in boxes)
+                    plate_count = sum(kind == "plate" for kind, _, _, _ in boxes)
+                    pending = [t.kind.upper() for t in detection if not t.ready and not t.failed]
+                    failed = [t.kind.upper() for t in detection if t.failed]
+                    state = ("ERROR: " + ",".join(failed) if failed else
+                             "LOADING: " + ",".join(pending) if pending else "ACTIVE")
+                    draw_debug_hud(frame, f"AI DEBUG | {state} | FACE {face_count} | PLATE {plate_count}")
 
             encoder.stdin.write(frame.tobytes())
 

@@ -69,6 +69,7 @@ export type WebcamCameraSettings = {
     audio_source: string;
     blur_faces: boolean;
     blur_plates: boolean;
+    show_detections: boolean;
     // Detection hardware per filter: faces can use a Coral, the GPU, the
     // Rockchip NPU or the CPU; plates (no Coral/NPU model) the GPU or the CPU.
     face_accelerator: WebcamAcceleratorSetting;
@@ -110,6 +111,7 @@ const CAMERA_DEFAULTS: Omit<WebcamCameraSettings, "id" | "name" | "device"> = {
     audio_source: "",
     blur_faces: false,
     blur_plates: false,
+    show_detections: false,
     face_accelerator: "auto",
     plate_accelerator: "auto",
     codec: "h264",
@@ -302,6 +304,7 @@ function normalizeCamera(input: Partial<WebcamCameraSettings>, current: WebcamCa
     if (input.audio_source !== undefined) next.audio_source = String(input.audio_source ?? "");
     if (input.blur_faces !== undefined) next.blur_faces = Boolean(input.blur_faces);
     if (input.blur_plates !== undefined) next.blur_plates = Boolean(input.blur_plates);
+    if (input.show_detections !== undefined) next.show_detections = Boolean(input.show_detections);
     if (input.face_accelerator !== undefined) {
         const accelerator = String(input.face_accelerator ?? "");
         next.face_accelerator = ACCELERATOR_SETTING.test(accelerator) ? accelerator : "auto";
@@ -346,7 +349,7 @@ function assignAccelerators(cameras: WebcamCameraSettings[]) {
     const corals = runtime.accelerators.corals.map((coral) => coral.id);
     const gpu = Boolean(runtime.accelerators.gpu.runtime);
     const npu = Boolean(runtime.accelerators.rockchip_npu);
-    const faceBlurring = cameras.filter((camera) => camera.enabled && camera.blur_faces);
+    const faceBlurring = cameras.filter((camera) => camera.enabled && (camera.blur_faces || camera.show_detections));
     const taken = new Set<string>();
     const face = new Map<string, string>();
 
@@ -549,7 +552,7 @@ function syncStreams() {
             continue;
         }
 
-        if ((camera.blur_faces || camera.blur_plates) && !isBlurInstalled()) {
+        if ((camera.blur_faces || camera.blur_plates || camera.show_detections) && !isBlurInstalled()) {
             // Fail closed: never stream unblurred, and do not keep a cloud
             // session open that looks live.
             stopPipeline(stream, "privacy blur not installed");
@@ -695,7 +698,7 @@ function spawnPipeline(stream: CameraStream, camera: WebcamCameraSettings, accel
 
     if (!stream.credentials) return;
 
-    const blur = camera.blur_faces || camera.blur_plates;
+    const blur = camera.blur_faces || camera.blur_plates || camera.show_detections;
     const device = findDevice(camera.device);
     if (!device) {
         setState(stream, "waiting_for_device");
@@ -753,8 +756,11 @@ function spawnPipeline(stream: CameraStream, camera: WebcamCameraSettings, accel
             width: camera.width,
             height: camera.height,
             fps: capture.fps,
-            faces: camera.blur_faces,
-            plates: camera.blur_plates,
+            faces: camera.blur_faces || camera.show_detections,
+            plates: camera.blur_plates || camera.show_detections,
+            show_detections: camera.show_detections,
+            blur_faces: camera.blur_faces,
+            blur_plates: camera.blur_plates,
             face_accelerator: accelerator.face,
             plate_accelerator: accelerator.plate,
             models_dir: path.join(getBlurRoot(), "models"),
