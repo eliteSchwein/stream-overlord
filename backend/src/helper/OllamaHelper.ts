@@ -206,12 +206,47 @@ function getOllamaEnvironment(): NodeJS.ProcessEnv {
         TMPDIR: tempRoot,
         OLLAMA_MODELS: modelRoot,
         OLLAMA_HOST,
+        // Vulkan backend (bundled in lib/ollama/vulkan) covers GPUs without
+        // CUDA/ROCm, e.g. Intel/AMD iGPUs or the Raspberry Pi 5 (Mesa v3dv).
+        OLLAMA_VULKAN: process.env.OLLAMA_VULKAN ?? "1",
+        // Ollama drops integrated GPUs by default; allow them.
+        OLLAMA_IGPU_ENABLE: process.env.OLLAMA_IGPU_ENABLE ?? "1",
         LD_LIBRARY_PATH: [
             path.join(root, "lib", "ollama"),
             path.join(root, "lib"),
             process.env.LD_LIBRARY_PATH,
         ].filter(Boolean).join(":"),
     };
+}
+
+function warnIfVulkanUnavailable() {
+    if (process.env.OLLAMA_VULKAN === "0") {
+        return;
+    }
+
+    if (!fs.existsSync(path.join(getOllamaRoot(), "lib", "ollama", "vulkan"))) {
+        logWarn(
+            "ollama build has no bundled vulkan backend, GPU acceleration via vulkan is unavailable",
+        );
+        return;
+    }
+
+    const loaderDirs = [
+        "/usr/lib",
+        "/usr/lib64",
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/lib/aarch64-linux-gnu",
+        "/usr/local/lib",
+    ];
+    const hasLoader = loaderDirs.some((directory) =>
+        fs.existsSync(path.join(directory, "libvulkan.so.1")),
+    );
+
+    if (!hasLoader) {
+        logWarn(
+            "vulkan loader (libvulkan.so.1) not found, install libvulkan1 and mesa-vulkan-drivers to use iGPU acceleration",
+        );
+    }
 }
 
 function getLocalOllamaModelRoot() {
@@ -669,6 +704,8 @@ async function startOllamaInternal() {
     }
 
     await installOllama(false);
+
+    warnIfVulkanUnavailable();
 
     const binary = getOllamaBinary();
 
