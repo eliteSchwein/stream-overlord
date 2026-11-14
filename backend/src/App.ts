@@ -31,7 +31,7 @@ import {updateConfiguredEventIndex} from "./helper/EventHelper";
 import loadRotateScenes from "./helper/RotateSceneHelper";
 import {ensureDefaultOllamaIntegration, loadIntegrationsCache} from "./helper/IntegrationsHelper";
 import {initializeUpdateManager, setUpdateManagerNotifier} from "./helper/UpdateHelper";
-import {stopOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
+import {shutdownOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
 import {setRestoreNotifier} from "./helper/BackupRestoreHelper";
 import {initGiveaway} from "./helper/GiveawayHelper";
 import {initCategoryLibrary} from "./helper/CategoryLibraryHelper";
@@ -408,7 +408,7 @@ async function shutdown() {
         await triggerMacro("event_system_poweroff")
     }
 
-    await stopOllama()
+    await shutdownOllama()
     await redis.disconnect()
     await stopMusicPlayer()
     killGpio()

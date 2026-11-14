@@ -1,5 +1,5 @@
 import axios, {AxiosError, Method} from "axios";
-import {ChildProcess, spawn} from "node:child_process";
+import {execFile, spawn} from "node:child_process";
 import type {WebSocket} from "ws";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -94,7 +94,6 @@ function getOpenAiPath(pathname: string) {
         : path;
 }
 
-let ollamaProcess: ChildProcess | null = null;
 let installPromise: Promise<void> | null = null;
 let processTransition: Promise<void> | null = null;
 
@@ -179,7 +178,7 @@ function getModelConfigPath() {
     return config;
 }
 
-function getOllamaEnvironment(): NodeJS.ProcessEnv {
+function getOllamaServiceEnvironment(): Record<string, string> {
     const root = getOllamaRoot();
     const runtimeHome = path.join(root, "home");
     const modelRoot = path.join(root, "models");
@@ -199,7 +198,6 @@ function getOllamaEnvironment(): NodeJS.ProcessEnv {
     }
 
     return {
-        ...process.env,
         HOME: runtimeHome,
         XDG_CACHE_HOME: cacheRoot,
         XDG_CONFIG_HOME: configRoot,
@@ -214,9 +212,207 @@ function getOllamaEnvironment(): NodeJS.ProcessEnv {
         LD_LIBRARY_PATH: [
             path.join(root, "lib", "ollama"),
             path.join(root, "lib"),
-            process.env.LD_LIBRARY_PATH,
-        ].filter(Boolean).join(":"),
+        ].join(":"),
     };
+}
+
+// The internal Ollama runs as a systemd user service (like stream-overlord
+// itself), so it can be managed via `systemctl --user` and used with the
+// `ollama` CLI over SSH.
+const OLLAMA_SERVICE_NAME = "streambot-ollama.service";
+
+function getOllamaServicePath() {
+    return path.join(os.homedir(), ".config", "systemd", "user", OLLAMA_SERVICE_NAME);
+}
+
+function getOllamaCliLinkPath() {
+    return path.join(os.homedir(), ".local", "bin", "ollama");
+}
+
+function escapeSystemdValue(value: string) {
+    return value
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, "\\\"")
+        .replace(/%/g, "%%");
+}
+
+function buildOllamaServiceUnit() {
+    const environment = Object.entries(getOllamaServiceEnvironment())
+        .map(([key, value]) =>
+            `Environment="${key}=${escapeSystemdValue(value)}"`,
+        )
+        .join("\n");
+
+    return [
+        "[Unit]",
+        "Description=Ollama for Streambot",
+        "After=network-online.target",
+        "",
+        "[Service]",
+        "Type=simple",
+        `ExecStart="${escapeSystemdValue(getOllamaBinary())}" serve`,
+        environment,
+        "Restart=on-failure",
+        "RestartSec=3",
+        "",
+        "[Install]",
+        "WantedBy=default.target",
+        "",
+    ].join("\n");
+}
+
+function runCommand(
+    command: string,
+    args: string[],
+): Promise<string> {
+    return new Promise((resolve, reject) => {
+        execFile(
+            command,
+            args,
+            {timeout: 60_000},
+            (error, stdout, stderr) => {
+                if (error) {
+                    const details = String(stderr || stdout || "").trim();
+                    reject(new Error(
+                        `${command} ${args.join(" ")} failed${details ? `: ${details}` : `: ${error.message}`}`,
+                    ));
+                    return;
+                }
+
+                resolve(String(stdout ?? "").trim());
+            },
+        );
+    });
+}
+
+function systemctlUser(...args: string[]) {
+    return runCommand("systemctl", ["--user", ...args]);
+}
+
+function isOllamaServiceInstalled() {
+    return fs.existsSync(getOllamaServicePath());
+}
+
+function linkOllamaCli() {
+    const linkPath = getOllamaCliLinkPath();
+    const binary = getOllamaBinary();
+
+    try {
+        const stat = fs.lstatSync(linkPath, {throwIfNoEntry: false});
+
+        if (stat) {
+            if (!stat.isSymbolicLink()) {
+                logNotice(`${linkPath} exists and is not managed by streambot, skip ollama cli link`);
+                return;
+            }
+
+            if (fs.readlinkSync(linkPath) === binary) {
+                return;
+            }
+
+            fs.unlinkSync(linkPath);
+        }
+
+        fs.mkdirSync(path.dirname(linkPath), {recursive: true});
+        fs.symlinkSync(binary, linkPath);
+
+        logSuccess(`ollama cli linked to ${linkPath}`);
+    } catch (error: any) {
+        logWarn(`failed to link ollama cli: ${error?.message ?? error}`);
+    }
+}
+
+function unlinkOllamaCli() {
+    const linkPath = getOllamaCliLinkPath();
+
+    try {
+        const stat = fs.lstatSync(linkPath, {throwIfNoEntry: false});
+
+        if (
+            stat?.isSymbolicLink() &&
+            fs.readlinkSync(linkPath) === getOllamaBinary()
+        ) {
+            fs.unlinkSync(linkPath);
+        }
+    } catch (error: any) {
+        logWarn(`failed to remove ollama cli link: ${error?.message ?? error}`);
+    }
+}
+
+async function ensureLinger() {
+    // Without lingering, user services stop when the last session ends and
+    // only start once the user logs in.
+    try {
+        const linger = await runCommand(
+            "loginctl",
+            ["show-user", os.userInfo().username, "--property=Linger", "--value"],
+        );
+
+        if (linger === "yes") return;
+
+        await runCommand("loginctl", ["enable-linger", os.userInfo().username]);
+        logSuccess("enabled systemd lingering for the ollama user service");
+    } catch (error: any) {
+        logWarn(
+            `could not enable lingering, ollama only runs while the user is logged in (run "sudo loginctl enable-linger ${os.userInfo().username}"): ${error?.message ?? error}`,
+        );
+    }
+}
+
+async function installOllamaService() {
+    const servicePath = getOllamaServicePath();
+    const unit = buildOllamaServiceUnit();
+    const current = fs.existsSync(servicePath)
+        ? fs.readFileSync(servicePath, "utf8")
+        : null;
+    const changed = current !== unit;
+
+    if (changed) {
+        fs.mkdirSync(path.dirname(servicePath), {recursive: true});
+        fs.writeFileSync(servicePath, unit);
+        await systemctlUser("daemon-reload");
+
+        logSuccess(`ollama service written to ${servicePath}`);
+    }
+
+    linkOllamaCli();
+    await ensureLinger();
+
+    await systemctlUser("enable", OLLAMA_SERVICE_NAME);
+
+    // Pick up a changed unit (e.g. new environment) on a running service.
+    await systemctlUser(changed ? "restart" : "start", OLLAMA_SERVICE_NAME);
+}
+
+async function uninstallOllamaService() {
+    unlinkOllamaCli();
+
+    if (!isOllamaServiceInstalled()) return;
+
+    try {
+        await systemctlUser("disable", "--now", OLLAMA_SERVICE_NAME);
+    } catch (error: any) {
+        logWarn(`failed to stop ollama service: ${error?.message ?? error}`);
+    }
+
+    fs.rmSync(getOllamaServicePath(), {force: true});
+
+    try {
+        await systemctlUser("daemon-reload");
+    } catch (error: any) {
+        logWarn(`systemd daemon-reload failed: ${error?.message ?? error}`);
+    }
+
+    runtimeState.running = false;
+
+    logSuccess("ollama service uninstalled");
+}
+
+// External provider: the internal Ollama is not needed, remove the service
+// and the local models (the runtime is kept for a later switch back).
+async function removeInternalOllama() {
+    await uninstallOllamaService();
+    deleteLocalOllamaModels();
 }
 
 function warnIfVulkanUnavailable() {
@@ -678,20 +874,12 @@ async function waitForOllama(timeoutMs = 30_000) {
 }
 
 async function startOllamaInternal() {
-    if (
-        runtimeState.running &&
-        ollamaProcess &&
-        !ollamaProcess.killed
-    ) {
-        return;
-    }
-
     if (!isOllamaIntegrationEnabled()) {
         return;
     }
 
     if (isExternalAiEnabled()) {
-        deleteLocalOllamaModels();
+        await removeInternalOllama();
 
         if (isExternalOpenAiEnabled()) {
             await refreshExternalOpenAiState();
@@ -707,91 +895,20 @@ async function startOllamaInternal() {
 
     warnIfVulkanUnavailable();
 
-    const binary = getOllamaBinary();
-
-    const child = spawn(
-        binary,
-        ["serve"],
-        {
-            env: getOllamaEnvironment(),
-            stdio: ["ignore", "pipe", "pipe"],
-        },
-    );
-
-    ollamaProcess = child;
     runtimeState.error = "";
 
-    child.stdout?.on(
-        "data",
-        (chunk) =>
-            logChildOutput(
-                "ollama",
-                chunk,
-            ),
-    );
-
-    child.stderr?.on(
-        "data",
-        (chunk) =>
-            logChildOutput(
-                "ollama",
-                chunk,
-            ),
-    );
-
-    child.once(
-        "spawn",
-        () => {
-            runtimeState.running = true;
-
-            logSuccess(
-                `ollama server started with pid ${child.pid}`,
-            );
-
-            emitOllamaUpdate();
-        },
-    );
-
-    child.once(
-        "error",
-        (error) => {
-            runtimeState.error = error.message;
-            runtimeState.running = false;
-
-            if (ollamaProcess === child) {
-                ollamaProcess = null;
-            }
-
-            emitOllamaUpdate();
-        },
-    );
-
-    child.once(
-        "exit",
-        (code, signal) => {
-            runtimeState.running = false;
-
-            if (ollamaProcess === child) {
-                ollamaProcess = null;
-            }
-
-            if (code && code !== 0) {
-                runtimeState.error =
-                    `ollama exited with ${
-                        code ??
-                        signal ??
-                        "unknown status"
-                    }`;
-
-                logWarn(runtimeState.error);
-            }
-
-            emitOllamaUpdate();
-        },
-    );
-
     try {
+        await installOllamaService();
         await waitForOllama();
+
+        runtimeState.running = true;
+
+        logSuccess(
+            `ollama service ${OLLAMA_SERVICE_NAME} is running`,
+        );
+
+        emitOllamaUpdate();
+
         await preloadConfiguredOllamaModel();
     } catch (error: any) {
         runtimeState.running = false;
@@ -800,7 +917,7 @@ async function startOllamaInternal() {
             "ollama server did not become ready";
 
         logWarn(
-            `ollama startup failed: ${runtimeState.error}`,
+            `ollama startup failed: ${runtimeState.error} (see "journalctl --user -u ${OLLAMA_SERVICE_NAME}")`,
         );
 
         emitOllamaUpdate();
@@ -872,74 +989,31 @@ async function stopOllamaInternal() {
         return;
     }
 
-    const child = ollamaProcess;
-
-    if (!child) {
-        runtimeState.running = false;
-        emitOllamaUpdate();
-
-        return;
-    }
-
-    await new Promise<void>((resolve) => {
-        let finished = false;
-
-        let killTimer:
-            NodeJS.Timeout |
-            null = null;
-
-        const done = () => {
-            if (finished) return;
-
-            finished = true;
-
-            if (killTimer) {
-                clearTimeout(killTimer);
-            }
-
-            resolve();
-        };
-
-        child.once(
-            "exit",
-            done,
-        );
-
+    if (isOllamaServiceInstalled()) {
         try {
-            child.kill("SIGTERM");
-        } catch {
-            done();
-            return;
+            await systemctlUser("stop", OLLAMA_SERVICE_NAME);
+        } catch (error: any) {
+            logWarn(`failed to stop ollama service: ${error?.message ?? error}`);
         }
-
-        killTimer = setTimeout(
-            () => {
-                try {
-                    if (
-                        child.exitCode === null &&
-                        child.signalCode === null
-                    ) {
-                        child.kill("SIGKILL");
-                    }
-                } catch {
-                    // ignored, process is already gone
-                }
-
-                done();
-            },
-            5_000,
-        );
-
-        killTimer.unref();
-    });
-
-    if (ollamaProcess === child) {
-        ollamaProcess = null;
     }
 
     runtimeState.running = false;
 
     emitOllamaUpdate();
+}
+
+// Called when the app shuts down. The internal Ollama is a standalone service
+// and stays running (usable via SSH), only an external model gets unloaded.
+export async function shutdownOllama() {
+    if (processTransition) {
+        await processTransition.catch(
+            () => undefined,
+        );
+    }
+
+    if (isExternalOllamaEnabled()) {
+        await unloadConfiguredExternalOllamaModel();
+    }
 }
 
 export async function stopOllama() {
@@ -960,6 +1034,7 @@ export async function stopOllama() {
 
 export async function purgeOllama() {
     await stopOllama();
+    await uninstallOllamaService();
 
     // Wait for an active installer before deleting
     // the Ollama directory.
@@ -1014,7 +1089,7 @@ export async function restartOllama() {
     }
 
     if (isExternalAiEnabled()) {
-        deleteLocalOllamaModels();
+        await removeInternalOllama();
 
         if (isExternalOpenAiEnabled()) {
             await refreshExternalOpenAiState();
@@ -1042,7 +1117,7 @@ export async function syncOllamaIntegration(
     }
 
     if (isExternalAiEnabled()) {
-        deleteLocalOllamaModels();
+        await removeInternalOllama();
 
         if (isExternalOpenAiEnabled()) {
             await refreshExternalOpenAiState();
@@ -1610,7 +1685,7 @@ export async function changeOllamaModel(
     }
 
     if (isExternalAiEnabled()) {
-        deleteLocalOllamaModels();
+        await removeInternalOllama();
 
         if (isExternalOpenAiEnabled()) {
             await refreshExternalOpenAiState();
