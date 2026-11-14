@@ -56,6 +56,19 @@ if [[ ! -x "${STAGE_ROOT}/bin/ollama" ]]; then
     exit 1
 fi
 
+# Keep a self-built Vulkan backend (see build_ollama_vulkan.sh) when the
+# release has none and the Ollama version did not change.
+OLD_VULKAN="${OLLAMA_ROOT}/lib/ollama/vulkan"
+if [[ ! -d "${STAGE_ROOT}/lib/ollama/vulkan" && -f "${OLD_VULKAN}/.streambot-build-version" ]]; then
+    NEW_VERSION="$(OLLAMA_HOST=127.0.0.1:1 "${STAGE_ROOT}/bin/ollama" --version 2>&1 \
+        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?' | tail -n1 || true)"
+    if [[ -n "${NEW_VERSION}" && "$(cat "${OLD_VULKAN}/.streambot-build-version")" == "${NEW_VERSION}" ]]; then
+        mkdir -p "${STAGE_ROOT}/lib/ollama"
+        mv "${OLD_VULKAN}" "${STAGE_ROOT}/lib/ollama/vulkan"
+        echo "Keeping self-built Vulkan backend for Ollama ${NEW_VERSION}"
+    fi
+fi
+
 # Replace only the Ollama runtime. Models and local state stay in OLLAMA_ROOT.
 rm -rf "${OLLAMA_ROOT}/bin" "${OLLAMA_ROOT}/lib"
 

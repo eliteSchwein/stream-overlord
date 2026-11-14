@@ -150,18 +150,22 @@ function getOllamaBinary() {
     return path.join(getOllamaRoot(), "bin", "ollama");
 }
 
-function getInstallScript() {
+function getScript(name: string) {
     const candidates = [
-        path.resolve(__dirname, "../../scripts/install_ollama.sh"),
-        path.resolve(process.cwd(), "scripts/install_ollama.sh"),
+        path.resolve(__dirname, `../../scripts/${name}`),
+        path.resolve(process.cwd(), `scripts/${name}`),
     ];
 
     const script = candidates.find((candidate) => fs.existsSync(candidate));
     if (!script) {
-        throw new Error("scripts/install_ollama.sh not found");
+        throw new Error(`scripts/${name} not found`);
     }
 
     return script;
+}
+
+function getInstallScript() {
+    return getScript("install_ollama.sh");
 }
 
 function getModelConfigPath() {
@@ -415,15 +419,74 @@ async function removeInternalOllama() {
     deleteLocalOllamaModels();
 }
 
-function warnIfVulkanUnavailable() {
+let vulkanBuildPromise: Promise<void> | null = null;
+
+function hasVulkanBackend() {
+    return fs.existsSync(
+        path.join(getOllamaRoot(), "lib", "ollama", "vulkan", "libggml-vulkan.so"),
+    );
+}
+
+// Ollama only ships the Vulkan backend for amd64. On arm64 (Raspberry Pi) it
+// is compiled from the matching Ollama source in the background, then the
+// service is restarted to pick it up.
+function buildVulkanBackendInBackground() {
+    if (vulkanBuildPromise) return;
+
+    let script: string;
+    try {
+        script = getScript("build_ollama_vulkan.sh");
+    } catch (error: any) {
+        logWarn(`cannot build ollama vulkan backend: ${error?.message ?? error}`);
+        return;
+    }
+
+    logNotice("ollama has no vulkan backend for this architecture, building it in the background");
+
+    vulkanBuildPromise = runProcess(
+        "bash",
+        [script],
+        {...process.env, OLLAMA_ROOT: getOllamaRoot()},
+        "ollama vulkan build",
+    )
+        .then(async () => {
+            if (!hasVulkanBackend()) return;
+
+            if (
+                !isOllamaIntegrationEnabled() ||
+                isExternalAiEnabled() ||
+                !isOllamaServiceInstalled()
+            ) {
+                return;
+            }
+
+            logSuccess("ollama vulkan backend is ready, restarting ollama");
+
+            await restartOllama();
+        })
+        .catch((error: any) => {
+            logWarn(
+                `ollama vulkan backend build failed, using CPU: ${error?.message ?? error}`,
+            );
+        })
+        .finally(() => {
+            vulkanBuildPromise = null;
+        });
+}
+
+function ensureVulkanBackend() {
     if (process.env.OLLAMA_VULKAN === "0") {
         return;
     }
 
-    if (!fs.existsSync(path.join(getOllamaRoot(), "lib", "ollama", "vulkan"))) {
-        logWarn(
-            "ollama build has no bundled vulkan backend, GPU acceleration via vulkan is unavailable",
-        );
+    if (!hasVulkanBackend()) {
+        if (os.arch() === "arm64") {
+            buildVulkanBackendInBackground();
+        } else {
+            logWarn(
+                "ollama build has no bundled vulkan backend, GPU acceleration via vulkan is unavailable",
+            );
+        }
         return;
     }
 
@@ -763,6 +826,7 @@ function runProcess(
     command: string,
     args: string[],
     env: NodeJS.ProcessEnv = process.env,
+    label = "ollama install",
 ): Promise<void> {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, {
@@ -772,13 +836,13 @@ function runProcess(
 
         child.stdout?.on(
             "data",
-            (chunk) => logChildOutput("ollama install", chunk),
+            (chunk) => logChildOutput(label, chunk),
         );
 
         child.stderr?.on(
             "data",
             (chunk) => logChildOutput(
-                "ollama install",
+                label,
                 chunk,
                 true,
             ),
@@ -794,7 +858,7 @@ function runProcess(
 
             reject(
                 new Error(
-                    `ollama installer exited with ${
+                    `${label} exited with ${
                         code ??
                         signal ??
                         "unknown status"
@@ -893,7 +957,7 @@ async function startOllamaInternal() {
 
     await installOllama(false);
 
-    warnIfVulkanUnavailable();
+    ensureVulkanBackend();
 
     runtimeState.error = "";
 
