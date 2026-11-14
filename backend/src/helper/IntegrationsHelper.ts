@@ -142,6 +142,7 @@ export type Integrations = {
     ollama?: OllamaIntegration;
     steam?: SteamIntegration;
     cloud?: CloudIntegration;
+    webcam?: import("./webcam/WebcamStreamHelper").WebcamIntegration;
 };
 
 export type SafeObsIntegration = Omit<ObsIntegration, "password" | "connected"> & {

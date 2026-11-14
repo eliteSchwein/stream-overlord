@@ -304,6 +304,11 @@ function handleMessage(raw: string) {
         return;
     }
 
+    if (topType === "webcam_stream_credentials") {
+        post({type: "webcam", message});
+        return;
+    }
+
     if (["snapshot_request", "snapshot.request"].includes(topType)) {
         post({type: "snapshot-request"});
         return;

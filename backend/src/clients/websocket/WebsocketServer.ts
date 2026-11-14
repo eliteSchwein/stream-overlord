@@ -27,6 +27,7 @@ import {getCssOverrides} from "../../helper/CssOverrideHelper";
 import {getIntegrationsSafe} from "../../helper/IntegrationsHelper";
 import {getUpdateManagerStatus} from "../../helper/UpdateHelper";
 import {getOllamaUpdate} from "../../helper/OllamaHelper";
+import {getWebcamUpdate} from "../../helper/webcam/WebcamStreamHelper";
 import {getConfiguredEventIndex} from "../../helper/EventHelper";
 import {getDynamicData} from "../../helper/DynamicDataHelper";
 import {getSpeedtestState} from "../../helper/SpeedtestHelper";
@@ -161,6 +162,7 @@ export default class WebsocketServer {
         'notify_service_reload',
         'notify_update_manager',
         'notify_ollama_update',
+        'notify_webcam_update',
         'notify_events_update',
         'notify_dynamic_data_update',
         'notify_speedtest_update',
@@ -732,6 +734,7 @@ export default class WebsocketServer {
                 initialSend("notify_service_reload", {})
                 initialSend("notify_update_manager", getUpdateManagerStatus())
                 initialSend("notify_ollama_update", getOllamaUpdate())
+                initialSend("notify_webcam_update", getWebcamUpdate())
                 initialSend("notify_category_library_update", getCategoryLibrary())
                 initialSend("notify_category_active", getActiveCategoryPayload())
                 initialSend("notify_category_style_update", getActiveCategoryStylePayload())

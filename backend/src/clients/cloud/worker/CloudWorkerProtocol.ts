@@ -27,6 +27,8 @@ export type CloudWorkerToMainMessage =
     | {type: "close"; code: number; reason: string}
     | {type: "socket-error"; message: string}
     | {type: "kofi"; message: any}
+    // webcam_stream_credentials from the cloud (stream key + SRT publish URL).
+    | {type: "webcam"; message: any}
     | {type: "snapshot-request"}
     | {type: "api"; requestId: string; method: string; params: any; requestedByLogin: string}
     | {type: "log"; level: "regular" | "warn" | "error"; message: string};

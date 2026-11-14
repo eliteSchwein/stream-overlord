@@ -79,6 +79,8 @@ export default class CloudClient {
     private worker?: Worker;
     // True between a connect request and the worker reporting the socket closed.
     private socketActive = false;
+    // True between the worker's "open" and the socket closing.
+    private cloudOpen = false;
     // Latest local state per method while no worker is running, so the first
     // snapshot after (re)starting the worker is complete.
     private bufferedLocalState = new Map<string, {data: any; macros?: any}>();
@@ -375,6 +377,7 @@ export default class CloudClient {
         this.reconnectFailures = 0;
         this.clearReconnect();
         this.socketActive = false;
+        void this.notifyWebcam(false);
         if (this.worker) this.post({type: "disconnect"});
         setManagedConnection("cloud", {
             enabled: Boolean(getCloudIntegration().enabled),
@@ -382,6 +385,29 @@ export default class CloudClient {
             state: "disconnected",
             message: "disconnected",
         });
+    }
+
+    public isOpen() {
+        return this.cloudOpen;
+    }
+
+    // Sends a raw protocol message (e.g. webcam_stream_start) to the cloud.
+    public sendRaw(payload: any) {
+        if (!this.cloudOpen) return false;
+        this.post({type: "send", payload});
+        return true;
+    }
+
+    private async notifyWebcam(open: boolean) {
+        if (this.cloudOpen === open) return;
+        this.cloudOpen = open;
+
+        try {
+            const {handleWebcamCloudState} = await import("../../helper/webcam/WebcamStreamHelper");
+            handleWebcamCloudState(open);
+        } catch (error: any) {
+            logWarn(`webcam cloud state update failed: ${error?.message ?? error}`);
+        }
     }
 
     public syncModerators() {
@@ -521,6 +547,7 @@ export default class CloudClient {
                 logSuccess("cloud integration connected");
                 this.syncModerators();
                 this.sendSnapshot();
+                void this.notifyWebcam(true);
                 return;
 
             case "close":
@@ -540,6 +567,12 @@ export default class CloudClient {
                 await this.handleKofiEvent(message.message);
                 return;
 
+            case "webcam": {
+                const {handleWebcamCloudMessage} = await import("../../helper/webcam/WebcamStreamHelper");
+                handleWebcamCloudMessage(message.message);
+                return;
+            }
+
             case "api":
                 await this.handleApiRequest(message);
                 return;
@@ -554,6 +587,7 @@ export default class CloudClient {
 
     private handleSocketClose(code: number, reason: string) {
         this.socketActive = false;
+        void this.notifyWebcam(false);
         logWarn(`cloud websocket closed (${code}${reason ? `: ${reason}` : ""})`);
         setManagedConnection("cloud", {
             enabled: Boolean(getCloudIntegration().enabled),

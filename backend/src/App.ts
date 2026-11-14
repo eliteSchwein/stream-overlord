@@ -32,6 +32,7 @@ import loadRotateScenes from "./helper/RotateSceneHelper";
 import {ensureDefaultOllamaIntegration, loadIntegrationsCache} from "./helper/IntegrationsHelper";
 import {initializeUpdateManager, setUpdateManagerNotifier} from "./helper/UpdateHelper";
 import {shutdownOllama, syncOllamaIntegration} from "./helper/OllamaHelper";
+import {initWebcam, shutdownWebcam} from "./helper/webcam/WebcamStreamHelper";
 import {setRestoreNotifier} from "./helper/BackupRestoreHelper";
 import {initGiveaway} from "./helper/GiveawayHelper";
 import {initCategoryLibrary} from "./helper/CategoryLibraryHelper";
@@ -168,6 +169,7 @@ async function init() {
 
     setStage('starting_ollama')
     await syncOllamaIntegration()
+    void initWebcam()
 
     setStage('loading_system_components')
 
@@ -408,6 +410,7 @@ async function shutdown() {
         await triggerMacro("event_system_poweroff")
     }
 
+    shutdownWebcam()
     await shutdownOllama()
     await redis.disconnect()
     await stopMusicPlayer()

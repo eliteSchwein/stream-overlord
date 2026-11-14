@@ -82,4 +82,6 @@ bash install_polkit.sh
 bash install_systemctl_restart_sudo.sh streambottouch
 bash install_redis_cache_only.sh
 bash install_mediamtx.sh
+# Coral Edge TPU access for the webcam privacy blur (harmless without a Coral).
+sudo bash install_coral_udev.sh "$USER"
 bash migrateNode.sh

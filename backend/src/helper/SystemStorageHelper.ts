@@ -12,6 +12,7 @@ import {getCommandDirectory} from "../clients/twitch/TwitchCommands";
 import path from "node:path";
 import {getOllamaRoot} from "./OllamaHelper";
 import {getTtsRoot} from "./TTShelper";
+import {getWebcamBlurRoot} from "./webcam/WebcamStreamHelper";
 
 export type SystemStorageInfo = {
     root: string;
@@ -31,6 +32,8 @@ export type SystemStorageInfo = {
         auto_macros: number;
         ollama: number;
         tts: number;
+        // Webcam privacy blur: Python env, detection models, GPU/Coral runtimes.
+        webcam: number;
     };
 };
 
@@ -78,6 +81,7 @@ export function getSystemStorageInfo(): SystemStorageInfo {
             rotating_scenes: getDirectorySize(getRotateSceneDirectory()),
             ollama: getDirectorySize(getOllamaRoot()),
             tts: getDirectorySize(getTtsRoot()),
+            webcam: getDirectorySize(getWebcamBlurRoot()),
         },
     };
 }
