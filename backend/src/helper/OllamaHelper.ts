@@ -131,8 +131,9 @@ const runtimeState = {
     error: "",
     // Ollama runtime install or model change.
     progress: null as OllamaProgress | null,
-    // Background build of the vulkan backend (arm64).
-    vulkan_build: null as OllamaProgress | null,
+    // Install of the vulkan extension (drivers + backend build on arm64).
+    vulkan_install: null as OllamaProgress | null,
+    vulkan: null as OllamaVulkanStatus | null,
 };
 
 const PROGRESS_EMIT_INTERVAL = 250;
@@ -159,8 +160,8 @@ function setOllamaProgress(progress: OllamaProgress | null) {
     }
 }
 
-function setVulkanBuildProgress(progress: OllamaProgress | null) {
-    runtimeState.vulkan_build = progress;
+function setVulkanInstallProgress(progress: OllamaProgress | null) {
+    runtimeState.vulkan_install = progress;
 
     if (progress) {
         emitOllamaProgressThrottled();
@@ -176,7 +177,8 @@ export type OllamaUpdate = {
     installing: boolean;
     changing_model: boolean;
     progress: OllamaProgress | null;
-    vulkan_build: OllamaProgress | null;
+    vulkan_install: OllamaProgress | null;
+    vulkan: OllamaVulkanStatus | null;
     model: string;
     models: string[];
     // Recommendations from meta/ollama.json for this device's RAM size.
@@ -485,7 +487,39 @@ async function removeInternalOllama() {
     deleteLocalOllamaModels();
 }
 
-let vulkanBuildPromise: Promise<void> | null = null;
+// ---------------------------------------------------------------------------
+// Vulkan extension
+// ---------------------------------------------------------------------------
+
+export type OllamaVulkanStatus = {
+    // unsupported: no GPU with a known Vulkan driver
+    // installable: GPU can do Vulkan, drivers and/or backend are missing
+    // installed:   drivers + backend present (Ollama uses it when it detects a device)
+    status: "unsupported" | "installable" | "installed";
+    // Kernel drivers of the GPU render nodes, e.g. ["v3d"], ["i915"].
+    gpu_drivers: string[];
+    runtime: boolean;
+    backend: boolean;
+    // Vulkan devices reported by vulkaninfo (empty when unknown).
+    devices: string[];
+};
+
+// Kernel DRM drivers with a Vulkan driver (Mesa or vendor).
+const VULKAN_CAPABLE_DRM_DRIVERS = new Set([
+    "i915",     // Intel (ANV/hasvk)
+    "xe",       // Intel (ANV)
+    "amdgpu",   // AMD (RADV)
+    "nvidia",   // NVIDIA proprietary
+    "nouveau",  // NVIDIA (NVK)
+    "v3d",      // Raspberry Pi 4/5 (v3dv)
+    "msm",      // Qualcomm Adreno (turnip)
+    "panfrost", // Mali (panvk)
+    "panthor",  // Mali CSF (panvk)
+    "asahi",    // Apple silicon (honeykrisp)
+    "virtio_gpu", // VMs with venus
+]);
+
+let vulkanInstallPromise: Promise<void> | null = null;
 
 function hasVulkanBackend() {
     return fs.existsSync(
@@ -493,68 +527,124 @@ function hasVulkanBackend() {
     );
 }
 
-// Ollama only ships the Vulkan backend for amd64. On arm64 (Raspberry Pi) it
-// is compiled from the matching Ollama source in the background, then the
-// service is restarted to pick it up.
-function buildVulkanBackendInBackground() {
-    if (vulkanBuildPromise) return;
-
-    let script: string;
-    try {
-        script = getScript("build_ollama_vulkan.sh");
-    } catch (error: any) {
-        logWarn(`cannot build ollama vulkan backend: ${error?.message ?? error}`);
-        return;
-    }
-
-    logNotice("ollama has no vulkan backend for this architecture, building it in the background");
-
-    setVulkanBuildProgress({stage: "preparing"});
-
-    vulkanBuildPromise = runStreaming(
-        "bash",
-        [script],
-        {
-            env: {...process.env, OLLAMA_ROOT: getOllamaRoot()},
-            onLine: (line, stream) => handleVulkanBuildLine(line, stream),
-        },
-    )
-        .then(async () => {
-            if (!hasVulkanBackend()) return;
-
-            if (
-                !isOllamaIntegrationEnabled() ||
-                isExternalAiEnabled() ||
-                !isOllamaServiceInstalled()
-            ) {
-                return;
-            }
-
-            logSuccess("ollama vulkan backend is ready, restarting ollama");
-
-            await restartOllama();
-        })
-        .catch((error: any) => {
-            logWarn(
-                `ollama vulkan backend build failed, using CPU: ${error?.message ?? error}`,
-            );
-        })
-        .finally(() => {
-            vulkanBuildPromise = null;
-            setVulkanBuildProgress(null);
-        });
+function isVulkanExtensionEnabled() {
+    return fs.existsSync(path.join(getOllamaRoot(), ".vulkan-extension"));
 }
 
-// Progress ranges of the vulkan build script phases.
-const VULKAN_BUILD_PHASES: Array<{pattern: RegExp; stage: OllamaProgressStage; percent: number}> = [
-    {pattern: /^(missing build dependencies|installing build dependencies)/i, stage: "dependencies", percent: 0},
+function getGpuDrivers() {
+    const drivers = new Set<string>();
+
+    try {
+        for (const entry of fs.readdirSync("/sys/class/drm")) {
+            if (!entry.startsWith("renderD")) continue;
+
+            try {
+                drivers.add(path.basename(
+                    fs.realpathSync(`/sys/class/drm/${entry}/device/driver`),
+                ));
+            } catch {
+                // no driver bound
+            }
+        }
+    } catch {
+        // no DRM subsystem
+    }
+
+    return [...drivers];
+}
+
+function hasVulkanRuntime() {
+    const loaderDirs = [
+        "/usr/lib",
+        "/usr/lib64",
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/lib/aarch64-linux-gnu",
+        "/usr/local/lib",
+    ];
+    const icdDirs = [
+        "/usr/share/vulkan/icd.d",
+        "/etc/vulkan/icd.d",
+    ];
+
+    const hasLoader = loaderDirs.some((directory) =>
+        fs.existsSync(path.join(directory, "libvulkan.so.1")),
+    );
+    const hasIcd = icdDirs.some((directory) => {
+        try {
+            return fs.readdirSync(directory).some((file) => file.endsWith(".json"));
+        } catch {
+            return false;
+        }
+    });
+
+    return hasLoader && hasIcd;
+}
+
+async function getVulkanDevices() {
+    try {
+        const output = await runCommand("vulkaninfo", ["--summary"]);
+        const devices: string[] = [];
+        let deviceType = "";
+
+        for (const line of output.split("\n")) {
+            const type = line.match(/deviceType\s*=\s*(\S+)/);
+            if (type) {
+                deviceType = type[1];
+                continue;
+            }
+
+            const name = line.match(/deviceName\s*=\s*(.+)$/);
+            // Skip software rasterizers (llvmpipe), they are CPUs.
+            if (name && !/CPU/i.test(deviceType)) {
+                devices.push(name[1].trim());
+            }
+        }
+
+        return devices;
+    } catch {
+        // vulkaninfo missing or no working driver
+        return [];
+    }
+}
+
+export async function refreshVulkanStatus() {
+    const gpuDrivers = getGpuDrivers();
+    const capable = gpuDrivers.some((driver) => VULKAN_CAPABLE_DRM_DRIVERS.has(driver));
+    const runtime = hasVulkanRuntime();
+    const backend = isOllamaInstalled() && hasVulkanBackend();
+    const devices = runtime ? await getVulkanDevices() : [];
+
+    let status: OllamaVulkanStatus["status"] = "unsupported";
+    if (runtime && backend) {
+        status = "installed";
+    } else if (capable) {
+        status = "installable";
+    }
+
+    runtimeState.vulkan = {
+        status,
+        gpu_drivers: gpuDrivers,
+        runtime,
+        backend,
+        devices,
+    };
+
+    emitOllamaUpdate();
+
+    return runtimeState.vulkan;
+}
+
+// Progress ranges of the vulkan install script phases.
+const VULKAN_INSTALL_PHASES: Array<{pattern: RegExp; stage: OllamaProgressStage; percent: number}> = [
+    {pattern: /^installing vulkan drivers/i, stage: "dependencies", percent: 0},
+    {pattern: /^(missing build dependencies|installing build dependencies)/i, stage: "dependencies", percent: 1},
     {pattern: /^downloading ollama .* source/i, stage: "downloading", percent: 2},
     {pattern: /^configuring vulkan backend/i, stage: "configuring", percent: 5},
     {pattern: /^building vulkan backend/i, stage: "building", percent: 10},
 ];
 
-function handleVulkanBuildLine(line: string, stream: "stdout" | "stderr") {
-    const current = runtimeState.vulkan_build;
+function handleVulkanInstallLine(line: string, stream: "stdout" | "stderr") {
+    const current = runtimeState.vulkan_install;
 
     // ninja: "[123/456] Building CXX object ..."
     const step = line.match(/^\[(\d+)\/(\d+)\]\s*(.*)$/);
@@ -562,7 +652,7 @@ function handleVulkanBuildLine(line: string, stream: "stdout" | "stderr") {
         const completed = Number(step[1]);
         const total = Number(step[2]);
 
-        setVulkanBuildProgress({
+        setVulkanInstallProgress({
             stage: "building",
             percent: scalePercent((completed / total) * 100, 10, 99),
             completed,
@@ -573,12 +663,82 @@ function handleVulkanBuildLine(line: string, stream: "stdout" | "stderr") {
         return;
     }
 
-    const phase = VULKAN_BUILD_PHASES.find((entry) => entry.pattern.test(line));
+    const phase = VULKAN_INSTALL_PHASES.find((entry) => entry.pattern.test(line));
     if (phase) {
-        setVulkanBuildProgress({stage: phase.stage, percent: phase.percent, message: line});
+        setVulkanInstallProgress({stage: phase.stage, percent: phase.percent, message: line});
     }
 
-    logChildOutput("ollama vulkan build", line, stream === "stderr");
+    logChildOutput("ollama vulkan", line, stream === "stderr");
+}
+
+function runVulkanInstall(force: boolean) {
+    if (vulkanInstallPromise) return vulkanInstallPromise;
+
+    const script = getScript("install_ollama_vulkan.sh");
+
+    setVulkanInstallProgress({stage: "preparing"});
+
+    vulkanInstallPromise = runStreaming(
+        "bash",
+        force ? [script, "--force"] : [script],
+        {
+            env: {...process.env, OLLAMA_ROOT: getOllamaRoot()},
+            onLine: (line, stream) => handleVulkanInstallLine(line, stream),
+        },
+    )
+        .then(async () => {
+            await refreshVulkanStatus();
+
+            if (!hasVulkanBackend()) {
+                throw new Error("vulkan backend was not installed, see the log for details");
+            }
+
+            logSuccess("ollama vulkan extension is installed");
+
+            if (
+                isOllamaIntegrationEnabled() &&
+                !isExternalAiEnabled() &&
+                isOllamaServiceInstalled()
+            ) {
+                await restartOllama();
+            }
+        })
+        .catch((error: any) => {
+            const message = String(error?.message ?? error).split("\n")[0];
+
+            runtimeState.error = `vulkan extension install failed: ${message}`;
+            logWarn(runtimeState.error);
+        })
+        .finally(() => {
+            vulkanInstallPromise = null;
+            setVulkanInstallProgress(null);
+        });
+
+    return vulkanInstallPromise;
+}
+
+/**
+ * Installs the Vulkan extension (drivers, and on arm64 a self-built backend).
+ * Runs in the background, progress is reported via vulkan_install.
+ */
+export async function installOllamaVulkanExtension() {
+    if (!isOllamaIntegrationEnabled() || isExternalAiEnabled()) {
+        throw new Error("the vulkan extension is only available for the internal ollama");
+    }
+
+    if (!isOllamaInstalled()) {
+        throw new Error("ollama is not installed yet");
+    }
+
+    const status = await refreshVulkanStatus();
+    if (status.status === "unsupported") {
+        throw new Error("no GPU with vulkan support was found");
+    }
+
+    runtimeState.error = "";
+    void runVulkanInstall(true);
+
+    return getOllamaUpdate();
 }
 
 function ensureVulkanBackend() {
@@ -586,33 +746,18 @@ function ensureVulkanBackend() {
         return;
     }
 
-    if (!hasVulkanBackend()) {
-        if (os.arch() === "arm64") {
-            buildVulkanBackendInBackground();
-        } else {
-            logWarn(
-                "ollama build has no bundled vulkan backend, GPU acceleration via vulkan is unavailable",
-            );
-        }
-        return;
+    // After an Ollama update a self-built backend no longer matches; rebuild
+    // it when the user installed the extension before.
+    if (
+        !hasVulkanBackend() &&
+        isVulkanExtensionEnabled() &&
+        !vulkanInstallPromise
+    ) {
+        logNotice("rebuilding the ollama vulkan extension for the new ollama version");
+        void runVulkanInstall(false);
     }
 
-    const loaderDirs = [
-        "/usr/lib",
-        "/usr/lib64",
-        "/usr/lib/x86_64-linux-gnu",
-        "/usr/lib/aarch64-linux-gnu",
-        "/usr/local/lib",
-    ];
-    const hasLoader = loaderDirs.some((directory) =>
-        fs.existsSync(path.join(directory, "libvulkan.so.1")),
-    );
-
-    if (!hasLoader) {
-        logWarn(
-            "vulkan loader (libvulkan.so.1) not found, install libvulkan1 and mesa-vulkan-drivers to use iGPU acceleration",
-        );
-    }
+    void refreshVulkanStatus();
 }
 
 function getLocalOllamaModelRoot() {
@@ -867,7 +1012,8 @@ export function getOllamaUpdate(): OllamaUpdate {
         installing: runtimeState.installing,
         changing_model: runtimeState.changing_model,
         progress: runtimeState.progress,
-        vulkan_build: runtimeState.vulkan_build,
+        vulkan_install: runtimeState.vulkan_install,
+        vulkan: runtimeState.vulkan,
         model,
         models: getAvailableOllamaModels(),
         recommended_model: external ? "" : getRecommendedOllamaModel(),

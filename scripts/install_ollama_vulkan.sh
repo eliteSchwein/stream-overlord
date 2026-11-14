@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Builds the ggml Vulkan backend for the installed Ollama runtime.
+# Installs the Vulkan extension for the streambot Ollama runtime:
+#  1. the Vulkan loader and Mesa drivers (v3dv for Raspberry Pi, ANV/RADV)
+#  2. the ggml Vulkan backend. Ollama only ships lib/ollama/vulkan for amd64,
+#     on arm64 it is compiled from the Ollama source matching the installed
+#     version (upstream "vulkan" preset).
 #
-# Ollama only ships lib/ollama/vulkan for amd64. On arm64 (e.g. Raspberry Pi)
-# this compiles it from the Ollama source matching the installed version,
-# using upstream's own "vulkan" preset, and installs it to lib/ollama/vulkan.
-#
-# Usage: build_ollama_vulkan.sh [--force]
-# Exit codes: 0 = backend present/built or skipped, 1 = build failed,
-#             2 = build dependencies missing and cannot be installed.
+# Usage: install_ollama_vulkan.sh [--force]
+# Exit codes: 0 = installed (or build skipped), 1 = install/build failed,
+#             2 = dependencies missing and cannot be installed.
 set -euo pipefail
 
 OLLAMA_ROOT="${OLLAMA_ROOT:-${HOME}/.local/share/streambot/ollama}"
@@ -15,6 +15,8 @@ OLLAMA_BIN="${OLLAMA_ROOT}/bin/ollama"
 VULKAN_DIR="${OLLAMA_ROOT}/lib/ollama/vulkan"
 BUILD_MARKER="${VULKAN_DIR}/.streambot-build-version"
 FAILED_MARKER="${OLLAMA_ROOT}/.vulkan-build-failed"
+# Opt-in marker: the backend rebuilds the extension after Ollama updates.
+EXTENSION_MARKER="${OLLAMA_ROOT}/.vulkan-extension"
 FORCE=0
 
 if [[ "${1:-}" == "--force" ]]; then
@@ -39,9 +41,39 @@ if [[ -z "${VERSION}" ]]; then
     exit 1
 fi
 
+apt_install() {
+    if command -v apt-get >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+        sudo -n apt-get update
+        sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -y "$@"
+    else
+        echo "Cannot install packages without a password. Run once:" >&2
+        echo "  sudo apt-get install -y $*" >&2
+        exit 2
+    fi
+}
+
+# --- runtime: Vulkan loader + drivers ---------------------------------------
+
+has_vulkan_runtime() {
+    ldconfig -p 2>/dev/null | grep -q 'libvulkan\.so\.1' \
+        || compgen -G "/usr/lib/*/libvulkan.so.1" >/dev/null \
+        || [[ -e /usr/lib/libvulkan.so.1 ]] \
+        || return 1
+    compgen -G "/usr/share/vulkan/icd.d/*.json" >/dev/null \
+        || compgen -G "/etc/vulkan/icd.d/*.json" >/dev/null
+}
+
+if ! has_vulkan_runtime; then
+    echo "Installing Vulkan drivers..."
+    apt_install libvulkan1 mesa-vulkan-drivers vulkan-tools
+fi
+
+# --- backend ----------------------------------------------------------------
+
 if [[ -f "${VULKAN_DIR}/libggml-vulkan.so" ]]; then
     if [[ ! -f "${BUILD_MARKER}" || "$(cat "${BUILD_MARKER}")" == "${VERSION}" ]]; then
-        echo "Vulkan backend for Ollama ${VERSION} is already installed."
+        echo "${VERSION}" > "${EXTENSION_MARKER}"
+        echo "Vulkan backend for Ollama ${VERSION} is installed."
         exit 0
     fi
 fi
@@ -51,13 +83,9 @@ if [[ "${FORCE}" -eq 0 && -f "${FAILED_MARKER}" && "$(cat "${FAILED_MARKER}")" =
     exit 0
 fi
 
-# --- dependencies -----------------------------------------------------------
-
-APT_PACKAGES=(
+BUILD_PACKAGES=(
     build-essential cmake ninja-build git curl ca-certificates
     pkg-config libvulkan-dev glslc spirv-headers
-    # runtime: Vulkan loader and Mesa drivers (v3dv for Raspberry Pi, ANV/RADV)
-    libvulkan1 mesa-vulkan-drivers
 )
 
 missing_deps() {
@@ -72,16 +100,8 @@ missing_deps() {
 
 if [[ -n "$(missing_deps)" ]]; then
     echo "Missing build dependencies: $(missing_deps | tr '\n' ' ')"
-
-    if command -v apt-get >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-        echo "Installing build dependencies..."
-        sudo -n apt-get update
-        sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -y "${APT_PACKAGES[@]}"
-    else
-        echo "Cannot install them without a password. Run once:" >&2
-        echo "  sudo apt-get install -y ${APT_PACKAGES[*]}" >&2
-        exit 2
-    fi
+    echo "Installing build dependencies..."
+    apt_install "${BUILD_PACKAGES[@]}"
 
     if [[ -n "$(missing_deps)" ]]; then
         echo "Still missing: $(missing_deps | tr '\n' ' ')" >&2
@@ -150,6 +170,7 @@ mkdir -p "${VULKAN_DIR}"
 install -m 0755 "$(readlink -f "${LIB}")" "${VULKAN_DIR}/libggml-vulkan.so"
 strip --strip-unneeded "${VULKAN_DIR}/libggml-vulkan.so" 2>/dev/null || true
 echo "${VERSION}" > "${BUILD_MARKER}"
+echo "${VERSION}" > "${EXTENSION_MARKER}"
 rm -f "${FAILED_MARKER}"
 
 echo "Vulkan backend for Ollama ${VERSION} installed in ${VULKAN_DIR}"

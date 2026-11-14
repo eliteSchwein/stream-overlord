@@ -119,6 +119,7 @@ export { default as OllamaDirectApi } from "./Ollama/OllamaDirectApi";
 export { default as OllamaExternalApi } from "./Ollama/OllamaExternalApi";
 export { default as OllamaRestartApi } from "./Ollama/OllamaRestartApi";
 export { default as OllamaToggleApi } from "./Ollama/OllamaToggleApi";
+export { default as OllamaVulkanInstallApi } from "./Ollama/OllamaVulkanInstallApi";
 export { default as AdApi } from "./Overlay/AdApi";
 export { default as CompiledCustomStyleDownloadApi } from "./Overlay/CompiledCustomStyleDownloadApi";
 export { default as CustomStyleDownloadApi } from "./Overlay/CustomStyleDownloadApi";

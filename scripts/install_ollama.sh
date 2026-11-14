@@ -56,7 +56,7 @@ if [[ ! -x "${STAGE_ROOT}/bin/ollama" ]]; then
     exit 1
 fi
 
-# Keep a self-built Vulkan backend (see build_ollama_vulkan.sh) when the
+# Keep a self-built Vulkan backend (see install_ollama_vulkan.sh) when the
 # release has none and the Ollama version did not change.
 OLD_VULKAN="${OLLAMA_ROOT}/lib/ollama/vulkan"
 if [[ ! -d "${STAGE_ROOT}/lib/ollama/vulkan" && -f "${OLD_VULKAN}/.streambot-build-version" ]]; then
