@@ -8,7 +8,7 @@ import {logError, logNotice, logRegular, logWarn} from "./LogHelper";
 import {
     createAptProgressTracker,
     parseGitProgress,
-    parsePercent,
+    runInstallScriptWithProgress,
     runStreaming,
     scalePercent,
     type UpdateProgress,
@@ -209,48 +209,8 @@ async function runApt(name: string, packages: string[]) {
     );
 }
 
-/**
- * Runs one of the bundled install scripts (ollama/piper). They print
- * "Downloading ..." / "Extracting ..." / "... installed in ..." and use curl's
- * progress bar, which is mapped into the given overall range.
- */
 async function runInstallScript(name: string, script: string, to: number) {
-    const extractAt = scalePercent(85, 0, to);
-    let stage: UpdateProgressStage = "preparing";
-
-    setStage(name, "preparing", 0);
-
-    await runStreaming("bash", [script], {
-        onLine: (line, stream) => {
-            if (/^downloading\b/i.test(line)) {
-                stage = "downloading";
-                setStage(name, stage, 0, line);
-                return;
-            }
-
-            if (/^extracting\b/i.test(line)) {
-                stage = "extracting";
-                setStage(name, stage, extractAt, line);
-                return;
-            }
-
-            if (/installed in/i.test(line)) {
-                setStage(name, "installing", to, line);
-                return;
-            }
-
-            if (stage === "downloading" && stream === "stderr") {
-                const percent = parsePercent(line);
-                if (percent === undefined) return;
-
-                setProgress(name, {
-                    stage,
-                    percent: scalePercent(percent, 0, extractAt),
-                    package_percent: percent,
-                });
-            }
-        },
-    });
+    await runInstallScriptWithProgress(script, to, (progress) => setProgress(name, progress));
 }
 
 function getUpdatingManagerNames(excludeName?: string): string[] {

@@ -119,6 +119,64 @@ export function parsePercent(line: string): number | undefined {
     return Number.isFinite(value) && value <= 100 ? value : undefined;
 }
 
+/**
+ * Runs one of the bundled install scripts (ollama/piper). They print
+ * "Downloading ..." / "Extracting ..." / "... installed in ..." and use curl's
+ * progress bar, which is mapped into 0..`to` of the overall progress.
+ * Lines that are not part of curl's progress meter are passed to `onLog`.
+ */
+export async function runInstallScriptWithProgress(
+    script: string,
+    to: number,
+    onProgress: ProgressCallback,
+    onLog?: (line: string, stream: "stdout" | "stderr") => void,
+    env?: NodeJS.ProcessEnv,
+) {
+    const extractAt = scalePercent(85, 0, to);
+    let stage: UpdateProgressStage = "preparing";
+
+    onProgress({stage: "preparing", percent: 0});
+
+    await runStreaming("bash", [script], {
+        env,
+        onLine: (line, stream) => {
+            if (/^downloading\b/i.test(line)) {
+                stage = "downloading";
+                onProgress({stage, percent: 0, message: line});
+                onLog?.(line, stream);
+                return;
+            }
+
+            if (/^extracting\b/i.test(line)) {
+                stage = "extracting";
+                onProgress({stage, percent: extractAt, message: line});
+                onLog?.(line, stream);
+                return;
+            }
+
+            if (/installed in/i.test(line)) {
+                onProgress({stage: "installing", percent: to, message: line});
+                onLog?.(line, stream);
+                return;
+            }
+
+            if (stage === "downloading" && stream === "stderr") {
+                const percent = parsePercent(line);
+                if (percent !== undefined) {
+                    onProgress({
+                        stage,
+                        percent: scalePercent(percent, 0, extractAt),
+                        package_percent: percent,
+                    });
+                    return;
+                }
+            }
+
+            onLog?.(line, stream);
+        },
+    });
+}
+
 // ---------------------------------------------------------------------------
 // apt
 // ---------------------------------------------------------------------------

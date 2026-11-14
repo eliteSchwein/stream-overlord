@@ -1,5 +1,5 @@
 import axios, {AxiosError, Method} from "axios";
-import {execFile, spawn} from "node:child_process";
+import {execFile} from "node:child_process";
 import type {WebSocket} from "ws";
 import * as fs from "node:fs";
 import * as os from "node:os";
@@ -12,6 +12,7 @@ import {
     setOllamaIntegrationModel,
 } from "./IntegrationsHelper";
 import {logNotice, logRegular, logSuccess, logWarn} from "./LogHelper";
+import {runInstallScriptWithProgress, runStreaming, scalePercent} from "./UpdateProgress";
 
 const OLLAMA_API_URL = "http://127.0.0.1:11434";
 const OLLAMA_HOST = "127.0.0.1:11434";
@@ -97,13 +98,76 @@ function getOpenAiPath(pathname: string) {
 let installPromise: Promise<void> | null = null;
 let processTransition: Promise<void> | null = null;
 
+export type OllamaProgressStage =
+    | "preparing"
+    | "downloading"
+    | "extracting"
+    | "installing"
+    | "removing"
+    | "verifying"
+    | "loading"
+    | "dependencies"
+    | "configuring"
+    | "building";
+
+export type OllamaProgress = {
+    stage: OllamaProgressStage;
+    // Overall progress 0-100, undefined = indeterminate.
+    percent?: number;
+    // Bytes (model download) or build steps (vulkan build) of the current step.
+    completed?: number;
+    total?: number;
+    unit?: "bytes" | "steps";
+    // Model being downloaded.
+    model?: string;
+    message?: string;
+};
+
 const runtimeState = {
     running: false,
     installing: false,
     changing_model: false,
     external_models: [] as string[],
     error: "",
+    // Ollama runtime install or model change.
+    progress: null as OllamaProgress | null,
+    // Background build of the vulkan backend (arm64).
+    vulkan_build: null as OllamaProgress | null,
 };
+
+const PROGRESS_EMIT_INTERVAL = 250;
+let progressEmitTimer: NodeJS.Timeout | null = null;
+
+// Progress callbacks fire very often (curl, pull stream), emit at most every
+// PROGRESS_EMIT_INTERVAL ms.
+function emitOllamaProgressThrottled() {
+    if (progressEmitTimer) return;
+
+    progressEmitTimer = setTimeout(() => {
+        progressEmitTimer = null;
+        emitOllamaUpdate();
+    }, PROGRESS_EMIT_INTERVAL);
+}
+
+function setOllamaProgress(progress: OllamaProgress | null) {
+    runtimeState.progress = progress;
+
+    if (progress) {
+        emitOllamaProgressThrottled();
+    } else {
+        emitOllamaUpdate();
+    }
+}
+
+function setVulkanBuildProgress(progress: OllamaProgress | null) {
+    runtimeState.vulkan_build = progress;
+
+    if (progress) {
+        emitOllamaProgressThrottled();
+    } else {
+        emitOllamaUpdate();
+    }
+}
 
 export type OllamaUpdate = {
     enabled: boolean;
@@ -111,6 +175,8 @@ export type OllamaUpdate = {
     running: boolean;
     installing: boolean;
     changing_model: boolean;
+    progress: OllamaProgress | null;
+    vulkan_build: OllamaProgress | null;
     model: string;
     models: string[];
     // Recommendations from meta/ollama.json for this device's RAM size.
@@ -443,11 +509,15 @@ function buildVulkanBackendInBackground() {
 
     logNotice("ollama has no vulkan backend for this architecture, building it in the background");
 
-    vulkanBuildPromise = runProcess(
+    setVulkanBuildProgress({stage: "preparing"});
+
+    vulkanBuildPromise = runStreaming(
         "bash",
         [script],
-        {...process.env, OLLAMA_ROOT: getOllamaRoot()},
-        "ollama vulkan build",
+        {
+            env: {...process.env, OLLAMA_ROOT: getOllamaRoot()},
+            onLine: (line, stream) => handleVulkanBuildLine(line, stream),
+        },
     )
         .then(async () => {
             if (!hasVulkanBackend()) return;
@@ -471,7 +541,44 @@ function buildVulkanBackendInBackground() {
         })
         .finally(() => {
             vulkanBuildPromise = null;
+            setVulkanBuildProgress(null);
         });
+}
+
+// Progress ranges of the vulkan build script phases.
+const VULKAN_BUILD_PHASES: Array<{pattern: RegExp; stage: OllamaProgressStage; percent: number}> = [
+    {pattern: /^(missing build dependencies|installing build dependencies)/i, stage: "dependencies", percent: 0},
+    {pattern: /^downloading ollama .* source/i, stage: "downloading", percent: 2},
+    {pattern: /^configuring vulkan backend/i, stage: "configuring", percent: 5},
+    {pattern: /^building vulkan backend/i, stage: "building", percent: 10},
+];
+
+function handleVulkanBuildLine(line: string, stream: "stdout" | "stderr") {
+    const current = runtimeState.vulkan_build;
+
+    // ninja: "[123/456] Building CXX object ..."
+    const step = line.match(/^\[(\d+)\/(\d+)\]\s*(.*)$/);
+    if (step && current?.stage === "building") {
+        const completed = Number(step[1]);
+        const total = Number(step[2]);
+
+        setVulkanBuildProgress({
+            stage: "building",
+            percent: scalePercent((completed / total) * 100, 10, 99),
+            completed,
+            total,
+            unit: "steps",
+            message: step[3],
+        });
+        return;
+    }
+
+    const phase = VULKAN_BUILD_PHASES.find((entry) => entry.pattern.test(line));
+    if (phase) {
+        setVulkanBuildProgress({stage: phase.stage, percent: phase.percent, message: line});
+    }
+
+    logChildOutput("ollama vulkan build", line, stream === "stderr");
 }
 
 function ensureVulkanBackend() {
@@ -759,6 +866,8 @@ export function getOllamaUpdate(): OllamaUpdate {
         running: runtimeState.running,
         installing: runtimeState.installing,
         changing_model: runtimeState.changing_model,
+        progress: runtimeState.progress,
+        vulkan_build: runtimeState.vulkan_build,
         model,
         models: getAvailableOllamaModels(),
         recommended_model: external ? "" : getRecommendedOllamaModel(),
@@ -822,53 +931,6 @@ function logChildOutput(
     }
 }
 
-function runProcess(
-    command: string,
-    args: string[],
-    env: NodeJS.ProcessEnv = process.env,
-    label = "ollama install",
-): Promise<void> {
-    return new Promise((resolve, reject) => {
-        const child = spawn(command, args, {
-            env,
-            stdio: ["ignore", "pipe", "pipe"],
-        });
-
-        child.stdout?.on(
-            "data",
-            (chunk) => logChildOutput(label, chunk),
-        );
-
-        child.stderr?.on(
-            "data",
-            (chunk) => logChildOutput(
-                label,
-                chunk,
-                true,
-            ),
-        );
-
-        child.once("error", reject);
-
-        child.once("exit", (code, signal) => {
-            if (code === 0) {
-                resolve();
-                return;
-            }
-
-            reject(
-                new Error(
-                    `${label} exited with ${
-                        code ??
-                        signal ??
-                        "unknown status"
-                    }`,
-                ),
-            );
-        });
-    });
-}
-
 export async function installOllama(force = false) {
     if (!force && isOllamaInstalled()) return;
     if (installPromise) return installPromise;
@@ -883,9 +945,19 @@ export async function installOllama(force = false) {
 
             logRegular(`install ollama from ${script}`);
 
-            await runProcess(
-                "bash",
-                [script],
+            await runInstallScriptWithProgress(
+                script,
+                100,
+                (progress) => setOllamaProgress({
+                    stage: progress.stage as OllamaProgressStage,
+                    percent: progress.percent,
+                    message: progress.message,
+                }),
+                (line, stream) => logChildOutput(
+                    "ollama install",
+                    line,
+                    stream === "stderr",
+                ),
             );
 
             if (!isOllamaInstalled()) {
@@ -904,7 +976,7 @@ export async function installOllama(force = false) {
         } finally {
             runtimeState.installing = false;
             installPromise = null;
-            emitOllamaUpdate();
+            setOllamaProgress(null);
         }
     })();
 
@@ -1610,6 +1682,118 @@ async function getInstalledModelNames() {
         .filter(Boolean);
 }
 
+/**
+ * Downloads a model via the streaming pull API and reports the download
+ * progress mapped into from..to of the overall progress.
+ */
+async function pullOllamaModel(
+    model: string,
+    from = 0,
+    to = 100,
+) {
+    setOllamaProgress({stage: "preparing", percent: from, model});
+
+    const response = await getOllamaApi().post(
+        "/api/pull",
+        {
+            model,
+            stream: true,
+        },
+        {
+            timeout: 0,
+            responseType: "stream",
+        },
+    );
+
+    // Ollama pulls the layers (blobs) of a model separately, each with its
+    // own total/completed byte counts.
+    const layers = new Map<string, {total: number; completed: number}>();
+    let pullError = "";
+
+    const handleLine = (line: string) => {
+        if (!line.trim()) return;
+
+        let entry: any;
+        try {
+            entry = JSON.parse(line);
+        } catch {
+            return;
+        }
+
+        if (entry?.error) {
+            pullError = String(entry.error);
+            return;
+        }
+
+        const status = String(entry?.status ?? "");
+        const digest = String(entry?.digest ?? "");
+        const layerTotal = Number(entry?.total);
+
+        if (digest && Number.isFinite(layerTotal) && layerTotal > 0) {
+            layers.set(digest, {
+                total: layerTotal,
+                completed: Math.min(Number(entry?.completed) || 0, layerTotal),
+            });
+
+            let total = 0;
+            let completed = 0;
+            for (const layer of layers.values()) {
+                total += layer.total;
+                completed += layer.completed;
+            }
+
+            setOllamaProgress({
+                stage: "downloading",
+                percent: scalePercent((completed / total) * 100, from, to),
+                completed,
+                total,
+                unit: "bytes",
+                model,
+                message: status,
+            });
+            return;
+        }
+
+        if (/^pulling manifest/i.test(status)) {
+            setOllamaProgress({stage: "preparing", percent: from, model, message: status});
+            return;
+        }
+
+        if (/^(verifying|writing|removing|success)/i.test(status)) {
+            setOllamaProgress({stage: "verifying", percent: to, model, message: status});
+        }
+    };
+
+    await new Promise<void>((resolve, reject) => {
+        const stream = response.data as NodeJS.ReadableStream;
+        let buffer = "";
+
+        stream.on("data", (chunk: Buffer) => {
+            buffer += chunk.toString("utf8");
+
+            const lines = buffer.split("\n");
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+                handleLine(line);
+            }
+        });
+
+        stream.on("end", () => {
+            handleLine(buffer);
+
+            if (pullError) {
+                reject(new Error(pullError));
+                return;
+            }
+
+            resolve();
+        });
+
+        stream.on("error", reject);
+    });
+}
+
 async function pullConfiguredOllamaModel() {
     if (isExternalAiEnabled()) return;
 
@@ -1647,16 +1831,7 @@ async function pullConfiguredOllamaModel() {
             `download configured ollama model ${model}`,
         );
 
-        await getOllamaApi().post(
-            "/api/pull",
-            {
-                model,
-                stream: false,
-            },
-            {
-                timeout: 0,
-            },
-        );
+        await pullOllamaModel(model);
 
         logSuccess(
             `ollama model ${model} is ready`,
@@ -1675,7 +1850,7 @@ async function pullConfiguredOllamaModel() {
         runtimeState.changing_model =
             false;
 
-        emitOllamaUpdate();
+        setOllamaProgress(null);
     }
 }
 
@@ -1808,7 +1983,7 @@ export async function changeOllamaModel(
     runtimeState.changing_model = true;
     runtimeState.error = "";
 
-    emitOllamaUpdate();
+    setOllamaProgress({stage: "preparing", model: normalizedModel});
 
     try {
         await startOllama();
@@ -1817,12 +1992,19 @@ export async function changeOllamaModel(
             await getInstalledModelNames();
 
         for (
-            const installedModel
-            of installedModels
+            const [index, installedModel]
+            of installedModels.entries()
             ) {
             logRegular(
                 `delete ollama model ${installedModel}`,
             );
+
+            setOllamaProgress({
+                stage: "removing",
+                percent: scalePercent((index / installedModels.length) * 100, 0, 5),
+                model: normalizedModel,
+                message: installedModel,
+            });
 
             await getOllamaApi().delete(
                 "/api/delete",
@@ -1839,21 +2021,14 @@ export async function changeOllamaModel(
             `download ollama model ${normalizedModel}`,
         );
 
-        await getOllamaApi().post(
-            "/api/pull",
-            {
-                model:
-                normalizedModel,
-                stream: false,
-            },
-            {
-                timeout: 0,
-            },
-        );
+        await pullOllamaModel(normalizedModel, 5, 95);
 
         setOllamaIntegrationModel(
             normalizedModel,
         );
+
+        // Restart + preload, duration unknown.
+        setOllamaProgress({stage: "loading", model: normalizedModel});
 
         await restartOllama();
 
@@ -1872,6 +2047,6 @@ export async function changeOllamaModel(
         runtimeState.changing_model =
             false;
 
-        emitOllamaUpdate();
+        setOllamaProgress(null);
     }
 }
