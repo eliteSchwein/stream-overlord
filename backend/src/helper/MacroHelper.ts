@@ -1012,6 +1012,71 @@ function switchValuesMatch(input: any, caseInput: any): boolean {
     return false;
 }
 
+// Collects the case candidates of a random switch starting at `switchIndex`.
+// Consecutive case markers without a body between them share one body
+// (multiple inputs / fall-through) and therefore count as one candidate.
+// Returns a map of task index -> candidate ordinal plus the candidate weights.
+function collectRandomSwitchCandidates(tasks: any[], switchIndex: number, variables: any) {
+    const ordinals = new Map<number, number>();
+    const weights: number[] = [];
+    let depth = 0;
+
+    for (let index = switchIndex + 1; index < tasks.length; index++) {
+        const task = tasks[index];
+        if (task?.channel !== "switch") continue;
+
+        if (task.method === "switch") {
+            depth++;
+            continue;
+        }
+
+        if (task.method === "end_switch") {
+            if (depth === 0) break;
+            depth--;
+            continue;
+        }
+
+        if (depth !== 0 || task.method !== "case") continue;
+
+        // ordinals only holds depth-0 case markers, so a hit means the
+        // previous task is a case of this switch without a body in between.
+        if (ordinals.has(index - 1)) {
+            ordinals.set(index, ordinals.get(index - 1)!);
+            continue;
+        }
+
+        const rawWeight = interpolateTemplateValue(task.data?.weight ?? task.weight, variables);
+        const weight = rawWeight === undefined || rawWeight === null || rawWeight === ""
+            ? 1
+            : Number(rawWeight);
+
+        ordinals.set(index, weights.length);
+        weights.push(Number.isFinite(weight) && weight > 0 ? weight : 0);
+    }
+
+    return { ordinals, weights };
+}
+
+function pickWeightedIndex(weights: number[]): number {
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    if (total <= 0) return -1;
+
+    let roll = Math.random() * total;
+
+    for (let index = 0; index < weights.length; index++) {
+        if (weights[index] <= 0) continue;
+        roll -= weights[index];
+        if (roll < 0) return index;
+    }
+
+    // Floating point safety: fall back to the last case with a weight.
+    for (let index = weights.length - 1; index >= 0; index--) {
+        if (weights[index] > 0) return index;
+    }
+
+    return -1;
+}
+
 function shouldExecute(controlStack: any[]): boolean {
     return controlStack.every(block => block.active);
 }
@@ -1214,12 +1279,29 @@ export async function triggerMacro(name: string, variables: any = {}) {
                         const parentActive = shouldExecute(controlStack);
                         const data = task.data ?? {};
                         const input = data.input ?? task.input;
+                        const random = data.random === true || data.random === "true";
+
+                        let randomOrdinals: Map<number, number> | undefined;
+                        let randomIndex = -1;
+
+                        if (random && parentActive) {
+                            const candidates = collectRandomSwitchCandidates(tasks, taskIndex, variables);
+                            randomOrdinals = candidates.ordinals;
+                            randomIndex = pickWeightedIndex(candidates.weights);
+
+                            logRegular(randomIndex >= 0
+                                ? `random switch picked case ${randomIndex + 1}/${candidates.weights.length}`
+                                : `random switch has no selectable case`);
+                        }
 
                         controlStack.push({
                             type: "switch",
                             active: false,
                             parentActive,
                             input,
+                            random,
+                            randomOrdinals,
+                            randomIndex,
                             matched: false,
                             finished: false,
                             caseBodyStarted: false,
@@ -1265,7 +1347,9 @@ export async function triggerMacro(name: string, variables: any = {}) {
 
                         const data = task.data ?? {};
                         const caseInput = data.input ?? task.input;
-                        const active = switchValuesMatch(block.input, caseInput);
+                        const active = block.random
+                            ? block.randomIndex >= 0 && block.randomOrdinals?.get(taskIndex) === block.randomIndex
+                            : switchValuesMatch(block.input, caseInput);
 
                         block.active = active;
                         block.matched = active;
