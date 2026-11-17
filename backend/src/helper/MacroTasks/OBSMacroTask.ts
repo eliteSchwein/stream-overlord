@@ -94,7 +94,70 @@ export default class OBSMacroTask extends BaseMacroTask {
             return;
         }
 
+        if (method === "set_media_path") {
+            await this.setMediaPath(obsClient, obsData, connection);
+            return;
+        }
+
         await obsClient.send(method, obsData, connection);
+    }
+
+    private async setMediaPath(obsClient: any, data: any, connection: string) {
+        const inputName = String(data.inputName ?? '').trim();
+        const mediaPath = String(data.path ?? '').trim();
+
+        if (!inputName || !mediaPath) {
+            logWarn('obs set media path requires inputName and path');
+            return;
+        }
+
+        const websocket = obsClient.getOBSWebSocket(connection);
+
+        if (!websocket) {
+            logWarn(`obs ${connection} is currently not connected`);
+            return;
+        }
+
+        const current = await websocket.call('GetInputSettings', {inputName});
+        const inputKind = String(current?.inputKind ?? '');
+        const isUrl = /^[a-z][a-z0-9+.-]*:\/\//i.test(mediaPath) && !/^file:\/\//i.test(mediaPath);
+        let inputSettings: Record<string, any>;
+
+        // Each source kind stores its file under a different settings key.
+        if (inputKind.startsWith('ffmpeg_source')) {
+            inputSettings = isUrl
+                ? {is_local_file: false, input: mediaPath}
+                : {is_local_file: true, local_file: mediaPath};
+        } else if (inputKind.startsWith('image_source')) {
+            inputSettings = {file: mediaPath};
+        } else if (inputKind.startsWith('vlc_source')) {
+            inputSettings = {playlist: [{value: mediaPath, hidden: false, selected: false}]};
+        } else if (inputKind.startsWith('slideshow')) {
+            inputSettings = {files: [{value: mediaPath, hidden: false, selected: false}]};
+        } else if (String(data.settingKey ?? '').trim()) {
+            inputSettings = {[String(data.settingKey).trim()]: mediaPath};
+        } else {
+            logWarn(`obs set media path: unsupported input kind "${inputKind}" for ${inputName} (set settingKey to override)`);
+            return;
+        }
+
+        await websocket.call('SetInputSettings', {
+            inputName,
+            inputSettings,
+            overlay: true,
+        });
+
+        logRegular(`obs (${connection}): ${inputName} media path -> ${mediaPath}`);
+
+        const restart = data.restart === true || data.restart === 'true';
+        const isMediaInput = inputKind.startsWith('ffmpeg_source') || inputKind.startsWith('vlc_source');
+
+        if (restart && isMediaInput) {
+            await websocket.call('TriggerMediaInputAction', {
+                inputName,
+                mediaAction: 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART',
+            });
+        }
     }
 
     private sanitizeScreenshotData(data: any) {
