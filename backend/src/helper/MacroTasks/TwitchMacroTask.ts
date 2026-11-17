@@ -7,6 +7,8 @@ import {sleep} from "../../../../helper/GeneralHelper";
 import {disableRandomClips, enableRandomClips} from "../RandomClipsHelper";
 import {upsertStreamerClip} from "../StreamerClipCacheHelper";
 import {getTwitchUserObject} from "../TwitchUserInfoHelper";
+import {getCachedTwitchCategory} from "../TwitchDataHelper";
+import {getCurrentGameId} from "../GameHelper";
 
 export default class TwitchMacroTask extends BaseMacroTask {
     channel = "twitch";
@@ -225,6 +227,18 @@ export default class TwitchMacroTask extends BaseMacroTask {
                         return;
                     }
 
+                    // Category filter: explicit game_id, or same_category for the
+                    // category that is currently streamed.
+                    let clipGameId = text(data.game_id);
+                    if (!clipGameId && (data.same_category === true || data.same_category === "true")) {
+                        clipGameId = String(getCachedTwitchCategory()?.id ?? getCurrentGameId() ?? "").trim();
+                        if (clipGameId === "0") clipGameId = "";
+
+                        if (!clipGameId) {
+                            logWarn("twitch enable_random_clip: same_category set, but no current category known");
+                        }
+                    }
+
                     const result = await enableRandomClips(
                         api,
                         this.websocket,
@@ -277,12 +291,28 @@ export default class TwitchMacroTask extends BaseMacroTask {
                                     0,
                                     number(data.recent_clips, 0) ?? 0
                                 ),
+
+                            gameId: clipGameId,
                         }
                     );
 
+                    const maxLength = Math.min(60, Math.max(5, number(data.max_length, 60) ?? 60));
+
+                    if (!result) {
+                        // Still store something, so a macro can branch on `found`
+                        // or wait `playback_ms` (0) without an unresolved variable.
+                        storeResult({found: false, playback_ms: 0, game_id: clipGameId});
+                    }
+
                     if (result) {
+                        const playbackSeconds = Math.max(1, Math.min(Number(result.duration || 1), maxLength));
+
                         storeResult({
                             ...result,
+                            found: true,
+                            // what the overlay actually plays (duration capped at max_length)
+                            playback_seconds: playbackSeconds,
+                            playback_ms: Math.ceil(playbackSeconds * 1000),
                             channel,
                             playback_mode:
                                 data.playback_mode === "single"

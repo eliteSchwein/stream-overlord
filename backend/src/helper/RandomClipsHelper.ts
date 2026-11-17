@@ -20,6 +20,8 @@ export interface RandomClipOptions {
     showInfo: boolean;
     showTimer: boolean;
     recentClipsDays: number;
+    // Optional Twitch category/game id: only clips from this category are played.
+    gameId?: string;
 }
 
 export interface CachedClip {
@@ -323,13 +325,12 @@ function getEligibleClips(
     clips: CachedClip[],
     options: RandomClipOptions,
 ) {
-    if (!options.filterLongVideos) {
-        return clips;
-    }
+    const gameId = String(options.gameId ?? "").trim();
 
     return clips.filter(
         clip =>
-            clip.duration <= options.maxLength
+            (!gameId || String(clip.game_id ?? "") === gameId)
+            && (!options.filterLongVideos || clip.duration <= options.maxLength)
     );
 }
 
@@ -633,6 +634,7 @@ export async function enableRandomClips(
             `random clips: no eligible `
             + `clips found for `
             + `${pool.channel_display_name}`
+            + (normalized.gameId ? ` in category ${normalized.gameId}` : "")
         );
 
         websocket.send(
