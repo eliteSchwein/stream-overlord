@@ -460,7 +460,25 @@ export default class TwitchClient {
         const config = getConfig(/twitch/g)[0];
         const authRequired = config?.auth_required === true || config?.authRequired === true;
 
-        const authProvider = await this.auth.getAuthCode(authRequired, "control" as any);
+        let authProvider: Awaited<ReturnType<TwitchAuth["getAuthCode"]>>;
+
+        try {
+            authProvider = await this.auth.getAuthCode(authRequired, "control" as any);
+        } catch (error) {
+            if (generation !== this.connectGeneration) return;
+
+            // e.g. "Invalid refresh token" - the stored token was revoked or
+            // expired. Don't crash the app; the user has to re-authenticate.
+            setManagedConnection("twitch", {
+                enabled: false,
+                state: "auth_required",
+                connected: false,
+                message: `Twitch control auth failed: ${(error as Error)?.message ?? error}`
+            });
+            logWarn("twitch client skipped because control auth failed - please re-authenticate twitch");
+            logWarn((error as Error)?.message ?? String(error));
+            return;
+        }
 
         if (generation !== this.connectGeneration) {
             logRegular(`discard stale twitch connect generation ${generation}`);
